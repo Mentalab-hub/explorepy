@@ -5,7 +5,6 @@ Python API for Mentalab biosignal aquisition devices
 Under development
 
 .. image:: https://static1.squarespace.com/static/5428308ae4b0701411ea8aaf/t/59be746a90bade209a205adb/1542922455492/?format=1500w
-   :width: 200 px
    :scale: 30 %
    :align: center
 
