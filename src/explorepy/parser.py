@@ -27,6 +27,7 @@ class Parser:
     def _convert(self, pid, bin_data):
         if pid == 13:
             data = np.frombuffer(bin_data, dtype=self.dt_int16)
+            print("Accelerometer: ", data)
         elif pid == 19:
             temperature = np.frombuffer(bin_data[0], dtype=np.int8)
             light = (1000/4095) * np.frombuffer(bin_data[1:3], dtype=self.dt_uint16)
@@ -34,4 +35,10 @@ class Parser:
         elif pid == 27:
             pass  # TO DO: make sure the timestamp packet doesn't give an error
         elif pid == 144:
-            data = np.frombuffer(bin_data, dtype=self.dt_int16)
+            data = np.asarray([int.from_bytes(bin_data[x:x+3], byteorder='big', signed=True) for x in range(0, len(bin_data), 3)])
+            nChan = 5
+            vref = 2.4
+            nPacket = 33
+            data = data.reshape((nChan, nPacket))
+            eeg = data[1:, :].astype(np.float) * vref / (2 ^ 23 - 1) * 6/32
+            print("EEG data: ", eeg[:, 32])
