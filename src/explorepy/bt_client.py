@@ -1,4 +1,3 @@
-import parser
 import bluetooth
 import sys
 
@@ -94,17 +93,4 @@ class BtClient:
 
         self.is_connected = True
 
-    def accquire(self):
-        exp_parser = parser.Parser(socket=self.socket)
-        try:
-            while True:
-                self.pid = exp_parser.parse_packet()
-                if len(self.pid) == 0:
-                    self.is_connected = False
-                    break
-                print("package ID: [%i]" % self.pid)
-        except ValueError:
-            # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-            print("Disconnected, scanning for last connected device")
-            self.is_connected = False
-            self.socket.close()
+
