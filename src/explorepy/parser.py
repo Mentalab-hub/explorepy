@@ -25,6 +25,7 @@ class Parser:
         return pid
 
     def _convert(self, pid, bin_data, mode='print'):
+        data = None
         if pid == 13:
             data = np.frombuffer(bin_data, dtype=self.dt_int16)
             if mode == 'print':
