@@ -45,7 +45,7 @@ class Explore:
         exp_parser = Parser(socket=self.device[device_id].socket)
         try:
             while True:
-                pid = exp_parser.parse_packet()
+                pid, timestamp, data = exp_parser.parse_packet()
                 print("package ID: [%i]" % pid)
         except ValueError:
             # If value error happens, scan again for devices and try to reconnect (see reconnect function)
