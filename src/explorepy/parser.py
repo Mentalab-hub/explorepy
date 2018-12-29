@@ -4,25 +4,26 @@ import struct
 
 class Parser:
     """Parser class for explore device"""
-    def __init__(self, socket):
+    def __init__(self, socket=None, fid=None):
         """
 
         Args:
             socket:
         """
         self.socket = socket
+        self.fid = fid
         self.dt_int16 = np.dtype(np.int16).newbyteorder('<')
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
 
-    def parse_packet(self):
-        pid = struct.unpack('B', self.socket.recv(1))[0]
-        cnt = self.socket.recv(1)[0]
-        payload = struct.unpack('<H', self.socket.recv(2))[0]
-        timestamp = struct.unpack('<I', self.socket.recv(4))[0]
-        bin_data = self.socket.recv(payload-8)
-        fletcher = self.socket.recv(4)
-        data = self._convert(pid, bin_data)
-        return pid
+    def parse_packet(self, mode='print'):
+        pid = struct.unpack('B', self.read(1))[0]
+        cnt = self.read(1)[0]
+        payload = struct.unpack('<H', self.read(2))[0]
+        timestamp = struct.unpack('<I', self.read(4))[0]
+        bin_data = self.read(payload-8)
+        fletcher = self.read(4)
+        data = self._convert(pid, bin_data, mode)
+        return pid, timestamp, data
 
     def _convert(self, pid, bin_data, mode='print'):
         data = None
@@ -44,7 +45,7 @@ class Parser:
 
         elif pid == 144:
             data = np.asarray([int.from_bytes(bin_data[x:x+3],
-                                              byteorder='little', signed=True) for x in range(0, len(bin_data), 3)])
+                                              byteorder='big', signed=True) for x in range(0, len(bin_data), 3)])
             nChan = 5
             vref = 2.4
             nPacket = 33
@@ -54,3 +55,9 @@ class Parser:
                 print("EEG data: ", eeg[:, 32])
 
         return data
+
+    def read(self, n_bytes):
+        if self.socket is not None:
+            return self.socket.recv(n_bytes)
+        else:
+            return self.fid.read(n_bytes)
