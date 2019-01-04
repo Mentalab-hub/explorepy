@@ -49,11 +49,10 @@ class Parser:
             nChan = 5
             vref = 2.4
             nPacket = 33
-            data = data.reshape((nChan, nPacket))
-            eeg = data[1:, :].astype(np.float) * vref / (2 ** 23 - 1) * 6/32
+            data = data.reshape((nPacket, nChan)).astype(np.float).T
+            data[1:, :] = data[1:, :] * vref / ((2 ** 23) - 1) * 6./32.
             if mode == 'print':
-                print("EEG data: ", eeg[:, 32])
-
+                print("EEG data: ", data[1:, 32])
         return data
 
     def read(self, n_bytes):
