@@ -45,12 +45,12 @@ class Parser:
 
         elif pid == 144:
             data = np.asarray([int.from_bytes(bin_data[x:x+3],
-                                              byteorder='big', signed=True) for x in range(0, len(bin_data), 3)])
+                                              byteorder='little', signed=True) for x in range(0, len(bin_data), 3)])
             nChan = 5
             vref = 2.4
             nPacket = 33
             data = data.reshape((nChan, nPacket))
-            eeg = data[1:, :].astype(np.float) * vref / (2 ^ 23 - 1) * 6/32
+            eeg = data[1:, :].astype(np.float) * vref / (2 ** 23 - 1) * 6/32
             if mode == 'print':
                 print("EEG data: ", eeg[:, 32])
 
