@@ -1,6 +1,6 @@
 import numpy as np
-from .bt_client import BtClient
-from .parser import Parser
+from bt_client import BtClient
+from parser import Parser
 import csv
 
 

@@ -37,7 +37,7 @@ class Parser:
             light = (1000/4095) * np.frombuffer(bin_data[1:3], dtype=self.dt_uint16)
             battery = (16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(bin_data[3:5], dtype=self.dt_uint16)
             if mode == 'print':
-                print(f"Temperature: {temperature}, Light: {light}, Battery:{battery}")
+                print("Temperature: ",temperature, ", Light: ",light,", Battery: ", battery)
             data = (temperature, light, battery)
 
         elif pid == 27:
@@ -53,6 +53,42 @@ class Parser:
             data[1:, :] = data[1:, :] * vref / ((2 ** 23) - 1) * 6./32.
             if mode == 'print':
                 print("EEG data: ", data[1:, 32])
+
+        # 8 channel data addition
+        elif pid == 146:
+            data = np.asarray([int.from_bytes(bin_data[x:x + 3],
+                                              byteorder='little', signed=True) for x in range(0, len(bin_data), 3)])
+            nChan = 9
+            vref = 2.4
+            nPacket = -1
+            data = data.reshape((nPacket, nChan)).astype(np.float).T
+            data[0:, :] = data[0:, :] * vref / ((2 ** 23) - 1) * 6. / 32.
+            if mode == 'print':
+                print("EEG data: ", data[0:, -1])
+
+        elif pid == 30:
+            data = np.asarray([int.from_bytes(bin_data[x:x + 3],
+                                              byteorder='little', signed=True) for x in range(0, len(bin_data), 3)])
+            nChan = 9
+            vref = 4.5
+            nPacket = -1
+            data = data.reshape((nPacket, nChan)).astype(np.float).T
+            data[1:, :] = data[1:, :] * vref / ((2 ** 23) - 1) * 6. / 32.
+            if mode == 'print':
+                print("EEG data: ", data[0:, -1])
+
+
+        elif pid == 62:
+            data = np.asarray([int.from_bytes(bin_data[x:x + 3],
+                                              byteorder='little', signed=True) for x in range(0, len(bin_data), 3)])
+            nChan = 8
+            vref = 4.5
+            nPacket = -1
+            data = data.reshape((nPacket, nChan)).astype(np.float).T
+            data[0:, :] = data[0:, :] * vref / ((2 ** 23) - 1) * 6. / 32.
+            if mode == 'print':
+                print("EEG data: ", data[0:, -1])
+
         return data
 
     def read(self, n_bytes):

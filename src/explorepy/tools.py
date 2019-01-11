@@ -22,5 +22,11 @@ def bin2csv(bin_file):
                 csv_eeg.writerows(data.T.tolist())
             if pid == 13:
                 csv_orn.writerow([timestamp] + data.tolist())
+            if pid == 146:
+                csv_eeg.writerows(data.T.tolist())
+            if pid == 30:
+                csv_eeg.writerows(data.T.tolist())
+            if pid == 62:
+                csv_eeg.writerows(data.T.tolist())
 
             pid, timestamp, data = parser.parse_packet(mode='read')
