@@ -48,14 +48,14 @@ class Parser:
         """
         data = None
         if pid == 13:
-            data = np.frombuffer(bin_data, dtype=self.dt_int16)
-            data[0:3] *= 0.061  # Unit [mg/LSB]
-            data[3:6] *= 8.750  # Unit [mdps/LSB]
-            data[6:] *= 1.52  # Unit [mgauss/LSB]
+            data = np.copy(np.frombuffer(bin_data, dtype=self.dt_int16)).astype(np.float)
+            data[0:3] = 0.061 * data[0:3]  # Unit [mg/LSB]
+            data[3:6] = 8.750 * data[3:6]  # Unit [mdps/LSB]
+            data[6:] = 1.52 * data[6:]  # Unit [mgauss/LSB]
             if mode == 'print':
                 print("Accelerometer: ", data)
 
-        elif pid == 19:
+        elif pid == 19:  # Environment packet
             temperature = bin_data[0]
             light = (1000 / 4095) * np.frombuffer(bin_data[1:3], dtype=self.dt_uint16)  # Unit Lux
             battery = (16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(bin_data[3:5], dtype=self.dt_uint16)  # Unit Volt
@@ -63,8 +63,18 @@ class Parser:
                 print("Temperature: ", temperature, ", Light: ", light, ", Battery: ", battery)
             data = (temperature, light, battery)
 
-        elif pid == 27:
-            pass  # TODO: make sure the timestamp packet doesn't give an error
+        elif pid == 27:  # Host timestamp
+            data = struct.unpack('<Q', bin_data)[0]
+            if mode == 'print':
+                print("Host timestamp:", data)
+
+        elif pid == 111:  # Disconnect packet
+            data = None
+
+        elif pid == 99:  # Device info packet
+            data = struct.unpack('<I', bin_data)[0]
+            if mode == 'print':
+                print("Firmware version:", data)
 
         elif pid == 144:  # 4 channel device
             data = self._bit24ToInt(bin_data)
@@ -105,6 +115,9 @@ class Parser:
             data[0:, :] = data[0:, :] * vref / ((2 ** 23) - 1) * 6. / 32.
             if mode == 'print':
                 print("EEG data: ", data[0:, -1])
+        else:
+            print("Unknown Packet ID:", pid)
+            print("Length of the binary data:", len(bin_data))
 
         return data
 
