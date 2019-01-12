@@ -124,6 +124,7 @@ class Orientation(Packet):
         self.gyro = None
         self.mag = None
 
+
 class Environment(Packet):
     """Environment data packet"""
     def __init__(self, pid, data):
@@ -145,6 +146,7 @@ class Environment(Packet):
         # Implement the formula for the value
         self.battery = None
         self.light = None
+
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
