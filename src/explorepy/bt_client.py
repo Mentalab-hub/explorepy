@@ -10,11 +10,11 @@ class BtClient:
 
     def connect(self):
         explore_devices = []
+        print("Searching for nearby devices...")
         nearby_devices = bluetooth.discover_devices(lookup_names=True)
         counter = 0
         for address, name in nearby_devices:
             if "Explore" in name:
-                print("  %s - %s" % (address, name))
                 counter += 1
                 explore_devices.append([address, name])
 
