@@ -1,6 +1,6 @@
 import numpy as np
-from bt_client import BtClient
-from parser import Parser
+from .bt_client import BtClient
+from .parser import Parser
 import csv
 
 
@@ -47,7 +47,7 @@ class Explore:
         try:
             while True:
                 pid, timestamp, data = exp_parser.parse_packet()
-                print("package ID: [%i]" % pid)
+                print("packet ID: [%i]" % pid)
         except ValueError:
             # If value error happens, scan again for devices and try to reconnect (see reconnect function)
             print("Disconnected, scanning for last connected device")
