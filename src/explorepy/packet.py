@@ -71,7 +71,7 @@ class EEG94(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + self.data[:, -1]
+        return "EEG: " + str(self.data[:, -1])
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
@@ -99,7 +99,7 @@ class EEG98(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + self.data[:, -1]
+        return "EEG: " + str(self.data[:, -1])
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
@@ -127,7 +127,7 @@ class EEG99s(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + self.data[:, -1]
+        return "EEG: " + str(self.data[:, -1])
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
@@ -154,7 +154,7 @@ class EEG99(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + self.data[:, -1]
+        return "EEG: " + str(self.data[:, -1])
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
@@ -179,7 +179,7 @@ class Orientation(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "Acc: " + self.acc + "\tGyro: " + self.gyro + "\tMag: " + self.mag
+        return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
     def write_to_csv(self, csv_writer):
         csv_writer.writerow([self.timestamp] + self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
@@ -201,7 +201,7 @@ class Environment(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "Temperature: " + self.temperature + "\tLight: " + self.light + "\tBattery: " + self.battery
+        return "Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(self.battery)
 
 
 class TimeStamp(Packet):
@@ -218,7 +218,7 @@ class TimeStamp(Packet):
         assert fletcher == '0xFFFFFFFF', "Fletcher error!"
 
     def __str__(self):
-        return "Host timestamp: " + self.hostTimeStamp
+        return "Host timestamp: " + str(self.hostTimeStamp)
 
 
 class Disconnect(Packet):
@@ -250,3 +250,6 @@ class DeviceInfo(Packet):
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+
+    def __str__(self):
+        return "Firmware version: " + str(self.firmware_version)
