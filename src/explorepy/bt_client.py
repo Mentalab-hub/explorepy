@@ -2,13 +2,25 @@ import bluetooth
 import sys
 
 
+
+
 class BtClient:
+    """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
+
     def __init__(self):
         self.is_connected = False
         self.lastUsedAddress = None
         self.socket = None
 
     def connect(self):
+        """
+        Checks for available explore devices and establishes connection depending on number of devices
+        For now, only one device can be connected to a computer at the same time, however it is possible to choose which
+        device should be connected
+
+        Returns:
+
+        """
         explore_devices = []
         print("Searching for nearby devices...")
         nearby_devices = bluetooth.discover_devices(lookup_names=True)
@@ -55,6 +67,13 @@ class BtClient:
         self.socket.connect((host, port))
 
     def reconnect(self):
+        """
+        Scans for the last connected MAC adress. If it is available it tries to reconnect, otherwise the program will s
+        stop and give out a timeout error
+
+        Returns:
+
+        """
         timeout = 1
         is_reconnected = False
         while timeout < 5:
