@@ -52,7 +52,7 @@ class Parser:
         self.dt_int16 = np.dtype(np.int16).newbyteorder('<')
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
 
-    def parse_packet(self, mode='print'):
+    def parse_packet(self, mode="print", csv_files=None):
         r"""
         Reads and parses a package from a file or socket
         Args:
@@ -69,6 +69,11 @@ class Parser:
         packet = generate_packet(pid, timestamp, payload_data)
         if mode == "print":
             print(packet)
+        elif mode == "record":
+            if isinstance(packet, Orientation):
+                packet.write_to_csv(csv_files[1])
+            else:
+                packet.write_to_csv(csv_files[0])
 
         return packet
 
