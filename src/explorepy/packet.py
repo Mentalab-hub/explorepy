@@ -1,169 +1,252 @@
 import numpy as np
-from abc import ABC, abstractmethod
+import abc
 import struct
 
 
 class Packet:
     """An abstract base class for Explore packet"""
-    def __init__(self, pid, data):
+    __metadata__ = abc.ABCMeta
+
+    def __init__(self, timestamp, payload):
         """
         Should get the packet id and the remaining packet bytes and convert it to the
         Args:
-            pid:
-            data:
+            payload (bytearray): a byte array including binary data and fletcher
         """
-        self.pid = pid
-        self._check_validity(pid, data)
-        self.cnt = struct.unpack('B', data[0])
-        self.payload = struct.unpack('<H', data[1:3])
-        self.timestamp = struct.unpack('<I', data[3:5])
-        # TO DO: remove the converted bytes?
+        self.timestamp = timestamp
 
-    @abstractmethod
-    def _check_validity(self, pid, data):
-        """
-        Check if the length of the data is valid
-        Returns:
-            Validity: (bool)
-
-        """
-        # TO DO: Assert an error
+    @abc.abstractmethod
+    def __str__(self):
         pass
 
-    @abstractmethod
-    def _convert(self, data):
-        """
-        Read the binary data and convert it to real values
-        Args:
-            data:
-
-        Returns:
-
-        """
+    @abc.abstractmethod
+    def _convert(self, bin_data):
+        """Read the binary data and convert it to real values"""
         pass
 
-    @abstractmethod
-    def _check_fletcher(self, data):
-        """
+    @abc.abstractmethod
+    def _check_fletcher(self, fletcher):
+        """Checks if the fletcher is valid"""
+        pass
+
+    @abc.abstractmethod
+    def __str__(self):
+        """Print the data/info"""
+        pass
+
+    @staticmethod
+    def int24to32(bin_data):
+        r"""
+        converts binary data to int32
 
         Args:
-            data:
+            bin_data (list): list of bytes with the structure of int24
 
         Returns:
-
+            np.ndarray of int values
         """
-        # TO DO: check the validity of the Fletcher
-        pass
+        assert len(bin_data) % 3 == 0, "Packet length error!"
+        return np.asarray([int.from_bytes(bin_data[x:x + 3],
+                                          byteorder='little',
+                                          signed=True) for x in range(0, len(bin_data), 3)])
 
-class EEG4(Packet):
+
+class EEG94(Packet):
     """EEG packet for 4 channel device"""
-    def __init__(self, pid, data):
-        """
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
 
-        Args:
-            pid:
-            data:
-        """
-        super().__init__(pid, data)
-        self._convert(data)
+    def _convert(self, bin_data):
+        data = Packet.int24to32(bin_data)
+        n_chan = 5
+        v_ref = 2.4
+        n_packet = 33
+        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        self.dataStatus = data[0, :]
 
-    def _check_validity(self, pid, data):
-        # if len(data) != SOME_CONSTANT:
-        #     assert an error
-        pass
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
-    def _convert(self, data):
-        # Implement the formula for the value
-        self.data = None
-        self.status = None
+    def __str__(self):
+        return "EEG: " + self.data[:, -1]
+
+    def write_to_csv(self, csv_writer):
+        tmpstmp = np.zeros([self.data.shape[1], 1])
+        tmpstmp[:,:] = self.timestamp
+        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 
-class EEG8(Packet):
+class EEG98(Packet):
     """EEG packet for 8 channel device"""
-    def __init__(self, pid, data):
-        """
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
 
-        Args:
-            pid:
-            data:
-        """
-        super().__init__(pid, data)
-        self._convert(data)
+    def _convert(self, bin_data):
+        data = Packet.int24to32(bin_data)
+        n_chan = 9
+        v_ref = 2.4
+        n_packet = -1
+        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        self.status = data[0, :]
 
-    def _check_validity(self, pid, data):
-        # if len(data) != SOME_CONSTANT:
-        #     assert an error
-        pass
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
-    def _convert(self, data):
-        # Implement the formula for the value
-        self.data = None
-        self.status = None
+    def __str__(self):
+        return "EEG: " + self.data[:, -1]
+
+    def write_to_csv(self, csv_writer):
+        tmpstmp = np.zeros([self.data.shape[1], 1])
+        tmpstmp[:,:] = self.timestamp
+        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
+
+
+class EEG99s(Packet):
+    """EEG packet for 8 channel device"""
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        data = Packet.int24to32(bin_data)
+        n_chan = 9
+        v_ref = 4.5
+        n_packet = -1
+        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        self.status = data[0, :]
+
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+
+    def __str__(self):
+        return "EEG: " + self.data[:, -1]
+
+    def write_to_csv(self, csv_writer):
+        tmpstmp = np.zeros([self.data.shape[1], 1])
+        tmpstmp[:,:] = self.timestamp
+        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
+
+
+class EEG99(Packet):
+    """EEG packet for 8 channel device"""
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        data = Packet.int24to32(bin_data)
+        n_chan = 8
+        v_ref = 4.5
+        n_packet = -1
+        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        self.data = data * v_ref / ((2 ** 23) - 1) * 6. / 32.
+
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+
+    def __str__(self):
+        return "EEG: " + self.data[:, -1]
+
+    def write_to_csv(self, csv_writer):
+        tmpstmp = np.zeros([self.data.shape[1], 1])
+        tmpstmp[:,:] = self.timestamp
+        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis = 1).tolist())
 
 
 class Orientation(Packet):
     """Orientation data packet"""
-    def __init__(self, pid, data):
-        """
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
 
-        Args:
-            pid:
-            data:
-        """
-        super().__init__(pid, data)
-        self._convert(data)
+    def _convert(self, bin_data):
+        data = np.copy(np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder('<'))).astype(np.float)
+        self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
+        self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
+        self.mag = 1.52 * data[6:]  # Unit [mgauss/LSB]
 
-    def _check_validity(self, pid, data):
-        # if len(data) != SOME_CONSTANT:
-        #     assert an error
-        pass
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
-    def _convert(self, data):
-        # Implement the formula for the value
-        self.acc = None
-        self.gyro = None
-        self.mag = None
+    def __str__(self):
+        return "Acc: " + self.acc + "\tGyro: " + self.gyro + "\tMag: " + self.mag
+
+    def write_to_csv(self, csv_writer):
+        csv_writer.writerow([self.timestamp] + self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
 
 
 class Environment(Packet):
     """Environment data packet"""
-    def __init__(self, pid, data):
-        """
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
 
-        Args:
-            pid:
-            data:
-        """
-        super().__init__(pid, data)
-        self._convert(data)
+    def _convert(self, bin_data):
+        self.temperature = bin_data[0]
+        self.light = (1000 / 4095) * np.frombuffer(bin_data[1:3], dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Lux
+        self.battery = (16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Volt
 
-    def _check_validity(self, pid, data):
-        # if len(data) != SOME_CONSTANT:
-        #     assert an error
-        pass
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
-    def _convert(self, data):
-        # Implement the formula for the value
-        self.battery = None
-        self.light = None
+    def __str__(self):
+        return "Temperature: " + self.temperature + "\tLight: " + self.light + "\tBattery: " + self.battery
 
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
-    def __init__(self, pid, data):
-        """
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
 
-        Args:
-            pid:
-            data:
-        """
-        super().__init__(pid, data)
+    def _convert(self, bin_data):
+        self.hostTimeStamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
 
-    def _check_validity(self, pid, data):
-        # if len(data) != SOME_CONSTANT:
-        #     assert an error
+    def _check_fletcher(self, fletcher):
+        assert fletcher == '0xFFFFFFFF', "Fletcher error!"
+
+    def __str__(self):
+        return "Host timestamp: " + self.hostTimeStamp
+
+
+class Disconnect(Packet):
+    """Disconnect packet"""
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._check_fletcher(payload)
+
+    def _convert(self, bin_data):
+        """Disconnect packet has no data"""
         pass
 
-    def _convert(self, data):
-        # Implement the formula for the value
-        pass
+    def _check_fletcher(self, fletcher):
+        assert fletcher == '0xDEADBEAF', "Fletcher error!"
+
+    def __str__(self):
+        return "Device has been disconnected!"
+
+
+class DeviceInfo(Packet):
+    """Device information packet"""
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        self.firmware_version = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'))
+
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
