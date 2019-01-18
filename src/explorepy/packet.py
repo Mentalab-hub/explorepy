@@ -68,13 +68,15 @@ class EEG94(Packet):
         self.dataStatus = data[0, :]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == '0xDEADBEAF', "Fletcher error!"
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
         return "EEG: " + self.data[:, -1]
 
     def write_to_csv(self, csv_writer):
-        csv_writer.writerows(self.data.T.tolist())
+        tmpstmp = np.zeros([self.data.shape[1], 1])
+        tmpstmp[:,:] = self.timestamp
+        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 
 class EEG98(Packet):
@@ -94,13 +96,15 @@ class EEG98(Packet):
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == '0xDEADBEAF', "Fletcher error!"
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
         return "EEG: " + self.data[:, -1]
 
     def write_to_csv(self, csv_writer):
-        csv_writer.writerows(self.data.T.tolist())
+        tmpstmp = np.zeros([self.data.shape[1], 1])
+        tmpstmp[:,:] = self.timestamp
+        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 
 class EEG99s(Packet):
@@ -120,13 +124,15 @@ class EEG99s(Packet):
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == '0xDEADBEAF', "Fletcher error!"
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
         return "EEG: " + self.data[:, -1]
 
     def write_to_csv(self, csv_writer):
-        csv_writer.writerows(self.data.T.tolist())
+        tmpstmp = np.zeros([self.data.shape[1], 1])
+        tmpstmp[:,:] = self.timestamp
+        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 
 class EEG99(Packet):
@@ -136,7 +142,8 @@ class EEG99(Packet):
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
-    def _convert(self, data):
+    def _convert(self, bin_data):
+        data = Packet.int24to32(bin_data)
         n_chan = 8
         v_ref = 4.5
         n_packet = -1
@@ -144,13 +151,15 @@ class EEG99(Packet):
         self.data = data * v_ref / ((2 ** 23) - 1) * 6. / 32.
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == '0xDEADBEAF', "Fletcher error!"
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
         return "EEG: " + self.data[:, -1]
 
     def write_to_csv(self, csv_writer):
-        csv_writer.writerows(self.data.T.tolist())
+        tmpstmp = np.zeros([self.data.shape[1], 1])
+        tmpstmp[:,:] = self.timestamp
+        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis = 1).tolist())
 
 
 class Orientation(Packet):
@@ -167,7 +176,7 @@ class Orientation(Packet):
         self.mag = 1.52 * data[6:]  # Unit [mgauss/LSB]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == '0xDEADBEAF', "Fletcher error!"
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
         return "Acc: " + self.acc + "\tGyro: " + self.gyro + "\tMag: " + self.mag
@@ -189,7 +198,7 @@ class Environment(Packet):
         self.battery = (16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Volt
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == '0xDEADBEAF', "Fletcher error!"
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
         return "Temperature: " + self.temperature + "\tLight: " + self.light + "\tBattery: " + self.battery
@@ -240,4 +249,4 @@ class DeviceInfo(Packet):
         self.firmware_version = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'))
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == '0xDEADBEAF', "Fletcher error!"
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"

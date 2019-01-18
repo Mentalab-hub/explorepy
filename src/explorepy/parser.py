@@ -72,7 +72,8 @@ class Parser:
         elif mode == "record":
             if isinstance(packet, Orientation):
                 packet.write_to_csv(csv_files[1])
-            else:
+
+            elif isinstance(packet, EEG94) or  isinstance(packet, EEG98) or isinstance(packet, EEG99s)  or isinstance(packet, EEG99):
                 packet.write_to_csv(csv_files[0])
 
         return packet
