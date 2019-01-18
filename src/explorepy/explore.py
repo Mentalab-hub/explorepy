@@ -64,11 +64,11 @@ class Explore:
         """
         pass
 
-    def recordData(self, fileName, device_id=0):
+    def recordData(self, filename, device_id=0):
         exp_parser = Parser(socket=self.device[device_id].socket)
 
-        eeg_out_file = fileName + '_eeg.csv'
-        orn_out_file = fileName + '_orn.csv'
+        eeg_out_file = str(filename) + '_eeg.csv'
+        orn_out_file = str(filename) + '_orn.csv'
 
         with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
             f_orn.write('TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n')
@@ -80,16 +80,19 @@ class Explore:
             pid, timestamp, data = exp_parser.parse_packet(mode='read')
             while pid:
                 if pid == 144:
-                   data[0, :] = timestamp
+                    data[0, :] = timestamp
                     csv_eeg.writerows(data.T.tolist())
                 if pid == 146:
-                   data[0, :] = timestamp
-                    csv_eeg.writerows([timestamp] + data.T.tolist())
+                    data[0, :] = timestamp
+                    csv_eeg.writerows(data.T.tolist())
                 if pid == 30:
                     data[0, :] = timestamp
                     csv_eeg.writerows(data.T.tolist())
                 if pid == 62:
-                    csv_eeg.writerows(data.T.tolist())
+                    tmpstmp = np.zeros([1, data.shape[1]])
+                    tmpstmp[:, :] = timestamp
+                    csv_eeg.writerows(np.concatenate((tmpstmp.T, data.T), axis = 1).tolist())
+
                 if pid == 13:
                     csv_orn.writerow([timestamp] + data.tolist())
 

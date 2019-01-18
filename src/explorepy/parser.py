@@ -92,9 +92,9 @@ class Parser:
             vref = 2.4
             nPacket = -1
             data = data.reshape((nPacket, nChan)).astype(np.float).T
-            data[0:, :] = data[0:, :] * vref / ((2 ** 23) - 1) * 6. / 32.
+            data[1:, :] = data[0:, :] * vref / ((2 ** 23) - 1) * 6. / 32.
             if mode == 'print':
-                print("EEG data: ", data[0:, -1])
+                print("EEG data: ", data[1:, -1])
 
         elif pid == 30:  # 8 channel device + status (ADS1299)
             data = self._bit24ToInt(bin_data)
@@ -104,7 +104,7 @@ class Parser:
             data = data.reshape((nPacket, nChan)).astype(np.float).T
             data[1:, :] = data[1:, :] * vref / ((2 ** 23) - 1) * 6. / 32.
             if mode == 'print':
-                print("EEG data: ", data[0:, -1])
+                print("EEG data: ", data[1:, -1])
 
         elif pid == 62:  # 8 channel device (ADS1298)
             data = self._bit24ToInt(bin_data)
