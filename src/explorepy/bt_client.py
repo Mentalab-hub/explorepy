@@ -91,7 +91,7 @@ class BtClient:
 
         if timeout == 5:
             print("Device not found, exiting the program!")
-            exit()
+            return False
 
         uuid = "1101"   # Serial Port Profile (SPP) service
         service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)
@@ -111,5 +111,7 @@ class BtClient:
         self.socket.connect((host, port))
 
         self.is_connected = True
+
+        return self.is_connected
 
 
