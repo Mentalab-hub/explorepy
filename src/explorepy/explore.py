@@ -38,23 +38,6 @@ class Explore:
         """
         self.device[device_id].socket.close()
 
-    def reconnect(self,device_id = 0):
-        r"""
-        Reconnect to last connected device and reopen the parser
-
-        """
-        self.device[device_id].reconnect()
-        exp_parser = Parser(socket=self.device[device_id].socket)
-        try:
-            while True:
-                pid, timestamp, data = exp_parser.parse_packet()
-                print("packet ID: [%i]" % pid)
-        except ValueError:
-            # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-            print("Disconnected, scanning for last connected device")
-            self.device[device_id].is_connected = False
-            self.reconnect(device_id)
-
     def acquire(self, device_id=0):
         r"""
         Start getting data from the device
@@ -69,7 +52,8 @@ class Explore:
             # If value error happens, scan again for devices and try to reconnect (see reconnect function)
             print("Disconnected, scanning for last connected device")
             self.device[device_id].is_connected = False
-            self.reconnect(device_id)
+            self.device[device_id].reconnect()
+            self.acquire(device_id)
 
     def logData(self):
         r"""
@@ -109,7 +93,8 @@ class Explore:
             # If value error happens, scan again for devices and try to reconnect (see reconnect function)
             print("Disconnected, scanning for last connected device")
             self.device[device_id].is_connected = False
-            self.disconnect(device_id)
+            self.device[device_id].reconnect()
+            self.recordData(fileName, device_id)
 
     def push2lsl(self):
         r"""
