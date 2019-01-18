@@ -42,7 +42,7 @@ class BtClient:
                 k += 1
 
             selector = input('Please choose a device by entering the number in front of the MAC address: ')
-            self.lastUsedAddress = explore_devices[0][int(selector)]
+            self.lastUsedAddress = explore_devices[int(selector)][0]
 
         elif counter == 0:
             print("No devices found. Restart your device and run the code again.")
