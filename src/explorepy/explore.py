@@ -76,7 +76,7 @@ class Explore:
 
         eeg_out_file = file_name + "_eeg.csv"
         orn_out_file = file_name + "_orn.csv"
-
+        # TODO: If there is already a file with the same name, ask the user if he/she wants to replace the file
         with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
             f_orn.write(
