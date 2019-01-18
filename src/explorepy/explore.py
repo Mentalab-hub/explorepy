@@ -8,7 +8,6 @@ class Explore:
     r"""Mentalab Explore device"""
     def __init__(self, n_device=1):
         r"""
-
         Args:
             n_device (int): Number of devices to be connected
         """
@@ -20,20 +19,18 @@ class Explore:
 
     def connect(self, device_id=0):
         r"""
-
+        Connects to the nearby device. If there are more than one device, the user is asked to choose one of them
         Args:
-            id (int): device id
-
-        Returns:
+            device_id (int): device id
 
         """
         self.device[device_id].connect()
 
     def disconnect(self, device_id=None):
         r"""
-
+        Disconnects from the device
         Args:
-            id: device id (id=None for disconnecting all devices)
+            device_id (int): device id (id=None for disconnecting all devices)
 
         Returns:
 
@@ -41,10 +38,8 @@ class Explore:
         self.device[device_id].socket.close()
 
     def acquire(self, device_id=0):
-        r"""
-        Start getting data from the device
+        r"""Start getting data from the device """
 
-        """
         if self.parser is None:
             self.parser = Parser(socket=self.device[device_id].socket)
         is_acquiring = True
@@ -66,12 +61,21 @@ class Explore:
         """
         pass
 
-    def record_data(self, fileName, device_id=0):
+    def record_data(self, file_name, device_id=0):
+        r"""
+        Records the data in real-time
+        Args:
+            file_name (str): output file name
+            device_id (int): device id
+
+        Returns:
+
+        """
         if self.parser is None:
             self.parser = Parser(socket=self.device[device_id].socket)
 
-        eeg_out_file = fileName + "_eeg.csv"
-        orn_out_file = fileName + "_orn.csv"
+        eeg_out_file = file_name + "_eeg.csv"
+        orn_out_file = file_name + "_orn.csv"
 
         with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
