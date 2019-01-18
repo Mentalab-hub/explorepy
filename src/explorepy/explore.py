@@ -13,6 +13,8 @@ class Explore:
             n_device (int): Number of devices to be connected
         """
         self.device = []
+        self.socket = None
+        self.parser = None
         for i in range(n_device):
             self.device.append(BtClient())
 
@@ -43,17 +45,17 @@ class Explore:
         Start getting data from the device
 
         """
-        exp_parser = Parser(socket=self.device[device_id].socket)
-        try:
-            while True:
-                pid, timestamp, data = exp_parser.parse_packet()
-                print("packet ID: [%i]" % pid)
-        except ValueError:
-            # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-            print("Disconnected, scanning for last connected device")
-            self.device[device_id].is_connected = False
-            self.device[device_id].reconnect()
-            self.acquire(device_id)
+        if self.parser is None:
+            self.parser = Parser(socket=self.device[device_id].socket)
+        is_acquiring = True
+        while is_acquiring:
+            try:
+                packet = self.parser.parse_packet(mode="print")
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                self.device[device_id].is_connected = False
+                is_acquiring = self.device[device_id].reconnect()
 
     def log_data(self):
         r"""
@@ -65,7 +67,8 @@ class Explore:
         pass
 
     def record_data(self, fileName, device_id=0):
-        exp_parser = Parser(socket=self.device[device_id].socket)
+        if self.parser is None:
+            self.parser = Parser(socket=self.device[device_id].socket)
 
         eeg_out_file = fileName + "_eeg.csv"
         orn_out_file = fileName + "_orn.csv"
@@ -81,7 +84,7 @@ class Explore:
             is_acquiring = True
             while is_acquiring:
                 try:
-                    packet = exp_parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
                 except ValueError:
                     print("Disconnected, scanning for last connected device")
                     self.device[device_id].is_connected = False
