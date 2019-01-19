@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='explorepy',
-    version='0.1.3',
+    version='0.1.4',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description='%s\n%s' % (
