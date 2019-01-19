@@ -9,14 +9,28 @@ env:
     - TOXENV=docs
 matrix:
   include:
-{%- for env in tox_environments %}{{ '' }}
-    - python: '{{ env.split("-")[0] if env.startswith("pypy") else "{0[2]}.{0[3]}".format(env) }}'
-{% if env.startswith('py37') %}
-      dist: xenial
-{% endif %}
+    - python: '2.7'
       env:
-        - TOXENV={{ env }},report
-{%- endfor %}{{ '' }}
+        - TOXENV=py27,report
+    - python: '3.4'
+      env:
+        - TOXENV=py34,report
+    - python: '3.5'
+      env:
+        - TOXENV=py35,report
+    - python: '3.6'
+      env:
+        - TOXENV=py36,report
+    - python: '3.7'
+      dist: xenial
+      env:
+        - TOXENV=py37,report
+    - python: 'pypy'
+      env:
+        - TOXENV=pypy,report
+    - python: 'pypy3'
+      env:
+        - TOXENV=pypy3,report
 before_install:
   - python --version
   - uname -a
