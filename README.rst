@@ -1,4 +1,14 @@
 ========
+Python API for Mentalab biosignal aquisition devices
+========
+
+Under development
+
+.. image:: https://static1.squarespace.com/static/5428308ae4b0701411ea8aaf/t/59be746a90bade209a205adb/1542922455492/?format=1500w
+   :scale: 30 %
+   :align: center
+
+========
 Overview
 ========
 
@@ -15,6 +25,7 @@ Overview
     * - package
       - | |version| |wheel| |supported-versions| |supported-implementations|
         | |commits-since|
+
 .. |docs| image:: https://readthedocs.org/projects/explorepy/badge/?style=flat
     :target: https://readthedocs.org/projects/explorepy
     :alt: Documentation Status

@@ -2,4 +2,5 @@
 Authors
 =======
 
-* Mohamad Atayi - https://mentalab.co/
+* Mohamad Atayi - mentalab.co
+* Philipp Jakovleski - mentalab.co
