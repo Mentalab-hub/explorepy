@@ -63,7 +63,7 @@ setup(
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
     install_requires=[
-        'numpy==1.15.4', 'pybluez>=0.21'
+        'numpy==1.15.4', 'pybluez'
     ],
     extras_require={
         # eg:
