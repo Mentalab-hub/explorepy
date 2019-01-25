@@ -1,6 +1,7 @@
 import numpy as np
 from .bt_client import BtClient
 from .parser import Parser
+import bluetooth
 import csv
 
 
@@ -51,6 +52,9 @@ class Explore:
                 print("Disconnected, scanning for last connected device")
                 self.device[device_id].is_connected = False
                 is_acquiring = self.device[device_id].reconnect()
+            except bluetooth.BluetoothError:
+                print("some shit happened")
+                pass
 
     def log_data(self):
         r"""
@@ -77,6 +81,13 @@ class Explore:
         eeg_out_file = file_name + "_eeg.csv"
         orn_out_file = file_name + "_orn.csv"
         # TODO: If there is already a file with the same name, ask the user if he/she wants to replace the file
+
+        if eeg_out_file:
+            c = input("Files with this name already exist, are you sure you want to proceed? [Enter y/n]")
+
+        if c == 'n':
+            exit()
+
         with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
             f_orn.write(

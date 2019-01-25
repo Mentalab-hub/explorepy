@@ -232,7 +232,7 @@ class Disconnect(Packet):
         pass
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == '0xDEADBEAF', "Fletcher error!"
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
         return "Device has been disconnected!"
@@ -253,3 +253,24 @@ class DeviceInfo(Packet):
 
     def __str__(self):
         return "Firmware version: " + str(self.firmware_version)
+
+
+class Reconnect(Packet):
+    """Reconnect Packet"""
+
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        """Reconnect packet has no data"""
+        pass
+
+    def _check_fletcher(self, fletcher):
+        """"skip fletcher, might be corrupted?"""
+        #assert fletcher == b'\xce\xff\xda\xfe', "Fletcher error!"
+        pass
+
+    def __str__(self):
+        return "Reconnect starting soon!"

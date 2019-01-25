@@ -9,7 +9,7 @@ def generate_packet(pid, timestamp, bin_data):
     Args:
         pid (int): Packet ID
         timestamp (int): Timestamp
-        bin_data: Binary data
+        bin_data: Binary dat
 
     Returns:
         Packet
@@ -32,9 +32,11 @@ def generate_packet(pid, timestamp, bin_data):
         packet = EEG99s(timestamp, bin_data)
     elif pid == 62:  # 8 channel device (ADS1298 - EEG99)
         packet = EEG99(timestamp, bin_data)
+
     else:
-        assert False, "Unknown Packet ID:" + pid
+        print("Unknown Packet ID:" + str(pid))
         print("Length of the binary data:", len(bin_data))
+        packet = Reconnect(timestamp, bin_data)
 
     return packet
 
