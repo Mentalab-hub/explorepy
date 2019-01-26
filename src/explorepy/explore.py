@@ -83,31 +83,32 @@ class Explore:
         orn_out_file = file_name + "_orn.csv"
         # TODO: If there is already a file with the same name, ask the user if he/she wants to replace the file
 
-        c = 'y'
-
+        c = None
         if os.path.isfile(eeg_out_file):
-            c = input("Files with this name already exist, are you sure you want to proceed? [Enter y/n]")
+            c = input("A file with this name already exist, are you sure you want to proceed? [Enter y/n]")
+        while True:
+            if c == 'n':
+                exit()
+            elif c == 'y':
+                with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
+                    f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
+                    f_orn.write(
+                        "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
+                    f_eeg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
+                    csv_eeg = csv.writer(f_eeg, delimiter=",")
+                    csv_orn = csv.writer(f_orn, delimiter=",")
 
-        if c == 'n':
-            exit()
-
-
-        with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
-            f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
-            f_orn.write(
-                "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
-            f_eeg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
-            csv_eeg = csv.writer(f_eeg, delimiter=",")
-            csv_orn = csv.writer(f_orn, delimiter=",")
-
-            is_acquiring = True
-            while is_acquiring:
-                try:
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
-                except ValueError:
-                    print("Disconnected, scanning for last connected device")
-                    self.device[device_id].is_connected = False
-                    is_acquiring = self.device[device_id].reconnect()
+                    is_acquiring = True
+                    print("Recording...")
+                    while is_acquiring:
+                        try:
+                            packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                        except ValueError:
+                            print("Disconnected, scanning for last connected device")
+                            self.device[device_id].is_connected = False
+                            is_acquiring = self.device[device_id].reconnect()
+            else:
+                c = input("A file with this name already exist, are you sure you want to proceed? [Enter y/n]")
 
     def push2lsl(self):
         r"""
