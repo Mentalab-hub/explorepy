@@ -31,7 +31,7 @@ def generate_packet(pid, timestamp, bin_data):
     elif pid == 30:  # 8 channel device + status (ADS1299 - EEG99s)
         packet = EEG99s(timestamp, bin_data)
     elif pid == 62:  # 8 channel device (ADS1298 - EEG99)
-        packet = EEG99(timestamp, bin_data)
+        packet = EEG99s(timestamp, bin_data)    # TODO: Check with the firmware if it has status or not!
 
     else:
         print("Unknown Packet ID:" + str(pid))
