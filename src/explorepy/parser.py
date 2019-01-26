@@ -57,7 +57,7 @@ class Parser:
         Reads and parses a package from a file or socket
         Args:
             mode (str): logging mode {'print', None}
-
+            csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file)
         Returns:
 
         """
@@ -91,7 +91,9 @@ class Parser:
         """
         if self.socket is not None:
             byte_data = self.socket.recv(n_bytes)
-            assert len(byte_data) == n_bytes, "Received less number of bytes from socket!"
-            return byte_data
         else:
-            return self.fid.read(n_bytes)
+            byte_data = self.fid.read(n_bytes)
+        if len(byte_data) != n_bytes:
+            raise ValueError("Number of received bytes is less than expected")
+            # TODO: Create a specific exception for this case
+        return byte_data
