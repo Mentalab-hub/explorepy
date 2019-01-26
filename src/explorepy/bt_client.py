@@ -1,7 +1,5 @@
-import bluetooth
+import bluetooth, subprocess
 import sys
-
-
 
 
 class BtClient:
@@ -29,6 +27,7 @@ class BtClient:
             if "Explore" in name:
                 counter += 1
                 explore_devices.append([address, name])
+            print(name)
 
         if counter == 1:
             print("Device found: %s - %s" % (explore_devices[0][0], explore_devices[0][1]))
@@ -63,8 +62,10 @@ class BtClient:
         print("Connecting to \"%s\" on %s" % (name, host))
 
         # Create the client socket
+
         self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
         self.socket.connect((host, port))
+        self.socket.settimeout(10)
 
     def reconnect(self):
         """
@@ -74,11 +75,12 @@ class BtClient:
         Returns:
 
         """
+
         timeout = 1
         is_reconnected = False
         while timeout < 5:
             print("scanning")
-            nearby_devices = bluetooth.discover_devices(duration=15, lookup_names=True)
+            nearby_devices = bluetooth.discover_devices(duration=10, lookup_names=True)
             for address, name in nearby_devices:
                 if address == self.lastUsedAddress:
                     print("Former device found, attempting to reconnect")
@@ -91,6 +93,7 @@ class BtClient:
 
         if timeout == 5:
             print("Device not found, exiting the program!")
+            self.socket.close()
             return False
 
         uuid = "1101"   # Serial Port Profile (SPP) service
@@ -107,11 +110,14 @@ class BtClient:
         print("Connecting to \"%s\" on %s" % (name, host))
 
         # Create the client socket
+
         self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
         self.socket.connect((host, port))
+        self.socket.settimeout(10)
 
         self.is_connected = True
-
         return self.is_connected
+
+
 
 

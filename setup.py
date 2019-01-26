@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='explorepy',
-    version='0.1.0',
+    version='0.0.0',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description='%s\n%s' % (
@@ -49,26 +49,19 @@ setup(
         'Operating System :: POSIX',
         'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-        # uncomment if you test on these interpreters:
-        # 'Programming Language :: Python :: Implementation :: IronPython',
-        # 'Programming Language :: Python :: Implementation :: Jython',
-        # 'Programming Language :: Python :: Implementation :: Stackless',
-        'Topic :: Utilities',
+        'Topic :: Education',
+        'Topic :: Scientific/Engineering :: Medical Science Apps.',
+        'Topic :: Scientific/Engineering :: Visualization'
     ],
     keywords=[
-        # eg: 'keyword1', 'keyword2', 'keyword3',
+         'Mentalab', 'Explorepy', 'EEG signal',
     ],
     install_requires=[
-        'numpy'  # eg: 'aspectlib==1.1.1', 'six>=1.7',
+        'numpy', 'pybluez>=0.22'
     ],
     extras_require={
-        # eg:
-        #   'rst': ['docutils>=0.11'],
-        #   ':python_version=="2.6"': ['argparse'],
     },
     entry_points={
         'console_scripts': [

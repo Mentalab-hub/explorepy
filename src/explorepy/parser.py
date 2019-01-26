@@ -9,12 +9,12 @@ def generate_packet(pid, timestamp, bin_data):
     Args:
         pid (int): Packet ID
         timestamp (int): Timestamp
-        bin_data: Binary data
+        bin_data: Binary dat
 
     Returns:
         Packet
     """
-    if pid == 13: # Orientation
+    if pid == 13:  # Orientation
         packet = Orientation(timestamp, bin_data)
     elif pid == 19:  # Environment packet
         packet = Environment(timestamp, bin_data)
@@ -31,10 +31,12 @@ def generate_packet(pid, timestamp, bin_data):
     elif pid == 30:  # 8 channel device + status (ADS1299 - EEG99s)
         packet = EEG99s(timestamp, bin_data)
     elif pid == 62:  # 8 channel device (ADS1298 - EEG99)
-        packet = EEG99(timestamp, bin_data)
+        packet = EEG99s(timestamp, bin_data)    # TODO: Check with the firmware if it has status or not!
+
     else:
-        assert False, "Unknown Packet ID:" + pid
+        print("Unknown Packet ID:" + str(pid))
         print("Length of the binary data:", len(bin_data))
+        packet = Reconnect(timestamp, bin_data)
 
     return packet
 
@@ -57,7 +59,7 @@ class Parser:
         Reads and parses a package from a file or socket
         Args:
             mode (str): logging mode {'print', None}
-
+            csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file)
         Returns:
 
         """
@@ -73,7 +75,8 @@ class Parser:
             if isinstance(packet, Orientation):
                 packet.write_to_csv(csv_files[1])
 
-            elif isinstance(packet, EEG94) or  isinstance(packet, EEG98) or isinstance(packet, EEG99s)  or isinstance(packet, EEG99):
+            elif isinstance(packet, EEG94) or isinstance(packet, EEG98) or isinstance(packet, EEG99s) or isinstance(
+                packet, EEG99):
                 packet.write_to_csv(csv_files[0])
 
         return packet
@@ -89,6 +92,10 @@ class Parser:
 
         """
         if self.socket is not None:
-            return self.socket.recv(n_bytes)
+            byte_data = self.socket.recv(n_bytes)
         else:
-            return self.fid.read(n_bytes)
+            byte_data = self.fid.read(n_bytes)
+        if len(byte_data) != n_bytes:
+            raise ValueError("Number of received bytes is less than expected")
+            # TODO: Create a specific exception for this case
+        return byte_data
