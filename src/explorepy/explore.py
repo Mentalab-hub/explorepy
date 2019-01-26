@@ -54,7 +54,7 @@ class Explore:
                 self.device[device_id].is_connected = False
                 is_acquiring = self.device[device_id].reconnect()
             except bluetooth.BluetoothError:
-                print("some shit happened")
+                print("Bluetooth Error: Probably timeout")
                 pass
 
     def log_data(self):
