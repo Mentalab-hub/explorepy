@@ -8,6 +8,14 @@ def bin2csv(bin_file):
     assert extension == '.BIN', "File type error! File extension must be BIN."
     eeg_out_file = filename + '_eeg.csv'
     orn_out_file = filename + '_orn.csv'
+    c = 'y'
+
+    if os.path.isfile(eeg_out_file):
+
+        c = input("Files with this name already exist, are you sure you want to proceed? [Enter y/n]")
+
+    if c == 'n':
+        exit()
 
     with open(bin_file, "rb") as f_bin, open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
         parser = Parser(fid=f_bin)
