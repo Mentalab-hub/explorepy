@@ -30,18 +30,17 @@ Overview
     :target: https://readthedocs.org/projects/explorepy
     :alt: Documentation Status
 
-
-.. |travis| image:: https://travis-ci.org/bmeatayi/explorepy.svg?branch=master
+.. |travis| image:: https://travis-ci.org/Mentalab-hub/explorepy.svg?branch=master
     :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/bmeatayi/explorepy
+    :target: https://travis-ci.org/Mentalab-hub/explorepy
 
 .. |version| image:: https://img.shields.io/pypi/v/explorepy.svg
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/explorepy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/bmeatayi/explorepy/v0.1.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.0.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/bmeatayi/explorepy/compare/v0.1.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.0.0...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
     :alt: PyPI Wheel
@@ -58,7 +57,9 @@ Overview
 
 .. end-badges
 
+A Python API for Mentalab biosignal aquisition devices
 
+* Free software: MIT license
 
 Installation
 ============

@@ -16,17 +16,9 @@ def bin2csv(bin_file):
         f_eeg.write('TimeStamp, ch1, ch2, ch3, ch4\n')  # , ch5, ch6, ch7, ch8
         csv_eeg = csv.writer(f_eeg, delimiter=',')
         csv_orn = csv.writer(f_orn, delimiter=',')
-        pid, timestamp, data = parser.parse_packet(mode='read')
-        while pid:
-            if pid == 144:
-                csv_eeg.writerows(data.T.tolist())
-            if pid == 13:
-                csv_orn.writerow([timestamp] + data.tolist())
-            if pid == 146:
-                csv_eeg.writerows(data.T.tolist())
-            if pid == 30:
-                csv_eeg.writerows(data.T.tolist())
-            if pid == 62:
-                csv_eeg.writerows(data.T.tolist())
-
-            pid, timestamp, data = parser.parse_packet(mode='read')
+        while True:
+            try:
+                packet = parser.parse_packet(mode='record', csv_files=(csv_eeg, csv_orn))
+            except ValueError:
+                print("Binary file ended suddenly!")
+                return 0

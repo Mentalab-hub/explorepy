@@ -215,7 +215,7 @@ class TimeStamp(Packet):
         self.hostTimeStamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == '0xFFFFFFFF', "Fletcher error!"
+        assert fletcher == b'\xff\xff\xff\xff', "Fletcher error!"
 
     def __str__(self):
         return "Host timestamp: " + str(self.hostTimeStamp)
