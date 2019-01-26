@@ -49,21 +49,18 @@ setup(
         'Operating System :: POSIX',
         'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-        # uncomment if you test on these interpreters:
-        # 'Programming Language :: Python :: Implementation :: IronPython',
-        # 'Programming Language :: Python :: Implementation :: Jython',
-        # 'Programming Language :: Python :: Implementation :: Stackless',
-        'Topic :: Utilities',
+        'Topic :: Education',
+        'Topic :: Scientific/Engineering :: Medical Science Apps.',
+        'Topic :: Scientific/Engineering :: Visualization'
     ],
     keywords=[
-        # eg: 'keyword1', 'keyword2', 'keyword3',
+        'Mentalab', 'Explorepy', 'EEG signal',
     ],
     install_requires=[
-        'numpy'  # eg: 'aspectlib==1.1.1', 'six>=1.7',
+        'numpy', 'pybluez'  # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     extras_require={
         # eg:
