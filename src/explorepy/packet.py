@@ -54,7 +54,7 @@ class Packet:
 class EEG94(Packet):
     """EEG packet for 4 channel device"""
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(EEG94, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -82,7 +82,7 @@ class EEG94(Packet):
 class EEG98(Packet):
     """EEG packet for 8 channel device"""
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(EEG98, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -110,7 +110,7 @@ class EEG98(Packet):
 class EEG99s(Packet):
     """EEG packet for 8 channel device"""
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(EEG99s, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -138,7 +138,7 @@ class EEG99s(Packet):
 class EEG99(Packet):
     """EEG packet for 8 channel device"""
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(EEG99, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -165,7 +165,7 @@ class EEG99(Packet):
 class Orientation(Packet):
     """Orientation data packet"""
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(Orientation, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -188,7 +188,7 @@ class Orientation(Packet):
 class Environment(Packet):
     """Environment data packet"""
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(Environment, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -207,7 +207,7 @@ class Environment(Packet):
 class TimeStamp(Packet):
     """Time stamp data packet"""
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(TimeStamp, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -224,7 +224,7 @@ class TimeStamp(Packet):
 class Disconnect(Packet):
     """Disconnect packet"""
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(Disconnect, self).__init__(timestamp, payload)
         self._check_fletcher(payload)
 
     def _convert(self, bin_data):
@@ -241,7 +241,7 @@ class Disconnect(Packet):
 class DeviceInfo(Packet):
     """Device information packet"""
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(DeviceInfo, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -259,7 +259,7 @@ class Reconnect(Packet):
     """Reconnect Packet"""
 
     def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
+        super(Reconnect, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
