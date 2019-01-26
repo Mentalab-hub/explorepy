@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='explorepy',
-    version='0.1.4',
+    version='0.0.0',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description='%s\n%s' % (
@@ -63,7 +63,7 @@ setup(
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
     install_requires=[
-        'numpy>=1.1.1', 'pybluez'
+        'numpy'  # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     extras_require={
         # eg:
