@@ -26,7 +26,7 @@ class Explore:
             device_id (int): device id
 
         """
-        self.device[device_id].connect()
+        self.device[device_id].initBT()
 
     def disconnect(self, device_id=None):
         r"""
@@ -44,17 +44,22 @@ class Explore:
 
         if self.parser is None:
             self.parser = Parser(socket=self.device[device_id].socket)
+
+        self.device[device_id].connect()
+
         is_acquiring = True
         while is_acquiring:
+
             try:
                 packet = self.parser.parse_packet(mode="print")
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
-                self.device[device_id].is_connected = False
-                is_acquiring = self.device[device_id].reconnect()
+                is_acquiring = self.device[device_id].connect()
             except bluetooth.BluetoothError:
                 print("Bluetooth Error: Probably timeout")
+                self.device[device_id].connect()
+
                 pass
 
     def log_data(self):
@@ -106,7 +111,7 @@ class Explore:
                             except ValueError:
                                 print("Disconnected, scanning for last connected device")
                                 self.device[device_id].is_connected = False
-                                is_acquiring = self.device[device_id].reconnect()
+                                is_acquiring = self.device[device_id].connect()
                 else:
                     c = input("A file with this name already exist, are you sure you want to proceed? [Enter y/n]")
 
