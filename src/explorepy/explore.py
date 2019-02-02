@@ -134,7 +134,7 @@ class Explore:
 
         #Create 2 stream infos,
         info_orn = StreamInfo('Mentalab', 'Orientation', 8, 100, 'float32', 'myuid34234')
-        info_eeg =StreamInfo('Mentalab', 'EEG', 8, 100, 'float32', 'myuid34234')
+        info_eeg =StreamInfo('Mentalab', 'EEG', 4, 250, 'float32', 'myuid34234')
         r"""Start getting data from the device """
 
         print("now sending data...")
@@ -144,6 +144,7 @@ class Explore:
         while is_acquiring:
 
             try:
+                print("Pushing to lsl!")
                 packet = self.parser.parse_packet(mode="lsl", outlets=(StreamOutlet(info_orn),StreamOutlet(info_eeg)))
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)

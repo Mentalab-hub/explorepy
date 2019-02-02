@@ -95,7 +95,7 @@ class EEG94(EEG):
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
     def push_to_lsl(self, outlet):
-        outlet.push_sample(self.data.T.tolist())
+        outlet.push_sample(self.data[:, -1].tolist())
 
 
 class EEG98(EEG):
@@ -126,7 +126,7 @@ class EEG98(EEG):
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
     def push_to_lsl(self, outlet):
-        outlet.push_sample(self.data.T.tolist())
+        outlet.push_sample(self.data[:, -1].tolist())
 
 
 class EEG99s(EEG):
@@ -157,7 +157,7 @@ class EEG99s(EEG):
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
     def push_to_lsl(self, outlet):
-        outlet.push_sample(self.data.T.tolist())
+        outlet.push_sample(self.data[:, -1].tolist())
 
 
 class EEG99(EEG):

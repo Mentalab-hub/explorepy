@@ -85,6 +85,7 @@ class Parser:
 
         elif mode == "lsl":
             if isinstance(packet, Orientation):
+                pass
                 packet.push_to_lsl(outlets[0])
 
             elif isinstance(packet, EEG94) or isinstance(packet, EEG98) or isinstance(packet, EEG99s) or isinstance(
