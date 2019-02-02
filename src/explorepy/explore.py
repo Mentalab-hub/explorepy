@@ -47,32 +47,23 @@ class Explore:
             device_id (int): device id (id=None for disconnecting all devices)
         """
 
-        self.Socket = self.device[device_id].bt_connect()
+        self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.Socket)
+            self.parser = Parser(self.socket)
 
         is_acquiring = True
         while is_acquiring:
-
             try:
                 packet = self.parser.parse_packet(mode="print")
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
-                self.Socket = self.device[device_id].bt_connect()
-                time.sleep(1)
-                self.parser = Parser(self.Socket)
-
-                pass
-
+                socket = self.device[device_id].bt_connect()
+                self.parser.socket = socket
             except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
-                self.Socket = self.device[device_id].bt_connect()
-                time.sleep(1)
-                self.parser = Parser(self.Socket)
-
-                pass
+                print("Bluetooth Error: attempting reconnect. Error: ", error)
+                self.parser.socket = self.device[device_id].bt_connect()
 
     def record_data(self, file_name, device_id=0):
         r"""
@@ -84,10 +75,10 @@ class Explore:
         Returns:
 
         """
-        self.Socket = self.device[device_id].bt_connect()
+        self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.Socket)
+            self.parser = Parser(self.socket)
 
         eeg_out_file = file_name + "_eeg.csv"
         orn_out_file = file_name + "_orn.csv"
@@ -115,23 +106,15 @@ class Explore:
                 is_acquiring = True
                 print("Recording...")
                 while is_acquiring:
-                            try:
-                                packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
-
-                            except ValueError:
-                                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                                print("Disconnected, scanning for last connected device")
-                                self.Socket = self.device[device_id].bt_connect()
-                                time.sleep(1)
-                                self.parser = Parser(self.Socket)
-
-                                pass
-
-                            except bluetooth.BluetoothError as error:
-                                print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
-                                self.Socket = self.device[device_id].bt_connect()
-                                time.sleep(1)
-                                self.parser = Parser(self.Socket)
+                    try:
+                        packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    except ValueError:
+                        # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                        print("Disconnected, scanning for last connected device")
+                        self.parser.socket = self.device[device_id].bt_connect()
+                    except bluetooth.BluetoothError as error:
+                        print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                        self.parser.socket = self.device[device_id].bt_connect()
 
     def push2lsl(self):
         r"""
