@@ -59,7 +59,7 @@ setup(
          'Mentalab', 'Explorepy', 'EEG signal',
     ],
     install_requires=[
-        'numpy', 'pybluez>=0.22'
+        'numpy', 'pybluez>=0.22', 'pylsl>=1.13.1'
     ],
     extras_require={
     },
