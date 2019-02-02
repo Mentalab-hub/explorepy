@@ -51,6 +51,22 @@ class Packet:
                                           signed=True) for x in range(0, len(bin_data), 3)])
 
 
+class EEG(Packet):
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+
+    @abc.abstractmethod
+    def write_to_csv(self, csv_writer):
+        r"""
+        Write EEG data to csv file
+
+        Args:
+            csv_writer(csv_writer): csv writer object
+
+        """
+        pass
+
+
 class EEG94(Packet):
     """EEG packet for 4 channel device"""
     def __init__(self, timestamp, payload):
