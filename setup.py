@@ -24,8 +24,6 @@ def read(*names, **kwargs):
     ) as fh:
         return fh.read()
 
-os.system('sudo apt-get update')
-os.system('sudo apt-get install libbluetooth-dev')
 
 setup(
     name='explorepy',
