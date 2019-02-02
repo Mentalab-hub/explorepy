@@ -11,6 +11,8 @@ from os.path import dirname
 from os.path import join
 from os.path import splitext
 
+import os
+
 from setuptools import find_packages
 from setuptools import setup
 
@@ -22,10 +24,12 @@ def read(*names, **kwargs):
     ) as fh:
         return fh.read()
 
+os.system('sudo apt-get update')
+os.system('sudo apt-get install libbluetooth-dev')
 
 setup(
     name='explorepy',
-    version='0.0.0',
+    version='0.1.0',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description='%s\n%s' % (
@@ -49,6 +53,7 @@ setup(
         'Operating System :: POSIX',
         'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Topic :: Education',
@@ -56,12 +61,13 @@ setup(
         'Topic :: Scientific/Engineering :: Visualization'
     ],
     keywords=[
-         'Mentalab', 'Explorepy', 'EEG signal',
+        'Mentalab', 'Explorepy', 'EEG signal',
     ],
     install_requires=[
-        'numpy', 'pybluez>=0.22'
+        'numpy', 'pybluez'  # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     extras_require={
+
     },
     entry_points={
         'console_scripts': [

@@ -41,7 +41,11 @@ class Explore:
         self.device[device_id].socket.close()
 
     def acquire(self, device_id=0):
-        r"""Start getting data from the device """
+        r"""
+        Start getting data from the device
+        Args:
+            device_id (int): device id (id=None for disconnecting all devices)
+        """
 
         self.Socket = self.device[device_id].bt_connect()
 
@@ -70,15 +74,6 @@ class Explore:
 
                 pass
 
-    def log_data(self):
-        r"""
-        Print the data in the terminal/console
-
-        Returns:
-
-        """
-        pass
-
     def record_data(self, file_name, device_id=0):
         r"""
         Records the data in real-time
@@ -105,17 +100,21 @@ class Explore:
                 if c == 'n':
                     exit()
                 elif c == 'y':
-                    with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
-                        f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
-                        f_orn.write(
-                            "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
-                        f_eeg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
-                        csv_eeg = csv.writer(f_eeg, delimiter=",")
-                        csv_orn = csv.writer(f_orn, delimiter=",")
+                    break
+                else:
+                    c = input("A file with this name already exist, are you sure you want to proceed? [Enter y/n]")
+        while True:
+            with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
+                f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
+                f_orn.write(
+                    "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
+                f_eeg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
+                csv_eeg = csv.writer(f_eeg, delimiter=",")
+                csv_orn = csv.writer(f_orn, delimiter=",")
 
-                        is_acquiring = True
-                        print("Recording...")
-                        while is_acquiring:
+                is_acquiring = True
+                print("Recording...")
+                while is_acquiring:
                             try:
                                 packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
 
@@ -133,10 +132,6 @@ class Explore:
                                 self.Socket = self.device[device_id].bt_connect()
                                 time.sleep(1)
                                 self.parser = Parser(self.Socket)
-
-                                pass
-                else:
-                    c = input("A file with this name already exist, are you sure you want to proceed? [Enter y/n]")
 
     def push2lsl(self):
         r"""
