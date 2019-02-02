@@ -66,7 +66,7 @@ class BtClient:
 
         print("Connecting to \"%s\" on %s" % (self.name, self.host))
 
-    def connect(self):
+    def bt_connect(self):
         """
         creates the socket
 
@@ -79,14 +79,15 @@ class BtClient:
         time.sleep(10)
         while True:
             try:
-                self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-                self.socket.connect((self.host, self.port))
+                socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+                socket.connect((self.host, self.port))
                 print("socket online!:", self.host, " : ", self.port)
                 break
             except bluetooth.BluetoothError as error:
-                self.socket.close()
+                socket.close()
                 print("Could not connect: ", error, "; Retrying in 10s...")
                 time.sleep(10)
+        return socket
 
 
     def reconnect(self):
@@ -118,16 +119,3 @@ class BtClient:
             print("Device not found, exiting the program!")
             self.socket.close()
             return False
-
-
-        # Create the client socket
-
-        self.socket.connect((self.host, self.port))
-        self.socket.settimeout(10)
-
-        self.is_connected = True
-        return self.is_connected
-
-
-
-
