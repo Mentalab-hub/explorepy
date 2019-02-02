@@ -157,7 +157,8 @@ class EEG99s(EEG):
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
     def push_to_lsl(self, outlet):
-        outlet.push_sample(self.data.T.tolist())
+        for sample in self.data.T:
+            outlet.push_sample(sample.tolist())
 
 
 class EEG99(EEG):
