@@ -127,14 +127,14 @@ class Explore:
 
 
 
-        self.Socket=self.device[device_id].bt_connect()
+        self.socket=self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.Socket)
+            self.parser = Parser(self.socket)
 
         #Create 2 stream infos,
         info_orn = StreamInfo('Mentalab', 'Orientation', 8, 100, 'float32', 'myuid34234')
-        info_eeg =StreamInfo('Mentalab', 'EEG', 8, 100, 'float32', 'myuid34234')
+        info_eeg =StreamInfo('Mentalab', 'EEG', 8, 100, 'float32', 'myuid34235')
         r"""Start getting data from the device """
 
         print("now sending data...")
@@ -148,17 +148,17 @@ class Explore:
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
-                self.Socket = self.device[device_id].bt_connect()
+                self.socket = self.device[device_id].bt_connect()
                 time.sleep(1)
-                self.parser = Parser(self.Socket)
+                self.parser = Parser(self.socket)
 
                 pass
 
             except bluetooth.BluetoothError as error:
                 print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
-                self.Socket = self.device[device_id].bt_connect()
+                self.socket = self.device[device_id].bt_connect()
                 time.sleep(1)
-                self.parser = Parser(self.Socket)
+                self.parser = Parser(self.socket)
 
                 pass
 
