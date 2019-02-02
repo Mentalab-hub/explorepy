@@ -2,6 +2,28 @@ import numpy as np
 import struct
 from .packet import *
 
+ORN_ID = 13
+ENV_ID = 19
+TS_ID = 27
+DISCONNECT_ID = 111
+INFO_ID = 99
+EEG94_ID = 144
+EEG98_ID = 146
+EEG99S_ID = 30
+EEG99_ID = 62
+
+PACKET_CLASS_DICT = {
+    ORN_ID: Orientation,
+    ENV_ID: Environment,
+    TS_ID: TimeStamp,
+    DISCONNECT_ID: Disconnect,
+    INFO_ID: DeviceInfo,
+    EEG94_ID: EEG94,
+    EEG98_ID: EEG98,
+    EEG99S_ID: EEG99s,
+    EEG99_ID: EEG99s  # TODO: Check with the firmware if it has status or not!
+}
+
 
 def generate_packet(pid, timestamp, bin_data):
     r"""
@@ -14,30 +36,13 @@ def generate_packet(pid, timestamp, bin_data):
     Returns:
         Packet
     """
-    if pid == 13:  # Orientation
-        packet = Orientation(timestamp, bin_data)
-    elif pid == 19:  # Environment packet
-        packet = Environment(timestamp, bin_data)
-    elif pid == 27:  # Host timestamp
-        packet = TimeStamp(timestamp, bin_data)
-    elif pid == 111:  # Disconnect packet
-        packet = Disconnect(timestamp, bin_data)
-    elif pid == 99:  # Device info packet
-        packet = DeviceInfo(timestamp, bin_data)
-    elif pid == 144:  # 4 channel device (EEG94)
-        packet = EEG94(timestamp, bin_data)
-    elif pid == 146:  # 8 channel device + status (ADS1298 - EEG98)
-        packet = EEG98(timestamp, bin_data)
-    elif pid == 30:  # 8 channel device + status (ADS1299 - EEG99s)
-        packet = EEG99s(timestamp, bin_data)
-    elif pid == 62:  # 8 channel device (ADS1298 - EEG99)
-        packet = EEG99s(timestamp, bin_data)    # TODO: Check with the firmware if it has status or not!
 
+    if pid in PACKET_CLASS_DICT:
+        packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
     else:
         print("Unknown Packet ID:" + str(pid))
         print("Length of the binary data:", len(bin_data))
-        packet = Reconnect(timestamp, bin_data)
-
+        packet = None
     return packet
 
 
@@ -58,7 +63,7 @@ class Parser:
         r"""
         Reads and parses a package from a file or socket
         Args:
-            mode (str): logging mode {'print', None}
+            mode (str): logging mode {'print', 'record', None}
             csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file)
         Returns:
 
@@ -75,8 +80,7 @@ class Parser:
             if isinstance(packet, Orientation):
                 packet.write_to_csv(csv_files[1])
 
-            elif isinstance(packet, EEG94) or isinstance(packet, EEG98) or isinstance(packet, EEG99s) or isinstance(
-                packet, EEG99):
+            elif isinstance(packet, EEG):
                 packet.write_to_csv(csv_files[0])
 
         elif mode == "lsl":

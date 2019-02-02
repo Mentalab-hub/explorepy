@@ -2,9 +2,9 @@ import bluetooth, subprocess
 import sys
 import time
 
+
 class BtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
-
     def __init__(self):
         self.is_connected = False
         self.lastUsedAddress = None
