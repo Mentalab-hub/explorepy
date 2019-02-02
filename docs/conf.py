@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 
 import os
 
+os.system('sudo apt-get update')
+os.system('sudo apt-get install libbluetooth-dev')
 
 extensions = [
     'sphinx.ext.autodoc',
