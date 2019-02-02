@@ -40,7 +40,11 @@ class Explore:
         self.device[device_id].socket.close()
 
     def acquire(self, device_id=0):
-        r"""Start getting data from the device """
+        r"""
+        Start getting data from the device
+        Args:
+            device_id (int): device id (id=None for disconnecting all devices)
+        """
 
         if self.parser is None:
             self.parser = Parser(socket=self.device[device_id].socket)
@@ -56,15 +60,6 @@ class Explore:
             except bluetooth.BluetoothError:
                 print("Bluetooth Error: Probably timeout")
                 pass
-
-    def log_data(self):
-        r"""
-        Print the data in the terminal/console
-
-        Returns:
-
-        """
-        pass
 
     def record_data(self, file_name, device_id=0):
         r"""
