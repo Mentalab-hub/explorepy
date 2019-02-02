@@ -4,6 +4,7 @@ from .parser import Parser
 import bluetooth
 import csv
 import os
+import time
 
 
 class Explore:
@@ -26,7 +27,7 @@ class Explore:
             device_id (int): device id
 
         """
-        self.device[device_id].connect()
+        self.device[device_id].initBT()
 
     def disconnect(self, device_id=None):
         r"""
@@ -46,19 +47,31 @@ class Explore:
             device_id (int): device id (id=None for disconnecting all devices)
         """
 
+        self.Socket = self.device[device_id].bt_connect()
+
         if self.parser is None:
-            self.parser = Parser(socket=self.device[device_id].socket)
+            self.parser = Parser(self.Socket)
+
         is_acquiring = True
         while is_acquiring:
+
             try:
                 packet = self.parser.parse_packet(mode="print")
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
-                self.device[device_id].is_connected = False
-                is_acquiring = self.device[device_id].reconnect()
-            except bluetooth.BluetoothError:
-                print("Bluetooth Error: Probably timeout")
+                self.Socket = self.device[device_id].bt_connect()
+                time.sleep(1)
+                self.parser = Parser(self.Socket)
+
+                pass
+
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                self.Socket = self.device[device_id].bt_connect()
+                time.sleep(1)
+                self.parser = Parser(self.Socket)
+
                 pass
 
     def record_data(self, file_name, device_id=0):
@@ -71,8 +84,10 @@ class Explore:
         Returns:
 
         """
+        self.Socket = self.device[device_id].bt_connect()
+
         if self.parser is None:
-            self.parser = Parser(socket=self.device[device_id].socket)
+            self.parser = Parser(self.Socket)
 
         eeg_out_file = file_name + "_eeg.csv"
         orn_out_file = file_name + "_orn.csv"
@@ -88,7 +103,6 @@ class Explore:
                     break
                 else:
                     c = input("A file with this name already exist, are you sure you want to proceed? [Enter y/n]")
-
         while True:
             with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
                 f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
@@ -101,12 +115,23 @@ class Explore:
                 is_acquiring = True
                 print("Recording...")
                 while is_acquiring:
-                    try:
-                        packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
-                    except ValueError:
-                        print("Disconnected, scanning for last connected device")
-                        self.device[device_id].is_connected = False
-                        is_acquiring = self.device[device_id].reconnect()
+                            try:
+                                packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+
+                            except ValueError:
+                                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                                print("Disconnected, scanning for last connected device")
+                                self.Socket = self.device[device_id].bt_connect()
+                                time.sleep(1)
+                                self.parser = Parser(self.Socket)
+
+                                pass
+
+                            except bluetooth.BluetoothError as error:
+                                print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                                self.Socket = self.device[device_id].bt_connect()
+                                time.sleep(1)
+                                self.parser = Parser(self.Socket)
 
     def push2lsl(self):
         r"""
