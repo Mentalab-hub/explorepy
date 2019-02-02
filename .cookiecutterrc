@@ -50,7 +50,7 @@ default_context:
     test_matrix_separate_coverage: 'no'
     test_runner:               'pytest'
     travis:                    'yes'
-    version:                   '0.0.0'
+    version:                   '0.1.0'
     website:                   'https://mentalab.co/'
     year_from:                 '2018'
     year_to:                   '2019'

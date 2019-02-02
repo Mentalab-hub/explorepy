@@ -78,7 +78,7 @@ class Parser:
             elif isinstance(packet, EEG94) or isinstance(packet, EEG98) or isinstance(packet, EEG99s) or isinstance(
                 packet, EEG99):
                 packet.write_to_csv(csv_files[0])
-    
+
         elif mode == "lsl":
             if isinstance(packet, Orientation):
                 packet.push_to_lsl(outlets[0])

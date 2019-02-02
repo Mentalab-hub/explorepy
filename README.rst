@@ -2,10 +2,8 @@
 Python API for Mentalab biosignal aquisition devices
 ========
 
-Under development
-
-.. image:: https://static1.squarespace.com/static/5428308ae4b0701411ea8aaf/t/59be746a90bade209a205adb/1542922455492/?format=1500w
-   :scale: 30 %
+.. image:: logo.png
+   :scale: 100 %
    :align: center
 
 ========
@@ -38,9 +36,9 @@ Overview
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/explorepy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.0.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.1.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.0.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.1.0...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
     :alt: PyPI Wheel
@@ -73,28 +71,3 @@ Documentation
 
 
 https://explorepy.readthedocs.io/
-
-
-Development
-===========
-
-To run the all tests run::
-
-    tox
-
-Note, to combine the coverage data from all the tox environments run:
-
-.. list-table::
-    :widths: 10 90
-    :stub-columns: 1
-
-    - - Windows
-      - ::
-
-            set PYTEST_ADDOPTS=--cov-append
-            tox
-
-    - - Other
-      - ::
-
-            PYTEST_ADDOPTS=--cov-append tox
