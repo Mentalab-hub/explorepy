@@ -5,6 +5,7 @@ import bluetooth
 import csv
 import os
 import time
+from pylsl import StreamInfo, StreamOutlet
 
 
 class Explore:
@@ -138,14 +139,54 @@ class Explore:
                 else:
                     c = input("A file with this name already exist, are you sure you want to proceed? [Enter y/n]")
 
-    def push2lsl(self):
+    def push2lsl(self, device_id=0):
         r"""
         push the stream to lsl
 
         Returns:
 
         """
-        pass
+
+
+
+        self.Socket=self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(self.Socket)
+
+        #Create 2 stream infos,
+        info_orn = StreamInfo('Mentalab', 'Orientation', 8, 100, 'float32', 'myuid34234')
+        info_eeg =StreamInfo('Mentalab', 'EEG', 8, 100, 'float32', 'myuid34234')
+        r"""Start getting data from the device """
+
+        print("now sending data...")
+
+        # Create Outlets and push data to LSL
+        is_acquiring = True
+        while is_acquiring:
+
+            try:
+                packet = self.parser.parse_packet(mode="lsl", outlets=(StreamOutlet(info_orn),StreamOutlet(info_eeg)))
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                self.Socket = self.device[device_id].bt_connect()
+                time.sleep(1)
+                self.parser = Parser(self.Socket)
+
+                pass
+
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                self.Socket = self.device[device_id].bt_connect()
+                time.sleep(1)
+                self.parser = Parser(self.Socket)
+
+                pass
+
+
+
+
 
     def visualize(self):
         r"""

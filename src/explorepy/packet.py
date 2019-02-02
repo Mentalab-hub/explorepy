@@ -78,6 +78,9 @@ class EEG94(Packet):
         tmpstmp[:,:] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
+    def push_to_lsl(self, outlet):
+        outlet.pushsample(self.data.T.tolist())
+
 
 class EEG98(Packet):
     """EEG packet for 8 channel device"""
@@ -105,6 +108,9 @@ class EEG98(Packet):
         tmpstmp = np.zeros([self.data.shape[1], 1])
         tmpstmp[:,:] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
+
+    def push_to_lsl(self, outlet):
+        outlet.pushsample(self.data.T.tolist())
 
 
 class EEG99s(Packet):
@@ -134,6 +140,9 @@ class EEG99s(Packet):
         tmpstmp[:,:] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
+    def push_to_lsl(self, outlet):
+        outlet.pushsample(self.data.T.tolist())
+
 
 class EEG99(Packet):
     """EEG packet for 8 channel device"""
@@ -161,6 +170,9 @@ class EEG99(Packet):
         tmpstmp[:,:] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis = 1).tolist())
 
+    def push_to_lsl(self, outlet):
+        outlet.pushsample(self.data.T.tolist())
+
 
 class Orientation(Packet):
     """Orientation data packet"""
@@ -183,6 +195,10 @@ class Orientation(Packet):
 
     def write_to_csv(self, csv_writer):
         csv_writer.writerow([self.timestamp] + self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
+
+    def push_to_lsl(self, outlet):
+        outlet.pushsample([self.timestamp] + self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
+
 
 
 class Environment(Packet):
