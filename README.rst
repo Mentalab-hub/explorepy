@@ -1,6 +1,6 @@
-========
+====================================================
 Python API for Mentalab biosignal aquisition devices
-========
+====================================================
 
 .. image:: logo.png
    :scale: 100 %
@@ -9,6 +9,7 @@ Python API for Mentalab biosignal aquisition devices
 ========
 Overview
 ========
+
 
 .. start-badges
 
@@ -70,4 +71,24 @@ Documentation
 =============
 
 
+
 https://explorepy.readthedocs.io/
+
+
+Authors
+=======
+- `Sebastian Herberger`_
+- `Mohamad Atayi`_
+- `Philipp Jakovleski`_
+- `Andreas Gutsche`_
+
+.. _Sebastian Herberger: https://github.com/SHerberger
+.. _Mohamad Atayi: https://github.com/bmeatayi
+.. _Philipp Jakovleski: https://github.com/philippjak
+.. _Andreas Gutsche: https://github.com/andyman410
+
+
+
+
+
+
