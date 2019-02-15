@@ -66,6 +66,10 @@ class EEG(Packet):
         """
         pass
 
+    def push_to_lsl(self, outlet):
+        for sample in self.data.T:
+            outlet.push_sample(sample.tolist())
+
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
@@ -93,9 +97,6 @@ class EEG94(EEG):
         tmpstmp = np.zeros([self.data.shape[1], 1])
         tmpstmp[:,:] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
-
-    def push_to_lsl(self, outlet):
-        outlet.push_sample(self.data.T.tolist())
 
 
 class EEG98(EEG):
@@ -125,9 +126,6 @@ class EEG98(EEG):
         tmpstmp[:,:] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
-    def push_to_lsl(self, outlet):
-        outlet.push_sample(self.data.T.tolist())
-
 
 class EEG99s(EEG):
     """EEG packet for 8 channel device"""
@@ -156,10 +154,6 @@ class EEG99s(EEG):
         tmpstmp[:,:] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
-    def push_to_lsl(self, outlet):
-        for sample in self.data.T:
-            outlet.push_sample(sample.tolist())
-
 
 class EEG99(EEG):
     """EEG packet for 8 channel device"""
@@ -187,9 +181,6 @@ class EEG99(EEG):
         tmpstmp[:,:] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis = 1).tolist())
 
-    def push_to_lsl(self, outlet):
-        outlet.push_sample(self.data.T.tolist())
-
 
 class Orientation(Packet):
     """Orientation data packet"""
@@ -215,7 +206,6 @@ class Orientation(Packet):
 
     def push_to_lsl(self, outlet):
         outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
-
 
 
 class Environment(Packet):
@@ -286,24 +276,3 @@ class DeviceInfo(Packet):
 
     def __str__(self):
         return "Firmware version: " + str(self.firmware_version)
-
-
-class Reconnect(Packet):
-    """Reconnect Packet"""
-
-    def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def _convert(self, bin_data):
-        """Reconnect packet has no data"""
-        pass
-
-    def _check_fletcher(self, fletcher):
-        """"skip fletcher, might be corrupted?"""
-        #assert fletcher == b'\xce\xff\xda\xfe', "Fletcher error!"
-        pass
-
-    def __str__(self):
-        return "Reconnect starting soon!"

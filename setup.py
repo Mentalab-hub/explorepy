@@ -24,8 +24,6 @@ def read(*names, **kwargs):
     ) as fh:
         return fh.read()
 
-os.system('sudo apt-get update')
-os.system('sudo apt-get install libbluetooth-dev')
 
 setup(
     name='explorepy',
@@ -64,7 +62,7 @@ setup(
         'Mentalab', 'Explorepy', 'EEG signal',
     ],
     install_requires=[
-        'numpy', 'pybluez'  # eg: 'aspectlib==1.1.1', 'six>=1.7',
+        'numpy'#, 'pybluez'
     ],
     extras_require={
 
