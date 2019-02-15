@@ -1,24 +1,29 @@
 import bluetooth, subprocess
 import sys
+import time
 
 
 class BtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
-
     def __init__(self):
         self.is_connected = False
         self.lastUsedAddress = None
         self.socket = None
+        self.host = None
+        self.port = None
+        self.name = None
 
-    def connect(self):
+    def initBT(self):
         """
-        Checks for available explore devices and establishes connection depending on number of devices
+        lets the user choose a device
         For now, only one device can be connected to a computer at the same time, however it is possible to choose which
         device should be connected
 
+        Also reserves a port
         Returns:
 
         """
+
         explore_devices = []
         print("Searching for nearby devices...")
         nearby_devices = bluetooth.discover_devices(lookup_names=True)
@@ -47,7 +52,7 @@ class BtClient:
             print("No devices found. Restart your device and run the code again.")
             sys.exit(0)
 
-        uuid = "1101"   # Serial Port Profile (SPP) service
+        uuid = "1101"  # Serial Port Profile (SPP) service
         service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)
 
         if len(service_matches) == 0:
@@ -55,23 +60,40 @@ class BtClient:
             sys.exit(0)
 
         first_match = service_matches[0]
-        port = first_match["port"]
-        name = first_match["name"]
-        host = first_match["host"]
+        self.port = first_match["port"]
+        self.name = first_match["name"]
+        self.host = first_match["host"]
 
-        print("Connecting to \"%s\" on %s" % (name, host))
+        print("Connecting to \"%s\" on %s" % (self.name, self.host))
+
+    def bt_connect(self):
+        """
+        creates the socket
+
+        Returns:
+
+        """
 
         # Create the client socket
 
-        self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-        self.socket.connect((host, port))
-        self.socket.settimeout(10)
+        time.sleep(10)
+        while True:
+            try:
+                socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+                socket.connect((self.host, self.port))
+                print("socket online!:", self.host, " : ", self.port)
+                break
+            except bluetooth.BluetoothError as error:
+                socket.close()
+                print("Could not connect: ", error, "; Retrying in 10s...")
+                time.sleep(10)
+        return socket
+
 
     def reconnect(self):
         """
-        Scans for the last connected MAC adress. If it is available it tries to reconnect, otherwise the program will s
-        stop and give out a timeout error
-
+        tries to open the last bt socket, uses the last port and host. if after 1 minute the connection doesnt succeed,
+        program will end
         Returns:
 
         """
@@ -79,13 +101,15 @@ class BtClient:
         timeout = 1
         is_reconnected = False
         while timeout < 5:
-            print("scanning")
-            nearby_devices = bluetooth.discover_devices(duration=10, lookup_names=True)
-            for address, name in nearby_devices:
-                if address == self.lastUsedAddress:
-                    print("Former device found, attempting to reconnect")
-                    is_reconnected = True
+            try:
+                socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+                socket.connect((self.host, self.port))
+                break;
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
 
+                time.sleep(10)
+                pass
             if is_reconnected is True:
                 timeout = 0
                 break
@@ -95,29 +119,3 @@ class BtClient:
             print("Device not found, exiting the program!")
             self.socket.close()
             return False
-
-        uuid = "1101"   # Serial Port Profile (SPP) service
-        service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)
-
-        if len(service_matches) == 0:
-            print("Couldn't find the SampleServer service =(")
-            sys.exit(0)
-
-        first_match = service_matches[0]
-        port = first_match["port"]
-        name = first_match["name"]
-        host = first_match["host"]
-        print("Connecting to \"%s\" on %s" % (name, host))
-
-        # Create the client socket
-
-        self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-        self.socket.connect((host, port))
-        self.socket.settimeout(10)
-
-        self.is_connected = True
-        return self.is_connected
-
-
-
-
