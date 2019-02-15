@@ -16,10 +16,6 @@ class Packet:
         self.timestamp = timestamp
 
     @abc.abstractmethod
-    def __str__(self):
-        pass
-
-    @abc.abstractmethod
     def _convert(self, bin_data):
         """Read the binary data and convert it to real values"""
         pass
