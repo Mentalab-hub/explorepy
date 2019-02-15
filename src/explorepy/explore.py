@@ -118,7 +118,10 @@ class Explore:
 
     def push2lsl(self, device_id=0):
         r"""
-        push the stream to lsl
+        Push samples to two lsl streams
+
+        Args:
+            device_id (int): device id
 
         Returns:
 
@@ -128,7 +131,6 @@ class Explore:
         if self.parser is None:
             self.parser = Parser(self.socket)
 
-        #Create 2 stream infos,
         info_orn = StreamInfo('Mentalab', 'Orientation', 9, 23, 'float32', 'explore_orn')
         info_eeg =StreamInfo('Mentalab', 'EEG', 4, 250, 'float32', 'explore_eeg')
 
@@ -138,7 +140,6 @@ class Explore:
         is_acquiring = True
         while is_acquiring:
             try:
-                print("Pushing to lsl!")
                 packet = self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
