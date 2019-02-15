@@ -1,6 +1,6 @@
-====================================================
-Python API for Mentalab biosignal aquisition devices
-====================================================
+=========
+explorepy
+=========
 
 .. image:: logo.png
    :scale: 100 %
@@ -58,21 +58,43 @@ Overview
 
 A Python API for Mentalab biosignal aquisition devices
 
-* Free software: MIT license
+Requirements
+============
+* Python 3.5 or newer version
+* `numpy <https://github.com/pybluez/pybluez>`_
+* `pybluez <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
+* `pylsl <https://github.com/labstreaminglayer/liblsl-Python>`_
+
 
 Installation
 ============
-
+To install ``explorepy`` from PyPI run:
 ::
 
     pip install explorepy
 
+
+To install the latest development version run:
+::
+
+    pip install git+https://github.com/Mentalab-hub/explorepy
+
+
+Example use
+===========
+The following code connects to the Explore device and prints the data. To see other functionalities please see the full `documentation <https://explorepy.readthedocs.io/>`_.
+
+::
+
+    import explorepy
+    explorer = explore.Explore()
+    explorer.connect()
+    explorer.acquire()
+
 Documentation
 =============
 
-
-
-https://explorepy.readthedocs.io/
+To see full documentation of the API, visit: https://explorepy.readthedocs.io/
 
 
 Authors
