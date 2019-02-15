@@ -131,13 +131,14 @@ class Explore:
         if self.parser is None:
             self.parser = Parser(self.socket)
 
-        info_orn = StreamInfo('Mentalab', 'Orientation', 9, 23, 'float32', 'explore_orn')
+        info_orn = StreamInfo('Mentalab', 'Orientation', 9, 20, 'float32', 'explore_orn')
         info_eeg =StreamInfo('Mentalab', 'EEG', 4, 250, 'float32', 'explore_eeg')
 
         orn_outlet = StreamOutlet(info_orn)
         eeg_outlet = StreamOutlet(info_eeg)
 
         is_acquiring = True
+        print("Pushing to lsl...")
         while is_acquiring:
             try:
                 packet = self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
