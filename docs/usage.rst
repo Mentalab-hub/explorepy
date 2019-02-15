@@ -15,7 +15,7 @@ Make sure to initialize the bluetooth connection before starting a recording ses
     explorer.connect(device_id = 0)
 
 If only one device is paired and on,the connection will be made automatically.
-If multiple Explore-devices are paired with your computer, a small dialogue will let you
+If multiple Explore-devices are paired with your computer, a short dialogue will let you
 choose the device you want to connect to.
 
 Afterwards you are free to start recording to CSV using the following line::
@@ -24,7 +24,7 @@ Afterwards you are free to start recording to CSV using the following line::
 
 or to push data to LSL using the following line::
 
-    WIP
+    explorer.push2lsl(device_id = 0)
 
 
 The function record_data will create 2 CSV files, one containing the ExG files and one containing environmental data (Temperature, Orientation, Battery)
