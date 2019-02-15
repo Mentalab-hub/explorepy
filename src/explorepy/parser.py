@@ -59,12 +59,13 @@ class Parser:
         self.dt_int16 = np.dtype(np.int16).newbyteorder('<')
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
 
-    def parse_packet(self, mode="print", csv_files=None):
+    def parse_packet(self, mode="print", csv_files=None, outlets=None):
         r"""
         Reads and parses a package from a file or socket
         Args:
             mode (str): logging mode {'print', 'record', None}
             csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file)
+            outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet
         Returns:
 
         """
@@ -82,6 +83,12 @@ class Parser:
 
             elif isinstance(packet, EEG):
                 packet.write_to_csv(csv_files[0])
+
+        elif mode == "lsl":
+            if isinstance(packet, Orientation):
+                packet.push_to_lsl(outlets[0])
+            elif isinstance(packet, EEG):
+                packet.push_to_lsl(outlets[1])
 
         return packet
 

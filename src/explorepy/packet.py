@@ -16,10 +16,6 @@ class Packet:
         self.timestamp = timestamp
 
     @abc.abstractmethod
-    def __str__(self):
-        pass
-
-    @abc.abstractmethod
     def _convert(self, bin_data):
         """Read the binary data and convert it to real values"""
         pass
@@ -65,6 +61,10 @@ class EEG(Packet):
 
         """
         pass
+
+    def push_to_lsl(self, outlet):
+        for sample in self.data.T:
+            outlet.push_sample(sample.tolist())
 
 
 class EEG94(EEG):
@@ -200,6 +200,9 @@ class Orientation(Packet):
     def write_to_csv(self, csv_writer):
         csv_writer.writerow([self.timestamp] + self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
 
+    def push_to_lsl(self, outlet):
+        outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
+
 
 class Environment(Packet):
     """Environment data packet"""
@@ -269,24 +272,3 @@ class DeviceInfo(Packet):
 
     def __str__(self):
         return "Firmware version: " + str(self.firmware_version)
-
-
-class Reconnect(Packet):
-    """Reconnect Packet"""
-
-    def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def _convert(self, bin_data):
-        """Reconnect packet has no data"""
-        pass
-
-    def _check_fletcher(self, fletcher):
-        """"skip fletcher, might be corrupted?"""
-        #assert fletcher == b'\xce\xff\xda\xfe', "Fletcher error!"
-        pass
-
-    def __str__(self):
-        return "Reconnect starting soon!"

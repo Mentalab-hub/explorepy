@@ -5,6 +5,7 @@ import bluetooth
 import csv
 import os
 import time
+from pylsl import StreamInfo, StreamOutlet
 
 
 class Explore:
@@ -82,7 +83,6 @@ class Explore:
 
         eeg_out_file = file_name + "_eeg.csv"
         orn_out_file = file_name + "_orn.csv"
-        # TODO: If there is already a file with the same name, ask the user if he/she wants to replace the file
 
         c = None
         if os.path.isfile(eeg_out_file):
@@ -116,14 +116,44 @@ class Explore:
                         print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
                         self.parser.socket = self.device[device_id].bt_connect()
 
-    def push2lsl(self):
+    def push2lsl(self, device_id=0):
         r"""
-        push the stream to lsl
+        Push samples to two lsl streams
+
+        Args:
+            device_id (int): device id
 
         Returns:
 
         """
-        pass
+        self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(self.socket)
+
+        info_orn = StreamInfo('Mentalab', 'Orientation', 9, 20, 'float32', 'explore_orn')
+        info_eeg =StreamInfo('Mentalab', 'EEG', 4, 250, 'float32', 'explore_eeg')
+
+        orn_outlet = StreamOutlet(info_orn)
+        eeg_outlet = StreamOutlet(info_eeg)
+
+        is_acquiring = True
+        print("Pushing to lsl...")
+        while is_acquiring:
+            try:
+                packet = self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                self.socket = self.device[device_id].bt_connect()
+                time.sleep(1)
+                self.parser = Parser(self.socket)
+
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                self.socket = self.device[device_id].bt_connect()
+                time.sleep(1)
+                self.parser = Parser(self.socket)
 
     def visualize(self):
         r"""
