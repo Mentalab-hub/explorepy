@@ -29,3 +29,9 @@ or to push data to LSL using the following line::
 
 The function record_data will create 2 CSV files, one containing the ExG files and one containing environmental data (Temperature, Orientation, Battery)
 In case of a disconnect (device loses connection), the program will try to reconnect automatically.
+
+It is also possible to extract BIN files from the device via USB. To convert these to CSV, you can use the function bin2csv, which takes your desired BIN file
+and converts it to 2 CSV files (one for environmental, the other one for ExG data). A bluetooth connection is not necessary ::
+
+    from explorepy.tools import bin2csv
+    bin2csv(bin_file)
