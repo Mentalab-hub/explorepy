@@ -11,7 +11,7 @@ class Mock(MagicMock):
         return MagicMock()
 
 
-MOCK_MODULES = ['pybluez']
+MOCK_MODULES = ['pybluez', 'bluetooth']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 extensions = [
