@@ -66,12 +66,13 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def record_data(self, file_name, device_id=0):
+    def record_data(self, file_name, device_id=0, do_overwrite=False):
         r"""
         Records the data in real-time
         Args:
             file_name (str): output file name
             device_id (int): device id
+            do_overwrite (bool): Overwrite if files exist already
 
         Returns:
 
@@ -84,37 +85,30 @@ class Explore:
         eeg_out_file = file_name + "_eeg.csv"
         orn_out_file = file_name + "_orn.csv"
 
-        c = None
-        if os.path.isfile(eeg_out_file):
-            c = input("A file with this name already exist, are you sure you want to proceed? [Enter y/n]")
-            while True:
-                if c == 'n':
-                    exit()
-                elif c == 'y':
-                    break
-                else:
-                    c = input("A file with this name already exist, are you sure you want to proceed? [Enter y/n]")
-        while True:
-            with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
-                f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
-                f_orn.write(
-                    "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
-                f_eeg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
-                csv_eeg = csv.writer(f_eeg, delimiter=",")
-                csv_orn = csv.writer(f_orn, delimiter=",")
+        assert not (os.path.isfile(eeg_out_file) and do_overwrite), eeg_out_file + " already exists!"
+        assert not (os.path.isfile(orn_out_file) and do_overwrite), orn_out_file + " already exists!"
 
-                is_acquiring = True
-                print("Recording...")
-                while is_acquiring:
-                    try:
-                        packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
-                    except ValueError:
-                        # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                        print("Disconnected, scanning for last connected device")
-                        self.parser.socket = self.device[device_id].bt_connect()
-                    except bluetooth.BluetoothError as error:
-                        print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
-                        self.parser.socket = self.device[device_id].bt_connect()
+        with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
+            f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
+            f_orn.write(
+                "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
+            f_eeg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
+            csv_eeg = csv.writer(f_eeg, delimiter=",")
+            csv_orn = csv.writer(f_orn, delimiter=",")
+
+            is_acquiring = True
+            print("Recording...")
+
+            while is_acquiring:
+                try:
+                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                except ValueError:
+                    # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                    print("Disconnected, scanning for last connected device")
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except bluetooth.BluetoothError as error:
+                    print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                    self.parser.socket = self.device[device_id].bt_connect()
 
     def push2lsl(self, device_id=0):
         r"""
