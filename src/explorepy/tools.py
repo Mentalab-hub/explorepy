@@ -5,6 +5,7 @@ import csv
 
 def bin2csv(bin_file):
     filename, extension = os.path.splitext(bin_file)
+    assert os.path.isfile(bin_file), "Error: File does not exist!"
     assert extension == '.BIN', "File type error! File extension must be BIN."
     eeg_out_file = filename + '_eeg.csv'
     orn_out_file = filename + '_orn.csv'
