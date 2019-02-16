@@ -80,10 +80,8 @@ class Parser:
         elif mode == "record":
             if isinstance(packet, Orientation):
                 packet.write_to_csv(csv_files[1])
-
             elif isinstance(packet, EEG):
                 packet.write_to_csv(csv_files[0])
-
         elif mode == "lsl":
             if isinstance(packet, Orientation):
                 packet.push_to_lsl(outlets[0])
@@ -104,8 +102,10 @@ class Parser:
         """
         if self.socket is not None:
             byte_data = self.socket.recv(n_bytes)
-        else:
+        elif not self.fid.closed:
             byte_data = self.fid.read(n_bytes)
+        else:
+            raise ValueError("File has been closed unexpectedly!")
         if len(byte_data) != n_bytes:
             raise ValueError("Number of received bytes is less than expected")
             # TODO: Create a specific exception for this case
