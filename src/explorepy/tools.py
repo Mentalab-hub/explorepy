@@ -40,5 +40,6 @@ def bin2csv(bin_file, out_dir=None, do_overwrite=False):
                 packet = parser.parse_packet(mode='record', csv_files=(csv_eeg, csv_orn))
             except ValueError:
                 print("Binary file ended suddenly! Conversion finished!")
-                return
+                break
+
 
