@@ -25,7 +25,8 @@ Linux
 
 Mac OS
 ^^^^^^
-* ?
+* Xcode
+* PyObjc 3.1b or later
 
 
 Installation commands
