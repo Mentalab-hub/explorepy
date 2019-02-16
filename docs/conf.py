@@ -24,6 +24,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
+    'sphinxcontrib.napoleon'
 ]
 if os.getenv('SPELLCHECK'):
     extensions += 'sphinxcontrib.spelling',
@@ -58,6 +59,15 @@ html_sidebars = {
 }
 html_short_title = '%s-%s' % (project, version)
 
+# If false, no module index is generated.
+html_domain_indices = True
+
+napoleon_google_docstring = True
+
 napoleon_use_ivar = True
 napoleon_use_rtype = False
 napoleon_use_param = False
+
+autoclass_content = 'class'
+autodoc_member_order = 'bysource'
+autodoc_default_flags = ['members']
