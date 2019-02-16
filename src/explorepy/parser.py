@@ -78,6 +78,7 @@ class Parser:
         if mode == "print":
             print(packet)
         elif mode == "record":
+            assert isinstance(csv_files, tuple), "Invalid csv writer objects!"
             if isinstance(packet, Orientation):
                 packet.write_to_csv(csv_files[1])
             elif isinstance(packet, EEG):
