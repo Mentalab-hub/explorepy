@@ -6,13 +6,13 @@ To use explorepy in a project::
 
 	import explorepy
 
-Before starting a session, make sure your device is paired to your computer. The device will be shown under the following name: ExploreXXXX,
+Before starting a session, make sure your device is paired to your computer. The device will be shown under the following name: Explore_XXXX,
 with the last 4 characters being the last 4 hex numbers of the devices MAC adress
 
 Make sure to initialize the bluetooth connection before starting a recording session or a push to lsl using the following lines::
 
     explorer = explore.Explore()
-    explorer.connect()
+    explorer.connect(device_name='Explore_XXXX") #Put your device Bluetooth name
 
 If only one device is paired and on,the connection will be made automatically.
 If multiple Explore-devices are paired with your computer, a short dialogue will let you
