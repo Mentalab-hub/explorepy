@@ -26,7 +26,7 @@ def read(*names, **kwargs):
 
 my_req = ['numpy', 'pylsl==1.13.1']
 if not os.environ.get('READTHEDOCS'):
-    my_req.append('pybluez')
+    my_req.append('pybluez')  # Add pybluez if the environment is other than READTHEDOCS
 
 setup(
     name='explorepy',
