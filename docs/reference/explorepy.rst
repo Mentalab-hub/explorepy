@@ -7,3 +7,4 @@ explorepy
 
 .. automodule:: explorepy
     :members:
+    :undoc-members:
