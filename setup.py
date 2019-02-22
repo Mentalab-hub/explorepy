@@ -10,7 +10,6 @@ from os.path import basename
 from os.path import dirname
 from os.path import join
 from os.path import splitext
-
 import os
 
 from setuptools import find_packages
@@ -24,6 +23,10 @@ def read(*names, **kwargs):
     ) as fh:
         return fh.read()
 
+
+my_req = ['numpy', 'pylsl==1.13.1']
+if not os.environ.get('READTHEDOCS'):
+    my_req.append('pybluez')
 
 setup(
     name='explorepy',
@@ -61,12 +64,8 @@ setup(
     keywords=[
         'Mentalab', 'Explorepy', 'EEG signal',
     ],
-    install_requires=[
-        'numpy', 'pylsl==1.13.1'#, 'pybluez'
-    ],
-    extras_require={
-
-    },
+    install_requires=my_req,
+    extras_require={},
     entry_points={
         'console_scripts': [
             'explorepy = explorepy.cli:main',
