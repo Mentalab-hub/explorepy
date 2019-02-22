@@ -5,11 +5,11 @@ explorepy
 
     from explorepy import *
 
-.. automodule:: explore
+.. autoclass:: Explore
     :members:
     :undoc-members:
 
-.. automodule:: parser
+.. autoclass:: Parser
     :members:
     :undoc-members:
 
