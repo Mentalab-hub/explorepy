@@ -9,7 +9,8 @@ class Packet:
 
     def __init__(self, timestamp, payload):
         """
-        Should get the packet id and the remaining packet bytes and convert it to the
+        Gets the timestamp and payload and initializes the packet object
+
         Args:
             payload (bytearray): a byte array including binary data and fletcher
         """
