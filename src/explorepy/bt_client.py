@@ -5,6 +5,7 @@ import time
 
 class BtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
+
     def __init__(self):
         self.is_connected = False
         self.lastUsedAddress = None
@@ -13,15 +14,12 @@ class BtClient:
         self.port = None
         self.name = None
 
-    def initBT(self):
+    def initBT(self, device_name):
         """
-        lets the user choose a device
-        For now, only one device can be connected to a computer at the same time, however it is possible to choose which
-        device should be connected
-
-        Also reserves a port
-        Returns:
-
+        Initialize Bluetooth connection
+        Args:
+            device_name (str): Device name in the format of "Explore_XXXX" where the last 4 characters are the last 4
+                               hex number of devive MAC address
         """
 
         explore_devices = []
@@ -29,54 +27,28 @@ class BtClient:
         nearby_devices = bluetooth.discover_devices(lookup_names=True)
         counter = 0
         for address, name in nearby_devices:
-            if "Explore" in name:
-                counter += 1
-                explore_devices.append([address, name])
             print(name)
-
-        if counter == 1:
-            print("Device found: %s - %s" % (explore_devices[0][0], explore_devices[0][1]))
-            self.lastUsedAddress = explore_devices[0][0]
-
-        elif counter > 1:
-            print("Multiple Devices found: ")
-            k = 0
-            for address, name in explore_devices:
-                print(" [%i]: %s - %s" % (k, address, name))
-                k += 1
-
-            selector = input('Please choose a device by entering the number in front of the MAC address: ')
-            self.lastUsedAddress = explore_devices[int(selector)][0]
-
-        elif counter == 0:
-            print("No devices found. Restart your device and run the code again.")
-            sys.exit(0)
+            if device_name == name:
+                print("Device found: %s - %s" % (name, address))
+                self.lastUsedAddress = address
+                break
+        assert self.lastUsedAddress is not None, "Device" + device_name + "was not found!"
 
         uuid = "1101"  # Serial Port Profile (SPP) service
         service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)
 
-        if len(service_matches) == 0:
-            print("Couldn't find the SampleServer service! Restart your device and run the code again")
-            sys.exit(0)
+        assert len(service_matches) > 0, "Couldn't find the any services! Restart your device and run the code again"
 
         first_match = service_matches[0]
         self.port = first_match["port"]
         self.name = first_match["name"]
         self.host = first_match["host"]
 
-        print("Connecting to \"%s\" on %s" % (self.name, self.host))
+        print("Connecting to serial port on %s" % self.host)
 
     def bt_connect(self):
+        """Creates the socket
         """
-        creates the socket
-
-        Returns:
-
-        """
-
-        # Create the client socket
-
-        time.sleep(10)
         while True:
             try:
                 socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
@@ -85,17 +57,14 @@ class BtClient:
                 break
             except bluetooth.BluetoothError as error:
                 socket.close()
-                print("Could not connect: ", error, "; Retrying in 10s...")
-                time.sleep(10)
+                print("Could not connect: ", error, "; Retrying in 5s...")
+                time.sleep(5)
         return socket
-
 
     def reconnect(self):
         """
         tries to open the last bt socket, uses the last port and host. if after 1 minute the connection doesnt succeed,
         program will end
-        Returns:
-
         """
 
         timeout = 1
@@ -107,8 +76,7 @@ class BtClient:
                 break;
             except bluetooth.BluetoothError as error:
                 print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
-
-                time.sleep(10)
+                time.sleep(5)
                 pass
             if is_reconnected is True:
                 timeout = 0
