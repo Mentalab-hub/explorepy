@@ -1,6 +1,6 @@
 import numpy as np
 import struct
-from .packet import *
+from explorepy.packet import *
 
 ORN_ID = 13
 ENV_ID = 19
