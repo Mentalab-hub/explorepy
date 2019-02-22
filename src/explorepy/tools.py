@@ -1,4 +1,4 @@
-from .parser import Parser
+from explorepy.parser import Parser
 import os.path
 import csv
 
