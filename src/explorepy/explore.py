@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from .bt_client import BtClient
-from .parser import Parser
+from explorepy.bt_client import BtClient
+from explorepy.parser import Parser
 import bluetooth
 import csv
 import os
