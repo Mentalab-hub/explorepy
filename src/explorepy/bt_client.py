@@ -17,6 +17,7 @@ class BtClient:
     def initBT(self, device_name):
         """
         Initialize Bluetooth connection
+
         Args:
             device_name (str): Device name in the format of "Explore_XXXX" where the last 4 characters are the last 4
                                hex number of devive MAC address
