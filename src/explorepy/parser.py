@@ -26,8 +26,8 @@ PACKET_CLASS_DICT = {
 
 
 def generate_packet(pid, timestamp, bin_data):
-    r"""
-    Generates the packets according to the pid
+    r"""Generates the packets according to the pid
+
     Args:
         pid (int): Packet ID
         timestamp (int): Timestamp
@@ -48,8 +48,8 @@ def generate_packet(pid, timestamp, bin_data):
 
 class Parser:
     def __init__(self, socket=None, fid=None):
-        r"""
-        Parser class for explore device
+        r"""Parser class for explore device
+
         Args:
             socket (BluetoothSocket): Bluetooth Socket (Should be None if fid is provided)
             fid (file object): File object for reading data (Should be None if socket is provided)
@@ -60,14 +60,15 @@ class Parser:
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
 
     def parse_packet(self, mode="print", csv_files=None, outlets=None):
-        r"""
-        Reads and parses a package from a file or socket
+        r"""Reads and parses a package from a file or socket
+
         Args:
             mode (str): logging mode {'print', 'record', None}
             csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file)
             outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet
-        Returns:
 
+        Returns:
+            packet object
         """
         pid = struct.unpack('B', self.read(1))[0]
         cnt = self.read(1)[0]
@@ -92,14 +93,13 @@ class Parser:
         return packet
 
     def read(self, n_bytes):
-        r"""
-        Read n_bytes from socket or file
+        r"""Read n_bytes from socket or file
+
         Args:
             n_bytes (int): number of bytes to be read
 
         Returns:
             list of bytes
-
         """
         if self.socket is not None:
             byte_data = self.socket.recv(n_bytes)
