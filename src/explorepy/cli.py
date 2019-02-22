@@ -15,17 +15,33 @@ Why does this file exist, and why not put this in __main__?
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 import sys
+import argparse
 
 
-def main(argv=None):
-    """
-    Args:
-        argv (list): List of arguments
+class CLI:
+    def __init__(self, command):
+    # use dispatch pattern to invoke method with same name
+        getattr(self, command)()
 
-    Returns:
-        int: A return code
+    def livestream(self):
+        parser = argparse.ArgumentParser(
+            description='Stream Data live from the mentalab explore device')
+        parser.add_argument("-s", "--stream",
+                            dest="stream", type=str, default=None,)
 
-    Does stuff.
-    """
-    print(argv)
-    return 0
+        args = parser.parse_args(sys.argv)
+
+        explorer = explore.Explore()
+
+        explorer.connect(device_id=0)
+        explorer.acquire(device_id=0)
+
+    def select_device(self):
+        return
+
+    def push2LSL(self):
+        return
+
+    def record_data(self):
+        return
+
