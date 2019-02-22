@@ -24,7 +24,8 @@ class Explore:
 
     def connect(self, device_name, device_id=0):
         r"""
-        Connects to the nearby device. If there are more than one device, the user is asked to choose one of them
+        Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
+
         Args:
             device_name (str): Device name in the format of "Explore_XXXX"
             device_id (int): device id
@@ -33,19 +34,16 @@ class Explore:
         self.device[device_id].initBT(device_name)
 
     def disconnect(self, device_id=None):
-        r"""
-        Disconnects from the device
+        r"""Disconnects from the device
+
         Args:
             device_id (int): device id (id=None for disconnecting all devices)
-
-        Returns:
-
         """
         self.device[device_id].socket.close()
 
     def acquire(self, device_id=0):
-        r"""
-        Start getting data from the device
+        r"""Start getting data from the device
+
         Args:
             device_id (int): device id (id=None for disconnecting all devices)
         """
@@ -69,15 +67,12 @@ class Explore:
                 self.parser.socket = self.device[device_id].bt_connect()
 
     def record_data(self, file_name, device_id=0, do_overwrite=False):
-        r"""
-        Records the data in real-time
+        r"""Records the data in real-time
+
         Args:
             file_name (str): output file name
             device_id (int): device id
             do_overwrite (bool): Overwrite if files exist already
-
-        Returns:
-
         """
         self.socket = self.device[device_id].bt_connect()
 
@@ -113,14 +108,10 @@ class Explore:
                     self.parser.socket = self.device[device_id].bt_connect()
 
     def push2lsl(self, device_id=0):
-        r"""
-        Push samples to two lsl streams
+        r"""Push samples to two lsl streams
 
         Args:
             device_id (int): device id
-
-        Returns:
-
         """
         self.socket = self.device[device_id].bt_connect()
 
@@ -152,8 +143,8 @@ class Explore:
                 self.parser = Parser(self.socket)
 
     def visualize(self):
-        r"""
-        Start visualization of the data in the viewer
+        r"""Start visualization of the data in the viewer (NOT IMPLEMENTED)
+
         Returns:
 
         """
