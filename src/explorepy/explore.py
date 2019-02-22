@@ -1,4 +1,5 @@
-import numpy as np
+# -*- coding: utf-8 -*-
+
 from .bt_client import BtClient
 from .parser import Parser
 import bluetooth
