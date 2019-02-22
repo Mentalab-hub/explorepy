@@ -68,7 +68,15 @@ napoleon_google_docstring = True
 napoleon_use_ivar = True
 napoleon_use_rtype = False
 napoleon_use_param = False
+napoleon_include_private_with_doc = True
+napoleon_include_special_with_doc = True
 
-autoclass_content = 'class'
+autoclass_content = 'both'
+autodoc_default_flags = [
+    'members',
+    'inherited-members',
+    'private-members',
+    'show-inheritance',
+]
 autodoc_member_order = 'bysource'
-autodoc_default_flags = ['members']
+autosummary_generate = True
