@@ -5,7 +5,7 @@ explorepy
 
     from explorepy import *
 
-.. autoclass:: Explore
+.. automodule:: explore
     :members:
     :undoc-members:
 
