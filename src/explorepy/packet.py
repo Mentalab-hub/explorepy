@@ -63,6 +63,11 @@ class EEG(Packet):
         pass
 
     def push_to_lsl(self, outlet):
+        r"""Push data to lsl socket
+
+        Args:
+            outlet (lsl.StreamOutlet): lsl stream outlet
+        """
         for sample in self.data.T:
             outlet.push_sample(sample.tolist())
 
