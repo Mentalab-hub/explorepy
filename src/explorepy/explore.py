@@ -83,13 +83,13 @@ class Explore:
         if self.parser is None:
             self.parser = Parser(self.socket)
 
-        eeg_out_file = file_name + "_eeg.csv"
-        orn_out_file = file_name + "_orn.csv"
+        exg_out_file = file_name + "_ExG.csv"
+        orn_out_file = file_name + "_ORN.csv"
 
-        assert not (os.path.isfile(eeg_out_file) and do_overwrite), eeg_out_file + " already exists!"
+        assert not (os.path.isfile(exg_out_file) and do_overwrite), exg_out_file + " already exists!"
         assert not (os.path.isfile(orn_out_file) and do_overwrite), orn_out_file + " already exists!"
 
-        with open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
+        with open(exg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
             f_orn.write(
                 "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
