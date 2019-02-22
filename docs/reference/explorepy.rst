@@ -9,7 +9,7 @@ explorepy
     :members:
     :undoc-members:
 
-.. autoclass:: Parser
+.. automodule:: Parser
     :members:
     :undoc-members:
 
