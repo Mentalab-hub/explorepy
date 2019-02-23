@@ -22,16 +22,16 @@ class Explore:
         for i in range(n_device):
             self.device.append(BtClient())
 
-    def connect(self, device_name, device_id=0):
+    def connect(self, device_info, device_id=0):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
         Args:
-            device_name (str): Device name in the format of "Explore_XXXX"
+            device_info (str): Device name in the format of "Explore_XXXX" or the MAC adress in format XX:XX:XX:XX
             device_id (int): device id
 
         """
-        self.device[device_id].initBT(device_name)
+        self.device[device_id].initBT(device_info)
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device

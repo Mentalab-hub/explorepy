@@ -1,7 +1,20 @@
 from explorepy.parser import Parser
 import os.path
 import csv
+import bluetooth
 
+
+def bt_scan(self):
+    print("Searching for nearby devices...")
+    nearby_devices = bluetooth.discover_devices(lookup_names=True)
+
+    for address, name in nearby_devices:
+        if "Explore" in name:
+            print("Device found: %s - %s" % (name, address))
+            self.lastUsedAddress = address
+
+    assert name is not None, "No Devices found"
+    return
 
 def bin2csv(bin_file, out_dir=None, do_overwrite=False):
     r"""Binary to CSV file converter.

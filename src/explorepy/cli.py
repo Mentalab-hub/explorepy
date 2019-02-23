@@ -16,6 +16,8 @@ Why does this file exist, and why not put this in __main__?
 """
 import sys
 import argparse
+from explorepy.tools import bt_scan
+import explorepy
 
 
 class CLI:
@@ -23,25 +25,86 @@ class CLI:
     # use dispatch pattern to invoke method with same name
         getattr(self, command)()
 
-    def livestream(self):
+
+    def find_device(self):
         parser = argparse.ArgumentParser(
-            description='Stream Data live from the mentalab explore device')
-        parser.add_argument("-s", "--stream",
-                            dest="stream", type=str, default=None,)
+            description='List available Explore devices.')
+        bt_scan()
 
-        args = parser.parse_args(sys.argv)
+    def acquire(self):
 
-        explorer = explore.Explore()
+        explorer = explorepy.Explore()
+        parser = argparse.ArgumentParser(
+            description='Connect to a device with selected name or address. Only one input is necessary')
 
-        explorer.connect(device_id=0)
-        explorer.acquire(device_id=0)
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
 
-    def select_device(self):
-        return
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explorer.connect(args.address)
+        else:
+            explorer.connect(args.name)
+        explorer.acquire()
+
+    def record2CSV(self):
+
+        explorer = explorepy.Explore()
+        parser = argparse.ArgumentParser(
+            description = 'Connect to a device with selected name')
+
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        parser.add_argument("-f", "--filename",
+                            dest="filename", type=str, default=None,
+                            help="Name of the CSV_Files.")
+
+        parser.add_argument("-o", "--overwrite", dest="overwrite", type=str, default=None,
+                            help="Overwrite files with same name")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explorer.connect(args.address)
+        else:
+            explorer.connect(args.name)
+
+        if args.overwrite is not None:
+            do_overwrite = True
+
+        explorer.record_data(args.filename, do_overwrite)
 
     def push2LSL(self):
-        return
 
-    def record_data(self):
-        return
+        explorer = explorepy.Explore()
+        parser = argparse.ArgumentParser(
+            description = 'Push data to lsl')
 
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explorer.connect(args.address)
+        else:
+            explorer.connect(args.name)
+
+        explorer.push2lsl()
