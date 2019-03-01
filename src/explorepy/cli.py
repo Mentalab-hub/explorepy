@@ -16,7 +16,7 @@ Why does this file exist, and why not put this in __main__?
 """
 import sys
 import argparse
-from explorepy.tools import bt_scan
+from explorepy.tools import bin2csv, bt_scan
 import explorepy
 
 
@@ -29,6 +29,8 @@ class CLI:
     def find_device(self):
         parser = argparse.ArgumentParser(
             description='List available Explore devices.')
+
+        args = parser.parse_args(sys.argv[2:])
         bt_scan()
 
     def acquire(self):
@@ -71,8 +73,8 @@ class CLI:
                             dest="filename", type=str, default=None,
                             help="Name of the CSV_Files.")
 
-        parser.add_argument("-o", "--overwrite", dest="overwrite", type=str, default=None,
-                            help="Overwrite files with same name")
+        parser.add_argument("-o", "--overwrite", action='store_false',
+                            help="Overwrite files with same name.")
 
         args = parser.parse_args(sys.argv[2:])
 
@@ -81,10 +83,7 @@ class CLI:
         else:
             explorer.connect(args.name)
 
-        if args.overwrite is not None:
-            do_overwrite = True
-
-        explorer.record_data(args.filename, do_overwrite)
+        explorer.record_data(args.filename, args.overwrite)
 
     def push2LSL(self):
 
@@ -108,3 +107,22 @@ class CLI:
             explorer.connect(args.name)
 
         explorer.push2lsl()
+
+
+    def bin2CSV(self):
+
+        parser = argparse.ArgumentParser(
+            description = 'Convert Binary data to CSV')
+
+
+        parser.add_argument("-i", "--inputfile",
+                            dest="inputfile", type=str, default=None,
+                            help="Name of the Bin_File. ")
+
+
+        parser.add_argument("-o", "--overwrite", action='store_false',
+                            help="Overwrite files with same name.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        bin2csv(args.inputfile, args.overwrite)

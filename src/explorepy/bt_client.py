@@ -28,16 +28,20 @@ class BtClient:
                 if device_info == name:
                     device_addr = address
                     break
+                else:
+                    print("Device not found. Please check if device is on or if you have misspelled the name")
+                    return
         else:
             device_addr = device_info
 
-        #No need to scan if we have the adress
+        #No need to scan if we have the address
 
         self.lastUsedAddress = device_addr
 
         uuid = "1101"  # Serial Port Profile (SPP) service
         service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)
-        assert len(service_matches) > 0, "Couldn't find the Device! Restart your device and run the code again"
+        assert len(service_matches) > 0, "Couldn't find the Device! Restart your device and run the code again and check if MAC address" \
+                                         "is entered correctly."
 
         first_match = service_matches[0]
         self.port = first_match["port"]
@@ -56,8 +60,8 @@ class BtClient:
                 break
             except bluetooth.BluetoothError as error:
                 socket.close()
-                print("Could not connect: ", error, "; Retrying in 5s...")
-                time.sleep(5)
+                print("Could not connect: ", error, "; Retrying in 2s...")
+                time.sleep(2)
         return socket
 
     def reconnect(self):

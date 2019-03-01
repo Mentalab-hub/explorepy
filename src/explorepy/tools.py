@@ -4,19 +4,21 @@ import csv
 import bluetooth
 
 
-def bt_scan(self):
+def bt_scan():
     print("Searching for nearby devices...")
     nearby_devices = bluetooth.discover_devices(lookup_names=True)
 
     for address, name in nearby_devices:
         if "Explore" in name:
             print("Device found: %s - %s" % (name, address))
-            self.lastUsedAddress = address
 
-    assert name is not None, "No Devices found"
-    return
+    if len(nearby_devices) == 0:
+        print("No Devices found")
+        return
 
-def bin2csv(bin_file, out_dir=None, do_overwrite=False):
+
+def bin2csv(bin_file, do_overwrite, out_dir=None):
+
     r"""Binary to CSV file converter.
     This function converts the given binary file to ExG and ORN csv files.
 

@@ -66,7 +66,7 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def record_data(self, file_name, device_id=0, do_overwrite=False):
+    def record_data(self, file_name, do_overwrite, device_id=0):
         r"""Records the data in real-time
 
         Args:
@@ -74,16 +74,17 @@ class Explore:
             device_id (int): device id
             do_overwrite (bool): Overwrite if files exist already
         """
-        self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(self.socket)
 
         exg_out_file = file_name + "_ExG.csv"
         orn_out_file = file_name + "_ORN.csv"
 
         assert not (os.path.isfile(exg_out_file) and do_overwrite), exg_out_file + " already exists!"
         assert not (os.path.isfile(orn_out_file) and do_overwrite), orn_out_file + " already exists!"
+
+        self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(self.socket)
 
         with open(exg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
