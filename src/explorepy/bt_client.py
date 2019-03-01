@@ -22,7 +22,7 @@ class BtClient:
             device_name(str): Name of the device
             device_addr(str): Devices MAC address
         """
-        assert (device_addr is not None) and (device_name is not None), "Missing name or address"
+        assert (device_addr is not None) or (device_name is not None), "Missing name or address"
 
         if device_addr is None:
             nearby_devices = bluetooth.discover_devices(lookup_names=True)
