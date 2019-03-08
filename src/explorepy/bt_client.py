@@ -1,5 +1,4 @@
-import bluetooth, subprocess
-import sys
+import bluetooth
 import time
 
 
@@ -14,7 +13,7 @@ class BtClient:
         self.port = None
         self.name = None
 
-    def initBT(self, device_name=None, device_addr=None):
+    def initbt(self, device_name=None, device_addr=None):
         """
         Initialize Bluetooth connection
 
@@ -24,7 +23,6 @@ class BtClient:
         """
         assert (device_addr is not None) or (device_name is not None), "Missing name or address"
 
-
         if device_name is not None:
             nearby_devices = bluetooth.discover_devices(lookup_names=True)
             for address, name in nearby_devices:
@@ -32,18 +30,17 @@ class BtClient:
                     self.lastUsedAddress = address
                     break
             if self.lastUsedAddress is None:
-                print("Device with that name has not been found. Please check if device is turned on or if there is a spelling error")
+                print("Device with that name has not been found. "
+                      "Please check if device is turned on or if there is a spelling error")
 
         else:
-         #No need to scan if we have the address
+            """"No need to scan if we have the address"""
             self.lastUsedAddress = device_addr
-
-
 
         uuid = "1101"  # Serial Port Profile (SPP) service
         service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)
-        assert len(service_matches) > 0, "Couldn't find the Device! Restart your device and run the code again and check if MAC address" \
-                                         "is entered correctly."
+        assert len(service_matches) > 0, "Couldn't find the Device! Restart your device and run the " \
+                                         "code again and check if MAC address is entered correctly."
 
         first_match = service_matches[0]
         self.port = first_match["port"]
@@ -61,7 +58,7 @@ class BtClient:
                 socket.connect((self.host, self.port))
                 break
             except bluetooth.BluetoothError as error:
-                socket.close()
+                self.socket.close()
                 print("Could not connect: ", error, "; Retrying in 2s...")
                 time.sleep(2)
         return socket
@@ -78,7 +75,7 @@ class BtClient:
             try:
                 socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
                 socket.connect((self.host, self.port))
-                break;
+                break
             except bluetooth.BluetoothError as error:
                 print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
                 time.sleep(5)
