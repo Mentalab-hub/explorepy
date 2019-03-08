@@ -40,7 +40,7 @@ class BtClient:
         uuid = "1101"  # Serial Port Profile (SPP) service
         service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)
         assert len(service_matches) > 0, "Couldn't find the Device! Restart your device and run the " \
-                                         "code again and check if MAC address is entered correctly."
+                                         "code again and check if MAC address/name is entered correctly."
 
         first_match = service_matches[0]
         self.port = first_match["port"]
