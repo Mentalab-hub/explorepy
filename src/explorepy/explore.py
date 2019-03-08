@@ -35,7 +35,7 @@ class Explore:
 
         """
 
-        self.device[device_id].initbt(device_name=device_name, device_addr=device_addr)
+        self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device

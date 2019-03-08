@@ -13,7 +13,7 @@ class BtClient:
         self.port = None
         self.name = None
 
-    def initbt(self, device_name=None, device_addr=None):
+    def init_bt(self, device_name=None, device_addr=None):
         """
         Initialize Bluetooth connection
 
