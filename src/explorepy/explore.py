@@ -70,7 +70,7 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def record_data(self, file_name, do_overwrite, device_id=0):
+    def record_data(self, file_name, do_overwrite=False, device_id=0):
         r"""Records the data in real-time
 
         Args:
