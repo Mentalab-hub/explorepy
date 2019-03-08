@@ -117,7 +117,7 @@ class Explore:
 
         Args:
             device_id (int): device id
-            n_chan: Number of channels (4 or 8)
+            n_chan (int): Number of channels (4 or 8)
         """
         self.socket = self.device[device_id].bt_connect()
 
