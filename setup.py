@@ -24,9 +24,10 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'pylsl==1.13.1']
+my_req = ['numpy']
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pybluez')  # Add pybluez if the environment is other than READTHEDOCS
+    my_req.append('pylsl')
 
 setup(
     name='explorepy',
