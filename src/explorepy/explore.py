@@ -22,18 +22,20 @@ class Explore:
         for i in range(n_device):
             self.device.append(BtClient())
 
-    def connect(self, device_name = None, device_addr= None, device_id=0):
+    def connect(self, device_name=None, device_addr=None, device_id=0):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
         Args:
             device_name (str): Device name in the format of "Explore_XXXX"
-            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in the input
+            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in
+            the input
+
             device_id (int): device id
 
         """
 
-        self.device[device_id].initBT(device_name = device_name, device_addr = device_addr)
+        self.device[device_id].initbt(device_name=device_name, device_addr=device_addr)
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -58,7 +60,7 @@ class Explore:
         is_acquiring = True
         while is_acquiring:
             try:
-                packet = self.parser.parse_packet(mode="print")
+                self.parser.parse_packet(mode="print")
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -101,7 +103,7 @@ class Explore:
 
             while is_acquiring:
                 try:
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
                 except ValueError:
                     # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                     print("Disconnected, scanning for last connected device")
@@ -137,7 +139,7 @@ class Explore:
             print("Pushing to lsl...")
 
             try:
-                packet = self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
+                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")

@@ -88,7 +88,7 @@ The following code connects to the Explore device and prints the data. To see ot
 
     import explorepy
     explorer = explorepy.Explore()
-    explorer.connect(device_name='Explore_XXXX") #Put your device Bluetooth name
+    explorer.connect(device_name=Explore_XXXX) #Put your device Bluetooth name
     explorer.acquire()
 
 Documentation

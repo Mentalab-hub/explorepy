@@ -14,12 +14,12 @@ with the last 4 characters being the last 4 hex numbers of the devices MAC adres
 
 Make sure to initialize the bluetooth connection before starting a recording session or a push to lsl using the following lines::
 
-    explorer = explore.Explore()
-    explorer.connect(device_name='Explore_XXXX") #Put your device Bluetooth name
+    explorer = explorepy.Explore()
+    explorer.connect(device_name="Explore_XXXX") #Put your device Bluetooth name
 
 Alternatively you can use the device's MAC address::
 
-    explorer.connect(device_addr = 'XX:XX:XX:XX:XX:XX')
+    explorer.connect(device_addr = "XX:XX:XX:XX:XX:XX")
 
 If the device is not found it will raise an error.
 

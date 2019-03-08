@@ -1,19 +1,3 @@
-"""
-Module that contains the command line app.
-
-Why does this file exist, and why not put this in __main__?
-
-  You might be tempted to import things from __main__ later, but that will cause
-  problems: the code will get executed twice:
-
-  - When you run `python -mexplorepy` python will execute
-    ``__main__.py`` as a script. That means there won't be any
-    ``explorepy.__main__`` in ``sys.modules``.
-  - When you import __main__ it will get executed again (as a module) because
-    there's no ``explorepy.__main__`` in ``sys.modules``.
-
-  Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
-"""
 import sys
 import argparse
 from explorepy.tools import bin2csv, bt_scan
@@ -22,19 +6,18 @@ import explorepy
 
 class CLI:
     def __init__(self, command):
-    # use dispatch pattern to invoke method with same name
         getattr(self, command)()
 
-
     def find_device(self):
+        self.is_not_used()
         parser = argparse.ArgumentParser(
             description='List available Explore devices.')
 
-        args = parser.parse_args(sys.argv[2:])
+        parser.parse_args(sys.argv[2:])
         bt_scan()
 
     def acquire(self):
-
+        self.is_not_used()
         explorer = explorepy.Explore()
         parser = argparse.ArgumentParser(
             description='Connect to a device with selected name or address. Only one input is necessary')
@@ -56,10 +39,10 @@ class CLI:
         explorer.acquire()
 
     def record_data(self):
-
+        self.is_not_used()
         explorer = explorepy.Explore()
         parser = argparse.ArgumentParser(
-            description = 'Connect to a device with selected name')
+            description='Connect to a device with selected name')
 
         parser.add_argument("-a", "--address",
                             dest="address", type=str, default=None,
@@ -79,18 +62,18 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr = args.address)
+            explorer.connect(device_addr=args.address)
         else:
-            explorer.connect(device_name = args.name)
+            explorer.connect(device_name=args.name)
 
         assert (args.filename is not None), "Missing Filename"
         explorer.record_data(args.filename, args.overwrite)
 
     def push2lsl(self):
-
+        self.is_not_used()
         explorer = explorepy.Explore()
         parser = argparse.ArgumentParser(
-            description = 'Push data to lsl')
+            description='Push data to lsl')
 
         parser.add_argument("-a", "--address",
                             dest="address", type=str, default=None,
@@ -113,17 +96,14 @@ class CLI:
 
         explorer.push2lsl(n_chan=args.channels)
 
-
     def bin2csv(self):
-
+        self.is_not_used()
         parser = argparse.ArgumentParser(
-            description = 'Convert Binary data to CSV')
-
+            description='Convert Binary data to CSV')
 
         parser.add_argument("-i", "--inputfile",
                             dest="inputfile", type=str, default=None,
                             help="Name of the Bin_File. ")
-
 
         parser.add_argument("-o", "--overwrite", action='store_false',
                             help="Overwrite files with same name.")
@@ -131,3 +111,6 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         bin2csv(args.inputfile, args.overwrite)
+
+    def is_not_used(self):
+        pass
