@@ -27,7 +27,8 @@ class Explore:
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
         Args:
-            device_info (str): Device name in the format of "Explore_XXXX" or the MAC adress in format XX:XX:XX:XX
+            device_name (str): Device name in the format of "Explore_XXXX"
+            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in the input
             device_id (int): device id
 
         """

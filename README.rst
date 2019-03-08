@@ -82,12 +82,12 @@ To install the latest development version run:
 
 Example use
 ===========
-The following code connects to the Explore device and prints the data. To see other functionalities please see the full `documentation <https://explorepy.readthedocs.io/>`_.
+The following code connects to the Explore device and prints the data. To see other functions please see the full `documentation <https://explorepy.readthedocs.io/>`_.
 
 ::
 
     import explorepy
-    explorer = explore.Explore()
+    explorer = explorepy.Explore()
     explorer.connect(device_name='Explore_XXXX") #Put your device Bluetooth name
     explorer.acquire()
 
