@@ -22,7 +22,7 @@ class Explore:
         for i in range(n_device):
             self.device.append(BtClient())
 
-    def connect(self, device_info, device_id=0):
+    def connect(self, device_name = None, device_addr= None, device_id=0):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
@@ -31,7 +31,8 @@ class Explore:
             device_id (int): device id
 
         """
-        self.device[device_id].initBT(device_info)
+
+        self.device[device_id].initBT(device_name, device_addr)
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -108,7 +109,7 @@ class Explore:
                     print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
                     self.parser.socket = self.device[device_id].bt_connect()
 
-    def push2lsl(self, device_id=0):
+    def push2lsl(self, n_chan, device_id=0):
         r"""Push samples to two lsl streams
 
         Args:
@@ -116,11 +117,13 @@ class Explore:
         """
         self.socket = self.device[device_id].bt_connect()
 
+        assert (n_chan == 4) or (n_chan == 8), "Number of channels should be either 4 or 8"
+
         if self.parser is None:
             self.parser = Parser(self.socket)
 
         info_orn = StreamInfo('Mentalab', 'Orientation', 9, 20, 'float32', 'explore_orn')
-        info_eeg =StreamInfo('Mentalab', 'EEG', 4, 250, 'float32', 'explore_eeg')
+        info_eeg =StreamInfo('Mentalab', 'EEG', n_chan, 250, 'float32', 'explore_eeg')
 
         orn_outlet = StreamOutlet(info_orn)
         eeg_outlet = StreamOutlet(info_eeg)

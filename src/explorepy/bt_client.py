@@ -14,29 +14,31 @@ class BtClient:
         self.port = None
         self.name = None
 
-    def initBT(self, device_info):
+    def initBT(self, device_name=None, device_addr=None):
         """
         Initialize Bluetooth connection
 
         Args:
-            device_info (str): either the device's name or MAC Address
+            device_name(str): Name of the device
+            device_addr(str): Devices MAC address
         """
+        assert (device_addr is not None) or (device_name is not None), "Missing name or address"
 
-        if "Explore" in device_info:
+        if device_addr is None:
             nearby_devices = bluetooth.discover_devices(lookup_names=True)
             for address, name in nearby_devices:
-                if device_info == name:
-                    device_addr = address
+                if device_name == name:
+                    self.lastUsedAddress = address
                     break
                 else:
-                    print("Device not found. Please check if device is on or if you have misspelled the name")
-                    return
+                    print("The Device with the given Name has not been found. Please check if device is turned on and paired"
+                          " or check the entered name for typos")
+                    sys.exit()
         else:
-            device_addr = device_info
+         #No need to scan if we have the address
+            self.lastUsedAddress = device_addr
 
-        #No need to scan if we have the address
 
-        self.lastUsedAddress = device_addr
 
         uuid = "1101"  # Serial Port Profile (SPP) service
         service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)

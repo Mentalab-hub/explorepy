@@ -27,7 +27,7 @@ def main():
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX). 
                             -n --name       Device name (e.g. Explore_12AB).
     
-    record2CSV:             Connects to a device and records Orientation and Body data live to 2 separate CSV files
+    record_data:             Connects to a device and records Orientation and Body data live to 2 separate CSV files
                             Inputs: Name or Address, filename, overwrite flag
                             
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX). 
@@ -35,12 +35,13 @@ def main():
                             -f --filename   The name of the new CSV Files. 
                             -o --overwrite  Overwrite already existing files with the same name.
                             
-    push2LSL                Streams Data to Lab stream layer. Inputs: Name or Address
+    push2lsl                Streams Data to Lab stream layer. Inputs: Name or Address and Channel number (either 4 or 8)
     
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX). 
                             -n --name       Device name (e.g. Explore_12AB).
+                            -c --channels   Number of channels. This is necessary for push2lsl
     
-    bin2CSV                 Takes a Binary file and converts it to 2 CSV files (orientation and Body)
+    bin2csv                Takes a Binary file and converts it to 2 CSV files (orientation and Body)
     
                             -i --inputfile  Name of the input file
                             -o --overwrite  Overwrite already existing files with the same name.

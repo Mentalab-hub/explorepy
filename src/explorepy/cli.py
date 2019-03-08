@@ -50,12 +50,12 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(args.address)
-        else:
-            explorer.connect(args.name)
+            explorer.connect(device_addr=args.address)
+        elif args.address is None:
+            explorer.connect(device_name=args.name)
         explorer.acquire()
 
-    def record2CSV(self):
+    def record_data(self):
 
         explorer = explorepy.Explore()
         parser = argparse.ArgumentParser(
@@ -79,13 +79,13 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(args.address)
+            explorer.connect(device_addr = args.address)
         else:
-            explorer.connect(args.name)
+            explorer.connect(device_name = args.name)
 
         explorer.record_data(args.filename, args.overwrite)
 
-    def push2LSL(self):
+    def push2lsl(self):
 
         explorer = explorepy.Explore()
         parser = argparse.ArgumentParser(
@@ -99,6 +99,10 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
+        parser.add_argument("-c", "--channels",
+                            dest="channels", type=int, default=None,
+                            help="the device's number of channels (4 or 8)")
+
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
@@ -106,10 +110,10 @@ class CLI:
         else:
             explorer.connect(args.name)
 
-        explorer.push2lsl()
+        explorer.push2lsl(n_chan=args.channels)
 
 
-    def bin2CSV(self):
+    def bin2csv(self):
 
         parser = argparse.ArgumentParser(
             description = 'Convert Binary data to CSV')
