@@ -32,7 +32,7 @@ class Explore:
 
         """
 
-        self.device[device_id].initBT(device_name, device_addr)
+        self.device[device_id].initBT(device_name = device_name, device_addr = device_addr)
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -114,23 +114,27 @@ class Explore:
 
         Args:
             device_id (int): device id
+            n_chan: Number of channels (4 or 8)
         """
         self.socket = self.device[device_id].bt_connect()
-
-        assert (n_chan == 4) or (n_chan == 8), "Number of channels should be either 4 or 8"
 
         if self.parser is None:
             self.parser = Parser(self.socket)
 
+        assert (n_chan is not None), "Number of channels missing"
+        assert (n_chan == 4) or (n_chan == 8), "Number of channels should be either 4 or 8"
+
         info_orn = StreamInfo('Mentalab', 'Orientation', 9, 20, 'float32', 'explore_orn')
-        info_eeg =StreamInfo('Mentalab', 'EEG', n_chan, 250, 'float32', 'explore_eeg')
+        info_eeg = StreamInfo('Mentalab', 'EEG', n_chan, 250, 'float32', 'explore_eeg')
 
         orn_outlet = StreamOutlet(info_orn)
         eeg_outlet = StreamOutlet(info_eeg)
 
         is_acquiring = True
-        print("Pushing to lsl...")
+
         while is_acquiring:
+            print("Pushing to lsl...")
+
             try:
                 packet = self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
             except ValueError:

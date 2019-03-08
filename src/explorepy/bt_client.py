@@ -24,7 +24,7 @@ class BtClient:
         """
         assert (device_addr is not None) or (device_name is not None), "Missing name or address"
 
-        if device_addr is None:
+        if device_name is not None:
             nearby_devices = bluetooth.discover_devices(lookup_names=True)
             for address, name in nearby_devices:
                 if device_name == name:
