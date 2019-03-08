@@ -35,7 +35,7 @@ class Explore:
 
         """
 
-        self.device[device_id].initbt(device_name=device_name, device_addr=device_addr)
+        self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -70,7 +70,7 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def record_data(self, file_name, do_overwrite, device_id=0):
+    def record_data(self, file_name, do_overwrite=False, device_id=0):
         r"""Records the data in real-time
 
         Args:
