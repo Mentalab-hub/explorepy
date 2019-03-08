@@ -25,13 +25,14 @@ def main():
     
     acquire:                Connects to device, needs either MAC or Name of the desired device as input
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX). 
-                            -n --name       Device name (e.g. Explore_12AB).
+                            -n --name       Device name (Form: "Devicename", e.g. "Explore_12AB").
+                                            
     
     record_data:             Connects to a device and records Orientation and Body data live to 2 separate CSV files
                             Inputs: Name or Address, filename, overwrite flag
                             
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX). 
-                            -n --name       Device name (e.g. Explore_12AB).
+                            -n --name       Device name (Form: "Devicename", e.g. "Explore_12AB").
                             -f --filename   The name of the new CSV Files. 
                             -o --overwrite  Overwrite already existing files with the same name.
                             
