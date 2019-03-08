@@ -59,5 +59,6 @@ def main():
 
     cli = CLI(args.command)
 
+
 if __name__ == "__main__":
     main()
