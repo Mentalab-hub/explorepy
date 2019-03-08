@@ -68,7 +68,7 @@ setup(
     extras_require={},
     entry_points={
         'console_scripts': [
-            'explorepy = explorepy.cli:main',
+            'explorepy = explorepy.__main__:main',
         ]
     },
 )
