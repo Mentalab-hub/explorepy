@@ -12,7 +12,7 @@ def bt_scan():
     Args:
 
     Returns:
-        
+
     """
     print("Searching for nearby devices...")
     nearby_devices = bluetooth.discover_devices(lookup_names=True)
