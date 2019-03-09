@@ -1,6 +1,7 @@
 import numpy as np
 import abc
 import struct
+import explorepy.filters
 
 
 class Packet:
@@ -79,6 +80,7 @@ class EEG94(EEG):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+        self.filter = explorepy.filters.Filter()
 
     def _convert(self, bin_data):
         data = Packet.int24to32(bin_data)
@@ -87,6 +89,8 @@ class EEG94(EEG):
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        for i in range(0,-1):
+            self.data[i,:] = self.filter.apply_band(self.data[i,:])
         self.dataStatus = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -115,6 +119,8 @@ class EEG98(EEG):
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        for i in range(0,-1):
+            self.data[i,:] = filter.apply_band(data[i,:])
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -143,6 +149,8 @@ class EEG99s(EEG):
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        for i in range(0,-1):
+            self.data[i,:] = filter.apply_band(self.data[i,:])
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -171,6 +179,8 @@ class EEG99(EEG):
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         self.data = data * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        for i in range(0,-1):
+            self.data[i,:] = self.filter.apply_band(self.data[i,:])
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
