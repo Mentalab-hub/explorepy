@@ -58,6 +58,7 @@ class Parser:
         self.fid = fid
         self.dt_int16 = np.dtype(np.int16).newbyteorder('<')
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
+        self.time_offset = None
 
     def parse_packet(self, mode="print", csv_files=None, outlets=None):
         r"""Reads and parses a package from a file or socket
@@ -74,6 +75,11 @@ class Parser:
         cnt = self.read(1)[0]
         payload = struct.unpack('<H', self.read(2))[0]
         timestamp = struct.unpack('<I', self.read(4))[0]
+        if self.time_offset is None:
+            self.time_offset = timestamp
+            timestamp = 0
+        else:
+            timestamp = timestamp - self.time_offset
         payload_data = self.read(payload - 4)
         packet = generate_packet(pid, timestamp, payload_data)
         if mode == "print":

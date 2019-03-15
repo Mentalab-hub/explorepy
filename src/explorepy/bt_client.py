@@ -29,10 +29,6 @@ class BtClient:
                 if name == device_name:
                     self.lastUsedAddress = address
                     break
-            if self.lastUsedAddress is None:
-                print("Device with that name has not been found. "
-                      "Please check if device is turned on or if there is a spelling error")
-
         else:
             """"No need to scan if we have the address"""
             self.lastUsedAddress = device_addr

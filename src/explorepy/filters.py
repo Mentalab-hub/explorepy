@@ -7,7 +7,7 @@ class Filter:
     def __init__(self):
         self.cutoffA = 0.5
         self.cutoffB = 40
-        self.sample_frequency = 1000.0
+        self.sample_frequency = 250.0
         self.order = 5
 
     def set_bandpass(self, a, b, fs, order):

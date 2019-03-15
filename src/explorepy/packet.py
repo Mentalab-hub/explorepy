@@ -89,8 +89,8 @@ class EEG94(EEG):
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
-        for i in range(0,-1):
-            self.data[i,:] = self.filter.apply_band(self.data[i,:])
+        #for i in range(0,-1):
+        #    self.data[i,:] = self.filter.apply_band(self.data[i,:])
         self.dataStatus = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -161,7 +161,10 @@ class EEG99s(EEG):
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:,:] = self.timestamp
+        for i in range(0,16):
+            tmpstmp[i,:] = (self.timestamp-0.064+i*40)/10000
+
+
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 

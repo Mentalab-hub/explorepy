@@ -78,7 +78,7 @@ class Explore:
             device_id (int): device id
             do_overwrite (bool): Overwrite if files exist already
         """
-
+        time_offset = None
         exg_out_file = file_name + "_ExG.csv"
         orn_out_file = file_name + "_ORN.csv"
 
@@ -103,7 +103,14 @@ class Explore:
 
             while is_acquiring:
                 try:
-                    self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    self.parser.parse_packet()
+                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    if time_offset is not None:
+                        packet.timestamp = packet.timestamp-time_offset
+                    else:
+                        time_offset = packet.timestamp
+
+
                 except ValueError:
                     # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                     print("Disconnected, scanning for last connected device")
