@@ -4,11 +4,11 @@ from functools import partial
 from threading import Thread
 
 from bokeh.layouts import column
-from bokeh.models import ColumnDataSource, WheelZoomTool, ResetTool
+from bokeh.models import ColumnDataSource, WheelZoomTool, ResetTool, PrintfTickFormatter
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.themes import Theme
-from bokeh.models.widgets import Slider
+from bokeh.models.widgets import Slider, Dropdown
 
 from tornado import gen
 
@@ -16,6 +16,7 @@ EEG_SRATE = 250  # Hz
 WIN_LENGTH = 10  # Seconds
 CHAN_LIST = ['Ch1', 'Ch2', 'Ch3', 'Ch4', 'Ch5', 'Ch6', 'Ch7', 'Ch8']
 DEFAULT_SCALE = 10**-3  # Volt
+SCALE_MENU = [("1 uV", "6"), ("5 uV", "5.5"), ("10 uV", "5"), ("100 uV", "4"), ("500 uV", "3.5"), ("1 mV", "3"), ("10 mV", "2"), ("100 mV", "1")]
 
 
 class Dashboard:
@@ -24,7 +25,7 @@ class Dashboard:
     def __init__(self, n_chan):
         self.n_chan = n_chan
         self.y_unit = DEFAULT_SCALE
-        self.offsets = np.arange(self.n_chan)[::-1][:, np.newaxis].astype(float)
+        self.offsets = np.arange(1,self.n_chan+1)[::-1][:, np.newaxis].astype(float)
         self.chan_key_list = ['Ch' + str(i + 1) for i in range(self.n_chan)]
         exg_temp = self.offsets
         init_data = dict(zip(self.chan_key_list, exg_temp))
@@ -44,10 +45,9 @@ class Dashboard:
         self.doc = doc
 
         # Create plot
-        # wheel_zoom_tool = WheelZoomTool()
-        # wheel_zoom_tool.dimensions = 'height'
-        # wheel_zoom_tool.maintain_focus = False
-        plot = figure(y_range=(-1, 4), y_axis_label='Voltage (v)', x_axis_label='Time (s)', title="EEG signal", plot_height=600, plot_width=1200,
+        plot = figure(y_range=(0.01, self.n_chan+1-0.01), y_axis_label='Voltage (v)', x_axis_label='Time (s)', title="EEG signal",
+                      plot_height=600, plot_width=1200,
+                      y_minor_ticks=10,
                       tools=[ResetTool()], active_scroll=None, active_drag=None,
                       active_inspect=None, active_tap=None)
 
@@ -56,18 +56,27 @@ class Dashboard:
         plot.x_range.follow = "end"
         plot.x_range.follow_interval = WIN_LENGTH
 
+
         # Create scale slider
         scale_slider = Slider(start=0, end=6, value=-np.log10(DEFAULT_SCALE), step=.5, title="Amplitude scale")
         scale_slider.on_change('value', self._change_scale)
         scale_slider.orientation = "horizontal"
-        scale_slider.show_value = True
-        scale_slider.tooltips = True
+        scale_slider.show_value = False
+        scale_slider.tooltips = False
+
+        # Create scale menu
+        self.dropdown = Dropdown(label="x-axis unit=", button_type="default", menu=SCALE_MENU)
+        self.dropdown.on_change('value', self._change_scale)
+        self.dropdown.label = self.dropdown.label + "1 mV"
 
         # Add widgets to the doc
-        self.doc.add_root(column(scale_slider, plot))
+        self.doc.add_root(column(self.dropdown, plot))
 
         # Set the theme
         self.doc.theme = Theme(filename="theme.yaml")
+        plot.ygrid.minor_grid_line_color = 'White'
+        plot.ygrid.minor_grid_line_alpha = 0.05
+        plot.yaxis[0].formatter = PrintfTickFormatter(format="Ch %i")
 
     @gen.coroutine
     def update(self, time_vector, ExG):
@@ -77,9 +86,13 @@ class Dashboard:
         self.source.stream(new_data, rollover=EEG_SRATE * WIN_LENGTH)
 
     def _change_scale(self, attr, old, new):
+        self.dropdown.label = " ".join(["x-axis unit = "]+[[item for item in SCALE_MENU if item[1] == new][0][0]])
+        if old is None:
+            old = -np.log10(DEFAULT_SCALE)
+
         new, old = float(new), float(old)
         old_unit = 10 ** (-old)
-        self.y_unit = 10**(-new)
+        self.y_unit = 10 ** (-new)
 
         for ch, value in self.source.data.items():
             if ch in CHAN_LIST:
