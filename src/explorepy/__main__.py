@@ -41,6 +41,8 @@ def main():
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX). 
                             -n --name       Device name (e.g. Explore_12AB).
                             -c --channels   Number of channels. This is necessary for push2lsl
+                            -m --mode       Select optimized filters (bandpass for EEG and lowpass for ECG). 
+                                            If no mode is selected the signal will be streamed raw
     
     bin2csv                Takes a Binary file and converts it to 2 CSV files (orientation and Body)
     

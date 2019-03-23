@@ -110,7 +110,6 @@ class Explore:
                     else:
                         time_offset = packet.timestamp
 
-
                 except ValueError:
                     # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                     print("Disconnected, scanning for last connected device")
@@ -119,18 +118,22 @@ class Explore:
                     print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
                     self.parser.socket = self.device[device_id].bt_connect()
 
-    def push2lsl(self, n_chan, device_id=0):
+    def push2lsl(self, n_chan, device_id=0, mode=None):
         r"""Push samples to two lsl streams
 
         Args:
             device_id (int): device id
             n_chan (int): Number of channels (4 or 8)
+            mode (str): Filter Settings (Either Lowpass for ECG or Bandpass for EEG )
         """
+
         self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
             self.parser = Parser(self.socket)
 
+        if mode is not None:
+            assert(mode=="ECG" or mode =="EEG"), "Please enter either ECG or EEG"
         assert (n_chan is not None), "Number of channels missing"
         assert (n_chan == 4) or (n_chan == 8), "Number of channels should be either 4 or 8"
 
@@ -146,7 +149,7 @@ class Explore:
             print("Pushing to lsl...")
 
             try:
-                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
+                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet), filter=mode)
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")

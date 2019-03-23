@@ -9,6 +9,7 @@ class Filter:
         self.cutoffB = 40
         self.sample_frequency = 250.0
         self.order = 5
+        self.cutOffLow = 80
 
     def set_bandpass(self, a, b, fs, order):
         self.cutoffA = a
@@ -25,6 +26,22 @@ class Filter:
 
     def apply_band(self, data):
         b, a = self.butter_bandpass()
+        filt_data = lfilter(b, a, data)
+        return filt_data
+
+    def set_lowpass(self, a, fs, order):
+        self.cutOffLow = a
+        self.sample_frequency = fs
+        self.order = order
+
+    def butter_lowpass(self):
+        nyq = 0.5 * self.sample_frequency
+        low = self.cutoffA / nyq
+        b, a = butter(self.order, low, btype='low')
+        return b, a
+
+    def apply_lowpass(self, data):
+        b, a = self.butter_lowpass()
         filt_data = lfilter(b, a, data)
         return filt_data
 
