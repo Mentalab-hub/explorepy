@@ -80,7 +80,7 @@ class Parser:
             self.time_offset = timestamp
             timestamp = 0
         else:
-            timestamp = timestamp - self.time_offset
+            timestamp = (timestamp - self.time_offset) * .1  # Timestamp unit is .1 ms
         payload_data = self.read(payload - 4)
         packet = generate_packet(pid, timestamp, payload_data)
         if mode == "print":
