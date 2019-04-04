@@ -2,12 +2,14 @@
 
 from explorepy.bt_client import BtClient
 from explorepy.parser import Parser
+from explorepy.dashboard.dashboard import Dashboard
 import bluetooth
 import csv
 import os
 import time
 from pylsl import StreamInfo, StreamOutlet
-
+from functools import partial
+from threading import Thread
 
 class Explore:
     r"""Mentalab Explore device"""
@@ -19,6 +21,7 @@ class Explore:
         self.device = []
         self.socket = None
         self.parser = None
+        self.m_dashboard = None
         for i in range(n_device):
             self.device.append(BtClient())
 
@@ -142,13 +145,51 @@ class Explore:
                 time.sleep(1)
                 self.parser = Parser(self.socket)
 
-    def visualize(self):
+    def visualize(self, device_id=0):
         r"""Start visualization of the data in the viewer (NOT IMPLEMENTED)
 
         Returns:
 
         """
-        pass
+        self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(self.socket)
+
+        self.m_dashboard = Dashboard(n_chan=4)
+        self.m_dashboard.start_server()
+
+        thread = Thread(target=self._io_loop)
+        thread.start()
+        self.m_dashboard.start_loop()
+
+    def _io_loop(self, device_id=0):
+        time.sleep(1)
+        is_acquiring = True
+        while is_acquiring:
+            try:
+                packet = self.parser.parse_packet(mode="print")
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                socket = self.device[device_id].bt_connect()
+                self.parser.socket = socket
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: attempting reconnect. Error: ", error)
+                self.parser.socket = self.device[device_id].bt_connect()
+            time_vector = None
+            EEG = None
+            self.m_dashboard.doc.add_next_tick_callback(
+                partial(self.m_dashboard.update, time_vector=time_vector, ExG=EEG))
+        # T = 0
+        # time.sleep(2)
+        # import numpy as np
+        # while True:
+        #     time_vector = np.linspace(T, T + .2, 50)
+        #     T += .2
+        #     EEG = (np.random.rand(4, 50) - .5) * .0002
+        #     self.m_dashboard.doc.add_next_tick_callback(partial(self.m_dashboard.update, time_vector=time_vector, ExG=EEG))
+        #     time.sleep(0.2)
 
 
 if __name__ == '__main__':
