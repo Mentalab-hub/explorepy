@@ -58,14 +58,16 @@ class Parser:
         self.fid = fid
         self.dt_int16 = np.dtype(np.int16).newbyteorder('<')
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
+        self.time_offset = None
 
-    def parse_packet(self, mode="print", csv_files=None, outlets=None):
+    def parse_packet(self, mode="print", csv_files=None, outlets=None, filter=None):
         r"""Reads and parses a package from a file or socket
 
         Args:
             mode (str): logging mode {'print', 'record', None}
             csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file)
             outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet
+            filter(str): Filter options which will be applied to the EEG Signal
 
         Returns:
             packet object
@@ -74,6 +76,11 @@ class Parser:
         cnt = self.read(1)[0]
         payload = struct.unpack('<H', self.read(2))[0]
         timestamp = struct.unpack('<I', self.read(4))[0]
+        if self.time_offset is None:
+            self.time_offset = timestamp
+            timestamp = 0
+        else:
+            timestamp = (timestamp - self.time_offset) * .1  # Timestamp unit is .1 ms
         payload_data = self.read(payload - 4)
         packet = generate_packet(pid, timestamp, payload_data)
         if mode == "print":
@@ -87,7 +94,11 @@ class Parser:
         elif mode == "lsl":
             if isinstance(packet, Orientation):
                 packet.push_to_lsl(outlets[0])
+
             elif isinstance(packet, EEG):
+                if filter is not None:
+                    packet.apply_filt(filt=filter)
+
                 packet.push_to_lsl(outlets[1])
 
         return packet

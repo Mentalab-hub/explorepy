@@ -25,16 +25,20 @@ class Explore:
         for i in range(n_device):
             self.device.append(BtClient())
 
-    def connect(self, device_name, device_id=0):
+    def connect(self, device_name=None, device_addr=None, device_id=0):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
         Args:
             device_name (str): Device name in the format of "Explore_XXXX"
+            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in
+            the input
+
             device_id (int): device id
 
         """
-        self.device[device_id].initBT(device_name)
+
+        self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -59,7 +63,7 @@ class Explore:
         is_acquiring = True
         while is_acquiring:
             try:
-                packet = self.parser.parse_packet(mode="print")
+                self.parser.parse_packet(mode="print")
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -69,7 +73,7 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def record_data(self, file_name, device_id=0, do_overwrite=False):
+    def record_data(self, file_name, do_overwrite=False, device_id=0):
         r"""Records the data in real-time
 
         Args:
@@ -77,16 +81,17 @@ class Explore:
             device_id (int): device id
             do_overwrite (bool): Overwrite if files exist already
         """
-        self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(self.socket)
-
+        time_offset = None
         exg_out_file = file_name + "_ExG.csv"
         orn_out_file = file_name + "_ORN.csv"
 
         assert not (os.path.isfile(exg_out_file) and do_overwrite), exg_out_file + " already exists!"
         assert not (os.path.isfile(orn_out_file) and do_overwrite), orn_out_file + " already exists!"
+
+        self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(self.socket)
 
         with open(exg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
@@ -101,7 +106,13 @@ class Explore:
 
             while is_acquiring:
                 try:
+                    self.parser.parse_packet()
                     packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    if time_offset is not None:
+                        packet.timestamp = packet.timestamp-time_offset
+                    else:
+                        time_offset = packet.timestamp
+
                 except ValueError:
                     # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                     print("Disconnected, scanning for last connected device")
@@ -110,28 +121,38 @@ class Explore:
                     print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
                     self.parser.socket = self.device[device_id].bt_connect()
 
-    def push2lsl(self, device_id=0):
+    def push2lsl(self, n_chan, device_id=0, mode=None):
         r"""Push samples to two lsl streams
 
         Args:
             device_id (int): device id
+            n_chan (int): Number of channels (4 or 8)
+            mode (str): Filter Settings (Either Lowpass for ECG or Bandpass for EEG )
         """
+
         self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
             self.parser = Parser(self.socket)
 
+        if mode is not None:
+            assert(mode=="ECG" or mode =="EEG"), "Please enter either ECG or EEG"
+        assert (n_chan is not None), "Number of channels missing"
+        assert (n_chan == 4) or (n_chan == 8), "Number of channels should be either 4 or 8"
+
         info_orn = StreamInfo('Mentalab', 'Orientation', 9, 20, 'float32', 'explore_orn')
-        info_eeg =StreamInfo('Mentalab', 'EEG', 4, 250, 'float32', 'explore_eeg')
+        info_eeg = StreamInfo('Mentalab', 'EEG', n_chan, 250, 'float32', 'explore_eeg')
 
         orn_outlet = StreamOutlet(info_orn)
         eeg_outlet = StreamOutlet(info_eeg)
 
         is_acquiring = True
-        print("Pushing to lsl...")
+
         while is_acquiring:
+            print("Pushing to lsl...")
+
             try:
-                packet = self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
+                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet), filter=mode)
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
