@@ -4,11 +4,12 @@ from functools import partial
 from threading import Thread
 
 from bokeh.layouts import column
-from bokeh.models import ColumnDataSource, WheelZoomTool, ResetTool, PrintfTickFormatter
+from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.themes import Theme
 from bokeh.models.widgets import Slider, Dropdown
+from bokeh.models import SingleIntervalTicker
 
 from tornado import gen
 
@@ -51,6 +52,8 @@ class Dashboard:
                       tools=[ResetTool()], active_scroll=None, active_drag=None,
                       active_inspect=None, active_tap=None)
 
+        # Set yaxis intervals to 1
+        plot.yaxis.ticker = SingleIntervalTicker(interval=1)
         for i in range(self.n_chan):
             plot.line(x='t', y=CHAN_LIST[i], source=self.source, legend='Channel '+ CHAN_LIST[i][-1], line_width=2)
         plot.x_range.follow = "end"
@@ -76,6 +79,8 @@ class Dashboard:
         self.doc.theme = Theme(filename="theme.yaml")
         plot.ygrid.minor_grid_line_color = 'White'
         plot.ygrid.minor_grid_line_alpha = 0.05
+
+        # Set the formatting of yaxis ticks' labels
         plot.yaxis[0].formatter = PrintfTickFormatter(format="Ch %i")
 
     @gen.coroutine
@@ -102,7 +107,7 @@ class Dashboard:
 
 if __name__ == '__main__':
     print('Opening Bokeh application on http://localhost:5006/')
-    m_dashboard = Dashboard(n_chan=4)
+    m_dashboard = Dashboard(n_chan=8)
     m_dashboard.start_server()
 
 
@@ -112,7 +117,7 @@ if __name__ == '__main__':
         while True:
             time_vector = np.linspace(T, T + .2, 50)
             T += .2
-            EEG = (np.random.rand(4, 50)-.5) * .0002
+            EEG = (np.random.rand(8, 50)-.5) * .0002
             m_dashboard.doc.add_next_tick_callback(partial(m_dashboard.update, time_vector=time_vector, ExG=EEG))
             time.sleep(0.2)
 
