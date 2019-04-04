@@ -2,6 +2,7 @@ import numpy as np
 import time
 from functools import partial
 from threading import Thread
+import os.path
 
 from bokeh.layouts import column
 from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter
@@ -76,7 +77,9 @@ class Dashboard:
         self.doc.add_root(column(self.dropdown, plot))
 
         # Set the theme
-        self.doc.theme = Theme(filename="theme.yaml")
+        # module_path, _ = os.path.split(__loader__.path)
+        module_path = os.path.dirname(__file__)
+        self.doc.theme = Theme(filename=os.path.join(module_path, "theme.yaml"))
         plot.ygrid.minor_grid_line_color = 'White'
         plot.ygrid.minor_grid_line_alpha = 0.05
 
