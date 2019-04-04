@@ -1,6 +1,7 @@
 import numpy as np
 import abc
 import struct
+import explorepy.filters
 
 
 class Packet:
@@ -63,12 +64,30 @@ class EEG(Packet):
         """
         pass
 
+    def apply_filt(self, filt=None):
+
+        r"""
+        Filter ECG Data
+
+        Args:
+        filt: filter mode (lowpass for ECG, bandpass for EEG)
+        """
+
+        if filt =="EEG":
+            for i in range(0, -1):
+                self.data[i, :] = filter.apply_band(data[i, :])
+        elif filt == "ECG":
+            for i in range(0, -1):
+                self.data[i, :] = filter.apply_lowpass(data[i, :])
+
+
     def push_to_lsl(self, outlet):
         r"""Push data to lsl socket
 
         Args:
             outlet (lsl.StreamOutlet): lsl stream outlet
         """
+
         for sample in self.data.T:
             outlet.push_sample(sample.tolist())
 
@@ -79,6 +98,7 @@ class EEG94(EEG):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+        self.filter = explorepy.filters.Filter()
 
     def _convert(self, bin_data):
         data = Packet.int24to32(bin_data)
@@ -142,7 +162,7 @@ class EEG99s(EEG):
         v_ref = 4.5
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -153,7 +173,10 @@ class EEG99s(EEG):
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:,:] = self.timestamp
+        for i in range(0,16):
+            tmpstmp[i,:] = (self.timestamp-0.064+i*40)/10000
+
+
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 

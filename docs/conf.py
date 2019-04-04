@@ -13,7 +13,7 @@ class Mock(MagicMock):
         return MagicMock()
 
 
-MOCK_MODULES = ['pybluez', 'bluetooth']
+MOCK_MODULES = ['pybluez', 'bluetooth', 'pylsl']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 extensions = [
@@ -38,7 +38,7 @@ project = 'explorepy'
 year = '2018-2019'
 author = 'Mohamad Atayi'
 copyright = '{0}, {1}'.format(year, author)
-version = release = '0.1.0'
+version = release = '0.2.0'
 
 pygments_style = 'trac'
 templates_path = ['.']

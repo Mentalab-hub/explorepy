@@ -37,9 +37,9 @@ Overview
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/explorepy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.1.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.2.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.1.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.2.0...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
     :alt: PyPI Wheel
@@ -82,13 +82,13 @@ To install the latest development version run:
 
 Example use
 ===========
-The following code connects to the Explore device and prints the data. To see other functionalities please see the full `documentation <https://explorepy.readthedocs.io/>`_.
+The following code connects to the Explore device and prints the data. To see other functions please see the full `documentation <https://explorepy.readthedocs.io/>`_.
 
 ::
 
     import explorepy
-    explorer = explore.Explore()
-    explorer.connect(device_name='Explore_XXXX") #Put your device Bluetooth name
+    explorer = explorepy.Explore()
+    explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
     explorer.acquire()
 
 Documentation
