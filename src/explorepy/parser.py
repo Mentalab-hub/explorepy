@@ -15,6 +15,8 @@ EEG94_ID = 144
 EEG98_ID = 146
 EEG99S_ID = 30
 EEG99_ID = 62
+EEG94R_ID = 208
+EEG98R_ID = 210
 
 PACKET_CLASS_DICT = {
     ORN_ID: Orientation,
@@ -25,7 +27,9 @@ PACKET_CLASS_DICT = {
     EEG94_ID: EEG94,
     EEG98_ID: EEG98,
     EEG99S_ID: EEG99s,
-    EEG99_ID: EEG99s  # TODO: Check with the firmware if it has status or not!
+    EEG99_ID: EEG99s,
+    EEG94R_ID: EEG94_ID,
+    EEG98R_ID: EEG98
 }
 
 
