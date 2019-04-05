@@ -1,6 +1,10 @@
 import numpy as np
 import struct
 from explorepy.packet import *
+from explorepy.filters import Filter
+
+LOW_CUTOFF_FREQ = .5   # Hz
+HIGH_CUTOFF_FREQ = 40  # Hz
 
 ORN_ID = 13
 ENV_ID = 19
@@ -47,7 +51,7 @@ def generate_packet(pid, timestamp, bin_data):
 
 
 class Parser:
-    def __init__(self, socket=None, fid=None):
+    def __init__(self, socket=None, fid=None, apply_filter=False):
         r"""Parser class for explore device
 
         Args:
@@ -59,16 +63,20 @@ class Parser:
         self.dt_int16 = np.dtype(np.int16).newbyteorder('<')
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
         self.time_offset = None
+        self.apply_filter = apply_filter
+        self.filter = None
+        if apply_filter:
+            # Initialize a bandpass filter
+            self.filter = Filter(l_freq=LOW_CUTOFF_FREQ, h_freq=HIGH_CUTOFF_FREQ)
 
-    def parse_packet(self, mode="print", csv_files=None, outlets=None, filter=None):
+    def parse_packet(self, mode="print", csv_files=None, outlets=None, dashboard=None):
         r"""Reads and parses a package from a file or socket
 
         Args:
-            mode (str): logging mode {'print', 'record', None}
+            mode (str): logging mode {'print', 'record', 'lsl', 'visualize', None}
             csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file)
             outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet
-            filter(str): Filter options which will be applied to the EEG Signal
-
+            dashboard (Dashboard): Dashboard object for visualization
         Returns:
             packet object
         """
@@ -76,30 +84,39 @@ class Parser:
         cnt = self.read(1)[0]
         payload = struct.unpack('<H', self.read(2))[0]
         timestamp = struct.unpack('<I', self.read(4))[0]
+
+        # Timestamp conversion
         if self.time_offset is None:
             self.time_offset = timestamp
             timestamp = 0
         else:
-            timestamp = (timestamp - self.time_offset) * .1  # Timestamp unit is .1 ms
+            timestamp = (timestamp - self.time_offset) * .0001  # Timestamp unit is .1 ms
+
         payload_data = self.read(payload - 4)
         packet = generate_packet(pid, timestamp, payload_data)
         if mode == "print":
             print(packet)
+
         elif mode == "record":
             assert isinstance(csv_files, tuple), "Invalid csv writer objects!"
             if isinstance(packet, Orientation):
                 packet.write_to_csv(csv_files[1])
             elif isinstance(packet, EEG):
                 packet.write_to_csv(csv_files[0])
+
         elif mode == "lsl":
             if isinstance(packet, Orientation):
                 packet.push_to_lsl(outlets[0])
-
             elif isinstance(packet, EEG):
-                if filter is not None:
-                    packet.apply_filt(filt=filter)
-
+                if self.apply_filter:
+                    packet.apply_filter(filter=self.filter)
                 packet.push_to_lsl(outlets[1])
+
+        elif mode == "visualize":
+            if isinstance(packet, EEG):
+                if self.apply_filter:
+                    packet.apply_filter(filter=self.filter)
+                packet.push_to_dashboard(dashboard)
 
         return packet
 
