@@ -1,7 +1,6 @@
 import numpy as np
 import abc
 import struct
-import explorepy.filters
 from functools import partial
 
 
@@ -65,21 +64,13 @@ class EEG(Packet):
         """
         pass
 
-    def apply_filt(self, filt=None):
-
-        r"""
-        Filter ECG Data
+    def apply_filter(self, filter):
+        r"""Filter ExG Data
 
         Args:
-        filt: filter mode (lowpass for ECG, bandpass for EEG)
+        filter: Filter object
         """
-
-        if filt =="EEG":
-            for i in range(0, -1):
-                self.data[i, :] = filter.apply_band(self.data[i, :])
-        elif filt == "ECG":
-            for i in range(0, -1):
-                self.data[i, :] = filter.apply_lowpass(self.data[i, :])
+        self.data = filter.apply_bp_filter(self.data)
 
     def push_to_lsl(self, outlet):
         r"""Push data to lsl socket
@@ -92,7 +83,6 @@ class EEG(Packet):
             outlet.push_sample(sample.tolist())
 
     def push_to_dashboard(self, dashboard):
-        print(self.data.shape)
         n_sample = self.data.shape[1]
         time_vector = np.linspace(self.timestamp, self.timestamp+n_sample/250., n_sample)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update, time_vector=time_vector, ExG=self.data))
@@ -104,7 +94,6 @@ class EEG94(EEG):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
-        self.filter = explorepy.filters.Filter()
 
     def _convert(self, bin_data):
         data = Packet.int24to32(bin_data)
@@ -112,7 +101,7 @@ class EEG94(EEG):
         v_ref = 2.4
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
         self.dataStatus = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -140,7 +129,7 @@ class EEG98(EEG):
         v_ref = 2.4
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) /6.
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -168,7 +157,7 @@ class EEG99s(EEG):
         v_ref = 4.5
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) * 6. / 32
+        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) /6.
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -181,7 +170,6 @@ class EEG99s(EEG):
         tmpstmp = np.zeros([self.data.shape[1], 1])
         for i in range(0,16):
             tmpstmp[i,:] = (self.timestamp-0.064+i*40)/10000
-
 
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
@@ -199,7 +187,7 @@ class EEG99(EEG):
         v_ref = 4.5
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data * v_ref / ((2 ** 23) - 1) * 6. / 32.
+        self.data = data * v_ref / ((2 ** 23) - 1) /6.
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
