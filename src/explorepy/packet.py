@@ -2,6 +2,7 @@ import numpy as np
 import abc
 import struct
 import explorepy.filters
+from functools import partial
 
 
 class Packet:
@@ -75,11 +76,10 @@ class EEG(Packet):
 
         if filt =="EEG":
             for i in range(0, -1):
-                self.data[i, :] = filter.apply_band(data[i, :])
+                self.data[i, :] = filter.apply_band(self.data[i, :])
         elif filt == "ECG":
             for i in range(0, -1):
-                self.data[i, :] = filter.apply_lowpass(data[i, :])
-
+                self.data[i, :] = filter.apply_lowpass(self.data[i, :])
 
     def push_to_lsl(self, outlet):
         r"""Push data to lsl socket
@@ -90,6 +90,12 @@ class EEG(Packet):
 
         for sample in self.data.T:
             outlet.push_sample(sample.tolist())
+
+    def push_to_dashboard(self, dashboard):
+        print(self.data.shape)
+        n_sample = self.data.shape[1]
+        time_vector = np.linspace(self.timestamp, self.timestamp+n_sample/250., n_sample)
+        dashboard.doc.add_next_tick_callback(partial(dashboard.update, time_vector=time_vector, ExG=self.data))
 
 
 class EEG94(EEG):
