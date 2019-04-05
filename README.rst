@@ -82,7 +82,7 @@ To install the latest development version run:
 
 Example use
 ===========
-The following code connects to the Explore device and prints the data. To see other functions please see the full `documentation <https://explorepy.readthedocs.io/>`_.
+The following code connects to the Explore device and prints the data.
 
 ::
 
@@ -90,6 +90,15 @@ The following code connects to the Explore device and prints the data. To see ot
     explorer = explorepy.Explore()
     explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
     explorer.acquire()
+
+You can also visualize signal in real-time.
+
+::
+
+    import explorepy
+    explorer = explorepy.Explore()
+    explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
+    explorer.visualize(n_chan=4)  # Give number of channels (4 or 8)
 
 Documentation
 =============
