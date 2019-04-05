@@ -41,6 +41,14 @@ The program will usually stop if files with the same name are detected. If you w
 
     explorer.record_data(file_name='test', do_overwrite=True)
 
+
+Visualization
+^^^^^^^^^^^^^
+It is possible to visualize real-time signal in a browser-based dashboard by the following code::
+
+    explorer.visualize(n_chan=4)  # Give number of channels (4 or 8)
+
+
 Labstreaminglayer (lsl)
 ^^^^^^^^^^^^^^^^^^^^^^^
 You can push data directly to LSL using the following line::
