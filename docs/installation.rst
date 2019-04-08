@@ -15,7 +15,7 @@ Requirements
 Windows
 ^^^^^^^
 * Visual C++ 2010 Express for build
-* Visual Studio 2015 community edition (Probably for 64-bit systems)
+* Visual Studio 2017 community edition (In order to build 64-bit debug and release executables)
 
 Linux
 ^^^^^
