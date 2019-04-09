@@ -68,6 +68,8 @@ class Parser:
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
         self.time_offset = None
         self.apply_filter = apply_filter
+
+        self.firmware_version = None
         self.filter = None
         if apply_filter:
             # Initialize a bandpass filter
@@ -98,6 +100,9 @@ class Parser:
 
         payload_data = self.read(payload - 4)
         packet = generate_packet(pid, timestamp, payload_data)
+
+        if isinstance(packet, DeviceInfo):
+            self.firmware_version = packet.firmware_version
         if mode == "print":
             print(packet)
 
@@ -120,7 +125,7 @@ class Parser:
             if isinstance(packet, EEG):
                 if self.apply_filter:
                     packet.apply_filter(filter=self.filter)
-                packet.push_to_dashboard(dashboard)
+            packet.push_to_dashboard(dashboard)
 
         return packet
 
