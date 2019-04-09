@@ -9,7 +9,7 @@ from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.themes import Theme
-from bokeh.models.widgets import Select
+from bokeh.models.widgets import Select, DataTable, TableColumn
 from bokeh.models import SingleIntervalTicker
 
 from tornado import gen
@@ -31,10 +31,19 @@ class Dashboard:
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[::-1][:, np.newaxis].astype(float)
         self.chan_key_list = ['Ch' + str(i + 1) for i in range(self.n_chan)]
+
+        # Init ExG data source
         exg_temp = self.offsets
         init_data = dict(zip(self.chan_key_list, exg_temp))
         init_data['t'] = np.array([0.])
-        self.source = ColumnDataSource(data=init_data)
+        self.exg_source = ColumnDataSource(data=init_data)
+
+        # Init Device info table sources
+        self.firmware_source = ColumnDataSource(data={'firmware_version': ['NA']})
+        self.battery_source = ColumnDataSource(data={'battery': ['NA']})
+        self.temperature_source = ColumnDataSource(data={'temperature': ['NA']})
+        self.light_source = ColumnDataSource(data={'light': ['NA']})
+
         self.server = None
 
     def start_server(self):
@@ -60,7 +69,7 @@ class Dashboard:
         self.plot.yaxis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=10)
 
         for i in range(self.n_chan):
-            self.plot.line(x='t', y=CHAN_LIST[i], source=self.source,
+            self.plot.line(x='t', y=CHAN_LIST[i], source=self.exg_source,
                            line_width=1.5)
         self.plot.x_range.follow = "end"
         self.plot.x_range.follow_interval = WIN_LENGTH
@@ -71,8 +80,28 @@ class Dashboard:
         self.y_scale = Select(title="Y-axis Scale", value="1 mV", options=list(SCALE_MENU.keys()))
         self.y_scale.on_change('value', self._change_scale)
 
+        # Create device info tables
+        columns = [TableColumn(field='firmware_version', title="Firmware Version")]
+        self.firmware = DataTable(source=self.firmware_source, index_position=None, sortable=False, reorderable=False,
+                                  columns=columns, width=270, height=50)
+
+        columns = [TableColumn(field='battery', title="Battery")]
+        self.battery = DataTable(source=self.battery_source, index_position=None, sortable=False, reorderable=False,
+                                 columns=columns, width=270, height=50)
+
+        columns = [TableColumn(field='temperature', title="temperature")]
+        self.temperature = DataTable(source=self.temperature_source, index_position=None, sortable=False, reorderable=False,
+                                     columns=columns, width=270, height=50)
+
+        columns = [TableColumn(field='light', title="light")]
+        self.light = DataTable(source=self.light_source, index_position=None, sortable=False, reorderable=False,
+                               columns=columns, width=270, height=50)
+
         # Add widgets to the doc
-        m_layout = layout([[column(self.y_scale, self.t_range), self.plot]], sizing_mode="fixed")
+        m_layout = layout([[column(self.y_scale, self.t_range, self.firmware,
+                                   self.battery, self.temperature, self.light),
+                            self.plot]], sizing_mode="fixed")
+
         self.doc.add_root(m_layout)
 
         # Set the theme
@@ -85,21 +114,49 @@ class Dashboard:
         self.plot.yaxis[0].formatter = PrintfTickFormatter(format="Ch %i")
 
     @gen.coroutine
-    def update(self, time_vector, ExG):
+    def update_exg(self, time_vector, ExG):
+        """Update ExG data in the visualization
+
+        Args:
+            time_vector (list): time vector
+            ExG (np.ndarray): array of new data
+
+        """
         ExG = self.offsets + ExG / self.y_unit
         new_data = dict(zip(self.chan_key_list, ExG))
         new_data['t'] = time_vector
-        self.source.stream(new_data, rollover=2 * EEG_SRATE * WIN_LENGTH)
+        self.exg_source.stream(new_data, rollover=2 * EEG_SRATE * WIN_LENGTH)
+
+    @gen.coroutine
+    def update_info(self, new):
+        """Update device information in the dashboard
+
+        Args:
+            new(dict): Dictionary of new values
+
+        """
+        for key in new.keys():
+            data = {key: new[key]}
+            if key == 'firmware_version':
+                self.firmware_source.stream(data, rollover=1)
+            elif key == 'battery':
+                self.battery_source.stream(data, rollover=1)
+            elif key == 'temperature':
+                self.temperature_source.stream(data, rollover=1)
+            elif key == 'light':
+                self.light_source.stream(data, rollover=1)
+            else:
+                print("Warning: There is no field named: " + key)
 
     def _change_scale(self, attr, old, new):
         new, old = SCALE_MENU[new], SCALE_MENU[old]
         old_unit = 10 ** (-old)
         self.y_unit = 10 ** (-new)
 
-        for ch, value in self.source.data.items():
+        for ch, value in self.exg_source.data.items():
             if ch in CHAN_LIST:
                 temp_offset = self.offsets[CHAN_LIST.index(ch)]
-                self.source.data[ch] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
+                self.exg_source.data[ch] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
 
     def _change_t_range(self, attr, old, new):
         self.plot.x_range.follow = "end"
@@ -119,7 +176,13 @@ if __name__ == '__main__':
             time_vector = np.linspace(T, T + .2, 50)
             T += .2
             EEG = (np.random.randint(0, 2, (8, 50)) - .5) * .0002  # (np.random.rand(8, 50)-.5) * .0005
-            m_dashboard.doc.add_next_tick_callback(partial(m_dashboard.update, time_vector=time_vector, ExG=EEG))
+            m_dashboard.doc.add_next_tick_callback(partial(m_dashboard.update_exg, time_vector=time_vector, ExG=EEG))
+
+            device_info_attr = ['firmware_version', 'battery', 'temperature', 'light']
+            device_info_val = [['2.0.4'], ['95'], ['21'], ['13']]
+            new_data = dict(zip(device_info_attr, device_info_val))
+            m_dashboard.doc.add_next_tick_callback(partial(m_dashboard.update_info, new=new_data))
+
             time.sleep(0.2)
 
 
