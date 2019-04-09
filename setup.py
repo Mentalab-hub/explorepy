@@ -24,10 +24,11 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy']
+my_req = ['numpy', 'scipy']
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pybluez')  # Add pybluez if the environment is other than READTHEDOCS
     my_req.append('pylsl')
+    my_req.append('bokeh')
 
 setup(
     name='explorepy',
