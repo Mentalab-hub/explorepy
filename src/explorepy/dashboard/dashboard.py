@@ -9,7 +9,7 @@ from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.themes import Theme
-from bokeh.models.widgets import Select, Dropdown
+from bokeh.models.widgets import Select
 from bokeh.models import SingleIntervalTicker
 
 from tornado import gen
@@ -61,7 +61,7 @@ class Dashboard:
 
         for i in range(self.n_chan):
             self.plot.line(x='t', y=CHAN_LIST[i], source=self.source,
-                           line_width=1.5)  # , legend='Channel '+ CHAN_LIST[i][-1])
+                           line_width=1.5)
         self.plot.x_range.follow = "end"
         self.plot.x_range.follow_interval = WIN_LENGTH
 
