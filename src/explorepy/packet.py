@@ -48,6 +48,10 @@ class Packet:
                                           byteorder='little',
                                           signed=True) for x in range(0, len(bin_data), 3)])
 
+    @abc.abstractmethod
+    def push_to_dashboard(self, dashboard):
+        pass
+
 
 class EEG(Packet):
     def __init__(self, timestamp, payload):
@@ -85,7 +89,7 @@ class EEG(Packet):
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
         time_vector = np.linspace(self.timestamp, self.timestamp+n_sample/250., n_sample)
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update, time_vector=time_vector, ExG=self.data))
+        dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
 
 
 class EEG94(EEG):
@@ -245,6 +249,12 @@ class Environment(Packet):
     def __str__(self):
         return "Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(self.battery)
 
+    def push_to_dashboard(self, dashboard):
+        data = {'battery': [self.battery],
+                'temperature': [self.temperature],
+                'light': [self.light]}
+        dashboard.doc.add_next_tick_callback(partial(dashboard.update_info, new=data))
+
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
@@ -288,10 +298,15 @@ class DeviceInfo(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        self.firmware_version = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'))
+        fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'))[0]
+        self.firmware_version = '.'.join([char for char in str(fw_num)])
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "Firmware version: " + str(self.firmware_version)
+        return "Firmware version: " + self.firmware_version
+
+    def push_to_dashboard(self, dashboard):
+        data = {'firmware_version': [self.firmware_version]}
+        dashboard.doc.add_next_tick_callback(partial(dashboard.update_info, new=data))
