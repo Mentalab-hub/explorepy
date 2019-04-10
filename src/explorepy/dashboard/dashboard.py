@@ -15,11 +15,11 @@ from bokeh.models import SingleIntervalTicker
 from tornado import gen
 
 EEG_SRATE = 250  # Hz
-ORN_SRATE = 30  # Hz
+ORN_SRATE = 20  # Hz
 WIN_LENGTH = 10  # Seconds
 CHAN_LIST = ['Ch1', 'Ch2', 'Ch3', 'Ch4', 'Ch5', 'Ch6', 'Ch7', 'Ch8']
 DEFAULT_SCALE = 10 ** -3  # Volt
-
+N_MOVING_AVERAGE = 30
 ORN_LIST = ['accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'magX', 'magY', 'magZ']
 
 SCALE_MENU = {"1 uV": 6., "5 uV": 5.3333, "10 uV": 5., "100 uV": 4., "500 uV": 3.3333, "1 mV": 3., "5 mV": 2.3333,
@@ -54,7 +54,7 @@ class Dashboard:
         self.battery_source = ColumnDataSource(data={'battery': ['NA']})
         self.temperature_source = ColumnDataSource(data={'temperature': ['NA']})
         self.light_source = ColumnDataSource(data={'light': ['NA']})
-
+        self.battery_percent_list = []
         self.server = None
 
     def start_server(self):
@@ -131,7 +131,11 @@ class Dashboard:
             if key == 'firmware_version':
                 self.firmware_source.stream(data, rollover=1)
             elif key == 'battery':
-                self.battery_source.stream(data, rollover=1)
+                self.battery_percent_list.append(new[key][0])
+                if len(self.battery_percent_list) > N_MOVING_AVERAGE:
+                    del self.battery_percent_list[0]
+                value = [int(np.mean(self.battery_percent_list)/5) * 5]
+                self.battery_source.stream({key: value}, rollover=1)
             elif key == 'temperature':
                 self.temperature_source.stream(data, rollover=1)
             elif key == 'light':
