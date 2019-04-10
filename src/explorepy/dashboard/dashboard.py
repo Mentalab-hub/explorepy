@@ -208,9 +208,10 @@ class Dashboard:
         # Autohide toolbar/ Legend location
         for plot in self.plot_list:
             plot.toolbar.autohide = True
-            plot.legend.location = "bottom_left"
-            plot.legend.orientation = "horizontal"
-            plot.legend.padding = 2
+            if len(plot.legend) != 0:
+                plot.legend.location = "bottom_left"
+                plot.legend.orientation = "horizontal"
+                plot.legend.padding = 2
 
     def _init_controls(self):
         self.t_range = Select(title="Time Range", value="10 s", options=list(TIME_RANGE_MENU.keys()), width=210)
