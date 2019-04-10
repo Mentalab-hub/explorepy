@@ -228,15 +228,15 @@ class Dashboard:
         self.firmware = DataTable(source=self.firmware_source, index_position=None, sortable=False, reorderable=False,
                                   columns=columns, width=200, height=50)
 
-        columns = [TableColumn(field='battery', title="Battery")]
+        columns = [TableColumn(field='battery', title="Battery (%)")]
         self.battery = DataTable(source=self.battery_source, index_position=None, sortable=False, reorderable=False,
                                  columns=columns, width=200, height=50)
 
-        columns = [TableColumn(field='temperature', title="temperature")]
+        columns = [TableColumn(field='temperature', title="Temperature (C)")]
         self.temperature = DataTable(source=self.temperature_source, index_position=None, sortable=False,
                                      reorderable=False, columns=columns, width=200, height=50)
 
-        columns = [TableColumn(field='light', title="light")]
+        columns = [TableColumn(field='light', title="Light (Lux)")]
         self.light = DataTable(source=self.light_source, index_position=None, sortable=False, reorderable=False,
                                columns=columns, width=200, height=50)
 
@@ -267,7 +267,7 @@ if __name__ == '__main__':
             m_dashboard.doc.add_next_tick_callback(partial(m_dashboard.update_exg, time_vector=time_vector, ExG=EEG))
 
             device_info_attr = ['firmware_version', 'battery', 'temperature', 'light']
-            device_info_val = [['2.0.4'], ['95'], ['21'], ['13']]
+            device_info_val = [['2.0.4'], [95], [21], [13]]
             new_data = dict(zip(device_info_attr, device_info_val))
             m_dashboard.doc.add_next_tick_callback(partial(m_dashboard.update_info, new=new_data))
 
