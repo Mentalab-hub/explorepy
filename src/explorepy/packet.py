@@ -242,7 +242,7 @@ class Environment(Packet):
         self.temperature = bin_data[0]
         self.light = (1000 / 4095) * np.frombuffer(bin_data[1:3], dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Lux
         self.battery = (16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Volt
-
+        self.battery_percentage = self._volt_to_percent(self.battery)
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
@@ -250,11 +250,32 @@ class Environment(Packet):
         return "Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(self.battery)
 
     def push_to_dashboard(self, dashboard):
-        data = {'battery': [self.battery],
+        data = {'battery': [self.battery_percentage],
                 'temperature': [self.temperature],
                 'light': [self.light]}
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_info, new=data))
 
+    @staticmethod
+    def _volt_to_percent(voltage):
+        if voltage < 3.:
+            percentage = 0
+        elif voltage < 3.8:
+            percentage = (voltage-3.0)/.8 * 65
+        elif voltage < 3.9:
+            percentage = 65 + (voltage-3.8)/.1 * 10
+        elif voltage < 4.:
+            percentage = 75 + (voltage-3.9)/.1 * 5
+        elif voltage < 4.1:
+            percentage = 80 + (voltage-4.)/.1 * 10
+        elif voltage < 4.2:
+            percentage = 90 + (voltage - 4.1)/.1 * 10
+        elif voltage > 4.2:
+            percentage = 100
+
+        # Rounding to avoid instantaneous jitters
+        percentage = int(percentage/2) * 2
+        print(percentage)
+        return percentage
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
