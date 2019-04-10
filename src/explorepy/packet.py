@@ -274,7 +274,6 @@ class Environment(Packet):
 
         # Rounding to avoid instantaneous jitters
         percentage = int(percentage/2) * 2
-        print(percentage)
         return percentage
 
 class TimeStamp(Packet):
