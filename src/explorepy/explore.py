@@ -187,7 +187,7 @@ class Explore:
         self.m_dashboard.start_loop()
 
     def _io_loop(self, device_id=0):
-        time.sleep(1)
+        time.sleep(2)
         is_acquiring = True
         while is_acquiring:
             try:
