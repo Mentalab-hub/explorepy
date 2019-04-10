@@ -230,6 +230,10 @@ class Orientation(Packet):
     def push_to_lsl(self, outlet):
         outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
 
+    def push_to_dashboard(self, dashboard):
+        data = self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
+        dashboard.doc.add_next_tick_callback(partial(dashboard.update_orn, timestamp=self.timestamp, orn_data=data))
+
 
 class Environment(Packet):
     """Environment data packet"""
@@ -243,6 +247,7 @@ class Environment(Packet):
         self.light = (1000 / 4095) * np.frombuffer(bin_data[1:3], dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Lux
         self.battery = (16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Volt
         self.battery_percentage = self._volt_to_percent(self.battery)
+
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
