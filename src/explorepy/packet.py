@@ -262,24 +262,26 @@ class Environment(Packet):
 
     @staticmethod
     def _volt_to_percent(voltage):
-        if voltage < 3.:
-            percentage = 0
+        if voltage < 3.1:
+            percentage = 1
+        elif voltage < 3.5:
+            percentage = 1 + (voltage - 3.1) / .4 * 10
         elif voltage < 3.8:
-            percentage = (voltage-3.0)/.8 * 65
+            percentage = 10 + (voltage-3.5)/.3 * 40
         elif voltage < 3.9:
-            percentage = 65 + (voltage-3.8)/.1 * 10
+            percentage = 40 + (voltage-3.8)/.1 * 20
         elif voltage < 4.:
-            percentage = 75 + (voltage-3.9)/.1 * 5
+            percentage = 60 + (voltage-3.9)/.1 * 15
         elif voltage < 4.1:
-            percentage = 80 + (voltage-4.)/.1 * 10
+            percentage = 75 + (voltage-4.)/.1 * 15
         elif voltage < 4.2:
             percentage = 90 + (voltage - 4.1)/.1 * 10
         elif voltage > 4.2:
             percentage = 100
 
-        # Rounding to avoid instantaneous jitters
-        percentage = int(percentage/2) * 2
+        percentage = int(percentage)
         return percentage
+
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
