@@ -9,6 +9,7 @@ from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.themes import Theme
+from bokeh.palettes import Colorblind
 from bokeh.models.widgets import Select, DataTable, TableColumn
 from bokeh.models import SingleIntervalTicker
 
@@ -19,14 +20,15 @@ ORN_SRATE = 20  # Hz
 WIN_LENGTH = 10  # Seconds
 CHAN_LIST = ['Ch1', 'Ch2', 'Ch3', 'Ch4', 'Ch5', 'Ch6', 'Ch7', 'Ch8']
 DEFAULT_SCALE = 10 ** -3  # Volt
-N_MOVING_AVERAGE = 30
+N_MOVING_AVERAGE = 60
 ORN_LIST = ['accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'magX', 'magY', 'magZ']
 
 SCALE_MENU = {"1 uV": 6., "5 uV": 5.3333, "10 uV": 5., "100 uV": 4., "500 uV": 3.3333, "1 mV": 3., "5 mV": 2.3333,
               "10 mV": 2., "100 mV": 1.}
 TIME_RANGE_MENU = {"10 s": 10., "5 s": 5., "20 s": 20.}
 
-LINE_COLORS = ['green', 'blue', 'orange']
+LINE_COLORS = ['green', '#42C4F7', 'red']
+FFT_COLORS = Colorblind[8]
 
 
 class Dashboard:
@@ -57,6 +59,11 @@ class Dashboard:
         self.battery_percent_list = []
         self.server = None
 
+        # Init fft data source
+        init_data = dict(zip(self.chan_key_list, np.zeros((self.n_chan, 1))))
+        init_data['f'] = np.array([0.])
+        self.fft_source = ColumnDataSource(data=init_data)
+
     def start_server(self):
         self.server = Server({'/': self._init_doc}, num_procs=1)
         self.server.start()
@@ -75,16 +82,16 @@ class Dashboard:
         m_widgetbox = self._init_controls()
 
         # Create tabs
-        exg_tab = Panel(child=self.exg_plot, title="Signal")
-        # orn_tab = Panel(child=gridplot([[self.acc_plot], [self.gyro_plot], [self.mag_plot]]), title="Orientation")
-        orn_tab = Panel(child=column([self.acc_plot, self.gyro_plot, self.mag_plot]), title="Orientation")
-        tabs = Tabs(tabs=[exg_tab, orn_tab])
+        exg_tab = Panel(child=self.exg_plot, title="ExG Signal")
+        orn_tab = Panel(child=column([self.acc_plot, self.gyro_plot, self.mag_plot], sizing_mode='fixed'),
+                        title="Orientation")
+        fft_tab = Panel(child=self.fft_plot, title="Spectral analysis")
+        tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=1200)
         self.doc.add_root(row([m_widgetbox, tabs]))
-
+        self.doc.add_periodic_callback(self._update_fft, 2000)
         # Set the theme
-        module_path = os.path.dirname(__file__)
-        self.doc.theme = Theme(filename=os.path.join(module_path, "theme.yaml"))
-
+        # module_path = os.path.dirname(__file__)
+        # self.doc.theme = Theme(filename=os.path.join(module_path, "theme.yaml"))
 
     @gen.coroutine
     def update_exg(self, time_vector, ExG):
@@ -134,14 +141,26 @@ class Dashboard:
                 self.battery_percent_list.append(new[key][0])
                 if len(self.battery_percent_list) > N_MOVING_AVERAGE:
                     del self.battery_percent_list[0]
-                value = [int(np.mean(self.battery_percent_list)/5) * 5]
-                self.battery_source.stream({key: value}, rollover=1)
+                value = int(np.mean(self.battery_percent_list)/5) * 5
+                if value < 1:
+                    value = 1
+                self.battery_source.stream({key: [value]}, rollover=1)
             elif key == 'temperature':
                 self.temperature_source.stream(data, rollover=1)
             elif key == 'light':
+                data[key] = [int(data[key][0])]
                 self.light_source.stream(data, rollover=1)
             else:
                 print("Warning: There is no field named: " + key)
+
+    def _update_fft(self):
+        exg_data = np.array([self.exg_source.data[key] for key in self.chan_key_list])
+        if exg_data.shape[1] < EEG_SRATE * 4.5:
+            return
+        fft_content, freq = get_fft(exg_data)
+        data = dict(zip(self.chan_key_list, fft_content))
+        data['f'] = freq
+        self.fft_source.data = data
 
     def _change_scale(self, attr, old, new):
         new, old = SCALE_MENU[new], SCALE_MENU[old]
@@ -164,18 +183,23 @@ class Dashboard:
                                tools=[ResetTool()], active_scroll=None, active_drag=None,
                                active_inspect=None, active_tap=None)
 
-        self.acc_plot = figure(y_axis_label='Accelerometer [mg/LSB]', x_axis_label='Time (s)',
-                               plot_height=200, plot_width=1270,
-                               tools=[ResetTool()], active_scroll=None, active_drag=None,
-                               active_inspect=None, active_tap=None, x_axis_type=None)
-        self.gyro_plot = figure(y_axis_label='Gyroscope [mdps/LSB]', x_range=self.acc_plot.x_range,
-                                plot_height=200, plot_width=1270,
-                                tools=[ResetTool()], active_scroll=None, active_drag=None,
-                                active_inspect=None, active_tap=None, x_axis_type=None)
-        self.mag_plot = figure(y_axis_label='Magnetometer [mgauss/LSB]', x_range=self.acc_plot.x_range,
-                               plot_height=200, plot_width=1270,
+        self.mag_plot = figure(y_axis_label='Magnetometer [mgauss/LSB]', x_axis_label='Time (s)',
+                               plot_height=230, plot_width=1270,
                                tools=[ResetTool()], active_scroll=None, active_drag=None,
                                active_inspect=None, active_tap=None)
+        self.acc_plot = figure(y_axis_label='Accelerometer [mg/LSB]',
+                               plot_height=190, plot_width=1270,
+                               tools=[ResetTool()], active_scroll=None, active_drag=None,
+                               active_inspect=None, active_tap=None)
+        self.acc_plot.xaxis.visible = False
+        self.gyro_plot = figure(y_axis_label='Gyroscope [mdps/LSB]',
+                                plot_height=190, plot_width=1270,
+                                tools=[ResetTool()], active_scroll=None, active_drag=None,
+                                active_inspect=None, active_tap=None)
+        self.gyro_plot.xaxis.visible = False
+
+        self.fft_plot = figure(y_axis_label='Amplitude (uV)', x_axis_label='Frequency (Hz)', title="FFT",
+                               x_range=(0, 70), plot_height=600, plot_width=1270, y_axis_type="log")
 
         # Set yaxis properties
         self.exg_plot.yaxis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=10)
@@ -183,14 +207,16 @@ class Dashboard:
         # Initial plot line
         for i in range(self.n_chan):
             self.exg_plot.line(x='t', y=CHAN_LIST[i], source=self.exg_source,
-                               line_width=1.5)
+                               line_width=1.5, alpha=.9, line_color="#42C4F7")
+            self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source,
+                               line_width=2, alpha=.9, line_color=FFT_COLORS[i])
         for i in range(3):
             self.acc_plot.line(x='t', y=ORN_LIST[i], source=self.orn_source, legend=ORN_LIST[i]+" ",
-                               line_width=1.5, line_color=LINE_COLORS[i])
+                               line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
             self.gyro_plot.line(x='t', y=ORN_LIST[i+3], source=self.orn_source, legend=ORN_LIST[i+3]+" ",
-                                line_width=1.5, line_color=LINE_COLORS[i])
+                                line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
             self.mag_plot.line(x='t', y=ORN_LIST[i+6], source=self.orn_source, legend=ORN_LIST[i+6]+" ",
-                               line_width=1.5, line_color=LINE_COLORS[i])
+                               line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
 
         # Initial vertical line
         self.exg_plot.line(x=[0, 0],
@@ -203,7 +229,7 @@ class Dashboard:
         self.plot_list = [self.exg_plot, self.acc_plot, self.gyro_plot, self.mag_plot]
         self._set_t_range(WIN_LENGTH)
 
-        self.exg_plot.ygrid.minor_grid_line_color = 'White'
+        self.exg_plot.ygrid.minor_grid_line_color = 'navy'
         self.exg_plot.ygrid.minor_grid_line_alpha = 0.05
 
         # Set the formatting of yaxis ticks' labels
@@ -212,13 +238,16 @@ class Dashboard:
         # Autohide toolbar/ Legend location
         for plot in self.plot_list:
             plot.toolbar.autohide = True
+            plot.background_fill_color = "#fafafa"
+            # plot.xgrid.grid_line_color = "navy"
+            # plot.border_fill_color = "#fafafa"
             if len(plot.legend) != 0:
                 plot.legend.location = "bottom_left"
                 plot.legend.orientation = "horizontal"
                 plot.legend.padding = 2
 
     def _init_controls(self):
-        self.t_range = Select(title="Time Range", value="10 s", options=list(TIME_RANGE_MENU.keys()), width=210)
+        self.t_range = Select(title="Time window", value="10 s", options=list(TIME_RANGE_MENU.keys()), width=210)
         self.t_range.on_change('value', self._change_t_range)
         self.y_scale = Select(title="Y-axis Scale", value="1 mV", options=list(SCALE_MENU.keys()), width=210)
         self.y_scale.on_change('value', self._change_scale)
@@ -251,7 +280,18 @@ class Dashboard:
             plot.x_range.follow_interval = t_length
 
 
+def get_fft(exg):
+    n_chan, n_sample = exg.shape
+    L = n_sample/EEG_SRATE
+    n = 1024
+    freq = EEG_SRATE * np.arange(int(n/2)) / n
+    fft_content = np.fft.fft(exg, n=n) / n
+    fft_content = np.abs(fft_content[:, range(int(n/2))])
+    return fft_content[:, 1:], freq[1:]
+
+
 if __name__ == '__main__':
+    # get_fft(np.random.rand(4, 2500))
     print('Opening Bokeh application on http://localhost:5006/')
     m_dashboard = Dashboard(n_chan=8)
     m_dashboard.start_server()
