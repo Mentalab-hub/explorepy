@@ -3,8 +3,9 @@ import struct
 from explorepy.packet import *
 from explorepy.filters import Filter
 
-LOW_CUTOFF_FREQ = .5   # Hz
-HIGH_CUTOFF_FREQ = 40  # Hz
+LOW_CUTOFF_FREQ = 1   # Hz
+HIGH_CUTOFF_FREQ = 30  # Hz
+LINE_FREQ = 50
 
 ORN_ID = 13
 ENV_ID = 19
