@@ -87,10 +87,6 @@ class CLI:
                             dest="channels", type=int, default=None,
                             help="the device's number of channels (4 or 8)")
 
-        parser.add_argument("-m", "--mode",
-                            dest="mode", type=str, default=None,
-                            help="choose optimized filters for either EEG or EMG")
-
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
@@ -98,7 +94,7 @@ class CLI:
         else:
             explorer.connect(device_name=args.name)
 
-        explorer.push2lsl(n_chan=args.channels, mode=args.mode)
+        explorer.push2lsl(n_chan=args.channels)
 
     def bin2csv(self):
         self.is_not_used()
