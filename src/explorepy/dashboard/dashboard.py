@@ -2,13 +2,11 @@ import numpy as np
 import time
 from functools import partial
 from threading import Thread
-import os.path
 
 from bokeh.layouts import widgetbox, row, column, gridplot
 from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs
 from bokeh.plotting import figure
 from bokeh.server.server import Server
-from bokeh.themes import Theme
 from bokeh.palettes import Colorblind
 from bokeh.models.widgets import Select, DataTable, TableColumn
 from bokeh.models import SingleIntervalTicker
@@ -153,6 +151,7 @@ class Dashboard:
             else:
                 print("Warning: There is no field named: " + key)
 
+    @gen.coroutine
     def _update_fft(self):
         exg_data = np.array([self.exg_source.data[key] for key in self.chan_key_list])
         if exg_data.shape[1] < EEG_SRATE * 4.5:
@@ -162,6 +161,7 @@ class Dashboard:
         data['f'] = freq
         self.fft_source.data = data
 
+    @gen.coroutine
     def _change_scale(self, attr, old, new):
         new, old = SCALE_MENU[new], SCALE_MENU[old]
         old_unit = 10 ** (-old)
@@ -172,6 +172,7 @@ class Dashboard:
                 temp_offset = self.offsets[CHAN_LIST.index(ch)]
                 self.exg_source.data[ch] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
 
+    @gen.coroutine
     def _change_t_range(self, attr, old, new):
         self._set_t_range(TIME_RANGE_MENU[new])
 
