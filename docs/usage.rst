@@ -13,7 +13,9 @@ Push data to lsl: ``explorepy push2lsl -n Explore_XXXX -c 4 #-c number of channe
 Convert a binary file to csv: ``explorepy bin2csv -i input_file``
 
 
-To use explorepy in a project::
+Python project
+^^^^^^^^^^^^^^
+To use explorepy in a python project::
 
 	import explorepy
 
