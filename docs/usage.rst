@@ -4,13 +4,13 @@ Usage
 
 CLI commands
 ^^^^^^^^^^^^
-Data acquisition: `explorepy acquire -n Explore_XXXX  #Put your device Bluetooth name`
+Data acquisition: ``explorepy acquire -n Explore_XXXX  #Put your device Bluetooth name``
 
-Record data: `explorepy record_data -n Explore_XXXX -f file_name`
+Record data: ``explorepy record_data -n Explore_XXXX -f file_name``
 
-Push data to lsl: `explorepy push2lsl -n Explore_XXXX -c 4 #-c number of channels (4 or 8)`
+Push data to lsl: ``explorepy push2lsl -n Explore_XXXX -c 4 #-c number of channels (4 or 8)``
 
-Convert a binary file to csv: `explorepy bin2csv -i input_file`
+Convert a binary file to csv: ``explorepy bin2csv -i input_file``
 
 
 To use explorepy in a project::
