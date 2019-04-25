@@ -3,10 +3,6 @@ import struct
 from explorepy.packet import *
 from explorepy.filters import Filter
 
-LOW_CUTOFF_FREQ = 1   # Hz
-HIGH_CUTOFF_FREQ = 30  # Hz
-LINE_FREQ = 50
-
 ORN_ID = 13
 ENV_ID = 19
 TS_ID = 27
@@ -56,25 +52,34 @@ def generate_packet(pid, timestamp, bin_data):
 
 
 class Parser:
-    def __init__(self, socket=None, fid=None, apply_filter=False):
+    def __init__(self, bp_freq, notch_freq, socket=None, fid=None):
         r"""Parser class for explore device
 
         Args:
             socket (BluetoothSocket): Bluetooth Socket (Should be None if fid is provided)
             fid (file object): File object for reading data (Should be None if socket is provided)
+            apply_bp_filter (bool): Apply band-pass filter
+            apply_notch_filter (bool): Apply band-stop filter
         """
         self.socket = socket
         self.fid = fid
         self.dt_int16 = np.dtype(np.int16).newbyteorder('<')
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
         self.time_offset = None
-        self.apply_filter = apply_filter
+        if bp_freq is not None:
+            assert bp_freq[0] < bp_freq[1], "High cut-off frequency must be larger than low cut-off frequency"
+            self.bp_freq = bp_freq
+            self.apply_bp_filter = True
+        else:
+            self.apply_bp_filter = False
+            self.bp_freq = (0, 100)  # dummy values
+        self.notch_freq = notch_freq
 
         self.firmware_version = None
         self.filter = None
-        if apply_filter:
-            # Initialize a bandpass filter
-            self.filter = Filter(l_freq=LOW_CUTOFF_FREQ, h_freq=HIGH_CUTOFF_FREQ)
+        if self.apply_bp_filter or notch_freq:
+            # Initialize filters
+            self.filter = Filter(l_freq=self.bp_freq[0], h_freq=self.bp_freq[1], line_freq=notch_freq)
 
     def parse_packet(self, mode="print", csv_files=None, outlets=None, dashboard=None):
         r"""Reads and parses a package from a file or socket
@@ -118,14 +123,14 @@ class Parser:
             if isinstance(packet, Orientation):
                 packet.push_to_lsl(outlets[0])
             elif isinstance(packet, EEG):
-                if self.apply_filter:
-                    packet.apply_filter(filter=self.filter)
                 packet.push_to_lsl(outlets[1])
 
         elif mode == "visualize":
             if isinstance(packet, EEG):
-                if self.apply_filter:
-                    packet.apply_filter(filter=self.filter)
+                if self.notch_freq:
+                    packet.apply_notch_filter(filter=self.filter)
+                if self.apply_bp_filter:
+                    packet.apply_bp_filter(filter=self.filter)
             packet.push_to_dashboard(dashboard)
 
         return packet
