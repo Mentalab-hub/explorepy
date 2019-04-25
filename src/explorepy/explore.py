@@ -163,18 +163,19 @@ class Explore:
                 time.sleep(1)
                 self.parser = Parser(self.socket)
 
-    def visualize(self, n_chan, device_id=0):
+    def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
 
         Args:
-            n_chan (int): Number of channels
-            device_id (int): Device ID (in case of multiple device connection)
-
+            n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
+            bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
+            if it is None.
+            notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
         """
         self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.socket, apply_filter=True)
+            self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
 
         self.m_dashboard = Dashboard(n_chan=n_chan)
         self.m_dashboard.start_server()
