@@ -209,7 +209,7 @@ class Dashboard:
         for i in range(self.n_chan):
             self.exg_plot.line(x='t', y=CHAN_LIST[i], source=self.exg_source,
                                line_width=1.5, alpha=.9, line_color="#42C4F7")
-            self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source,
+            self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend=CHAN_LIST[i] + " ",
                                line_width=2, alpha=.9, line_color=FFT_COLORS[i])
         for i in range(3):
             self.acc_plot.line(x='t', y=ORN_LIST[i], source=self.orn_source, legend=ORN_LIST[i]+" ",
@@ -240,8 +240,6 @@ class Dashboard:
         for plot in self.plot_list:
             plot.toolbar.autohide = True
             plot.background_fill_color = "#fafafa"
-            # plot.xgrid.grid_line_color = "navy"
-            # plot.border_fill_color = "#fafafa"
             if len(plot.legend) != 0:
                 plot.legend.location = "bottom_left"
                 plot.legend.orientation = "horizontal"
