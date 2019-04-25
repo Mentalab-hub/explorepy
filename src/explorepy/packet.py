@@ -68,13 +68,22 @@ class EEG(Packet):
         """
         pass
 
-    def apply_filter(self, filter):
-        r"""Filter ExG Data
+    def apply_bp_filter(self, filter):
+        r"""Bandpass filtering of ExG data
 
         Args:
         filter: Filter object
         """
         self.data = filter.apply_bp_filter(self.data)
+
+    def apply_notch_filter(self, filter):
+        r"""Band_stop filtering of ExG data
+
+        Args:
+            filter: Filter object
+
+        """
+        self.data = filter.apply_notch_filter(self.data)
 
     def push_to_lsl(self, outlet):
         r"""Push data to lsl socket
