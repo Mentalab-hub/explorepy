@@ -168,6 +168,7 @@ class Explore:
 
         Args:
             n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
+            device_id (int): Device ID (NOT USED CURRENTLY)
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
