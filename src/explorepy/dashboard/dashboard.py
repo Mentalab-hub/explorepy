@@ -84,8 +84,8 @@ class Dashboard:
         orn_tab = Panel(child=column([self.acc_plot, self.gyro_plot, self.mag_plot], sizing_mode='fixed'),
                         title="Orientation")
         fft_tab = Panel(child=self.fft_plot, title="Spectral analysis")
-        tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=1200)
-        self.doc.add_root(row([m_widgetbox, tabs]))
+        self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=1200)
+        self.doc.add_root(row([m_widgetbox, self.tabs]))
         self.doc.add_periodic_callback(self._update_fft, 2000)
         # Set the theme
         # module_path = os.path.dirname(__file__)
@@ -100,11 +100,15 @@ class Dashboard:
             ExG (np.ndarray): array of new data
 
         """
+        # if self.tabs.active != 0:
+        #     return
         # Delete old vertical line
         vertical_line = self.exg_plot.select_one({'name': 'vertical_line'})
-        self.exg_plot.renderers.remove(vertical_line)
+        while vertical_line is not None:
+            self.exg_plot.renderers.remove(vertical_line)
+            vertical_line = self.exg_plot.select_one({'name': 'vertical_line'})
 
-        # Update vertical line
+        # # Update vertical line
         self.exg_plot.line(x=[time_vector[-1], time_vector[-1]],
                            y=[self.offsets[-1] - 2, self.offsets[0] + 2],
                            name='vertical_line',
@@ -119,6 +123,8 @@ class Dashboard:
 
     @gen.coroutine
     def update_orn(self, timestamp, orn_data):
+        # if self.tabs.active != 1:
+        #     return
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
         new_data['t'] = [timestamp]
         self.orn_source.stream(new_data, rollover=WIN_LENGTH * ORN_SRATE)
@@ -153,6 +159,8 @@ class Dashboard:
 
     @gen.coroutine
     def _update_fft(self):
+        if self.tabs.active != 2:
+            return
         exg_data = np.array([self.exg_source.data[key] for key in self.chan_key_list])
         if exg_data.shape[1] < EEG_SRATE * 4.5:
             return
