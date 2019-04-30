@@ -3,12 +3,12 @@ from scipy.signal import butter, lfilter, iirnotch, iirfilter
 
 
 class Filter:
-    def __init__(self, l_freq, h_freq, line_freq=50):
+    def __init__(self, l_freq, h_freq, line_freq=50, order=5):
         self.low_cutoff_freq = l_freq
         self.high_cutoff_freq = h_freq
         self.line_freq = line_freq
         self.sample_frequency = 250.0
-        self.order = 5
+        self.order = order
         self.bp_param = None
         self.notch_param = None
 
@@ -17,7 +17,7 @@ class Filter:
         low_freq = self.low_cutoff_freq / nyq
         high_freq = self.high_cutoff_freq / nyq
         b, a = butter(self.order, [low_freq, high_freq], btype='band')
-        zi = np.zeros((nchan, 10))  # lfiltic(b, a, (0.,))
+        zi = np.zeros((nchan, self.order*2))
         self.bp_param = {'a': a, 'b': b, 'zi': zi}
 
     def _design_notch_filter(self, nchan):
@@ -31,6 +31,8 @@ class Filter:
         self.notch_param = {'a': a, 'b': b, 'zi': zi}
 
     def apply_bp_filter(self, raw_data):
+        if len(raw_data.shape) < 2:
+            raw_data = np.array(raw_data)[np.newaxis, :]
         if self.bp_param is None:
             self._design_filter(nchan=raw_data.shape[0])
 
