@@ -52,14 +52,14 @@ def generate_packet(pid, timestamp, bin_data):
 
 
 class Parser:
-    def __init__(self, bp_freq, notch_freq, socket=None, fid=None):
+    def __init__(self, bp_freq=None, notch_freq=50, socket=None, fid=None):
         r"""Parser class for explore device
 
         Args:
             socket (BluetoothSocket): Bluetooth Socket (Should be None if fid is provided)
             fid (file object): File object for reading data (Should be None if socket is provided)
-            apply_bp_filter (bool): Apply band-pass filter
-            apply_notch_filter (bool): Apply band-stop filter
+            bp_freq (tuple): Tuple of cut-off frequencies of bandpass filter (low cut-off frequency, high cut-off frequency)
+            notch_freq (int): Notch filter frequency (50 or 60 Hz)
         """
         self.socket = socket
         self.fid = fid
