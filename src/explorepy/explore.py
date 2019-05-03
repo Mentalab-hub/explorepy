@@ -58,7 +58,7 @@ class Explore:
         self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.socket)
+            self.parser = Parser(socket=self.socket)
 
         is_acquiring = True
         while is_acquiring:
