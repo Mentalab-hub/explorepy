@@ -110,7 +110,7 @@ class EEG94(EEG):
 
     def _convert(self, bin_data):
         data = Packet.int24to32(bin_data)
-        n_chan = 5
+        n_chan = -1
         v_ref = 2.4
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
@@ -138,7 +138,7 @@ class EEG98(EEG):
 
     def _convert(self, bin_data):
         data = Packet.int24to32(bin_data)
-        n_chan = 9
+        n_chan = -1
         v_ref = 2.4
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
@@ -166,7 +166,7 @@ class EEG99s(EEG):
 
     def _convert(self, bin_data):
         data = Packet.int24to32(bin_data)
-        n_chan = 9
+        n_chan = -1
         v_ref = 4.5
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
@@ -196,7 +196,7 @@ class EEG99(EEG):
 
     def _convert(self, bin_data):
         data = Packet.int24to32(bin_data)
-        n_chan = 8
+        n_chan = -1
         v_ref = 4.5
         n_packet = -1
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
