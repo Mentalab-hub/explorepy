@@ -242,3 +242,11 @@ class HeartRateEstimator:
                         # The peak is in the previous chunk
                         # TODO: return a negative index for it!
                         pass
+# DEBUGGING
+# import matplotlib.pyplot as plt
+# plt.plot(ecg_sig)
+# plt.plot(ecg_filtered)
+# plt.plot(sig_diff)
+# plt.plot(sig_smoothed)
+# plt.plot(peaks_idx_list, sig_smoothed[peaks_idx_list], '*')
+# plt.plot(detected_peaks_idx, ecg_sig[detected_peaks_idx], "X")
