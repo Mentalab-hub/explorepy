@@ -123,8 +123,8 @@ class Dashboard:
 
     @gen.coroutine
     def update_orn(self, timestamp, orn_data):
-        # if self.tabs.active != 1:
-        #     return
+        if self.tabs.active != 1:
+            return
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
         new_data['t'] = [timestamp]
         self.orn_source.stream(new_data, rollover=WIN_LENGTH * ORN_SRATE)
