@@ -64,6 +64,8 @@ Requirements
 * `numpy <https://github.com/pybluez/pybluez>`_
 * `pybluez <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
 * `pylsl <https://github.com/labstreaminglayer/liblsl-Python>`_
+* `scipy <https://github.com/scipy/scipy>`_
+* `bokeh <https://github.com/bokeh/bokeh>`_
 
 
 Installation
@@ -82,6 +84,12 @@ To install the latest development version run:
 
 Example use
 ===========
+CLI command:
+``explorepy acquire -n Explore_XXXX``
+
+Enter ``explorepy -h`` for help.
+
+
 The following code connects to the Explore device and prints the data.
 
 ::
