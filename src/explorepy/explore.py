@@ -132,7 +132,7 @@ class Explore:
         self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.socket)
+            self.parser = Parser(socket=self.socket)
 
         assert (n_chan is not None), "Number of channels missing"
         assert (n_chan == 4) or (n_chan == 8), "Number of channels should be either 4 or 8"
