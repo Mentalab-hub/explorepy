@@ -173,21 +173,26 @@ class Explore:
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
         """
-        self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
-
         self.m_dashboard = Dashboard(n_chan=n_chan)
         self.m_dashboard.start_server()
 
         thread = Thread(target=self._io_loop)
         thread.start()
+
+        self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
+
         self.m_dashboard.start_loop()
 
     def _io_loop(self, device_id=0):
-        time.sleep(2)
         is_acquiring = True
+
+        # Wait until dashboard is initialized.
+        while not hasattr(self.m_dashboard, 'doc'):
+            print('wait')
+            time.sleep(.2)
         while is_acquiring:
             try:
                 packet = self.parser.parse_packet(mode="visualize", dashboard=self.m_dashboard)
