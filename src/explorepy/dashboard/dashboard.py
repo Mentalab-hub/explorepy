@@ -2,13 +2,14 @@ import numpy as np
 import time
 from functools import partial
 from threading import Thread
+from explorepy.tools import HeartRateEstimator
 
 from bokeh.layouts import widgetbox, row, column, gridplot
 from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.palettes import Colorblind
-from bokeh.models.widgets import Select, DataTable, TableColumn
+from bokeh.models.widgets import Select, DataTable, TableColumn, RadioButtonGroup
 from bokeh.models import SingleIntervalTicker
 
 from tornado import gen
@@ -16,9 +17,11 @@ from tornado import gen
 EEG_SRATE = 250  # Hz
 ORN_SRATE = 20  # Hz
 WIN_LENGTH = 10  # Seconds
+MODE_LIST = ['EEG', 'ECG']
 CHAN_LIST = ['Ch1', 'Ch2', 'Ch3', 'Ch4', 'Ch5', 'Ch6', 'Ch7', 'Ch8']
 DEFAULT_SCALE = 10 ** -3  # Volt
 N_MOVING_AVERAGE = 60
+V_TH = 5 * 10 ** -3  # Noise threshold for ECG (Volt)
 ORN_LIST = ['accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'magX', 'magY', 'magZ']
 
 SCALE_MENU = {"1 uV": 6., "5 uV": 5.3333, "10 uV": 5., "100 uV": 4., "500 uV": 3.3333, "1 mV": 3., "5 mV": 2.3333,
@@ -35,8 +38,10 @@ class Dashboard:
     def __init__(self, n_chan):
         self.n_chan = n_chan
         self.y_unit = DEFAULT_SCALE
-        self.offsets = np.arange(1, self.n_chan + 1)[::-1][:, np.newaxis].astype(float)
+        self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
         self.chan_key_list = ['Ch' + str(i + 1) for i in range(self.n_chan)]
+        self.exg_mode = 'EEG'
+        self.rr_estimator = None
 
         # Init ExG data source
         exg_temp = self.offsets
@@ -44,12 +49,17 @@ class Dashboard:
         init_data['t'] = np.array([0.])
         self.exg_source = ColumnDataSource(data=init_data)
 
+        # Init ECG R-peak source
+        init_data = dict(zip(['r_peak', 't'], [np.array([None], dtype=np.double), np.array([None], dtype=np.double)]))
+        self.r_peak_source = ColumnDataSource(data=init_data)
+
         # Init ORN data source
         init_data = dict(zip(ORN_LIST, np.zeros((9, 1))))
         init_data['t'] = [0.]
         self.orn_source = ColumnDataSource(data=init_data)
 
-        # Init Device info table sources
+        # Init table sources
+        self.heart_rate_source = ColumnDataSource(data={'heart_rate': ['NA']})
         self.firmware_source = ColumnDataSource(data={'firmware_version': ['NA']})
         self.battery_source = ColumnDataSource(data={'battery': ['NA']})
         self.temperature_source = ColumnDataSource(data={'temperature': ['NA']})
@@ -87,6 +97,7 @@ class Dashboard:
         self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=1200)
         self.doc.add_root(row([m_widgetbox, self.tabs]))
         self.doc.add_periodic_callback(self._update_fft, 2000)
+        self.doc.add_periodic_callback(self._update_heart_rate, 2000)
         # Set the theme
         # module_path = os.path.dirname(__file__)
         # self.doc.theme = Theme(filename=os.path.join(module_path, "theme.yaml"))
@@ -100,17 +111,17 @@ class Dashboard:
             ExG (np.ndarray): array of new data
 
         """
-        # if self.tabs.active != 0:
-        #     return
+        if self.tabs.active != 0:
+            return
         # Delete old vertical line
         vertical_line = self.exg_plot.select_one({'name': 'vertical_line'})
         while vertical_line is not None:
             self.exg_plot.renderers.remove(vertical_line)
             vertical_line = self.exg_plot.select_one({'name': 'vertical_line'})
 
-        # # Update vertical line
+        # Update vertical line
         self.exg_plot.line(x=[time_vector[-1], time_vector[-1]],
-                           y=[self.offsets[-1] - 2, self.offsets[0] + 2],
+                           y=[self.offsets[0]-1, self.offsets[-1]+1],
                            name='vertical_line',
                            line_width=2,
                            color='red', alpha=.8)
@@ -145,7 +156,7 @@ class Dashboard:
                 self.battery_percent_list.append(new[key][0])
                 if len(self.battery_percent_list) > N_MOVING_AVERAGE:
                     del self.battery_percent_list[0]
-                value = int(np.mean(self.battery_percent_list)/5) * 5
+                value = int(np.mean(self.battery_percent_list) / 5) * 5
                 if value < 1:
                     value = 1
                 self.battery_source.stream({key: [value]}, rollover=1)
@@ -159,15 +170,48 @@ class Dashboard:
 
     @gen.coroutine
     def _update_fft(self):
-        if self.tabs.active != 2:
+        # Check if the tab is active and if EEG mode is active
+        if (self.tabs.active != 2) or (self.exg_mode != 'EEG'):
             return
+
         exg_data = np.array([self.exg_source.data[key] for key in self.chan_key_list])
+
+        # Check if the length of data is enough for FFT
         if exg_data.shape[1] < EEG_SRATE * 4.5:
             return
         fft_content, freq = get_fft(exg_data)
         data = dict(zip(self.chan_key_list, fft_content))
         data['f'] = freq
         self.fft_source.data = data
+
+    @gen.coroutine
+    def _update_heart_rate(self):
+        if self.exg_mode == 'EEG':
+            return
+        if self.rr_estimator is None:
+            self.rr_estimator = HeartRateEstimator()
+            # Init R-peaks plot
+            self.exg_plot.circle(x='t', y='r_peak', source=self.r_peak_source,
+                                 fill_color="red", size=8)
+
+        ecg_data = np.array(self.exg_source.data['Ch1'])[-500:]
+
+        # Check if the peak2peak value is bigger than threshold
+        if np.ptp(ecg_data) > V_TH / self.y_unit:
+            return
+        time_vector = np.array(self.exg_source.data['t'])[-500:]
+        peaks_idx = self.rr_estimator.estimate(ecg_data, time_vector)
+        if len(peaks_idx) > 0:
+            t, peaks = time_vector[peaks_idx], ecg_data[peaks_idx]
+            data = dict(zip(['r_peak', 't'], [peaks, t]))
+            self.r_peak_source.stream(data, rollover=30)
+
+        # Update heart rate cell
+        estimated_heart_rate = 1 / np.diff(self.r_peak_source.data['t'][-5:], 1).mean() * 60
+        if estimated_heart_rate>140 or estimated_heart_rate<40:
+            estimated_heart_rate = 'NA'
+        data = {'heart_rate': [estimated_heart_rate]}
+        self.heart_rate_source.stream(data, rollover=1)
 
     @gen.coroutine
     def _change_scale(self, attr, old, new):
@@ -183,6 +227,10 @@ class Dashboard:
     @gen.coroutine
     def _change_t_range(self, attr, old, new):
         self._set_t_range(TIME_RANGE_MENU[new])
+
+    @gen.coroutine
+    def _change_mode(self, new):
+        self.exg_mode = MODE_LIST[new]
 
     def _init_plots(self):
         self.exg_plot = figure(y_range=(0.01, self.n_chan + 1 - 0.01), y_axis_label='Voltage', x_axis_label='Time (s)',
@@ -220,11 +268,11 @@ class Dashboard:
             self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend=CHAN_LIST[i] + " ",
                                line_width=2, alpha=.9, line_color=FFT_COLORS[i])
         for i in range(3):
-            self.acc_plot.line(x='t', y=ORN_LIST[i], source=self.orn_source, legend=ORN_LIST[i]+" ",
+            self.acc_plot.line(x='t', y=ORN_LIST[i], source=self.orn_source, legend=ORN_LIST[i] + " ",
                                line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
-            self.gyro_plot.line(x='t', y=ORN_LIST[i+3], source=self.orn_source, legend=ORN_LIST[i+3]+" ",
+            self.gyro_plot.line(x='t', y=ORN_LIST[i + 3], source=self.orn_source, legend=ORN_LIST[i + 3] + " ",
                                 line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
-            self.mag_plot.line(x='t', y=ORN_LIST[i+6], source=self.orn_source, legend=ORN_LIST[i+6]+" ",
+            self.mag_plot.line(x='t', y=ORN_LIST[i + 6], source=self.orn_source, legend=ORN_LIST[i + 6] + " ",
                                line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
 
         # Initial vertical line
@@ -254,12 +302,22 @@ class Dashboard:
                 plot.legend.padding = 2
 
     def _init_controls(self):
+
+        # EEG/ECG Radio button
+        self.mode_control = RadioButtonGroup(labels=MODE_LIST, active=0)
+        self.mode_control.on_click(self._change_mode)
+
         self.t_range = Select(title="Time window", value="10 s", options=list(TIME_RANGE_MENU.keys()), width=210)
         self.t_range.on_change('value', self._change_t_range)
         self.y_scale = Select(title="Y-axis Scale", value="1 mV", options=list(SCALE_MENU.keys()), width=210)
         self.y_scale.on_change('value', self._change_scale)
 
         # Create device info tables
+        columns = [TableColumn(field='heart_rate', title="Heart Rate (bpm)")]
+        self.heart_rate = DataTable(source=self.heart_rate_source, index_position=None, sortable=False,
+                                    reorderable=False,
+                                    columns=columns, width=200, height=50)
+
         columns = [TableColumn(field='firmware_version', title="Firmware Version")]
         self.firmware = DataTable(source=self.firmware_source, index_position=None, sortable=False, reorderable=False,
                                   columns=columns, width=200, height=50)
@@ -277,8 +335,8 @@ class Dashboard:
                                columns=columns, width=200, height=50)
 
         # Add widgets to the doc
-        m_widgetbox = widgetbox([self.y_scale, self.t_range, self.firmware,
-                                 self.battery, self.temperature, self.light], width=220)
+        m_widgetbox = widgetbox([self.mode_control, self.y_scale, self.t_range, self.heart_rate,
+                                 self.battery, self.temperature, self.light, self.firmware], width=220)
         return m_widgetbox
 
     def _set_t_range(self, t_length):
@@ -289,11 +347,11 @@ class Dashboard:
 
 def get_fft(exg):
     n_chan, n_sample = exg.shape
-    L = n_sample/EEG_SRATE
+    L = n_sample / EEG_SRATE
     n = 1024
-    freq = EEG_SRATE * np.arange(int(n/2)) / n
+    freq = EEG_SRATE * np.arange(int(n / 2)) / n
     fft_content = np.fft.fft(exg, n=n) / n
-    fft_content = np.abs(fft_content[:, range(int(n/2))])
+    fft_content = np.abs(fft_content[:, range(int(n / 2))])
     return fft_content[:, 1:], freq[1:]
 
 
