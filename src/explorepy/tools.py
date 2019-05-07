@@ -233,7 +233,7 @@ class HeartRateEstimator:
         # Check for two close peaks
         occurrence_time = [item[1] for item in self.r_peaks_buffer]
         close_idx = (np.diff(np.array(occurrence_time), 1) < .05)
-        if True in close_idx:
+        if (True in close_idx) and len(detected_peaks_idx) > 0:
             del detected_peaks_time[0]
             del detected_peaks_val[0]
 
