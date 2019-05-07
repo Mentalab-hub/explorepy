@@ -111,8 +111,8 @@ class Dashboard:
             ExG (np.ndarray): array of new data
 
         """
-        if self.tabs.active != 0:
-            return
+        # if self.tabs.active != 0:
+        #     return
         # Delete old vertical line
         vertical_line = self.exg_plot.select_one({'name': 'vertical_line'})
         while vertical_line is not None:
@@ -206,7 +206,11 @@ class Dashboard:
             self.r_peak_source.stream(data, rollover=30)
 
         # Update heart rate cell
-        mean_intervals = np.diff(self.r_peak_source.data['t'][-5:], 1).mean()
+        if len(self.r_peak_source.data['t']) > 8:
+            mean_intervals = np.diff(self.r_peak_source.data['t'][-8:], 1).mean()
+        else:
+            return
+
         if mean_intervals > .01:
             estimated_heart_rate = 1 / mean_intervals * 60
         else:
