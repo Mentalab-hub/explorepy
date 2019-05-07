@@ -157,10 +157,10 @@ class HeartRateEstimator:
         peaks_time_list = time_vector[peaks_idx_list]
         detected_peaks_idx = []
         detected_peaks_time = []
+        detected_peaks_val = []
+
         # Decision rules by Hamilton 2002 [1]
         for peak_idx, peak_val, peak_time in zip(peaks_idx_list, peaks_val_list, peaks_time_list):
-            if 45.95 < peak_time <46:
-                print('debug')
             # 1- Ignore all peaks that precede or follow larger peaks by less than 200 ms.
             peaks_in_lim = [a and b and c for a, b, c in
                             zip(((peak_idx - self.ns200ms) < peaks_idx_list),
@@ -173,13 +173,13 @@ class HeartRateEstimator:
                 continue
 
             # 2- If a peak occurs, check to see whether the ECG signal contained both positive and negative slopes.
+            # TODO: Find a better way of checking this.
             # if peak_idx == 0:
             #     continue
             # elif peak_idx < 10:
             #     n_sample = peak_idx
             # else:
             #     n_sample = 10
-            # TODO: Find a better way of checking this.
             # The current n_sample leads to missing some R-peaks as it may have wider/thinner width.
             # slopes = np.diff(ecg_sig[peak_idx-n_sample:peak_idx])
             # if slopes[0] * slopes[-1] >= 0:
@@ -187,10 +187,6 @@ class HeartRateEstimator:
 
             # check missing peak
             self.check_missing_peak(peak_time, peak_idx, detected_peaks_idx, ecg_sig, time_vector)
-
-            # If two peaks are closer than 200 ms, reject it. (heuristic)
-            if (peak_time - self.r_peaks_buffer[-1][1]) < 0.015:
-                continue
 
             # 3- If the peak occurred within 360 ms of a previous detection and had a maximum slope less than half the
             # maximum slope of the previous detection assume it is a T-wave
@@ -215,12 +211,15 @@ class HeartRateEstimator:
                 st_idx = peak_idx - 25
             pval = peak_val  # ecg_sig[st_idx:peak_idx].max()
 
-            # self.check_missing_peak(peak_time, peak_idx, detected_peaks_idx, ecg_sig, time_vector)
-
             if pval > self.decision_threshold:
-                detected_peaks_idx.append(st_idx + np.argmax(ecg_sig[st_idx:peak_idx+1]))
-                detected_peaks_time.append(time_vector[detected_peaks_idx[-1]])
-                self.push_r_peak(pval, time_vector[detected_peaks_idx[-1]])
+                temp_idx = st_idx + np.argmax(ecg_sig[st_idx:peak_idx+1])
+                temp_time = time_vector[temp_idx]
+
+                detected_peaks_idx.append(temp_idx)
+                detected_peaks_val.append(ecg_sig[st_idx:peak_idx+1].max())
+                detected_peaks_time.append(temp_time)
+                self.push_r_peak(pval, temp_time)
+
                 if peak_idx < 25:
                     st_idx = 0
                 else:
@@ -230,7 +229,15 @@ class HeartRateEstimator:
                 self.push_noise_peak(pval, peak_idx, peak_time)
 
             # TODO: Check lead inversion!
-        return detected_peaks_time
+
+        # Check for two close peaks
+        occurrence_time = [item[1] for item in self.r_peaks_buffer]
+        close_idx = (np.diff(np.array(occurrence_time), 1) < .05)
+        if True in close_idx:
+            del detected_peaks_time[0]
+            del detected_peaks_val[0]
+
+        return detected_peaks_time, detected_peaks_val
 
     def check_missing_peak(self, peak_time, peak_idx, detected_peaks_idx, ecg_sig, time_vector):
         # 5- If an interval equal to 1.5 times the average R-to-R interval has elapsed since the most recent
