@@ -194,21 +194,25 @@ class Dashboard:
             self.exg_plot.circle(x='t', y='r_peak', source=self.r_peak_source,
                                  fill_color="red", size=8)
 
-        ecg_data = np.array(self.exg_source.data['Ch1'])[-500:]
+        ecg_data = np.array(self.exg_source.data['Ch1'])[-500:] * self.y_unit
 
         # Check if the peak2peak value is bigger than threshold
-        if np.ptp(ecg_data) > V_TH / self.y_unit:
+        if np.ptp(ecg_data) > V_TH:
             return
         time_vector = np.array(self.exg_source.data['t'])[-500:]
-        peaks_idx = self.rr_estimator.estimate(ecg_data, time_vector)
-        if len(peaks_idx) > 0:
-            t, peaks = time_vector[peaks_idx], ecg_data[peaks_idx]
-            data = dict(zip(['r_peak', 't'], [peaks, t]))
+        peaks_time, peaks_val = self.rr_estimator.estimate(ecg_data, time_vector)
+        if len(peaks_time) > 0:
+            data = dict(zip(['r_peak', 't'], [np.array(peaks_val)/self.y_unit, peaks_time]))
             self.r_peak_source.stream(data, rollover=30)
 
         # Update heart rate cell
-        estimated_heart_rate = 1 / np.diff(self.r_peak_source.data['t'][-5:], 1).mean() * 60
-        if estimated_heart_rate>140 or estimated_heart_rate<40:
+        mean_intervals = np.diff(self.r_peak_source.data['t'][-5:], 1).mean()
+        if mean_intervals > .01:
+            estimated_heart_rate = 1 / mean_intervals * 60
+        else:
+            estimated_heart_rate = 0
+
+        if estimated_heart_rate > 140 or estimated_heart_rate < 40:
             estimated_heart_rate = 'NA'
         data = {'heart_rate': [estimated_heart_rate]}
         self.heart_rate_source.stream(data, rollover=1)
@@ -223,6 +227,8 @@ class Dashboard:
             if ch in CHAN_LIST:
                 temp_offset = self.offsets[CHAN_LIST.index(ch)]
                 self.exg_source.data[ch] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
+        self.r_peak_source.data['r_peak'] = (self.r_peak_source.data['r_peak']-self.offsets[0]) *\
+                                            (old_unit / self.y_unit) + self.offsets[0]
 
     @gen.coroutine
     def _change_t_range(self, attr, old, new):
