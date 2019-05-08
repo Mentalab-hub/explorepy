@@ -187,6 +187,7 @@ class Dashboard:
     @gen.coroutine
     def _update_heart_rate(self):
         if self.exg_mode == 'EEG':
+            self.heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
         if self.rr_estimator is None:
             self.rr_estimator = HeartRateEstimator()
@@ -212,7 +213,7 @@ class Dashboard:
             return
 
         if mean_intervals > .01:
-            estimated_heart_rate = 1 / mean_intervals * 60
+            estimated_heart_rate = int(1 / mean_intervals * 60)
         else:
             estimated_heart_rate = 0
 
