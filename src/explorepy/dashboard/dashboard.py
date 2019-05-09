@@ -21,7 +21,7 @@ MODE_LIST = ['EEG', 'ECG']
 CHAN_LIST = ['Ch1', 'Ch2', 'Ch3', 'Ch4', 'Ch5', 'Ch6', 'Ch7', 'Ch8']
 DEFAULT_SCALE = 10 ** -3  # Volt
 N_MOVING_AVERAGE = 60
-V_TH = 5 * 10 ** -3  # Noise threshold for ECG (Volt)
+V_TH = [10**-5, 5 * 10 ** -3]  # Noise threshold for ECG (Volt)
 ORN_LIST = ['accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'magX', 'magY', 'magZ']
 
 SCALE_MENU = {"1 uV": 6., "5 uV": 5.3333, "10 uV": 5., "100 uV": 4., "500 uV": 3.3333, "1 mV": 3., "5 mV": 2.3333,
@@ -111,8 +111,6 @@ class Dashboard:
             ExG (np.ndarray): array of new data
 
         """
-        # if self.tabs.active != 0:
-        #     return
         # Delete old vertical line
         vertical_line = self.exg_plot.select_one({'name': 'vertical_line'})
         while vertical_line is not None:
@@ -134,8 +132,8 @@ class Dashboard:
 
     @gen.coroutine
     def update_orn(self, timestamp, orn_data):
-        if self.tabs.active != 1:
-            return
+        # if self.tabs.active != 1:
+        #     return
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
         new_data['t'] = [timestamp]
         self.orn_source.stream(new_data, rollover=WIN_LENGTH * ORN_SRATE)
@@ -195,30 +193,25 @@ class Dashboard:
             self.exg_plot.circle(x='t', y='r_peak', source=self.r_peak_source,
                                  fill_color="red", size=8)
 
-        ecg_data = np.array(self.exg_source.data['Ch1'])[-500:] * self.y_unit
+        ecg_data = (np.array(self.exg_source.data['Ch1'])[-500:] - self.offsets[0]) * self.y_unit
+        time_vector = np.array(self.exg_source.data['t'])[-500:]
 
         # Check if the peak2peak value is bigger than threshold
-        if np.ptp(ecg_data) > V_TH:
+        if (np.ptp(ecg_data) < V_TH[0]) or (np.ptp(ecg_data) > V_TH[1]):
+            print("P2P value larger or less than threshold!")
+            self.r_peak_source.stream(dict(zip(['r_peak', 't'], [np.array([np.nan]), [time_vector[-1]]])))
             return
-        time_vector = np.array(self.exg_source.data['t'])[-500:]
+
         peaks_time, peaks_val = self.rr_estimator.estimate(ecg_data, time_vector)
+        peaks_time = peaks_time + [time_vector[-1]]
+        peaks_val = (np.array(peaks_val)/self.y_unit) + self.offsets[0]
+        peaks_val = np.concatenate((peaks_val, np.array([np.nan])))
         if len(peaks_time) > 0:
-            data = dict(zip(['r_peak', 't'], [np.array(peaks_val)/self.y_unit, peaks_time]))
-            self.r_peak_source.stream(data, rollover=30)
+            data = dict(zip(['r_peak', 't'], [peaks_val, peaks_time]))
+            self.r_peak_source.stream(data, rollover=50)
 
         # Update heart rate cell
-        if len(self.r_peak_source.data['t']) > 8:
-            mean_intervals = np.diff(self.r_peak_source.data['t'][-8:], 1).mean()
-        else:
-            return
-
-        if mean_intervals > .01:
-            estimated_heart_rate = int(1 / mean_intervals * 60)
-        else:
-            estimated_heart_rate = 0
-
-        if estimated_heart_rate > 140 or estimated_heart_rate < 40:
-            estimated_heart_rate = 'NA'
+        estimated_heart_rate = self.rr_estimator.heart_rate
         data = {'heart_rate': [estimated_heart_rate]}
         self.heart_rate_source.stream(data, rollover=1)
 
@@ -232,7 +225,7 @@ class Dashboard:
             if ch in CHAN_LIST:
                 temp_offset = self.offsets[CHAN_LIST.index(ch)]
                 self.exg_source.data[ch] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
-        self.r_peak_source.data['r_peak'] = (self.r_peak_source.data['r_peak']-self.offsets[0]) *\
+        self.r_peak_source.data['r_peak'] = (np.array(self.r_peak_source.data['r_peak'])-self.offsets[0]) *\
                                             (old_unit / self.y_unit) + self.offsets[0]
 
     @gen.coroutine
@@ -245,7 +238,7 @@ class Dashboard:
 
     def _init_plots(self):
         self.exg_plot = figure(y_range=(0.01, self.n_chan + 1 - 0.01), y_axis_label='Voltage', x_axis_label='Time (s)',
-                               title="EEG signal",
+                               title="ExG signal",
                                plot_height=600, plot_width=1270,
                                y_minor_ticks=int(10),
                                tools=[ResetTool()], active_scroll=None, active_drag=None,
