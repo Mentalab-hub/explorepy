@@ -4,7 +4,7 @@ from functools import partial
 from threading import Thread
 from explorepy.tools import HeartRateEstimator
 
-from bokeh.layouts import widgetbox, row, column, gridplot
+from bokeh.layouts import widgetbox, row, column
 from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs
 from bokeh.plotting import figure
 from bokeh.server.server import Server
@@ -42,6 +42,7 @@ class Dashboard:
         self.chan_key_list = ['Ch' + str(i + 1) for i in range(self.n_chan)]
         self.exg_mode = 'EEG'
         self.rr_estimator = None
+        self.win_length = WIN_LENGTH
 
         # Init ExG data source
         exg_temp = self.offsets
@@ -98,9 +99,7 @@ class Dashboard:
         self.doc.add_root(row([m_widgetbox, self.tabs]))
         self.doc.add_periodic_callback(self._update_fft, 2000)
         self.doc.add_periodic_callback(self._update_heart_rate, 2000)
-        # Set the theme
-        # module_path = os.path.dirname(__file__)
-        # self.doc.theme = Theme(filename=os.path.join(module_path, "theme.yaml"))
+
 
     @gen.coroutine
     def update_exg(self, time_vector, ExG):
@@ -111,19 +110,6 @@ class Dashboard:
             ExG (np.ndarray): array of new data
 
         """
-        # Delete old vertical line
-        vertical_line = self.exg_plot.select_one({'name': 'vertical_line'})
-        while vertical_line is not None:
-            self.exg_plot.renderers.remove(vertical_line)
-            vertical_line = self.exg_plot.select_one({'name': 'vertical_line'})
-
-        # Update vertical line
-        self.exg_plot.line(x=[time_vector[-1], time_vector[-1]],
-                           y=[self.offsets[0]-1, self.offsets[-1]+1],
-                           name='vertical_line',
-                           line_width=2,
-                           color='red', alpha=.8)
-
         # Update ExG data
         ExG = self.offsets + ExG / self.y_unit
         new_data = dict(zip(self.chan_key_list, ExG))
@@ -136,7 +122,7 @@ class Dashboard:
         #     return
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
         new_data['t'] = [timestamp]
-        self.orn_source.stream(new_data, rollover=WIN_LENGTH * ORN_SRATE)
+        self.orn_source.stream(new_data, rollover=2 * WIN_LENGTH * ORN_SRATE)
 
     @gen.coroutine
     def update_info(self, new):
@@ -203,10 +189,8 @@ class Dashboard:
             return
 
         peaks_time, peaks_val = self.rr_estimator.estimate(ecg_data, time_vector)
-        peaks_time = peaks_time + [time_vector[-1]]
         peaks_val = (np.array(peaks_val)/self.y_unit) + self.offsets[0]
-        peaks_val = np.concatenate((peaks_val, np.array([np.nan])))
-        if len(peaks_time) > 0:
+        if peaks_time:
             data = dict(zip(['r_peak', 't'], [peaks_val, peaks_time]))
             self.r_peak_source.stream(data, rollover=50)
 
@@ -279,13 +263,6 @@ class Dashboard:
             self.mag_plot.line(x='t', y=ORN_LIST[i + 6], source=self.orn_source, legend=ORN_LIST[i + 6] + " ",
                                line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
 
-        # Initial vertical line
-        self.exg_plot.line(x=[0, 0],
-                           y=[self.offsets[-1] - 2, self.offsets[0] + 2],
-                           name='vertical_line',
-                           line_width=2,
-                           color='red', alpha=.8)
-
         # Set x_range
         self.plot_list = [self.exg_plot, self.acc_plot, self.gyro_plot, self.mag_plot]
         self._set_t_range(WIN_LENGTH)
@@ -345,8 +322,11 @@ class Dashboard:
 
     def _set_t_range(self, t_length):
         for plot in self.plot_list:
+            self.win_length = int(t_length)
             plot.x_range.follow = "end"
             plot.x_range.follow_interval = t_length
+            plot.x_range.range_padding = 0.
+            plot.x_range.min_interval = t_length
 
 
 def get_fft(exg):
