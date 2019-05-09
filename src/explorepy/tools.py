@@ -119,6 +119,24 @@ class HeartRateEstimator:
         else:
             return np.mean(np.diff([item[1] for item in self.r_peaks_buffer]))
 
+    @property
+    def heart_rate(self):
+        if len(self.r_peaks_buffer) < 7:
+            print('Few peaks to get heart rate!')
+            return 'NA'
+        else:
+            r_times = [item[1] for item in self.r_peaks_buffer]
+            rr_intervals = np.diff(r_times, 1)
+            if True in (rr_intervals > 3.):
+                print('Missing peaks!')
+                return 'NA'
+            else:
+                estimated_heart_rate = int(1./np.mean(rr_intervals) * 60)
+                if estimated_heart_rate > 140 or estimated_heart_rate < 40:
+                    print('Estimated heart rate <40 or >140!')
+                    estimated_heart_rate = 'NA'
+                return estimated_heart_rate
+
     def push_r_peak(self, val, time):
         self.r_peaks_buffer.append((val, time))
         if len(self.r_peaks_buffer) > 8:
@@ -263,7 +281,6 @@ class HeartRateEstimator:
                     else:
                         # The peak is in the previous chunk
                         # TODO: return a negative index for it!
-                        print(last_noise_idx)
                         pass
 # DEBUGGING
 # import matplotlib.pyplot as plt
