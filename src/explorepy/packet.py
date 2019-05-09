@@ -97,7 +97,7 @@ class EEG(Packet):
 
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
-        time_vector = np.linspace(self.timestamp, self.timestamp+n_sample/250., n_sample)
+        time_vector = np.linspace(self.timestamp, self.timestamp+(n_sample-1)/250., n_sample)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
 
 
