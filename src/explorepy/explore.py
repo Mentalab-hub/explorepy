@@ -91,7 +91,7 @@ class Explore:
         self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.socket)
+            self.parser = Parser(socket=self.socket)
 
         with open(exg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
