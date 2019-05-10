@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import abc
 import struct
@@ -34,7 +35,7 @@ class Packet:
 
     @staticmethod
     def int24to32(bin_data):
-        r"""
+        """
         converts binary data to int32
 
         Args:
@@ -54,12 +55,10 @@ class Packet:
 
 
 class EEG(Packet):
-    def __init__(self, timestamp, payload):
-        super().__init__(timestamp, payload)
 
     @abc.abstractmethod
     def write_to_csv(self, csv_writer):
-        r"""
+        """
         Write EEG data to csv file
 
         Args:
@@ -68,25 +67,25 @@ class EEG(Packet):
         """
         pass
 
-    def apply_bp_filter(self, filter):
-        r"""Bandpass filtering of ExG data
+    def apply_bp_filter(self, exg_filter):
+        """Bandpass filtering of ExG data
 
         Args:
-        filter: Filter object
+        exg_filter: Filter object
         """
-        self.data = filter.apply_bp_filter(self.data)
+        self.data = exg_filter.apply_bp_filter(self.data)
 
-    def apply_notch_filter(self, filter):
-        r"""Band_stop filtering of ExG data
+    def apply_notch_filter(self, exg_filter):
+        """Band_stop filtering of ExG data
 
         Args:
-            filter: Filter object
+            exg_filter: Filter object
 
         """
-        self.data = filter.apply_notch_filter(self.data)
+        self.data = exg_filter.apply_notch_filter(self.data)
 
     def push_to_lsl(self, outlet):
-        r"""Push data to lsl socket
+        """Push data to lsl socket
 
         Args:
             outlet (lsl.StreamOutlet): lsl stream outlet
