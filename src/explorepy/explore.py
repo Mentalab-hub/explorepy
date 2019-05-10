@@ -177,6 +177,7 @@ class Explore:
         self.m_dashboard.start_server()
 
         thread = Thread(target=self._io_loop)
+        thread.setDaemon(True)
         thread.start()
 
         self.socket = self.device[device_id].bt_connect()
