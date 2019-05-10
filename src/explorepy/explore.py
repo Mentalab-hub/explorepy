@@ -135,13 +135,13 @@ class Explore:
             self.parser = Parser(socket=self.socket)
 
         assert (n_chan is not None), "Number of channels missing"
-        assert (n_chan == 4) or (n_chan == 8), "Number of channels should be either 4 or 8"
+        assert n_chan in [2, 4, 8], "Number of channels should be either 2, 4 or 8"
 
         info_orn = StreamInfo('Mentalab', 'Orientation', 9, 20, 'float32', 'explore_orn')
-        info_eeg = StreamInfo('Mentalab', 'EEG', n_chan, 250, 'float32', 'explore_eeg')
+        info_exg = StreamInfo('Mentalab', 'ExG', n_chan, 250, 'float32', 'explore_exg')
 
         orn_outlet = StreamOutlet(info_orn)
-        eeg_outlet = StreamOutlet(info_eeg)
+        eeg_outlet = StreamOutlet(info_exg)
 
         is_acquiring = True
 
