@@ -2,7 +2,7 @@
 Changelog
 =========
 
-0.3.0 (is coming!)
+0.3.0 (10-05-2019)
 ------------------
 * Explore dashboard
 * Real-time visualization of ExG and orientation signal
@@ -10,6 +10,7 @@ Changelog
 * Environmental data (battery, temperature and light)
 * Real-time bandpass filter
 * New packet structures (ADS1294R & ADS1298R)
+* Heart rate estimation and R-peaks detector in dashboard
 
 
 0.2.0 (2019-03-08)
