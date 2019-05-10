@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import struct
-from explorepy.packet import *
+from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s
 from explorepy.filters import Filter
 
 ORN_ID = 13
@@ -31,7 +32,7 @@ PACKET_CLASS_DICT = {
 
 
 def generate_packet(pid, timestamp, bin_data):
-    r"""Generates the packets according to the pid
+    """Generates the packets according to the pid
 
     Args:
         pid (int): Packet ID
@@ -53,7 +54,7 @@ def generate_packet(pid, timestamp, bin_data):
 
 class Parser:
     def __init__(self, bp_freq=None, notch_freq=50, socket=None, fid=None):
-        r"""Parser class for explore device
+        """Parser class for explore device
 
         Args:
             socket (BluetoothSocket): Bluetooth Socket (Should be None if fid is provided)
@@ -82,7 +83,7 @@ class Parser:
             self.filter = Filter(l_freq=self.bp_freq[0], h_freq=self.bp_freq[1], line_freq=notch_freq)
 
     def parse_packet(self, mode="print", csv_files=None, outlets=None, dashboard=None):
-        r"""Reads and parses a package from a file or socket
+        """Reads and parses a package from a file or socket
 
         Args:
             mode (str): logging mode {'print', 'record', 'lsl', 'visualize', None}
@@ -136,7 +137,7 @@ class Parser:
         return packet
 
     def read(self, n_bytes):
-        r"""Read n_bytes from socket or file
+        """Read n_bytes from socket or file
 
         Args:
             n_bytes (int): number of bytes to be read
