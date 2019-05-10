@@ -116,9 +116,9 @@ EEG:
 
 ECG with heart beat detection:
 
-.. image:: images/Dashboard_EEG.jpg
+.. image:: images/Dashboard_ECG.jpg
   :width: 800
-  :alt: EEG Dashboard
+  :alt: ECG Dashboard
 
 Documentation
 =============
