@@ -62,6 +62,8 @@ It is possible to visualize real-time signal in a browser-based dashboard by the
 
     explorer.visualize(n_chan=4)  # Give number of channels (4 or 8)
 
+In the dashboard, you can set signal mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heart beats are detected and heart rate is estimated from RR-intervals.
+
 
 Labstreaminglayer (lsl)
 ^^^^^^^^^^^^^^^^^^^^^^^
