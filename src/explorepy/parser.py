@@ -129,9 +129,9 @@ class Parser:
         elif mode == "visualize":
             if isinstance(packet, EEG):
                 if self.notch_freq:
-                    packet.apply_notch_filter(filter=self.filter)
+                    packet.apply_notch_filter(exg_filter=self.filter)
                 if self.apply_bp_filter:
-                    packet.apply_bp_filter(filter=self.filter)
+                    packet.apply_bp_filter(exg_filter=self.filter)
             packet.push_to_dashboard(dashboard)
 
         return packet
