@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import time
 from functools import partial
@@ -45,9 +46,11 @@ class Dashboard:
         self.win_length = WIN_LENGTH
 
         # Init ExG data source
-        exg_temp = self.offsets
+        exg_temp = np.zeros((n_chan, 2))
+        exg_temp[:, 0] = self.offsets[:, 0]
+        exg_temp[:, 1] = np.nan
         init_data = dict(zip(self.chan_key_list, exg_temp))
-        init_data['t'] = np.array([0.])
+        init_data['t'] = np.array([0., 0.])
         self.exg_source = ColumnDataSource(data=init_data)
 
         # Init ECG R-peak source
@@ -118,8 +121,12 @@ class Dashboard:
 
     @gen.coroutine
     def update_orn(self, timestamp, orn_data):
-        # if self.tabs.active != 1:
-        #     return
+        """Update orientation data
+
+        Args:
+            timestamp (float): timestamp of the sample
+            orn_data (float vector): Vector of orientation data with shape of (9,)
+        """
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
         new_data['t'] = [timestamp]
         self.orn_source.stream(new_data, rollover=2 * WIN_LENGTH * ORN_SRATE)
@@ -154,6 +161,8 @@ class Dashboard:
 
     @gen.coroutine
     def _update_fft(self):
+        """ Update spectral frequency analysis plot
+        """
         # Check if the tab is active and if EEG mode is active
         if (self.tabs.active != 2) or (self.exg_mode != 'EEG'):
             return
@@ -170,6 +179,7 @@ class Dashboard:
 
     @gen.coroutine
     def _update_heart_rate(self):
+        """Detect R-peaks and update the plot and heart rate"""
         if self.exg_mode == 'EEG':
             self.heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
@@ -201,6 +211,7 @@ class Dashboard:
 
     @gen.coroutine
     def _change_scale(self, attr, old, new):
+        """Change y-scale of ExG plot"""
         new, old = SCALE_MENU[new], SCALE_MENU[old]
         old_unit = 10 ** (-old)
         self.y_unit = 10 ** (-new)
@@ -214,13 +225,16 @@ class Dashboard:
 
     @gen.coroutine
     def _change_t_range(self, attr, old, new):
+        """Change time range"""
         self._set_t_range(TIME_RANGE_MENU[new])
 
     @gen.coroutine
     def _change_mode(self, new):
+        """Set EEG or ECG mode"""
         self.exg_mode = MODE_LIST[new]
 
     def _init_plots(self):
+        """Initialize all plots in the dashboard"""
         self.exg_plot = figure(y_range=(0.01, self.n_chan + 1 - 0.01), y_axis_label='Voltage', x_axis_label='Time (s)',
                                title="ExG signal",
                                plot_height=600, plot_width=1270,
@@ -283,7 +297,7 @@ class Dashboard:
                 plot.legend.padding = 2
 
     def _init_controls(self):
-
+        """Initialize all controls in the dashboard"""
         # EEG/ECG Radio button
         self.mode_control = RadioButtonGroup(labels=MODE_LIST, active=0)
         self.mode_control.on_click(self._change_mode)
@@ -321,6 +335,7 @@ class Dashboard:
         return m_widgetbox
 
     def _set_t_range(self, t_length):
+        """Change time range of ExG and orientation plots"""
         for plot in self.plot_list:
             self.win_length = int(t_length)
             plot.x_range.follow = "end"
@@ -330,6 +345,7 @@ class Dashboard:
 
 
 def get_fft(exg):
+    """Compute FFT"""
     n_chan, n_sample = exg.shape
     L = n_sample / EEG_SRATE
     n = 1024
@@ -340,7 +356,6 @@ def get_fft(exg):
 
 
 if __name__ == '__main__':
-    # get_fft(np.random.rand(4, 2500))
     print('Opening Bokeh application on http://localhost:5006/')
     m_dashboard = Dashboard(n_chan=8)
     m_dashboard.start_server()
