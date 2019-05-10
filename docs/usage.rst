@@ -2,7 +2,21 @@
 Usage
 =====
 
-To use explorepy in a project::
+CLI commands
+^^^^^^^^^^^^
+Data acquisition: ``explorepy acquire -n Explore_XXXX  #Put your device Bluetooth name``
+
+Record data: ``explorepy record_data -n Explore_XXXX -f file_name``
+
+Push data to lsl: ``explorepy push2lsl -n Explore_XXXX -c 4 #-c number of channels (4 or 8)``
+
+Convert a binary file to csv: ``explorepy bin2csv -i input_file``
+
+To see the full list of commands ``explorepy -h``
+
+Python project
+^^^^^^^^^^^^^^
+To use explorepy in a python project::
 
 	import explorepy
 
@@ -40,6 +54,16 @@ This will record data in two separate files "test_ExG.csv" and "test_ORN.csv" wh
 The program will usually stop if files with the same name are detected. If you want to overwrite already existing files, change the line above::
 
     explorer.record_data(file_name='test', do_overwrite=True)
+
+
+Visualization
+^^^^^^^^^^^^^
+It is possible to visualize real-time signal in a browser-based dashboard by the following code::
+
+    explorer.visualize(n_chan=4)  # Give number of channels (4 or 8)
+
+In the dashboard, you can set signal mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heart beats are detected and heart rate is estimated from RR-intervals.
+
 
 Labstreaminglayer (lsl)
 ^^^^^^^^^^^^^^^^^^^^^^^

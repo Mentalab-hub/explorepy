@@ -90,9 +90,9 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(args.address)
+            explorer.connect(device_addr=args.address)
         else:
-            explorer.connect(args.name)
+            explorer.connect(device_name=args.name)
 
         explorer.push2lsl(n_chan=args.channels)
 

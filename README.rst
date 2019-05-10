@@ -37,9 +37,9 @@ Overview
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/explorepy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.2.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.3.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.2.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.3.0...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
     :alt: PyPI Wheel
@@ -64,6 +64,8 @@ Requirements
 * `numpy <https://github.com/pybluez/pybluez>`_
 * `pybluez <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
 * `pylsl <https://github.com/labstreaminglayer/liblsl-Python>`_
+* `scipy <https://github.com/scipy/scipy>`_
+* `bokeh <https://github.com/bokeh/bokeh>`_
 
 
 Installation
@@ -82,7 +84,13 @@ To install the latest development version run:
 
 Example use
 ===========
-The following code connects to the Explore device and prints the data. To see other functions please see the full `documentation <https://explorepy.readthedocs.io/>`_.
+CLI command:
+``explorepy acquire -n Explore_XXXX``
+
+Enter ``explorepy -h`` for help.
+
+
+The following code connects to the Explore device and prints the data.
 
 ::
 
@@ -90,6 +98,27 @@ The following code connects to the Explore device and prints the data. To see ot
     explorer = explorepy.Explore()
     explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
     explorer.acquire()
+
+You can also visualize signal in real-time.
+
+::
+
+    import explorepy
+    explorer = explorepy.Explore()
+    explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
+    explorer.visualize(n_chan=4)  # Give number of channels (2, 4 or 8)
+
+EEG:
+
+.. image:: images/Dashboard_EEG.jpg
+  :width: 800
+  :alt: EEG Dashboard
+
+ECG with heart beat detection:
+
+.. image:: images/Dashboard_ECG.jpg
+  :width: 800
+  :alt: ECG Dashboard
 
 Documentation
 =============

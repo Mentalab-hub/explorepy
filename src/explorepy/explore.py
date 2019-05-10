@@ -2,11 +2,13 @@
 
 from explorepy.bt_client import BtClient
 from explorepy.parser import Parser
+from explorepy.dashboard.dashboard import Dashboard
 import bluetooth
 import csv
 import os
 import time
 from pylsl import StreamInfo, StreamOutlet
+from threading import Thread
 
 
 class Explore:
@@ -19,6 +21,7 @@ class Explore:
         self.device = []
         self.socket = None
         self.parser = None
+        self.m_dashboard = None
         for i in range(n_device):
             self.device.append(BtClient())
 
@@ -55,7 +58,7 @@ class Explore:
         self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.socket)
+            self.parser = Parser(socket=self.socket)
 
         is_acquiring = True
         while is_acquiring:
@@ -78,7 +81,7 @@ class Explore:
             device_id (int): device id
             do_overwrite (bool): Overwrite if files exist already
         """
-
+        time_offset = None
         exg_out_file = file_name + "_ExG.csv"
         orn_out_file = file_name + "_ORN.csv"
 
@@ -88,7 +91,7 @@ class Explore:
         self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.socket)
+            self.parser = Parser(socket=self.socket)
 
         with open(exg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
@@ -103,7 +106,13 @@ class Explore:
 
             while is_acquiring:
                 try:
-                    self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    self.parser.parse_packet()
+                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    if time_offset is not None:
+                        packet.timestamp = packet.timestamp-time_offset
+                    else:
+                        time_offset = packet.timestamp
+
                 except ValueError:
                     # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                     print("Disconnected, scanning for last connected device")
@@ -119,19 +128,20 @@ class Explore:
             device_id (int): device id
             n_chan (int): Number of channels (4 or 8)
         """
+
         self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
-            self.parser = Parser(self.socket)
+            self.parser = Parser(socket=self.socket)
 
         assert (n_chan is not None), "Number of channels missing"
-        assert (n_chan == 4) or (n_chan == 8), "Number of channels should be either 4 or 8"
+        assert n_chan in [2, 4, 8], "Number of channels should be either 2, 4 or 8"
 
         info_orn = StreamInfo('Mentalab', 'Orientation', 9, 20, 'float32', 'explore_orn')
-        info_eeg = StreamInfo('Mentalab', 'EEG', n_chan, 250, 'float32', 'explore_eeg')
+        info_exg = StreamInfo('Mentalab', 'ExG', n_chan, 250, 'float32', 'explore_exg')
 
         orn_outlet = StreamOutlet(info_orn)
-        eeg_outlet = StreamOutlet(info_eeg)
+        eeg_outlet = StreamOutlet(info_exg)
 
         is_acquiring = True
 
@@ -153,13 +163,48 @@ class Explore:
                 time.sleep(1)
                 self.parser = Parser(self.socket)
 
-    def visualize(self):
-        r"""Start visualization of the data in the viewer (NOT IMPLEMENTED)
+    def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
+        r"""Visualization of the signal in the dashboard
 
-        Returns:
-
+        Args:
+            n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
+            device_id (int): Device ID (NOT USED CURRENTLY)
+            bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
+            if it is None.
+            notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
         """
-        pass
+        self.m_dashboard = Dashboard(n_chan=n_chan)
+        self.m_dashboard.start_server()
+
+        thread = Thread(target=self._io_loop)
+        thread.setDaemon(True)
+        thread.start()
+
+        self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
+
+        self.m_dashboard.start_loop()
+
+    def _io_loop(self, device_id=0):
+        is_acquiring = True
+
+        # Wait until dashboard is initialized.
+        while not hasattr(self.m_dashboard, 'doc'):
+            print('wait')
+            time.sleep(.2)
+        while is_acquiring:
+            try:
+                packet = self.parser.parse_packet(mode="visualize", dashboard=self.m_dashboard)
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                socket = self.device[device_id].bt_connect()
+                self.parser.socket = socket
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: attempting reconnect. Error: ", error)
+                self.parser.socket = self.device[device_id].bt_connect()
 
 
 if __name__ == '__main__':

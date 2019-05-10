@@ -24,14 +24,15 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy']
+my_req = ['numpy', 'scipy']
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pybluez')  # Add pybluez if the environment is other than READTHEDOCS
     my_req.append('pylsl')
+    my_req.append('bokeh')
 
 setup(
     name='explorepy',
-    version='0.2.0',
+    version='0.3.0',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description='%s\n%s' % (
