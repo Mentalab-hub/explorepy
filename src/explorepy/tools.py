@@ -1,14 +1,15 @@
+# -*- coding: utf-8 -*-
 from explorepy.parser import Parser
 import os.path
 import csv
 import bluetooth
 import numpy as np
 from .filters import Filter
-import scipy.signal as signal
+from scipy import signal
 
 
 def bt_scan():
-    r""""Scan for bluetooth devices
+    """"Scan for bluetooth devices
     Scans for available explore devices.
     Prints out MAC address and name of each found device
 
@@ -19,19 +20,21 @@ def bt_scan():
     """
     print("Searching for nearby devices...")
     nearby_devices = bluetooth.discover_devices(lookup_names=True)
-
+    explore_devices = []
     for address, name in nearby_devices:
         if "Explore" in name:
             print("Device found: %s - %s" % (name, address))
+            explore_devices.append((address, name))
 
-    if len(nearby_devices) == 0:
+    if not nearby_devices:
         print("No Devices found")
-        return
+
+    return explore_devices
 
 
 def bin2csv(bin_file, do_overwrite=False, out_dir=None):
 
-    r"""Binary to CSV file converter.
+    """Binary to CSV file converter.
     This function converts the given binary file to ExG and ORN csv files.
 
     Args:
@@ -116,8 +119,7 @@ class HeartRateEstimator:
     def average_rr_interval(self):
         if len(self.r_peaks_buffer) < 7:
             return 1.
-        else:
-            return np.mean(np.diff([item[1] for item in self.r_peaks_buffer]))
+        return np.mean(np.diff([item[1] for item in self.r_peaks_buffer]))
 
     @property
     def heart_rate(self):
@@ -282,11 +284,4 @@ class HeartRateEstimator:
                         # The peak is in the previous chunk
                         # TODO: return a negative index for it!
                         pass
-# DEBUGGING
-# import matplotlib.pyplot as plt
-# plt.plot(ecg_sig)
-# plt.plot(ecg_filtered)
-# plt.plot(sig_diff)
-# plt.plot(sig_smoothed)
-# plt.plot(peaks_idx_list, sig_smoothed[peaks_idx_list], '*')
-# plt.plot(detected_peaks_idx, ecg_sig[detected_peaks_idx], "X")
+
