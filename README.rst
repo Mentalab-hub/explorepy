@@ -106,7 +106,19 @@ You can also visualize signal in real-time.
     import explorepy
     explorer = explorepy.Explore()
     explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
-    explorer.visualize(n_chan=4)  # Give number of channels (4 or 8)
+    explorer.visualize(n_chan=4)  # Give number of channels (2, 4 or 8)
+
+EEG:
+
+.. image:: images/Dashboard_EEG.jpg
+  :width: 800
+  :alt: EEG Dashboard
+
+ECG with heart beat detection:
+
+.. image:: images/Dashboard_EEG.jpg
+  :width: 800
+  :alt: EEG Dashboard
 
 Documentation
 =============
