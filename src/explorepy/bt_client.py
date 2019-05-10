@@ -18,7 +18,7 @@ class BtClient:
         Initialize Bluetooth connection
 
         Args:
-            device_name(str): Name of the device
+            device_name(str): Name of the device (either device_name or device address should be given)
             device_addr(str): Devices MAC address
         """
         assert (device_addr is not None) or (device_name is not None), "Missing name or address"
@@ -30,7 +30,7 @@ class BtClient:
                     self.lastUsedAddress = address
                     break
         else:
-            """"No need to scan if we have the address"""
+            # No need to scan if we have the address
             self.lastUsedAddress = device_addr
 
         uuid = "1101"  # Serial Port Profile (SPP) service
@@ -66,7 +66,6 @@ class BtClient:
         """
 
         timeout = 1
-        is_reconnected = False
         while timeout < 5:
             try:
                 socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
@@ -75,10 +74,7 @@ class BtClient:
             except bluetooth.BluetoothError as error:
                 print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
                 time.sleep(5)
-                pass
-            if is_reconnected is True:
-                timeout = 0
-                break
+
             timeout += 1
 
         if timeout == 5:
