@@ -30,9 +30,8 @@ Parser
 
 Dashboard
 *********
-.. automodule:: dashboard.dashboard
+.. autoclass:: dashboard.dashboard.Dashboard
     :members:
-    :undoc-members:
 
 
 Additional tools
