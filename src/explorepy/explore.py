@@ -81,6 +81,10 @@ class Explore:
             device_id (int): device id
             do_overwrite (bool): Overwrite if files exist already
         """
+        # Check invalid characters
+        if set(r'[<>/{}[\]~`]*%').intersection(file_name):
+            raise ValueError("Invalid character in file name")
+
         time_offset = None
         exg_out_file = file_name + "_ExG.csv"
         orn_out_file = file_name + "_ORN.csv"
