@@ -64,6 +64,17 @@ It is possible to visualize real-time signal in a browser-based dashboard by the
 
 In the dashboard, you can set signal mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heart beats are detected and heart rate is estimated from RR-intervals.
 
+EEG:
+
+.. image:: /images/Dashboard_EEG.jpg
+  :width: 800
+  :alt: EEG Dashboard
+
+ECG with heart beat detection:
+
+.. image:: /images/Dashboard_ECG.jpg
+  :width: 800
+  :alt: ECG Dashboard
 
 Labstreaminglayer (lsl)
 ^^^^^^^^^^^^^^^^^^^^^^^
