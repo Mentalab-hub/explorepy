@@ -28,6 +28,13 @@ Parser
     :members:
     :undoc-members:
 
+Dashboard
+*********
+.. automodule:: dashboard
+    :members:
+    :undoc-members:
+
+
 Additional tools
 ****************
 .. automodule:: tools
