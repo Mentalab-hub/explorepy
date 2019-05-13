@@ -110,13 +110,13 @@ You can also visualize signal in real-time.
 
 EEG:
 
-.. image:: images/Dashboard_EEG.jpg
+.. image:: https://github.com/Mentalab-hub/explorepy/blob/master/images/Dashboard_EEG.jpg
   :width: 800
   :alt: EEG Dashboard
 
 ECG with heart beat detection:
 
-.. image:: images/Dashboard_ECG.jpg
+.. image:: https://github.com/Mentalab-hub/explorepy/blob/master/images/Dashboard_ECG.jpg
   :width: 800
   :alt: ECG Dashboard
 
