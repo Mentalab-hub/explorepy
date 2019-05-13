@@ -31,10 +31,8 @@ class Explore:
 
         Args:
             device_name (str): Device name in the format of "Explore_XXXX"
-            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in
-            the input
-
-            device_id (int): device id
+            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in the input
+            device_id (int): device id (not needed in the current version)
 
         """
 
@@ -44,7 +42,7 @@ class Explore:
         r"""Disconnects from the device
 
         Args:
-            device_id (int): device id (id=None for disconnecting all devices)
+            device_id (int): device id (not needed in the current version)
         """
         self.device[device_id].socket.close()
 
@@ -52,7 +50,7 @@ class Explore:
         r"""Start getting data from the device
 
         Args:
-            device_id (int): device id (id=None for disconnecting all devices)
+            device_id (int): device id (not needed in the current version)
         """
 
         self.socket = self.device[device_id].bt_connect()
@@ -78,7 +76,7 @@ class Explore:
 
         Args:
             file_name (str): output file name
-            device_id (int): device id
+            device_id (int): device id (not needed in the current version)
             do_overwrite (bool): Overwrite if files exist already
         """
         # Check invalid characters
@@ -97,12 +95,12 @@ class Explore:
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
 
-        with open(exg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
+        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
             f_orn.write(
                 "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
-            f_eeg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
-            csv_eeg = csv.writer(f_eeg, delimiter=",")
+            f_exg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
+            csv_exg = csv.writer(f_exg, delimiter=",")
             csv_orn = csv.writer(f_orn, delimiter=",")
 
             is_acquiring = True
@@ -111,7 +109,7 @@ class Explore:
             while is_acquiring:
                 try:
                     self.parser.parse_packet()
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn))
                     if time_offset is not None:
                         packet.timestamp = packet.timestamp-time_offset
                     else:
@@ -129,7 +127,7 @@ class Explore:
         r"""Push samples to two lsl streams
 
         Args:
-            device_id (int): device id
+            device_id (int): device id (not needed in the current version)
             n_chan (int): Number of channels (4 or 8)
         """
 
@@ -145,7 +143,7 @@ class Explore:
         info_exg = StreamInfo('Mentalab', 'ExG', n_chan, 250, 'float32', 'explore_exg')
 
         orn_outlet = StreamOutlet(info_orn)
-        eeg_outlet = StreamOutlet(info_exg)
+        exg_outlet = StreamOutlet(info_exg)
 
         is_acquiring = True
 
@@ -153,7 +151,7 @@ class Explore:
             print("Pushing to lsl...")
 
             try:
-                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
+                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet))
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -172,7 +170,7 @@ class Explore:
 
         Args:
             n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
-            device_id (int): Device ID (NOT USED CURRENTLY)
+            device_id (int): Device ID (not needed in the current version)
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
