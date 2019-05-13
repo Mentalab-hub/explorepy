@@ -77,10 +77,12 @@ class Dashboard:
         self.fft_source = ColumnDataSource(data=init_data)
 
     def start_server(self):
+        """Start bokeh server"""
         self.server = Server({'/': self._init_doc}, num_procs=1)
         self.server.start()
 
     def start_loop(self):
+        """Start io loop and show the dashboard"""
         self.server.io_loop.add_callback(self.server.show, "/")
         self.server.io_loop.start()
 
