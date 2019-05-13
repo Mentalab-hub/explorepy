@@ -108,7 +108,7 @@ class Dashboard:
 
     @gen.coroutine
     def update_exg(self, time_vector, ExG):
-        """update_exg(self, time_vector, ExG)
+        """update_exg()
         Update ExG data in the visualization
 
         Args:
