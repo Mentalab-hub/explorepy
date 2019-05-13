@@ -32,7 +32,8 @@ Dashboard
 *********
 .. autoclass:: dashboard.dashboard.Dashboard
     :members:
-    .. automethod:: dashboard.dashboard.Dashboard.update_exg(self, time_vector, ExG)
+
+    .. autofunction:: update_exg(self, time_vector, ExG)
 
 
 Additional tools
