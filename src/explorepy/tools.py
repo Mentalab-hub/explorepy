@@ -4,7 +4,7 @@ import os.path
 import csv
 import bluetooth
 import numpy as np
-from .filters import Filter
+from explorepy.filters import Filter
 from scipy import signal
 
 
