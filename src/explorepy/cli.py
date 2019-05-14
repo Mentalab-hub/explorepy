@@ -1,7 +1,8 @@
+# -*- coding: utf-8 -*-
 import sys
 import argparse
 from explorepy.tools import bin2csv, bt_scan
-import explorepy
+from explorepy.explore import Explore
 
 
 class CLI:
@@ -18,7 +19,7 @@ class CLI:
 
     def acquire(self):
         self.is_not_used()
-        explorer = explorepy.Explore()
+        explorer = Explore()
         parser = argparse.ArgumentParser(
             description='Connect to a device with selected name or address. Only one input is necessary')
 
@@ -40,7 +41,7 @@ class CLI:
 
     def record_data(self):
         self.is_not_used()
-        explorer = explorepy.Explore()
+        explorer = Explore()
         parser = argparse.ArgumentParser(
             description='Connect to a device with selected name')
 
@@ -71,7 +72,7 @@ class CLI:
 
     def push2lsl(self):
         self.is_not_used()
-        explorer = explorepy.Explore()
+        explorer = Explore()
         parser = argparse.ArgumentParser(
             description='Push data to lsl')
 
@@ -111,6 +112,38 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         bin2csv(args.inputfile, args.overwrite)
+
+    def visualize(self):
+        self.is_not_used()
+        explorer = Explore()
+
+        parser = argparse.ArgumentParser(
+            description='Visualizing signal in a browser-based dashboard')
+
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        parser.add_argument("-c", "--channels",
+                            dest="channels", type=int, default=None,
+                            help="the device's number of channels (2, 4 or 8)")
+
+        parser.add_argument("-nf", "--notchfreq",
+                            dest="notchfreq", type=int, default=None,
+                            help="Frequency of notch filter.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explorer.connect(device_addr=args.address)
+        else:
+            explorer.connect(device_name=args.name)
+
+        explorer.visualize(n_chan=args.channels)
 
     def is_not_used(self):
         pass
