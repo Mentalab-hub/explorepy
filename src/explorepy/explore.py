@@ -8,7 +8,7 @@ import csv
 import os
 import time
 from pylsl import StreamInfo, StreamOutlet
-from threading import Thread
+from threading import Thread, Timer
 
 
 class Explore:
@@ -46,11 +46,12 @@ class Explore:
         """
         self.device[device_id].socket.close()
 
-    def acquire(self, device_id=0):
+    def acquire(self, device_id=0, duration=None):
         r"""Start getting data from the device
 
         Args:
             device_id (int): device id (not needed in the current version)
+            duration (float): duration of acquiring data (if None it streams data endlessly)
         """
 
         self.socket = self.device[device_id].bt_connect()
@@ -58,8 +59,16 @@ class Explore:
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
 
-        is_acquiring = True
-        while is_acquiring:
+        is_acquiring = [True]
+
+        def stop_acquiring(flag):
+            flag[0] = False
+
+        if duration is not None:
+            Timer(duration, stop_acquiring, [is_acquiring]).start()
+            print("Start acquisition for ", duration, " seconds...")
+
+        while is_acquiring[0]:
             try:
                 self.parser.parse_packet(mode="print")
             except ValueError:
@@ -71,13 +80,16 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def record_data(self, file_name, do_overwrite=False, device_id=0):
+        print("Data acquisition stopped after ", duration, " seconds.")
+
+    def record_data(self, file_name, do_overwrite=False, device_id=0, duration=None):
         r"""Records the data in real-time
 
         Args:
             file_name (str): output file name
             device_id (int): device id (not needed in the current version)
             do_overwrite (bool): Overwrite if files exist already
+            duration (float): Duration of recording in seconds (if None records endlessly).
         """
         # Check invalid characters
         if set(r'[<>/{}[\]~`]*%').intersection(file_name):
@@ -103,10 +115,18 @@ class Explore:
             csv_exg = csv.writer(f_exg, delimiter=",")
             csv_orn = csv.writer(f_orn, delimiter=",")
 
-            is_acquiring = True
-            print("Recording...")
+            is_acquiring = [True]
 
-            while is_acquiring:
+            def stop_acquiring(flag):
+                flag[0] = False
+
+            if duration is not None:
+                Timer(duration, stop_acquiring, [is_acquiring]).start()
+                print("Start recording for ", duration, " seconds...")
+            else:
+                print("Recording...")
+
+            while is_acquiring[0]:
                 try:
                     self.parser.parse_packet()
                     packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn))
@@ -122,13 +142,15 @@ class Explore:
                 except bluetooth.BluetoothError as error:
                     print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
                     self.parser.socket = self.device[device_id].bt_connect()
+            print("Recording finished after ", duration, " seconds.")
 
-    def push2lsl(self, n_chan, device_id=0):
+    def push2lsl(self, n_chan, device_id=0, duration=None):
         r"""Push samples to two lsl streams
 
         Args:
             device_id (int): device id (not needed in the current version)
             n_chan (int): Number of channels (4 or 8)
+            duration (float): duration of data acquiring (if None it streams endlessly).
         """
 
         self.socket = self.device[device_id].bt_connect()
@@ -145,10 +167,18 @@ class Explore:
         orn_outlet = StreamOutlet(info_orn)
         exg_outlet = StreamOutlet(info_exg)
 
-        is_acquiring = True
+        is_acquiring = [True]
 
-        while is_acquiring:
+        def stop_acquiring(flag):
+            flag[0] = False
+
+        if duration is not None:
+            Timer(duration, stop_acquiring, [is_acquiring]).start()
+            print("Start pushing to lsl for ", duration, " seconds...")
+        else:
             print("Pushing to lsl...")
+
+        while is_acquiring[0]:
 
             try:
                 self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet))
@@ -164,6 +194,7 @@ class Explore:
                 self.socket = self.device[device_id].bt_connect()
                 time.sleep(1)
                 self.parser = Parser(self.socket)
+        print("Data acquisition finished after ", duration, " seconds.")
 
     def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
