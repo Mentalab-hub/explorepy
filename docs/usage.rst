@@ -2,8 +2,8 @@
 Usage
 =====
 
-CLI commands
-^^^^^^^^^^^^
+Command Line Interface
+^^^^^^^^^^^^^^^^^^^^^^
 Data acquisition: ``explorepy acquire -n Explore_XXXX  #Put your device Bluetooth name``
 
 Record data: ``explorepy record_data -n Explore_XXXX -f file_name``
@@ -12,7 +12,9 @@ Push data to lsl: ``explorepy push2lsl -n Explore_XXXX -c 4 #-c number of channe
 
 Convert a binary file to csv: ``explorepy bin2csv -i input_file``
 
-To see the full list of commands ``explorepy -h``
+Visualize in real-time: ``explorepy visualize -n Explore_XXXX -c 4``
+
+To see the full list of commands ``explorepy -h``.
 
 Python project
 ^^^^^^^^^^^^^^
@@ -60,10 +62,21 @@ Visualization
 ^^^^^^^^^^^^^
 It is possible to visualize real-time signal in a browser-based dashboard by the following code::
 
-    explorer.visualize(n_chan=4)  # Give number of channels (4 or 8)
+    explorer.visualize(n_chan=4)  # Give number of channels (2, 4 or 8)
 
 In the dashboard, you can set signal mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heart beats are detected and heart rate is estimated from RR-intervals.
 
+EEG:
+
+.. image:: /images/Dashboard_EEG.jpg
+  :width: 800
+  :alt: EEG Dashboard
+
+ECG with heart beat detection:
+
+.. image:: /images/Dashboard_ECG.jpg
+  :width: 800
+  :alt: ECG Dashboard
 
 Labstreaminglayer (lsl)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -71,11 +84,8 @@ You can push data directly to LSL using the following line::
 
     explorer.push2lsl(n_chan=4)
 
-or ::
 
-    explorer.push2lsl(n_chan=8)
-
-It is important that you state the number of channels your device has. (either 4 or 8)
+It is important that you state the number of channels your device has. (2, 4 or 8)
 After that you can stream data from other software such as OpenVibe or other programming languages such as MATLAB, Java, C++ and so on. (See `labstreaminglayer <https://github.com/sccn/labstreaminglayer>`_, `OpenVibe <http://openvibe.inria.fr/how-to-use-labstreaminglayer-in-openvibe/>`_ documentations for details).
 
 In case of a disconnect (device loses connection), the program will try to reconnect automatically.

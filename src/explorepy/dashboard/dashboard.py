@@ -77,10 +77,12 @@ class Dashboard:
         self.fft_source = ColumnDataSource(data=init_data)
 
     def start_server(self):
+        """Start bokeh server"""
         self.server = Server({'/': self._init_doc}, num_procs=1)
         self.server.start()
 
     def start_loop(self):
+        """Start io loop and show the dashboard"""
         self.server.io_loop.add_callback(self.server.show, "/")
         self.server.io_loop.start()
 
@@ -106,7 +108,8 @@ class Dashboard:
 
     @gen.coroutine
     def update_exg(self, time_vector, ExG):
-        """Update ExG data in the visualization
+        """update_exg()
+        Update ExG data in the visualization
 
         Args:
             time_vector (list): time vector
@@ -195,7 +198,6 @@ class Dashboard:
         # Check if the peak2peak value is bigger than threshold
         if (np.ptp(ecg_data) < V_TH[0]) or (np.ptp(ecg_data) > V_TH[1]):
             print("P2P value larger or less than threshold!")
-            self.r_peak_source.stream(dict(zip(['r_peak', 't'], [np.array([np.nan]), [time_vector[-1]]])))
             return
 
         peaks_time, peaks_val = self.rr_estimator.estimate(ecg_data, time_vector)
@@ -222,6 +224,8 @@ class Dashboard:
                 self.exg_source.data[ch] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
         self.r_peak_source.data['r_peak'] = (np.array(self.r_peak_source.data['r_peak'])-self.offsets[0]) *\
                                             (old_unit / self.y_unit) + self.offsets[0]
+        print(self.r_peak_source.data['r_peak'].shape, self.r_peak_source.data['t'].shape)
+
 
     @gen.coroutine
     def _change_t_range(self, attr, old, new):

@@ -8,7 +8,7 @@ import csv
 import os
 import time
 from pylsl import StreamInfo, StreamOutlet
-from threading import Thread
+from threading import Thread, Timer
 
 
 class Explore:
@@ -31,10 +31,8 @@ class Explore:
 
         Args:
             device_name (str): Device name in the format of "Explore_XXXX"
-            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in
-            the input
-
-            device_id (int): device id
+            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in the input
+            device_id (int): device id (not needed in the current version)
 
         """
 
@@ -44,15 +42,16 @@ class Explore:
         r"""Disconnects from the device
 
         Args:
-            device_id (int): device id (id=None for disconnecting all devices)
+            device_id (int): device id (not needed in the current version)
         """
         self.device[device_id].socket.close()
 
-    def acquire(self, device_id=0):
+    def acquire(self, device_id=0, duration=None):
         r"""Start getting data from the device
 
         Args:
-            device_id (int): device id (id=None for disconnecting all devices)
+            device_id (int): device id (not needed in the current version)
+            duration (float): duration of acquiring data (if None it streams data endlessly)
         """
 
         self.socket = self.device[device_id].bt_connect()
@@ -60,8 +59,16 @@ class Explore:
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
 
-        is_acquiring = True
-        while is_acquiring:
+        is_acquiring = [True]
+
+        def stop_acquiring(flag):
+            flag[0] = False
+
+        if duration is not None:
+            Timer(duration, stop_acquiring, [is_acquiring]).start()
+            print("Start acquisition for ", duration, " seconds...")
+
+        while is_acquiring[0]:
             try:
                 self.parser.parse_packet(mode="print")
             except ValueError:
@@ -73,14 +80,21 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def record_data(self, file_name, do_overwrite=False, device_id=0):
+        print("Data acquisition stopped after ", duration, " seconds.")
+
+    def record_data(self, file_name, do_overwrite=False, device_id=0, duration=None):
         r"""Records the data in real-time
 
         Args:
             file_name (str): output file name
-            device_id (int): device id
+            device_id (int): device id (not needed in the current version)
             do_overwrite (bool): Overwrite if files exist already
+            duration (float): Duration of recording in seconds (if None records endlessly).
         """
+        # Check invalid characters
+        if set(r'[<>/{}[\]~`]*%').intersection(file_name):
+            raise ValueError("Invalid character in file name")
+
         time_offset = None
         exg_out_file = file_name + "_ExG.csv"
         orn_out_file = file_name + "_ORN.csv"
@@ -93,21 +107,29 @@ class Explore:
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
 
-        with open(exg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
+        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn:
             f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
             f_orn.write(
                 "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
-            f_eeg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
-            csv_eeg = csv.writer(f_eeg, delimiter=",")
+            f_exg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
+            csv_exg = csv.writer(f_exg, delimiter=",")
             csv_orn = csv.writer(f_orn, delimiter=",")
 
-            is_acquiring = True
-            print("Recording...")
+            is_acquiring = [True]
 
-            while is_acquiring:
+            def stop_acquiring(flag):
+                flag[0] = False
+
+            if duration is not None:
+                Timer(duration, stop_acquiring, [is_acquiring]).start()
+                print("Start recording for ", duration, " seconds...")
+            else:
+                print("Recording...")
+
+            while is_acquiring[0]:
                 try:
                     self.parser.parse_packet()
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_eeg, csv_orn))
+                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn))
                     if time_offset is not None:
                         packet.timestamp = packet.timestamp-time_offset
                     else:
@@ -120,13 +142,15 @@ class Explore:
                 except bluetooth.BluetoothError as error:
                     print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
                     self.parser.socket = self.device[device_id].bt_connect()
+            print("Recording finished after ", duration, " seconds.")
 
-    def push2lsl(self, n_chan, device_id=0):
+    def push2lsl(self, n_chan, device_id=0, duration=None):
         r"""Push samples to two lsl streams
 
         Args:
-            device_id (int): device id
+            device_id (int): device id (not needed in the current version)
             n_chan (int): Number of channels (4 or 8)
+            duration (float): duration of data acquiring (if None it streams endlessly).
         """
 
         self.socket = self.device[device_id].bt_connect()
@@ -141,15 +165,23 @@ class Explore:
         info_exg = StreamInfo('Mentalab', 'ExG', n_chan, 250, 'float32', 'explore_exg')
 
         orn_outlet = StreamOutlet(info_orn)
-        eeg_outlet = StreamOutlet(info_exg)
+        exg_outlet = StreamOutlet(info_exg)
 
-        is_acquiring = True
+        is_acquiring = [True]
 
-        while is_acquiring:
+        def stop_acquiring(flag):
+            flag[0] = False
+
+        if duration is not None:
+            Timer(duration, stop_acquiring, [is_acquiring]).start()
+            print("Start pushing to lsl for ", duration, " seconds...")
+        else:
             print("Pushing to lsl...")
 
+        while is_acquiring[0]:
+
             try:
-                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, eeg_outlet))
+                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet))
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -162,13 +194,14 @@ class Explore:
                 self.socket = self.device[device_id].bt_connect()
                 time.sleep(1)
                 self.parser = Parser(self.socket)
+        print("Data acquisition finished after ", duration, " seconds.")
 
     def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
 
         Args:
             n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
-            device_id (int): Device ID (NOT USED CURRENTLY)
+            device_id (int): Device ID (not needed in the current version)
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None

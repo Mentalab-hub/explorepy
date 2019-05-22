@@ -1,16 +1,6 @@
-"""
-Entrypoint module, in case you use `python -mexplorepy`.
-
-
-Why does this file exist, and why __main__? For more info, read:
-
-- https://www.python.org/dev/peps/pep-0338/
-- https://docs.python.org/2/using/cmdline.html#cmdoption-m
-- https://docs.python.org/3/using/cmdline.html#cmdoption-m
-"""
+# -*- coding: utf-8 -*-
 import sys
 import argparse
-import explorepy
 from explorepy.cli import CLI
 
 
@@ -41,13 +31,17 @@ def main():
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX). 
                             -n --name       Device name (e.g. Explore_12AB).
                             -c --channels   Number of channels. This is necessary for push2lsl
-                            -m --mode       Select optimized filters (bandpass for EEG and lowpass for ECG). 
-                                            If no mode is selected the signal will be streamed raw
+                            
     
     bin2csv                Takes a Binary file and converts it to 2 CSV files (orientation and Body)
     
                             -i --inputfile  Name of the input file
                             -o --overwrite  Overwrite already existing files with the same name.
+                            
+    visualize               Visualizes real-time data in a browser-based dashboard
+                            
+                            -c --channels   Number of channels. 
+                            -nf --notchfreq Frequency of applied notch filter (By default, no notch filter is applied)
     
     ''')
 

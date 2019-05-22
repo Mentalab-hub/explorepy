@@ -139,7 +139,7 @@ class EEG98(EEG):
         data = Packet.int24to32(bin_data)
         n_chan = -1
         v_ref = 2.4
-        n_packet = -1
+        n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) /6.
         self.status = data[0, :]
@@ -167,7 +167,7 @@ class EEG99s(EEG):
         data = Packet.int24to32(bin_data)
         n_chan = -1
         v_ref = 4.5
-        n_packet = -1
+        n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) /6.
         self.status = data[0, :]
@@ -197,7 +197,7 @@ class EEG99(EEG):
         data = Packet.int24to32(bin_data)
         n_chan = -1
         v_ref = 4.5
-        n_packet = -1
+        n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         self.data = data * v_ref / ((2 ** 23) - 1) /6.
 

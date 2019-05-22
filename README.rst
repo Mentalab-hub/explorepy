@@ -1,14 +1,10 @@
-=========
-explorepy
-=========
+==================
+explorepy overview
+==================
 
 .. image:: logo.png
    :scale: 100 %
    :align: center
-
-========
-Overview
-========
 
 
 .. start-badges
