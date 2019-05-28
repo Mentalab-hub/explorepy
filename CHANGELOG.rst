@@ -1,6 +1,12 @@
 
 Changelog
 =========
+0.3.1 (28-05-2019)
+------------------
+* Fixed a bug in 8-channel ExG packet conversion
+* Fixed a minor bug in the record function
+* Updated the documentation
+
 
 0.3.0 (10-05-2019)
 ------------------
