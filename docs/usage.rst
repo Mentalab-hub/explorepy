@@ -62,9 +62,11 @@ Visualization
 ^^^^^^^^^^^^^
 It is possible to visualize real-time signal in a browser-based dashboard by the following code::
 
+
     explorer.visualize(n_chan=4, bp_freq=(1, 30), notch_freq=50)
 
 Where `n_chan`, `bp_freq` and `notch_freq` determine the number of channels, cut-off frequencies of bandpass filter and frequency of notch filter (either 50 or 60) respectively.
+
 
 In the dashboard, you can set signal mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heart beats are detected and heart rate is estimated from RR-intervals.
 
