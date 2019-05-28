@@ -33,9 +33,9 @@ explorepy overview
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/explorepy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.3.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.3.1.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.3.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.3.1...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
     :alt: PyPI Wheel
@@ -102,7 +102,7 @@ You can also visualize signal in real-time.
     import explorepy
     explorer = explorepy.Explore()
     explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
-    explorer.visualize(n_chan=4)  # Give number of channels (2, 4 or 8)
+    explorer.visualize(n_chan=4, bp_freq=(1, 30), notch_freq=50)  # Give the number of channels, frequencies of bandpass and notch filter
 
 EEG:
 
