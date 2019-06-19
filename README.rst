@@ -135,6 +135,9 @@ Authors
 .. _Andreas Gutsche: https://github.com/andyman410
 
 
+License
+=======
+This project is licensed under the [MIT](LICENSE) license
 
 
 
