@@ -54,8 +54,9 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
 
     eeg_out_file = out_dir + filename + '_eeg.csv'
     orn_out_file = out_dir + filename + '_orn.csv'
-    assert not (os.path.isfile(eeg_out_file) and do_overwrite), eeg_out_file + " already exists!"
-    assert not (os.path.isfile(orn_out_file) and do_overwrite), orn_out_file + " already exists!"
+    if not do_overwrite:
+        assert os.path.isfile(eeg_out_file), eeg_out_file + " already exists!"
+        assert os.path.isfile(orn_out_file), orn_out_file + " already exists!"
 
     with open(bin_file, "rb") as f_bin, open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
         parser = Parser(fid=f_bin)
