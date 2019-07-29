@@ -31,15 +31,30 @@ Mac OS
 * PyObjc 3.1b or later
 
 
-Installation commands
-^^^^^^^^^^^^^^^^^^^^^
-To install ``explorepy`` from PyPI run:
-::
-
-    pip install explorepy
+For more details on pybluez dependencies please see `pybluez docs <https://github.com/pybluez/pybluez>`_.
 
 
-To install the latest development version run:
-::
+How to install
+^^^^^^^^^^^^^^
+This instructions guides you to install Explorepy API with all its dependencies on Windows.
 
-    pip install git+https://github.com/Mentalab-hub/explorepy
+1. Install Python 3 on your computer. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Windows installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
+2. Download and install MS Visual Studio Community Edition 2017 (or 2015) from this `link <https://visualstudio.microsoft.com/vs/older-downloads/>`_. Make sure you check Python and C++ development tools.
+3. We recommend using a virtual environment.
+
+  * In Conda command prompt: ``conda create -n myenv python=3.6``
+  * Activate the virtual environment: ``conda activate myenv``
+
+5. Upgrade your pip: ``python -m pip install --upgrade pip``
+
+4. To install ``explorepy`` from PyPI run: ``pip install explorepy``
+
+Quick test
+^^^^^^^^^^
+* Open Conda command prompt
+
+* Activate the virtual environment: ``conda activate myenv``
+
+* ``explorepy visualize -n <YOUR-DEVICE-NAME> -c 4`` (Change the number of channels if needed)
+
+* To stop visualization press Ctrl+c
