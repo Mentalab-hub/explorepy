@@ -87,7 +87,7 @@ class Parser:
 
         Args:
             mode (str): logging mode {'print', 'record', 'lsl', 'visualize', None}
-            csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file)
+            csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file, Marker_csv_file)
             outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet
             dashboard (Dashboard): Dashboard object for visualization
         Returns:
@@ -119,6 +119,8 @@ class Parser:
                 packet.write_to_csv(csv_files[1])
             elif isinstance(packet, EEG):
                 packet.write_to_csv(csv_files[0])
+            elif isinstance(packet, TimeStamp):
+                    packet.write_to_csv(csv_files[2])
 
         elif mode == "lsl":
             if isinstance(packet, Orientation):
