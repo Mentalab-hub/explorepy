@@ -50,7 +50,7 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
     assert os.path.isfile(bin_file), "Error: File does not exist!"
     assert extension == '.BIN', "File type error! File extension must be BIN."
     if out_dir is None:
-        out_dir = head_path
+        out_dir = head_path + '/'
 
     eeg_out_file = out_dir + filename + '_eeg.csv'
     orn_out_file = out_dir + filename + '_orn.csv'
