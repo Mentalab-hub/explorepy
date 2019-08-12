@@ -6,7 +6,6 @@ import bluetooth
 import numpy as np
 from explorepy.filters import Filter
 from scipy import signal
-from explorepy.packet import TimeStamp
 
 
 def bt_scan():

@@ -308,7 +308,7 @@ class TimeStamp(Packet):
         return "Host timestamp: " + str(self.hostTimeStamp)
 
     def write_to_csv(self, csv_writer):
-        csv_writer.writerow(self.timestamp)
+        csv_writer.writerow([self.timestamp])
 
 
 class Disconnect(Packet):
