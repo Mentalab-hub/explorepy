@@ -1,6 +1,11 @@
 
 Changelog
 =========
+0.4.0 (TBD)
+------------------
+* Increased performance of dashboard visualization
+
+
 0.3.1 (28-05-2019)
 ------------------
 * Fixed a bug in 8-channel ExG packet conversion
