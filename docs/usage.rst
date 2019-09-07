@@ -118,7 +118,7 @@ The program will usually stop if files with the same name are detected. If you w
 
 Visualization
 ^^^^^^^^^^^^^
-It is possible to visualize real-time signal in a browser-based dashboard by the following code::
+It is possible to visualize real-time signal in a browser-based dashboard by the following code. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow.::
 
 
     explorer.visualize(n_chan=4, bp_freq=(1, 30), notch_freq=50)
