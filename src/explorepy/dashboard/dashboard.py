@@ -12,8 +12,9 @@ from bokeh.server.server import Server
 from bokeh.palettes import Colorblind
 from bokeh.models.widgets import Select, DataTable, TableColumn, RadioButtonGroup
 from bokeh.models import SingleIntervalTicker
-
+from bokeh.core.property.validation import validate
 from tornado import gen
+
 
 EEG_SRATE = 250  # Hz
 ORN_SRATE = 20  # Hz
@@ -78,6 +79,7 @@ class Dashboard:
 
     def start_server(self):
         """Start bokeh server"""
+        validation = validate(False)
         self.server = Server({'/': self._init_doc}, num_procs=1)
         self.server.start()
 

@@ -1,6 +1,15 @@
 
 Changelog
 =========
+0.4.0 (TBD)
+------------------
+* Added marker feature
+* Timer based recording
+* Fixed a bug in csv file writer
+* Fixed a bug in device reconnect
+* Improved performance of dashboard visualization
+
+
 0.3.1 (28-05-2019)
 ------------------
 * Fixed a bug in 8-channel ExG packet conversion
