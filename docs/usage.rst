@@ -12,12 +12,10 @@ Available Commands
 """"""""""""""""""
 
 **find_device**
-
 Scans for nearby explore-devices. Prints out Name and MAC address of the found devices
 
 
 **acquire**
-
 Connects to device, needs either MAC or Name of the desired device as input
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
@@ -25,7 +23,6 @@ Connects to device, needs either MAC or Name of the desired device as input
 
 
 **record_data**
-
 Connects to a device and records Orientation and Body data live to 2 separate CSV files
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
@@ -36,7 +33,6 @@ Connects to a device and records Orientation and Body data live to 2 separate CS
 
 
 **push2lsl**
-
 Streams Data to Lab stream layer. Inputs: Name or Address and Channel number (either 4 or 8)
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
@@ -45,7 +41,6 @@ Streams Data to Lab stream layer. Inputs: Name or Address and Channel number (ei
 
 
 **bin2csv**
-
 Takes a Binary file and converts it to 2 CSV files (orientation and Body)
 
 * ``-i`` or ``--inputfile``  Name of the input file
@@ -53,7 +48,6 @@ Takes a Binary file and converts it to 2 CSV files (orientation and Body)
 
 
 **visualize**
-
 Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow.
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
