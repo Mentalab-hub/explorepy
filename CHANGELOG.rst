@@ -1,7 +1,7 @@
 
 Changelog
 =========
-0.4.0 (TBD)
+0.4.0 (09-09-2019)
 ------------------
 * Added marker feature
 * Timer based recording
