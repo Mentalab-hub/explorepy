@@ -32,7 +32,7 @@ if not os.environ.get('READTHEDOCS'):
 
 setup(
     name='explorepy',
-    version='0.3.1',
+    version='0.4.0',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description='%s\n%s' % (

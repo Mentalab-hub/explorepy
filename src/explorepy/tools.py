@@ -50,14 +50,18 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
     assert os.path.isfile(bin_file), "Error: File does not exist!"
     assert extension == '.BIN', "File type error! File extension must be BIN."
     if out_dir is None:
-        out_dir = head_path
+        out_dir = head_path + '/'
 
     eeg_out_file = out_dir + filename + '_eeg.csv'
     orn_out_file = out_dir + filename + '_orn.csv'
-    assert not (os.path.isfile(eeg_out_file) and do_overwrite), eeg_out_file + " already exists!"
-    assert not (os.path.isfile(orn_out_file) and do_overwrite), orn_out_file + " already exists!"
+    marker_out_file = out_dir + filename + '_marker.csv'
+    if not do_overwrite:
+        assert os.path.isfile(eeg_out_file), eeg_out_file + " already exists!"
+        assert os.path.isfile(orn_out_file), orn_out_file + " already exists!"
+        assert os.path.isfile(marker_out_file), marker_out_file + " already exists!"
 
-    with open(bin_file, "rb") as f_bin, open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn:
+    with open(bin_file, "rb") as f_bin, open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn, \
+        open(marker_out_file, "w") as f_marker:
         parser = Parser(fid=f_bin)
         f_orn.write('TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n')
         f_orn.write('hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB,'
@@ -65,10 +69,12 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
         f_eeg.write('TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n')
         csv_eeg = csv.writer(f_eeg, delimiter=',')
         csv_orn = csv.writer(f_orn, delimiter=',')
+        csv_marker = csv.writer(f_marker, delimiter=',')
+
         print("Converting...")
         while True:
             try:
-                parser.parse_packet(mode='record', csv_files=(csv_eeg, csv_orn))
+                parser.parse_packet(mode='record', csv_files=(csv_eeg, csv_orn, csv_marker))
             except ValueError:
                 print("Binary file ended suddenly! Conversion finished!")
                 break

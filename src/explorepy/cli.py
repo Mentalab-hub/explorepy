@@ -60,6 +60,9 @@ class CLI:
         parser.add_argument("-o", "--overwrite", action='store_false',
                             help="Overwrite files with same name.")
 
+        parser.add_argument("-d", "--duration", type=int, default=None,
+                            help="Recording duration in seconds")
+
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
@@ -68,7 +71,7 @@ class CLI:
             explorer.connect(device_name=args.name)
 
         assert (args.filename is not None), "Missing Filename"
-        explorer.record_data(args.filename, args.overwrite)
+        explorer.record_data(file_name=args.filename, do_overwrite=args.overwrite, duration=args.duration)
 
     def push2lsl(self):
         self.is_not_used()

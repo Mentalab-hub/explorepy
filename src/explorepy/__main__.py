@@ -25,6 +25,7 @@ def main():
                             -n --name       Device name (e.g. Explore_12AB).
                             -f --filename   The name of the new CSV Files. 
                             -o --overwrite  Overwrite already existing files with the same name.
+                            -d --duration   Recording duration in seconds
                             
     push2lsl                Streams Data to Lab stream layer. Inputs: Name or Address and Channel number (either 4 or 8)
     

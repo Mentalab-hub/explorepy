@@ -51,14 +51,14 @@ class BtClient:
         """
         while True:
             try:
-                socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-                socket.connect((self.host, self.port))
+                self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+                self.socket.connect((self.host, self.port))
                 break
             except bluetooth.BluetoothError as error:
                 self.socket.close()
                 print("Could not connect: ", error, "; Retrying in 2s...")
                 time.sleep(2)
-        return socket
+        return self.socket
 
     def reconnect(self):
         """
@@ -69,8 +69,8 @@ class BtClient:
         timeout = 1
         while timeout < 5:
             try:
-                socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-                socket.connect((self.host, self.port))
+                self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+                self.socket.connect((self.host, self.port))
                 break
             except bluetooth.BluetoothError as error:
                 print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
@@ -79,6 +79,6 @@ class BtClient:
             timeout += 1
 
         if timeout == 5:
-            print("Device not found, exiting the program!")
+            print("Device not found!")
             self.socket.close()
             return False
