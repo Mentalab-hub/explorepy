@@ -71,7 +71,7 @@ class CLI:
             explorer.connect(device_name=args.name)
 
         assert (args.filename is not None), "Missing Filename"
-        explorer.record_data(args.filename, args.overwrite, args.duration)
+        explorer.record_data(file_name=args.filename, do_overwrite=args.overwrite, duration=args.duration)
 
     def push2lsl(self):
         self.is_not_used()
