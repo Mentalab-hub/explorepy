@@ -9,7 +9,7 @@ import os
 import time
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
-
+from datetime import datetime
 
 class Explore:
     r"""Mentalab Explore device"""
@@ -54,7 +54,8 @@ class Explore:
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
 
-        self.socket = self.device[device_id].bt_connect()
+        if self.socket is None:
+            self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
@@ -102,7 +103,8 @@ class Explore:
         assert not (os.path.isfile(exg_out_file) and do_overwrite), exg_out_file + " already exists!"
         assert not (os.path.isfile(orn_out_file) and do_overwrite), orn_out_file + " already exists!"
 
-        self.socket = self.device[device_id].bt_connect()
+        if self.socket is None:
+            self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
@@ -152,8 +154,8 @@ class Explore:
             n_chan (int): Number of channels (4 or 8)
             duration (float): duration of data acquiring (if None it streams endlessly).
         """
-
-        self.socket = self.device[device_id].bt_connect()
+        if self.socket is None:
+            self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
@@ -213,7 +215,8 @@ class Explore:
         thread.setDaemon(True)
         thread.start()
 
-        self.socket = self.device[device_id].bt_connect()
+        if self.socket is None:
+            self.socket = self.device[device_id].bt_connect()
 
         if self.parser is None:
             self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
@@ -230,6 +233,55 @@ class Explore:
         while is_acquiring:
             try:
                 packet = self.parser.parse_packet(mode="visualize", dashboard=self.m_dashboard)
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                socket = self.device[device_id].bt_connect()
+                self.parser.socket = socket
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: attempting reconnect. Error: ", error)
+                self.parser.socket = self.device[device_id].bt_connect()
+
+    def pass_msg(self, device_id=0, msg2send=None):
+        r"""
+        sends a set of parameters to the device
+        Returns:
+        sample commands and messages:
+        msg = Host time stamp: default message if the msg2send field is empty
+        msg = b'\xA0\x00\x0A\x00\xda\xba\xad\xde\xA1\x02\xaf\xbe\xad\xde' it is the command to switch to 500sps mode
+        msg = b'\xA0\x00\x0A\x00\xda\xba\xad\xde\xA3\x00\xaf\xbe\xad\xde' it is the command to format memory
+
+        example:
+        myexplore.pass_msg(msg2send=command.Command.FORMAT_MEMORY.value)
+        """
+
+        if self.socket is None:
+            self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(socket=self.socket)
+
+        if msg2send is None:
+            # current date and time
+            now = datetime.now()
+            print(now)
+            timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
+            ts_str = hex(timestamp)
+            ts_str = ts_str[2:18]
+            host_ts = bytes.fromhex(ts_str)
+            ID = b'\x1B'
+            CNT = b'\x01'
+            Payload = b'\x10\x00' # i.e. 0x0010
+            device_ts = b'\x00\x00\x00\x00'
+            Fletcher = b'\xFF\xFF\xFF\xFF'
+            msg2send = ID + CNT + Payload + device_ts + host_ts + Fletcher
+        is_sending = True
+        while is_sending:
+            try:
+                time.sleep(0.1)
+                self.parser.send_msg(msg2send)
+                print(" Message Sent :)")
+                is_sending = False;
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import struct
-from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s
+from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, CommandRCV, CommandStatus
 from explorepy.filters import Filter
 
 ORN_ID = 13
@@ -15,6 +15,8 @@ EEG99S_ID = 30
 EEG99_ID = 62
 EEG94R_ID = 208
 EEG98R_ID = 210
+CMDRCV_ID = 192
+CMDSTAT_ID = 193
 
 PACKET_CLASS_DICT = {
     ORN_ID: Orientation,
@@ -27,7 +29,9 @@ PACKET_CLASS_DICT = {
     EEG99S_ID: EEG99s,
     EEG99_ID: EEG99s,
     EEG94R_ID: EEG94_ID,
-    EEG98R_ID: EEG98
+    EEG98R_ID: EEG98,
+    CMDRCV_ID: CommandRCV,
+    CMDSTAT_ID: CommandStatus
 }
 
 
@@ -157,3 +161,13 @@ class Parser:
             raise ValueError("Number of received bytes is less than expected")
             # TODO: Create a specific exception for this case
         return byte_data
+
+    def send_msg(self, msg):
+        """
+         tries to send a message through socket.
+         """
+        if self.socket is not None:
+            self.socket.send(msg)
+        else:
+            raise ValueError("Cannot send the msg")
+        return True
