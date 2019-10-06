@@ -126,6 +126,7 @@ class Parser:
             elif isinstance(packet, TimeStamp):
                     packet.write_to_csv(csv_files[2])
 
+
         elif mode == "lsl":
             if isinstance(packet, Orientation):
                 packet.push_to_lsl(outlets[0])

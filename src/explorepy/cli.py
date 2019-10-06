@@ -150,3 +150,29 @@ class CLI:
 
     def is_not_used(self):
         pass
+
+    def pass_msg(self):
+        self.is_not_used()
+        explorer = Explore()
+        parser = argparse.ArgumentParser(
+            description='Connect to a device with selected name or address. and send the desired message')
+
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        parser.add_argument("-m", "--message",
+                            dest="message", type=bytearray, default=None,
+                            help="Name of the device.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explorer.connect(device_addr=args.address)
+        elif args.address is None:
+            explorer.connect(device_name=args.name)
+        explorer.acquire()
