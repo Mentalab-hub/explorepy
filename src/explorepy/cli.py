@@ -3,6 +3,7 @@ import sys
 import argparse
 from explorepy.tools import bin2csv, bt_scan
 from explorepy.explore import Explore
+from explorepy.command import Command
 
 
 class CLI:
@@ -150,3 +151,88 @@ class CLI:
 
     def is_not_used(self):
         pass
+
+    def pass_msg(self):
+        self.is_not_used()
+        explorer = Explore()
+        parser = argparse.ArgumentParser(
+            description='Connect to a device with selected name or address. and send the desired message')
+
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        parser.add_argument("-m", "--message",
+                            dest="message", type=bytearray, default=None,
+                            help="the command to be sent.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explorer.connect(device_addr=args.address)
+        elif args.address is None:
+            explorer.connect(device_name=args.name)
+        explorer.pass_msg(msg2send=args.message)
+
+    def format_memory(self):
+        self.is_not_used()
+        explorer = Explore()
+        parser = argparse.ArgumentParser(
+            description='format the memory of selected explore device')
+
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explorer.connect(device_addr=args.address)
+        elif args.address is None:
+            explorer.connect(device_name=args.name)
+        explorer.pass_msg(msg2send=Command.FORMAT_MEMORY.value)
+
+    def set_sampling_rate(self):
+        self.is_not_used()
+        explorer = Explore()
+        parser = argparse.ArgumentParser(
+            description='format the memory of selected explore device')
+
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        parser.add_argument("-r", "--sampling_rate",
+                            dest="sampling_rate", type=str, default=None,
+                            help="Sampling rate of ExG channels, it can be 250, 500 or 1000.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explorer.connect(device_addr=args.address)
+        elif args.address is None:
+            explorer.connect(device_name=args.name)
+        if args.sampling_rate is None:
+            print("Please specify the sampling rate")
+        elif args.sampling_rate == '250':
+            explorer.pass_msg(msg2send=Command.SPS_250.value)
+        elif args.sampling_rate == '500':
+            explorer.pass_msg(msg2send=Command.SPS_250.value)
+        elif args.sampling_rate == '1000':
+            explorer.pass_msg(msg2send=Command.SPS_250.value)
+        else:
+            print("The only acceptable values are 250, 500 or 1000.")
+
+

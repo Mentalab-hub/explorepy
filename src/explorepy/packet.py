@@ -348,3 +348,39 @@ class DeviceInfo(Packet):
     def push_to_dashboard(self, dashboard):
         data = {'firmware_version': [self.firmware_version]}
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_info, new=data))
+
+
+class CommandRCV(Packet):
+    """Command Status packet"""
+    def __init__(self, timestamp, payload):
+        super(CommandRCV, self).__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        self.opcode = bin_data[0]
+        pass
+
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+
+    def __str__(self):
+        return "an acknowledge message for command with this opcode has been received: " + str(self.opcode)
+
+
+class CommandStatus(Packet):
+    """Command Status packet"""
+    def __init__(self, timestamp, payload):
+        super(CommandStatus, self).__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        self.opcode = bin_data[0]
+        self.status = bin_data[5]
+
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+
+    def __str__(self):
+        return "Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode)

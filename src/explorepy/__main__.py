@@ -43,7 +43,20 @@ def main():
                             
                             -c --channels   Number of channels. 
                             -nf --notchfreq Frequency of applied notch filter (By default, no notch filter is applied)
+                            
+    pass_msg                general function for sending all kind of commands and message to the Explore device
+                            -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX). 
+                            -n --name       Device name (e.g. Explore_12AB).
+                            -m --message    the command to be sent, the input format is byte array. If not used, host timestamp will be sent.
     
+    format_memory           This command formats the memory
+                            -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX). 
+                            -n --name       Device name (e.g. Explore_12AB).
+    
+    set_sampling_rate       This command sets the sampling rate of ExG input
+                            -a --address        Device MAC address (Form XX:XX:XX:XX:XX:XX). 
+                            -n --name           Device name (e.g. Explore_12AB).
+                            -r --sampling_rate  Sampling rate of ExG channels, it can be 250, 500 or 1000.    
     ''')
 
     parser.add_argument('command', help='Command to run.')

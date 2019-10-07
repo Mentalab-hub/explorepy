@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import bluetooth
 import time
+import sys
 
 
 class BtClient:
@@ -25,26 +26,38 @@ class BtClient:
         assert (device_addr is not None) or (device_name is not None), "Missing name or address"
 
         if device_name is not None:
-            nearby_devices = bluetooth.discover_devices(lookup_names=True)
-            for address, name in nearby_devices:
-                if name == device_name:
-                    self.lastUsedAddress = address
-                    break
+            if self.find_mac_addr(device_name):
+                sys.exit()
         else:
             # No need to scan if we have the address
             self.lastUsedAddress = device_addr
+            address_known = True
 
-        uuid = "1101"  # Serial Port Profile (SPP) service
-        service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)
-        assert len(service_matches) > 0, "Couldn't find the Device! Restart your device and run the " \
-                                         "code again and check if MAC address/name is entered correctly."
+        assert ((device_name[-4:-3] == self.lastUsedAddress[-5:-4]) and (device_name[-2:-1] == self.lastUsedAddress[-2:-1])), \
+            "MAC address does not match the expected value!"
 
+        service_matches = self.find_explore_service()
+
+        assert service_matches, "SSP service for the device %s, with MAC address %s could not be found." \
+            "restart the device and try again" %(device_name, self.lastUsedAddress)
+
+        for services in service_matches:
+            self.port = services["port"]
+            self.name = services["name"]
+            self.host = services["host"]
+            if (device_name[-4:-3] == self.host[-5:-4])and(device_name[-2:-1] == self.host[-2:-1]):
+                break
+        """
         first_match = service_matches[0]
         self.port = first_match["port"]
         self.name = first_match["name"]
         self.host = first_match["host"]
+        """
 
-        print("Connecting to serial port on %s" % self.host)
+        assert((device_name[-4:-3] == self.host[-5:-4])and(device_name[-2:-1] == self.host[-2:-1])), \
+            "MAC address does not match the expected value on the SSP service!!"
+
+        print("Connecting to %s with address %s" % (self.name, self.host))
 
     def bt_connect(self):
         """Creates the socket
@@ -82,3 +95,30 @@ class BtClient:
             print("Device not found!")
             self.socket.close()
             return False
+
+
+    def find_mac_addr(self, device_name):
+        i = 0
+        while (i < 5):
+            nearby_devices = bluetooth.discover_devices(lookup_names=True, flush_cache=True )
+            for address, name in nearby_devices:
+                if name == device_name:
+                    self.lastUsedAddress = address
+                    return 0
+            i += 1
+            print("No device found with name: %s, searching again in 0,1 seconds" % device_name)
+            time.sleep(0.1)
+        print("Couldn't find the Device! Restart your device and run the " \
+              "code again and check if MAC address/name is entered correctly.")
+        return 1
+
+    def find_explore_service(self):
+        uuid = "1101"  # Serial Port Profile (SPP) service
+        i = 0
+        while (i<5):
+            service_matches = bluetooth.find_service(uuid=uuid, address=self.lastUsedAddress)
+            if (len(service_matches) > 0):
+                return service_matches
+            i += 1
+
+        return 0
