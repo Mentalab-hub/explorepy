@@ -141,6 +141,12 @@ class Parser:
                     packet.apply_bp_filter(exg_filter=self.filter)
             packet.push_to_dashboard(dashboard)
 
+        elif mode == "listen":
+            if isinstance(packet, CommandRCV):
+                print(packet)
+            elif isinstance(packet, CommandStatus):
+                print(packet)
+
         return packet
 
     def read(self, n_bytes):

@@ -365,7 +365,7 @@ class CommandRCV(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "a command with this opcode has been received: " + str(self.opcode)
+        return "an acknowledge message for command with this opcode has been received: " + str(self.opcode)
 
 
 class CommandStatus(Packet):

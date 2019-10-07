@@ -64,7 +64,20 @@ sends a byte array to the Bluetooth device. the byte array corresponding to spec
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
-* ``-m`` or ``--message``    The message to be sent
+* ``-m`` or ``--message``    The message to be sent, the input format is byte array. If not used, host timestamp will be sent.
+
+**format_memory**
+This command formats the memory of the specified Explore device.
+
+* ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
+* ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
+
+**set_sampling_rate**
+This command sets the sampling rate of ExG input on the specified Explore device. The only acceptable values for sampling rates are 250, 500 or 1000.
+
+* ``-a`` or ``--address``        Device MAC address (Form XX:XX:XX:XX:XX:XX).
+* ``-n`` or ``--name``           Device name (e.g. Explore_12AB).
+* ``-r`` or ``--sampling_rate``  Sampling rate of ExG channels, it can be 250, 500 or 1000.
 
 
 Example commands:
@@ -81,6 +94,9 @@ Visualize in real-time: ``explorepy visualize -n Explore_XXXX -c 4``
 
 send a message: ``explorepy pass_msg -n Explore_XXXX``
 
+format the memory: ``explorepy format_memory -n Explore_XXXX``
+
+set the sampling rate: ``explorepy set_sampling_rate -n Explore_XXXX -r 500``
 
 To see the full list of commands ``explorepy -h``.
 
@@ -188,11 +204,14 @@ the current set of commands are::
 
 and this is how to use it::
 
-    explorer.pass_msg(msg2send=command.Command.FORMAT_MEMORY.value)
+    from explorepy import command
+    myexplore.connect(device_name="Explore_XXXX")
+    explorer.pass_msg(msg2send=Command.FORMAT_MEMORY.value)
 
 
 If you want to send a host timestamp, use::
 
     explorer.pass_msg()
+
 
 

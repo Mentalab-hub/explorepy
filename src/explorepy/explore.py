@@ -10,6 +10,8 @@ import time
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
 from datetime import datetime
+from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, CommandRCV, CommandStatus
+
 
 class Explore:
     r"""Mentalab Explore device"""
@@ -263,6 +265,7 @@ class Explore:
 
         if msg2send is None:
             # current date and time
+            msg_is_command = 0
             now = datetime.now()
             print(now)
             timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
@@ -275,13 +278,16 @@ class Explore:
             device_ts = b'\x00\x00\x00\x00'
             Fletcher = b'\xFF\xFF\xFF\xFF'
             msg2send = ID + CNT + Payload + device_ts + host_ts + Fletcher
+        else :
+            msg_is_command = msg2send[-6]
         is_sending = True
+
         while is_sending:
             try:
                 time.sleep(0.1)
                 self.parser.send_msg(msg2send)
                 print(" Message Sent :)")
-                is_sending = False;
+                is_sending = False
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -291,6 +297,36 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
+        is_listening = [True]
+        command_processed = False
+
+        def stop_listening(flag):
+            flag[0] = False
+
+        Timer(100, stop_listening, [is_listening]).start()
+        print("waiting for ack and status messages...")
+        while is_listening[0]:
+            try:
+                packet = self.parser.parse_packet(mode="listen")
+                if isinstance(packet, CommandRCV):
+                    if packet.opcode == msg_is_command:
+                        print ("the opcode matches the sent command, Explore has received the command")
+                if isinstance(packet, CommandStatus):
+                    if packet.opcode == msg_is_command:
+                        print ("the opcode matches the sent command, Explore has processed the command")
+                        is_listening = [False]
+                        command_processed = True
+
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                socket = self.device[device_id].bt_connect()
+                self.parser.socket = socket
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: attempting reconnect. Error: ", error)
+                self.parser.socket = self.device[device_id].bt_connect()
+        if not command_processed:
+            print("No status message has been received after ", 100, " seconds. Please send the command again")
 
 if __name__ == '__main__':
     pass
