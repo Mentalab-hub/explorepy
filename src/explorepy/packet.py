@@ -96,12 +96,13 @@ class EEG(Packet):
 
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
-        time_vector = np.linspace(self.timestamp, self.timestamp+(n_sample-1)/250., n_sample)
+        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / 250., n_sample)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
 
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
+
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -124,12 +125,13 @@ class EEG94(EEG):
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:,:] = self.timestamp
+        tmpstmp[:, :] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 
 class EEG98(EEG):
     """EEG packet for 8 channel device"""
+
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -141,7 +143,7 @@ class EEG98(EEG):
         v_ref = 2.4
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) /6.
+        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -152,12 +154,13 @@ class EEG98(EEG):
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:,:] = self.timestamp
+        tmpstmp[:, :] = self.timestamp
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 
 class EEG99s(EEG):
     """EEG packet for 8 channel device"""
+
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -169,7 +172,7 @@ class EEG99s(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) /6.
+        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -180,14 +183,15 @@ class EEG99s(EEG):
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
-        for i in range(0,16):
-            tmpstmp[i,:] = (self.timestamp-0.064+i*40)/10000
+        for i in range(0, 16):
+            tmpstmp[i, :] = (self.timestamp - 0.064 + i * 40) / 10000
 
         csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 
 class EEG99(EEG):
     """EEG packet for 8 channel device"""
+
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -199,7 +203,7 @@ class EEG99(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data * v_ref / ((2 ** 23) - 1) /6.
+        self.data = data * v_ref / ((2 ** 23) - 1) / 6.
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -209,12 +213,13 @@ class EEG99(EEG):
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:,:] = self.timestamp
-        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis = 1).tolist())
+        tmpstmp[:, :] = self.timestamp
+        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
 
 
 class Orientation(Packet):
     """Orientation data packet"""
+
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -245,6 +250,7 @@ class Orientation(Packet):
 
 class Environment(Packet):
     """Environment data packet"""
+
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -252,15 +258,19 @@ class Environment(Packet):
 
     def _convert(self, bin_data):
         self.temperature = bin_data[0]
-        self.light = (1000 / 4095) * np.frombuffer(bin_data[1:3], dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Lux
-        self.battery = (16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Volt
+        self.light = (1000 / 4095) * np.frombuffer(bin_data[1:3],
+                                                   dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Lux
+        self.battery = (16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(bin_data[3:5],
+                                                                   dtype=np.dtype(np.uint16).newbyteorder(
+                                                                       '<'))  # Unit Volt
         self.battery_percentage = self._volt_to_percent(self.battery)
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(self.battery)
+        return "Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(
+            self.battery)
 
     def push_to_dashboard(self, dashboard):
         data = {'battery': [self.battery_percentage],
@@ -275,15 +285,15 @@ class Environment(Packet):
         elif voltage < 3.5:
             percentage = 1 + (voltage - 3.1) / .4 * 10
         elif voltage < 3.8:
-            percentage = 10 + (voltage-3.5)/.3 * 40
+            percentage = 10 + (voltage - 3.5) / .3 * 40
         elif voltage < 3.9:
-            percentage = 40 + (voltage-3.8)/.1 * 20
+            percentage = 40 + (voltage - 3.8) / .1 * 20
         elif voltage < 4.:
-            percentage = 60 + (voltage-3.9)/.1 * 15
+            percentage = 60 + (voltage - 3.9) / .1 * 15
         elif voltage < 4.1:
-            percentage = 75 + (voltage-4.)/.1 * 15
+            percentage = 75 + (voltage - 4.) / .1 * 15
         elif voltage < 4.2:
-            percentage = 90 + (voltage - 4.1)/.1 * 10
+            percentage = 90 + (voltage - 4.1) / .1 * 10
         elif voltage > 4.2:
             percentage = 100
 
@@ -293,6 +303,7 @@ class Environment(Packet):
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
+
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -310,9 +321,13 @@ class TimeStamp(Packet):
     def write_to_csv(self, csv_writer):
         csv_writer.writerow([self.timestamp])
 
+    def push_to_lsl(self, outlet):
+        outlet.push_sample([1])
+
 
 class Disconnect(Packet):
     """Disconnect packet"""
+
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._check_fletcher(payload)
@@ -330,6 +345,7 @@ class Disconnect(Packet):
 
 class DeviceInfo(Packet):
     """Device information packet"""
+
     def __init__(self, timestamp, payload):
         super(DeviceInfo, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -352,6 +368,7 @@ class DeviceInfo(Packet):
 
 class CommandRCV(Packet):
     """Command Status packet"""
+
     def __init__(self, timestamp, payload):
         super(CommandRCV, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -370,6 +387,7 @@ class CommandRCV(Packet):
 
 class CommandStatus(Packet):
     """Command Status packet"""
+
     def __init__(self, timestamp, payload):
         super(CommandStatus, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
