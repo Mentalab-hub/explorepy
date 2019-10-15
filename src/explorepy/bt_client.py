@@ -25,13 +25,13 @@ class BtClient:
         """
         assert (device_addr is not None) or (device_name is not None), "Missing name or address"
 
-        if device_name is not None:
-            if self.find_mac_addr(device_name):
-                sys.exit()
-        else:
+        if device_addr is not None:
             # No need to scan if we have the address
             self.lastUsedAddress = device_addr
             address_known = True
+        else:
+            if self.find_mac_addr(device_name):
+                sys.exit()
 
         assert ((device_name[-4:-3] == self.lastUsedAddress[-5:-4]) and (device_name[-2:-1] == self.lastUsedAddress[-2:-1])), \
             "MAC address does not match the expected value!"

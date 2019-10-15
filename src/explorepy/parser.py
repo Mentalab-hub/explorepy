@@ -79,12 +79,12 @@ class Parser:
             self.apply_bp_filter = False
             self.bp_freq = (0, 100)  # dummy values
         self.notch_freq = notch_freq
-
         self.firmware_version = None
         self.filter = None
         if self.apply_bp_filter or notch_freq:
             # Initialize filters
             self.filter = Filter(l_freq=self.bp_freq[0], h_freq=self.bp_freq[1], line_freq=notch_freq)
+
 
     def parse_packet(self, mode="print", csv_files=None, outlets=None, dashboard=None):
         """Reads and parses a package from a file or socket
@@ -126,7 +126,6 @@ class Parser:
             elif isinstance(packet, TimeStamp):
                     packet.write_to_csv(csv_files[2])
 
-
         elif mode == "lsl":
             if isinstance(packet, Orientation):
                 packet.push_to_lsl(outlets[0])
@@ -147,6 +146,9 @@ class Parser:
             elif isinstance(packet, CommandStatus):
                 print(packet)
 
+        elif mode == "debug":
+            if isinstance(packet, EEG):
+                print(packet)
         return packet
 
     def read(self, n_bytes):

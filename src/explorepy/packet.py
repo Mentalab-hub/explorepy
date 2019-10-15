@@ -84,6 +84,7 @@ class EEG(Packet):
         """
         self.data = exg_filter.apply_notch_filter(self.data)
 
+
     def push_to_lsl(self, outlet):
         """Push data to lsl socket
 
@@ -120,7 +121,7 @@ class EEG94(EEG):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1])
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.dataStatus[-1]  )
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
@@ -142,13 +143,13 @@ class EEG98(EEG):
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) /6.
-        self.status = data[0, :]
+        self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1])
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str((self.status))
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])
@@ -176,7 +177,7 @@ class EEG99s(EEG):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1])
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status )
 
     def write_to_csv(self, csv_writer):
         tmpstmp = np.zeros([self.data.shape[1], 1])

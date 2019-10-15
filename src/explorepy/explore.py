@@ -133,7 +133,7 @@ class Explore:
             while is_acquiring[0]:
                 try:
                     self.parser.parse_packet()
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn))
+                    packet = self.parser.parse_packet(mode="debug", csv_files=(csv_exg, csv_orn))
                     if time_offset is not None:
                         packet.timestamp = packet.timestamp-time_offset
                     else:
@@ -202,7 +202,6 @@ class Explore:
 
     def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
-
         Args:
             n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
             device_id (int): Device ID (not needed in the current version)
@@ -281,7 +280,7 @@ class Explore:
         else :
             msg_is_command = msg2send[-6]
         is_sending = True
-
+        print("Sending the message...")
         while is_sending:
             try:
                 time.sleep(0.1)
