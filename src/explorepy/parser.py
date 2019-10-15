@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import struct
-from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, CommandRCV, CommandStatus
+from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, \
+    CommandRCV, CommandStatus, MarkerEvent
 from explorepy.filters import Filter
 
 ORN_ID = 13
@@ -17,6 +18,7 @@ EEG94R_ID = 208
 EEG98R_ID = 210
 CMDRCV_ID = 192
 CMDSTAT_ID = 193
+MARKER_ID = 194
 
 PACKET_CLASS_DICT = {
     ORN_ID: Orientation,
@@ -31,7 +33,8 @@ PACKET_CLASS_DICT = {
     EEG94R_ID: EEG94_ID,
     EEG98R_ID: EEG98,
     CMDRCV_ID: CommandRCV,
-    CMDSTAT_ID: CommandStatus
+    CMDSTAT_ID: CommandStatus,
+    MARKER_ID: MarkerEvent
 }
 
 
@@ -123,15 +126,15 @@ class Parser:
                 packet.write_to_csv(csv_files[1])
             elif isinstance(packet, EEG):
                 packet.write_to_csv(csv_files[0])
-            elif isinstance(packet, TimeStamp):
-                    packet.write_to_csv(csv_files[2])
+            elif isinstance(packet, MarkerEvent):
+                packet.write_to_csv(csv_files[2])
 
         elif mode == "lsl":
             if isinstance(packet, Orientation):
                 packet.push_to_lsl(outlets[0])
             elif isinstance(packet, EEG):
                 packet.push_to_lsl(outlets[1])
-            elif isinstance(packet, TimeStamp):
+            elif isinstance(packet, MarkerEvent):
                 packet.push_to_lsl(outlets[2])
 
         elif mode == "visualize":
