@@ -325,6 +325,33 @@ class TimeStamp(Packet):
         outlet.push_sample([1])
 
 
+class MarkerEvent(Packet):
+    """Marker packet"""
+
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        self.marker_code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
+
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+
+    def __str__(self):
+        return "Event marker: " + str(self.marker_code)
+
+    def write_to_csv(self, csv_writer):
+        csv_writer.writerow([self.timestamp, self.marker_code])
+
+    def push_to_lsl(self, outlet):
+        outlet.push_sample([self.marker_code])
+
+    def push_to_dashboard(self, dashboard):
+        pass
+
+
 class Disconnect(Packet):
     """Disconnect packet"""
 
