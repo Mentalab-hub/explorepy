@@ -10,7 +10,8 @@ import time
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
 from datetime import datetime
-from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, CommandRCV, CommandStatus
+from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, \
+    CommandRCV, CommandStatus
 
 
 class Explore:
@@ -101,9 +102,12 @@ class Explore:
         time_offset = None
         exg_out_file = file_name + "_ExG.csv"
         orn_out_file = file_name + "_ORN.csv"
+        marker_out_file = file_name + "_Marker.csv"
 
-        assert not (os.path.isfile(exg_out_file) and do_overwrite), exg_out_file + " already exists!"
-        assert not (os.path.isfile(orn_out_file) and do_overwrite), orn_out_file + " already exists!"
+        if not do_overwrite:
+            assert not os.path.isfile(exg_out_file), exg_out_file + " already exists!"
+            assert not os.path.isfile(orn_out_file), orn_out_file + " already exists!"
+            assert not os.path.isfile(marker_out_file), marker_out_file + " already exists!"
 
         if self.socket is None:
             self.socket = self.device[device_id].bt_connect()
@@ -111,13 +115,16 @@ class Explore:
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
 
-        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn:
-            f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
-            f_orn.write(
-                "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
-            f_exg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
+        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, open(marker_out_file, "w") as f_marker:
+            f_orn.write("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz\n")
+            # f_orn.write(
+            #     "hh:mm:ss,mg/LSB,mg/LSB,mg/LSB,mdps/LSB,mdps/LSB,mdps/LSB,mgauss/LSB,mgauss/LSB,mgauss/LSB\n")
+            f_exg.write("TimeStamp,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8\n")
+            # f_marker.write("TimeStamp,Marker\n")
+
             csv_exg = csv.writer(f_exg, delimiter=",")
             csv_orn = csv.writer(f_orn, delimiter=",")
+            csv_marker = csv.writer(f_marker, delimiter=",")
 
             is_acquiring = [True]
 
@@ -132,8 +139,8 @@ class Explore:
 
             while is_acquiring[0]:
                 try:
-                    self.parser.parse_packet()
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn))
+                    # self.parser.parse_packet()
+                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn, csv_marker))
                     if time_offset is not None:
                         packet.timestamp = packet.timestamp-time_offset
                     else:
@@ -144,9 +151,12 @@ class Explore:
                     print("Disconnected, scanning for last connected device")
                     self.parser.socket = self.device[device_id].bt_connect()
                 except bluetooth.BluetoothError as error:
-                    print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                    print("Bluetooth Error: Timeout, attempting reconnect. Error: ", error)
                     self.parser.socket = self.device[device_id].bt_connect()
             print("Recording finished after ", duration, " seconds.")
+            f_marker.close()
+            f_exg.close()
+            f_orn.close()
 
     def push2lsl(self, n_chan, device_id=0, duration=None):
         r"""Push samples to two lsl streams
@@ -279,7 +289,7 @@ class Explore:
             device_ts = b'\x00\x00\x00\x00'
             Fletcher = b'\xFF\xFF\xFF\xFF'
             msg2send = ID + CNT + Payload + device_ts + host_ts + Fletcher
-        else :
+        else:
             msg_is_command = msg2send[-6]
         is_sending = True
 
@@ -328,6 +338,7 @@ class Explore:
                 self.parser.socket = self.device[device_id].bt_connect()
         if not command_processed:
             print("No status message has been received after ", 100, " seconds. Please send the command again")
+
 
 if __name__ == '__main__':
     pass
