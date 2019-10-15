@@ -163,13 +163,14 @@ class Explore:
             self.parser = Parser(socket=self.socket)
 
         assert (n_chan is not None), "Number of channels missing"
-        assert n_chan in [2, 4, 8], "Number of channels should be either 2, 4 or 8"
 
-        info_orn = StreamInfo('Mentalab', 'Orientation', 9, 20, 'float32', 'explore_orn')
-        info_exg = StreamInfo('Mentalab', 'ExG', n_chan, 250, 'float32', 'explore_exg')
+        info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
+        info_exg = StreamInfo('Explore', 'ExG', n_chan, 250, 'float32', 'ExG')
+        info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
 
         orn_outlet = StreamOutlet(info_orn)
         exg_outlet = StreamOutlet(info_exg)
+        marker_outlet = StreamOutlet(info_marker)
 
         is_acquiring = [True]
 
@@ -185,7 +186,7 @@ class Explore:
         while is_acquiring[0]:
 
             try:
-                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet))
+                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet, marker_outlet))
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -194,7 +195,7 @@ class Explore:
                 self.parser = Parser(self.socket)
 
             except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                print("Bluetooth Error: Timeout, attempting reconnect. Error: ", error)
                 self.socket = self.device[device_id].bt_connect()
                 time.sleep(1)
                 self.parser = Parser(self.socket)
