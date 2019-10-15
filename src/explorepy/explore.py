@@ -120,7 +120,7 @@ class Explore:
             # f_orn.write(
             #     "hh:mm:ss,mg/LSB,mg/LSB,mg/LSB,mdps/LSB,mdps/LSB,mdps/LSB,mgauss/LSB,mgauss/LSB,mgauss/LSB\n")
             f_exg.write("TimeStamp,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8\n")
-            # f_marker.write("TimeStamp,Marker\n")
+            f_marker.write("TimeStamp,Marker_code\n")
 
             csv_exg = csv.writer(f_exg, delimiter=",")
             csv_orn = csv.writer(f_orn, delimiter=",")
