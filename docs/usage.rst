@@ -35,7 +35,7 @@ Connects to a device and records Orientation and Body data live to 2 separate CS
 
 
 **push2lsl**
-Streams Data to Lab stream layer. Inputs: Name or Address and Channel number (either 4 or 8)
+Streams Data to Lab stream layer. Inputs: Name or Address and Channel number
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
@@ -134,12 +134,12 @@ Recording
 ^^^^^^^^^
 Afterwards you are free to start recording to CSV using the following line::
 
-    explorer.record_data(file_name='test')
+    explorer.record_data(file_name='test', duration=120)
 
-This will record data in two separate files "test_ExG.csv" and "test_ORN.csv" which contain ExG and orientation data (accelerometer, gyroscope, magnetometer) respectively.
+This will record data in three separate files "test_ExG.csv", "test_ORN.csv" and "test_marker.csv" which contain ExG, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. The duration of the recording can be specified (in seconds).
 The program will usually stop if files with the same name are detected. If you want to overwrite already existing files, change the line above::
 
-    explorer.record_data(file_name='test', do_overwrite=True)
+    explorer.record_data(file_name='test', do_overwrite=True, duration=120)
 
 
 Visualization
@@ -173,9 +173,9 @@ You can push data directly to LSL using the following line::
     explorer.push2lsl(n_chan=4)
 
 
-It is important that you state the number of channels your device has. (2, 4 or 8)
+It is important that you state the number of channels your device has.
 After that you can stream data from other software such as OpenVibe or other programming languages such as MATLAB, Java, C++ and so on. (See `labstreaminglayer <https://github.com/sccn/labstreaminglayer>`_, `OpenVibe <http://openvibe.inria.fr/how-to-use-labstreaminglayer-in-openvibe/>`_ documentations for details).
-
+This function creates three LSL streams for ExG, Orientation and markers.
 In case of a disconnect (device loses connection), the program will try to reconnect automatically.
 
 
