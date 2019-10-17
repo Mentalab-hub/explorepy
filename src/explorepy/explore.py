@@ -40,6 +40,11 @@ class Explore:
         """
 
         self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
+        if self.socket is None:
+            self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(socket=self.socket)
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -56,12 +61,6 @@ class Explore:
             device_id (int): device id (not needed in the current version)
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
-
-        if self.socket is None:
-            self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
 
         is_acquiring = [True]
 
@@ -108,12 +107,6 @@ class Explore:
             assert not os.path.isfile(exg_out_file), exg_out_file + " already exists!"
             assert not os.path.isfile(orn_out_file), orn_out_file + " already exists!"
             assert not os.path.isfile(marker_out_file), marker_out_file + " already exists!"
-
-        if self.socket is None:
-            self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
 
         with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, open(marker_out_file, "w") as f_marker:
             f_orn.write("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz\n")
@@ -166,11 +159,6 @@ class Explore:
             n_chan (int): Number of channels (4 or 8)
             duration (float): duration of data acquiring (if None it streams endlessly).
         """
-        if self.socket is None:
-            self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
 
         assert (n_chan is not None), "Number of channels missing"
 
@@ -228,11 +216,7 @@ class Explore:
         thread.setDaemon(True)
         thread.start()
 
-        if self.socket is None:
-            self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
+        self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
 
         self.m_dashboard.start_loop()
 
