@@ -26,15 +26,22 @@ class BtClient:
         assert (device_addr is not None) or (device_name is not None), "Missing name or address"
 
         if device_name is not None:
-            assert self.find_mac_addr(device_name), "Error: Couldn't find the device! Restart your device and " \
-                                                    "run the code again and check if MAC address/name is entered" \
-                                                    " correctly."
-            assert ((device_name[-4:-3] == self.lastUsedAddress[-5:-4]) and
-                    (device_name[-2:-1] == self.lastUsedAddress[-2:-1])), \
-                "MAC address does not match the expected value!"
+            if device_addr is None:
+                assert self.find_mac_addr(device_name), "Error: Couldn't find the device! Restart your device and " \
+                                                        "run the code again and check if MAC address/name is entered" \
+                                                        " correctly."
+                assert ((device_name[-4:-2] == self.lastUsedAddress[-5:-3]) and
+                        (device_name[-2:] == self.lastUsedAddress[-2:])), \
+                    "MAC address does not match the expected value!"
+            else:
+                self.lastUsedAddress = device_addr
+                assert ((device_name[-4:-2] == self.lastUsedAddress[-5:-3]) and
+                        (device_name[-2:] == self.lastUsedAddress[-2:])), \
+                    "MAC address does not match the expected value!"
         else:
             # No need to scan if we have the address
             self.lastUsedAddress = device_addr
+            device_name = "Explore_"+str(device_addr[-5:-3])+str(device_addr[-2:])
             address_known = True
 
         service_matches = self.find_explore_service()
@@ -46,10 +53,11 @@ class BtClient:
             self.port = services["port"]
             self.name = services["name"]
             self.host = services["host"]
-            if (device_name[-4:-3] == self.host[-5:-4])and(device_name[-2:-1] == self.host[-2:-1]):
+            # Checking if "Explore_ABCD" matches "XX:XX:XX:XX:AB:CD"
+            if (device_name[-4:-2] == self.host[-5:-3])and(device_name[-2:] == self.host[-2:]):
                 break
 
-        assert((device_name[-4:-3] == self.host[-5:-4])and(device_name[-2:-1] == self.host[-2:-1])), \
+        assert((device_name[-4:-2] == self.host[-5:-3])and(device_name[-2:] == self.host[-2:])), \
             "MAC address does not match the expected value on the SSP service!!"
 
         print("Connecting to %s with address %s" % (self.name, self.host))
