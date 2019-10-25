@@ -33,8 +33,6 @@ pip-log.txt
 nosetests.xml
 coverage.xml
 htmlcov
-tests/
-src/explorepy/example.py
 
 
 
