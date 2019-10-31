@@ -150,7 +150,13 @@ class Parser:
                 print(packet)
             elif isinstance(packet, CommandStatus):
                 print(packet)
-
+        elif mode == "impedance":
+            if isinstance(packet, EEG):
+                if self.notch_freq:
+                    packet.apply_notch_filter(exg_filter=self.filter)
+                if self.apply_bp_filter:
+                    packet.apply_bp_filter(exg_filter=self.filter)
+                packet.push_to_imp_dashboard(dashboard)
         return packet
 
     def read(self, n_bytes):

@@ -94,10 +94,20 @@ class EEG(Packet):
         for sample in self.data.T:
             outlet.push_sample(sample.tolist())
 
+    def calculate_impedance(self):
+        # mag = np.linalg.norm(self.data, axis=1, ord=2)
+        mag = np.ptp(self.data, axis=1)
+        print(mag[[0,1,2,3]])
+        self.imp_data = mag # TODO: Compute exact impedances
+
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
         time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / 250., n_sample)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
+
+    def push_to_imp_dashboard(self, dashboard):
+        self.calculate_impedance()
+        dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
 
 
 class EEG94(EEG):
