@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import struct
-from explorepy.packet import PACKET_CLASS_DICT, PACKET_ID
+from explorepy.packet import PACKET_CLASS_DICT, PACKET_ID, TimeStamp, EEG, Environment, CommandRCV, CommandStatus,\
+                                Orientation, DeviceInfo, Disconnect
 from explorepy.filters import Filter
+
 """
 ORN_ID = 13
 ENV_ID = 19
@@ -182,7 +184,10 @@ class Parser:
          tries to send a message through socket.
          """
         if msg is None:
-            packet = generate_packet(27, timestamp, payload_data)
+            ts_packet = TimeStamp()
+            ts_packet.translate()
+            msg = ts_packet.raw_data
+
         if self.socket is not None:
             self.socket.send(msg)
         else:
