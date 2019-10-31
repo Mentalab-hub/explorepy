@@ -229,40 +229,18 @@ class Explore:
                 self.parser.socket = self.device[device_id].bt_connect()
 
     def pass_msg(self, device_id=0, msg2send=None):
-        r"""
-        sends a set of parameters to the device
-
+        """
+        sends a message to the device
         Args:
-            device_id (int):
+            device_id:
             msg2send:
 
-        sample commands and messages:
-        msg = Host time stamp: default message if the msg2send field is empty
-        msg = b'\xA0\x00\x0A\x00\xda\xba\xad\xde\xA1\x02\xaf\xbe\xad\xde' it is the command to switch to 500sps mode
-        msg = b'\xA0\x00\x0A\x00\xda\xba\xad\xde\xA3\x00\xaf\xbe\xad\xde' it is the command to format memory
-
-        example:
-            myexplore.pass_msg(msg2send=command.Command.FORMAT_MEMORY.value)
-
-
+        Returns:
 
         """
 
         if msg2send is None:
-            # current date and time
             msg_is_command = 0
-            now = datetime.now()
-            print(now)
-            timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
-            ts_str = hex(timestamp)
-            ts_str = ts_str[2:18]
-            host_ts = bytes.fromhex(ts_str)
-            ID = b'\x1B'
-            CNT = b'\x01'
-            payload = b'\x10\x00'  # i.e. 0x0010
-            device_ts = b'\x00\x00\x00\x00'
-            fletcher = b'\xFF\xFF\xFF\xFF'
-            msg2send = ID + CNT + payload + device_ts + host_ts + fletcher
         else:
             msg_is_command = msg2send[-6]
         is_sending = True

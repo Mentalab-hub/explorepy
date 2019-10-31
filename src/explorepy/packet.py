@@ -3,6 +3,27 @@ import numpy as np
 import abc
 import struct
 from functools import partial
+from enum import IntEnum
+from explorepy.command import Command2B, Command4B
+from datetime import datetime
+
+
+class PACKET_ID(IntEnum):
+    ORN = 13
+    ENV = 19
+    TS = 27
+    DISCONNECT = 111
+    INFO = 99
+    EEG94 = 144
+    EEG98 = 146
+    EEG99S = 30
+    EEG99 = 62
+    EEG94R = 208
+    EEG98R = 210
+    CMDRCV = 192
+    CMDSTAT = 193
+    API2BCMD = 160
+    API4BCMD = 176
 
 
 class Packet:
@@ -298,12 +319,26 @@ class TimeStamp(Packet):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+        self.raw_data
 
     def _convert(self, bin_data):
         self.hostTimeStamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xff\xff\xff\xff', "Fletcher error!"
+    
+    def translate(self):
+        now = datetime.now()
+        timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
+        ts_str = hex(timestamp)
+        ts_str = ts_str[2:18]
+        host_ts = bytes.fromhex(ts_str)
+        ID = b'\x1B'
+        CNT = b'\x01'
+        payload_len = b'\x10\x00'  # i.e. 0x0010
+        device_ts = b'\x00\x00\x00\x00'
+        fletcher = b'\xFF\xFF\xFF\xFF'
+        self.raw_data = ID + CNT + payload_len + device_ts + host_ts + fletcher
 
     def __str__(self):
         return "Host timestamp: " + str(self.hostTimeStamp)
@@ -385,3 +420,22 @@ class CommandStatus(Packet):
 
     def __str__(self):
         return "Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode)
+
+
+PACKET_CLASS_DICT = {
+    PACKET_ID.ORN: Orientation,
+    PACKET_ID.ENV: Environment,
+    PACKET_ID.TS: TimeStamp,
+    PACKET_ID.DISCONNECT: Disconnect,
+    PACKET_ID.INFO: DeviceInfo,
+    PACKET_ID.EEG94: EEG94,
+    PACKET_ID.EEG98: EEG98,
+    PACKET_ID.EEG99S: EEG99s,
+    PACKET_ID.EEG99: EEG99s,
+    PACKET_ID.EEG94R: EEG94,
+    PACKET_ID.EEG98R: EEG98,
+    PACKET_ID.CMDRCV: CommandRCV,
+    PACKET_ID.CMDSTAT: CommandStatus,
+    PACKET_ID.API2BCMD: Command2B,
+    PACKET_ID.API4BCMD: Command4B,
+}

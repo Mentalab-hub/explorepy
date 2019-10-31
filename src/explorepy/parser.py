@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import struct
-from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, CommandRCV, CommandStatus
+from explorepy.packet import PACKET_CLASS_DICT, PACKET_ID
 from explorepy.filters import Filter
-
+"""
 ORN_ID = 13
 ENV_ID = 19
 TS_ID = 27
@@ -17,6 +17,8 @@ EEG94R_ID = 208
 EEG98R_ID = 210
 CMDRCV_ID = 192
 CMDSTAT_ID = 193
+API2BCMD_ID = 160
+API4BCMD_ID = 176
 
 PACKET_CLASS_DICT = {
     ORN_ID: Orientation,
@@ -31,8 +33,12 @@ PACKET_CLASS_DICT = {
     EEG94R_ID: EEG94_ID,
     EEG98R_ID: EEG98,
     CMDRCV_ID: CommandRCV,
-    CMDSTAT_ID: CommandStatus
+    CMDSTAT_ID: CommandStatus,
+    API2BCMD_ID: Command2B,
+    API4BCMD_ID: Command4B,
 }
+
+"""
 
 
 def generate_packet(pid, timestamp, bin_data):
@@ -175,6 +181,8 @@ class Parser:
         """
          tries to send a message through socket.
          """
+        if msg is None:
+            packet = generate_packet(27, timestamp, payload_data)
         if self.socket is not None:
             self.socket.send(msg)
         else:
