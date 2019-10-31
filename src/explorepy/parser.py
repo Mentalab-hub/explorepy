@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import struct
-from explorepy.packet import PACKET_CLASS_DICT, PACKET_ID, TimeStamp, EEG, Environment, CommandRCV, CommandStatus,\
+from explorepy.packet import PACKET_ID, PACKET_CLASS_DICT, TimeStamp, EEG, Environment, CommandRCV, CommandStatus,\
                                 Orientation, DeviceInfo, Disconnect
 from explorepy.filters import Filter
 
