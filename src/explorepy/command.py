@@ -1,33 +1,33 @@
-from explorepy.packet import Packet, PACKET_ID, PACKET_CLASS_DICT
+from explorepy.packet import Packet, PACKET_ID, PACKET_CLASS_DICT, CommandRCV, CommandStatus
 from datetime import datetime
 import abc
-from enum import IntEnum
+from enum import Enum
 import time
-from explorepy.bt_client import BtClient
-
-class OpcodeID(IntEnum):
-    CMD_SPS_SET = 0xA1
-    CMD_CH_SET = 0XA2
-    CMD_MEM_FORMAT = 0XA3
-    CMD_REC_TIME_SET = 0XB1
-    CMD_MODULE_DISABLE = 0XA4
-    CMD_MODULE_ENABLE = 0XA5
 
 
-class DeliveryState(IntEnum):
+class OpcodeID(Enum):
+    CMD_SPS_SET = b'\xA1'
+    CMD_CH_SET = b'\xA2'
+    CMD_MEM_FORMAT = b'\xA3'
+    CMD_REC_TIME_SET = b'\xB1'
+    CMD_MODULE_DISABLE = b'\xA4'
+    CMD_MODULE_ENABLE = b'\xA5'
+
+
+class DeliveryState(Enum):
     NOT_SENT = 0
     SENT_NO_ACK_RCVD = 1
     SENT_ACK_RCVD = 2
 
 
-class Result(IntEnum):
-    API_CMD_SUCCESSFUL = 0x01,
-    API_CMD_ILLEGAL = 0x02,
-    API_CMD_FAILED = 0x00
-    API_CMD_NA = 0xFF
+class Result(Enum):
+    API_CMD_SUCCESSFUL = b'\x01'
+    API_CMD_ILLEGAL = b'\x02'
+    API_CMD_FAILED = b'\x00'
+    API_CMD_NA = b'\xFF'
 
 
-class Command(Packet):
+class Command:
     """An abstract base class for Explore command packet"""
     def __init__(self):
         self.ID
@@ -36,32 +36,17 @@ class Command(Packet):
         self.host_ts
         self.opcode
         self.param
+        self.fletcher = b'\xaf\xbe\xad\xde'
+
         self.delivery_state
         self.result
-        self.raw_data
 
-    @abc.abstractmethod
     def translate(self):
         """translate the command to binary array understandable by Explore device. """
-        pass
-
-    def issue(self):
-        """issue a command and gets the status from the device. """
-        self.get_time()
-        self.translate()
-        self.send()
-        self.listen()
-
-    @abc.abstractmethod
-    def send(self):
-        pass
-
-    @abc.abstractmethod
-    def listen(self):
-        pass
+        return self.ID.value + self.cnt + self.payload_length + self.host_ts + \
+               self.opcode.value + self.param + self.fletcher
 
     def get_time(self):
-
         """
         gets the current machine time based on unix format and fills the corresponding field.
 
@@ -70,7 +55,7 @@ class Command(Packet):
         """
         now = datetime.now()
         timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
-        self.host_ts = timestamp
+        self.host_ts = self.int2bytearray(timestamp, 4)
 
     @abc.abstractmethod
     def get_ack(self):
@@ -93,8 +78,13 @@ class Command(Packet):
             bytearray
         """
         x_str = hex(x)
-        x_str = x_str[2:(2*n)]
-        return bytes.fromhex(x_str)
+        x_str = x_str[2:(2 * n)]
+        out = bytes.fromhex(x_str)
+
+        # Change byte order for MCU
+        if n == 2:
+            out = bytes([out[1], out[0]])
+        return out
 
     @abc.abstractmethod
     def __str__(self):
@@ -104,55 +94,104 @@ class Command(Packet):
 
 class Command2B(Command):
     """An abstract base class for Explore 2 Byte command data length packets"""
+
     def __init__(self):
         super().__init__()
         self.ID = PACKET_ID.API2BCMD
-        self.payload_length = 10
-    pass
-
+        self.payload_length = self.int2bytearray(10, 2)
 
 
 class Command4B(Command):
     """An abstract base class for Explore 4 Byte command data length packets"""
+
     def __init__(self):
         super().__init__()
         self.ID = PACKET_ID.API4BCMD
-        self.payload_length = 12
-    pass
+        self.payload_length = self.int2bytearray(12, 2)
 
 
 class SetSPS(Command2B):
-    @abc.abstractmethod
-    def __init__(self, sps_rate, cnt):
+    def __init__(self, sps_rate):
         """
         Gets the desired rate and initializes the packet
 
         Args:
-            sampling rate per seconds. It should be one of these values: 250, 500, 1000
+            sps_rate (int): sampling rate per seconds. It should be one of these values: 250, 500, 1000
         """
         super().__init__()
         self.opcode = OpcodeID.CMD_SPS_SET
-        self.cnt = cnt
-        assert (sps_rate==250) or (sps_rate==500) or (sps_rate==1000), "Value of sps_rate should be 250, 500 or 1000!"
+        if sps_rate == 250:
+            self.param = b'\x01'
+        elif sps_rate == 500:
+            self.param = b'\x02'
+        elif sps_rate == 1000:
+            self.param = b'\x03'
+        else:
+            raise ValueError("Invalid input")
+
         self.param = sps_rate
-        self.host_ts = None
+        self.get_time()
         self.delivery_state = DeliveryState.NOT_SENT
         self.result = Result.NA
-
-    def translate(self):
-        # just update rate, cnt, host_ts in the following raw_data
-        self.raw_data = b'\xA0\x00\x0A\x00\x00\x00\x00\x00\xA1\x01\xaf\xbe\xad\xde'
-        # Updating param
-        if self.param==500:
-            self.raw_data[-5] = b'\x02'
-        if self.param==1000:
-            self.raw_data[-5] = b'\x03'
-        # Updating cnt
-        self.raw_data[1] = self.int2bytearray(self.cnt, 1)
-        # Updating host_ts
-        self.raw_data[4:8] = self.int2bytearray(self.host_ts, 4)
 
     def __str__(self):
         return "set sampling rate command!!!"
 
 
+class MemoryFormat(Command2B):
+    def __init__(self):
+        """
+        Format device memory
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_MEM_FORMAT
+
+
+class ModuleDisable(Command2B):
+    def __init__(self, module_name):
+        """
+
+        Args:
+            module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_MODULE_DISABLE
+        if module_name == "ENV":
+            self.param = b'x01'
+        elif module_name == "ORN":
+            self.param = b'x02'
+        elif module_name == "EEG":
+            self.param = b'x03'
+
+
+class ModuleEnable(Command2B):
+    def __init__(self, module_name):
+        """
+
+        Args:
+            module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_MODULE_ENABLE
+        if module_name == "ENV":
+            self.param = b'x01'
+        elif module_name == "ORN":
+            self.param = b'x02'
+        elif module_name == "EEG":
+            self.param = b'x03'
+
+
+def send_command(command, socket):
+    """
+
+    Args:
+        command (explorepy.command.Command):
+        socket (socket):
+        parser (explorepy.Parser)
+
+    Returns:
+
+    """
+    print("Sending the message...")
+    socket.send(command.translate())
+    print(" Message Sent :)")

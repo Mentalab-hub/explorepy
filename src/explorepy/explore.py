@@ -228,29 +228,26 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def pass_msg(self, device_id=0, msg2send=None):
+    def change_settings(self, command, device_id=0):
         """
         sends a message to the device
         Args:
             device_id:
-            msg2send:
+            command (explorepy.command.Command): Command object
 
         Returns:
 
         """
+        from explorepy.command import send_command
 
-        if msg2send is None:
-            msg_is_command = 0
-        else:
-            msg_is_command = msg2send[-6]
-        is_sending = True
-        print("Sending the message...")
-        while is_sending:
+
+        sending_attempt = 5
+        while sending_attempt:
             try:
+                sending_attempt = sending_attempt-1
                 time.sleep(0.1)
-                self.parser.send_msg(msg2send)
-                print(" Message Sent :)")
-                is_sending = False
+                send_command(command, self.socket)
+                sending_attempt = 0
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -266,16 +263,17 @@ class Explore:
         def stop_listening(flag):
             flag[0] = False
 
-        Timer(100, stop_listening, [is_listening]).start()
+        waiting_time = 10
+        Timer(waiting_time, stop_listening, [is_listening]).start()
         print("waiting for ack and status messages...")
         while is_listening[0]:
             try:
                 packet = self.parser.parse_packet(mode="listen")
                 if isinstance(packet, CommandRCV):
-                    if packet.opcode == msg_is_command:
+                    if packet.opcode == command.opcode:
                         print("The opcode matches the sent command, Explore has received the command")
                 if isinstance(packet, CommandStatus):
-                    if packet.opcode == msg_is_command:
+                    if packet.opcode == command.opcode:
                         print("The opcode matches the sent command, Explore has processed the command")
                         is_listening = [False]
                         command_processed = True
@@ -289,7 +287,7 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
         if not command_processed:
-            print("No status message has been received after ", 100, " seconds. Please send the command again")
+            print("No status message has been received after ", waiting_time, " seconds. Please send the command again")
 
 
 if __name__ == '__main__':
