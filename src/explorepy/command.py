@@ -1,8 +1,12 @@
-from explorepy.packet import Packet, PACKET_ID, PACKET_CLASS_DICT, CommandRCV, CommandStatus
 from datetime import datetime
 import abc
 from enum import Enum
 import time
+
+
+class COMMAND_ID(Enum):
+    API2BCMD = b'\xA0'
+    API4BCMD = b'\xB0'
 
 
 class OpcodeID(Enum):
@@ -12,6 +16,8 @@ class OpcodeID(Enum):
     CMD_REC_TIME_SET = b'\xB1'
     CMD_MODULE_DISABLE = b'\xA4'
     CMD_MODULE_ENABLE = b'\xA5'
+    CMD_ZM_DISABLE = b'\xA6'
+    CMD_ZM_ENABLE = b'\xA7'
 
 
 class DeliveryState(Enum):
@@ -30,19 +36,20 @@ class Result(Enum):
 class Command:
     """An abstract base class for Explore command packet"""
     def __init__(self):
-        self.ID
-        self.cnt
-        self.payload_length
-        self.host_ts
-        self.opcode
-        self.param
+        self.ID = None
+        self.cnt = b'\x00'
+        self.payload_length = None
+        self.host_ts = None
+        self.opcode = None
+        self.param = None
         self.fletcher = b'\xaf\xbe\xad\xde'
 
-        self.delivery_state
-        self.result
+        self.delivery_state = None
+        self.result = None
 
     def translate(self):
         """translate the command to binary array understandable by Explore device. """
+        self.get_time()
         return self.ID.value + self.cnt + self.payload_length + self.host_ts + \
                self.opcode.value + self.param + self.fletcher
 
@@ -78,7 +85,11 @@ class Command:
             bytearray
         """
         x_str = hex(x)
-        x_str = x_str[2:(2 * n)]
+        x_str = x_str[2:(2 * n+2)]
+        i = len(x_str)
+        if i < (n*2):
+            for j in range(0, 2*n-i):
+                x_str = '0' + x_str
         out = bytes.fromhex(x_str)
 
         # Change byte order for MCU
@@ -97,7 +108,7 @@ class Command2B(Command):
 
     def __init__(self):
         super().__init__()
-        self.ID = PACKET_ID.API2BCMD
+        self.ID = COMMAND_ID.API2BCMD
         self.payload_length = self.int2bytearray(10, 2)
 
 
@@ -106,7 +117,7 @@ class Command4B(Command):
 
     def __init__(self):
         super().__init__()
-        self.ID = PACKET_ID.API4BCMD
+        self.ID = COMMAND_ID.API4BCMD
         self.payload_length = self.int2bytearray(12, 2)
 
 
@@ -145,6 +156,7 @@ class MemoryFormat(Command2B):
         """
         super().__init__()
         self.opcode = OpcodeID.CMD_MEM_FORMAT
+        self.param = b'\x00'
 
 
 class ModuleDisable(Command2B):
@@ -157,11 +169,11 @@ class ModuleDisable(Command2B):
         super().__init__()
         self.opcode = OpcodeID.CMD_MODULE_DISABLE
         if module_name == "ENV":
-            self.param = b'x01'
+            self.param = b'\x01'
         elif module_name == "ORN":
-            self.param = b'x02'
+            self.param = b'\x02'
         elif module_name == "EEG":
-            self.param = b'x03'
+            self.param = b'\x03'
 
 
 class ModuleEnable(Command2B):
@@ -174,11 +186,31 @@ class ModuleEnable(Command2B):
         super().__init__()
         self.opcode = OpcodeID.CMD_MODULE_ENABLE
         if module_name == "ENV":
-            self.param = b'x01'
+            self.param = b'\x01'
         elif module_name == "ORN":
-            self.param = b'x02'
+            self.param = b'\x02'
         elif module_name == "EEG":
-            self.param = b'x03'
+            self.param = b'\x03'
+
+
+class ZmeasurementDisable(Command2B):
+    def __init__(self):
+        """
+        Enables Z measurement
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_ZM_DISABLE
+        self.param = b'\x00'
+
+
+class ZmeasurementEnable(Command2B):
+    def __init__(self):
+        """
+        Enables Z measurement
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_ZM_ENABLE
+        self.param = b'\x00'
 
 
 def send_command(command, socket):
@@ -193,5 +225,12 @@ def send_command(command, socket):
 
     """
     print("Sending the message...")
+
     socket.send(command.translate())
     print(" Message Sent :)")
+
+
+COMMAND_CLASS_DICT = {
+    COMMAND_ID.API2BCMD: Command2B,
+    COMMAND_ID.API4BCMD: Command4B
+}

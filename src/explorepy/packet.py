@@ -4,7 +4,6 @@ import abc
 import struct
 from functools import partial
 from enum import IntEnum
-from explorepy.command import Command2B, Command4B
 from datetime import datetime
 
 
@@ -22,8 +21,6 @@ class PACKET_ID(IntEnum):
     EEG98R = 210
     CMDRCV = 192
     CMDSTAT = 193
-    API2BCMD = 160
-    API4BCMD = 176
 
 
 class Packet:
@@ -436,6 +433,4 @@ PACKET_CLASS_DICT = {
     PACKET_ID.EEG98R: EEG98,
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
-    PACKET_ID.API2BCMD: Command2B,
-    PACKET_ID.API4BCMD: Command4B,
 }
