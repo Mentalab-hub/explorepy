@@ -131,6 +131,7 @@ Authors
 
 .. _Sebastian Herberger: https://github.com/SHerberger
 .. _Mohamad Atayi: https://github.com/bmeatayi
+.. _Masooma Fazelian: https://github.com/fazelian
 .. _Philipp Jakovleski: https://github.com/philippjak
 .. _Andreas Gutsche: https://github.com/andyman410
 

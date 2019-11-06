@@ -90,7 +90,7 @@ class CLI:
 
         parser.add_argument("-c", "--channels",
                             dest="channels", type=int, default=None,
-                            help="the device's number of channels (4 or 8)")
+                            help="the device's number of channels")
 
         args = parser.parse_args(sys.argv[2:])
 

@@ -5,43 +5,6 @@ from explorepy.packet import PACKET_ID, PACKET_CLASS_DICT, TimeStamp, EEG, Envir
                                 Orientation, DeviceInfo, Disconnect
 from explorepy.filters import Filter
 
-"""
-ORN_ID = 13
-ENV_ID = 19
-TS_ID = 27
-DISCONNECT_ID = 111
-INFO_ID = 99
-EEG94_ID = 144
-EEG98_ID = 146
-EEG99S_ID = 30
-EEG99_ID = 62
-EEG94R_ID = 208
-EEG98R_ID = 210
-CMDRCV_ID = 192
-CMDSTAT_ID = 193
-API2BCMD_ID = 160
-API4BCMD_ID = 176
-
-PACKET_CLASS_DICT = {
-    ORN_ID: Orientation,
-    ENV_ID: Environment,
-    TS_ID: TimeStamp,
-    DISCONNECT_ID: Disconnect,
-    INFO_ID: DeviceInfo,
-    EEG94_ID: EEG94,
-    EEG98_ID: EEG98,
-    EEG99S_ID: EEG99s,
-    EEG99_ID: EEG99s,
-    EEG94R_ID: EEG94_ID,
-    EEG98R_ID: EEG98,
-    CMDRCV_ID: CommandRCV,
-    CMDSTAT_ID: CommandStatus,
-    API2BCMD_ID: Command2B,
-    API4BCMD_ID: Command4B,
-}
-
-"""
-
 
 def generate_packet(pid, timestamp, bin_data):
     """Generates the packets according to the pid
@@ -100,7 +63,7 @@ class Parser:
         Args:
             mode (str): logging mode {'print', 'record', 'lsl', 'visualize', None}
             csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file, Marker_csv_file)
-            outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet
+            outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet, marker_outlet)
             dashboard (Dashboard): Dashboard object for visualization
         Returns:
             packet object
@@ -131,14 +94,16 @@ class Parser:
                 packet.write_to_csv(csv_files[1])
             elif isinstance(packet, EEG):
                 packet.write_to_csv(csv_files[0])
-            elif isinstance(packet, TimeStamp):
-                    packet.write_to_csv(csv_files[2])
+            elif isinstance(packet, MarkerEvent):
+                packet.write_to_csv(csv_files[2])
 
         elif mode == "lsl":
             if isinstance(packet, Orientation):
                 packet.push_to_lsl(outlets[0])
             elif isinstance(packet, EEG):
                 packet.push_to_lsl(outlets[1])
+            elif isinstance(packet, MarkerEvent):
+                packet.push_to_lsl(outlets[2])
 
         elif mode == "visualize":
             if isinstance(packet, EEG):
@@ -153,10 +118,19 @@ class Parser:
                 print(packet)
             elif isinstance(packet, CommandStatus):
                 print(packet)
-
+                
         elif mode == "debug":
             if isinstance(packet, EEG):
                 print(packet)
+        
+        elif mode == "impedance":
+            if isinstance(packet, EEG):
+                if self.notch_freq:
+                    packet.apply_notch_filter(exg_filter=self.filter)
+                if self.apply_bp_filter:
+                    packet.apply_bp_filter(exg_filter=self.filter)
+                packet.push_to_imp_dashboard(dashboard)
+                
         return packet
 
     def read(self, n_bytes):
