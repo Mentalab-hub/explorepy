@@ -10,8 +10,7 @@ import time
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
 from datetime import datetime
-from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, \
-    CommandRCV, CommandStatus
+from explorepy.packet import CommandRCV, CommandStatus
 
 
 class Explore:
@@ -40,6 +39,12 @@ class Explore:
         """
 
         self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
+        if self.socket is None:
+            self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(socket=self.socket)
+
         if self.socket is None:
             self.socket = self.device[device_id].bt_connect()
 
@@ -201,7 +206,6 @@ class Explore:
 
     def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
-
         Args:
             n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
             device_id (int): Device ID (not needed in the current version)
@@ -346,6 +350,68 @@ class Explore:
                 self.parser.socket = self.device[device_id].bt_connect()
         if not command_processed:
             print("No status message has been received after ", 100, " seconds. Please send the command again")
+
+    def change_settings(self, command, device_id=0):
+        """
+        sends a message to the device
+        Args:
+            device_id:
+            command (explorepy.command.Command): Command object
+
+        Returns:
+
+        """
+        from explorepy.command import send_command
+
+
+        sending_attempt = 5
+        while sending_attempt:
+            try:
+                sending_attempt = sending_attempt-1
+                time.sleep(0.1)
+                send_command(command, self.socket)
+                sending_attempt = 0
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                socket = self.device[device_id].bt_connect()
+                self.parser.socket = socket
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: attempting reconnect. Error: ", error)
+                self.parser.socket = self.device[device_id].bt_connect()
+
+        is_listening = [True]
+        command_processed = False
+
+        def stop_listening(flag):
+            flag[0] = False
+
+        waiting_time = 10
+        Timer(waiting_time, stop_listening, [is_listening]).start()
+        print("waiting for ack and status messages...")
+        while is_listening[0]:
+            try:
+                packet = self.parser.parse_packet(mode="listen")
+                if isinstance(packet, CommandRCV):
+                    temp = command.int2bytearray(packet.opcode, 1)
+                    if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
+                        print("The opcode matches the sent command, Explore has received the command")
+                if isinstance(packet, CommandStatus):
+                    if command.int2bytearray(packet.opcode,1) == command.opcode.value:
+                        print("The opcode matches the sent command, Explore has processed the command")
+                        is_listening = [False]
+                        command_processed = True
+
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                socket = self.device[device_id].bt_connect()
+                self.parser.socket = socket
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: attempting reconnect. Error: ", error)
+                self.parser.socket = self.device[device_id].bt_connect()
+        if not command_processed:
+            print("No status message has been received after ", waiting_time, " seconds. Please send the command again")
 
 
 if __name__ == '__main__':

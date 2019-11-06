@@ -1,41 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import struct
-from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, \
-    CommandRCV, CommandStatus, MarkerEvent
+from explorepy.packet import PACKET_ID, PACKET_CLASS_DICT, TimeStamp, EEG, Environment, CommandRCV, CommandStatus,\
+                                Orientation, DeviceInfo, Disconnect
 from explorepy.filters import Filter
-
-ORN_ID = 13
-ENV_ID = 19
-TS_ID = 27
-DISCONNECT_ID = 111
-INFO_ID = 99
-EEG94_ID = 144
-EEG98_ID = 146
-EEG99S_ID = 30
-EEG99_ID = 62
-EEG94R_ID = 208
-EEG98R_ID = 210
-CMDRCV_ID = 192
-CMDSTAT_ID = 193
-MARKER_ID = 194
-
-PACKET_CLASS_DICT = {
-    ORN_ID: Orientation,
-    ENV_ID: Environment,
-    TS_ID: TimeStamp,
-    DISCONNECT_ID: Disconnect,
-    INFO_ID: DeviceInfo,
-    EEG94_ID: EEG94,
-    EEG98_ID: EEG98,
-    EEG99S_ID: EEG99s,
-    EEG99_ID: EEG99s,
-    EEG94R_ID: EEG94_ID,
-    EEG98R_ID: EEG98,
-    CMDRCV_ID: CommandRCV,
-    CMDSTAT_ID: CommandStatus,
-    MARKER_ID: MarkerEvent
-}
 
 
 def generate_packet(pid, timestamp, bin_data):
@@ -82,12 +50,12 @@ class Parser:
             self.apply_bp_filter = False
             self.bp_freq = (0, 100)  # dummy values
         self.notch_freq = notch_freq
-
         self.firmware_version = None
         self.filter = None
         if self.apply_bp_filter or notch_freq:
             # Initialize filters
             self.filter = Filter(l_freq=self.bp_freq[0], h_freq=self.bp_freq[1], line_freq=notch_freq)
+
 
     def parse_packet(self, mode="print", csv_files=None, outlets=None, dashboard=None):
         """Reads and parses a package from a file or socket
@@ -150,6 +118,11 @@ class Parser:
                 print(packet)
             elif isinstance(packet, CommandStatus):
                 print(packet)
+                
+        elif mode == "debug":
+            if isinstance(packet, EEG):
+                print(packet)
+        
         elif mode == "impedance":
             if isinstance(packet, EEG):
                 if self.notch_freq:
@@ -157,6 +130,7 @@ class Parser:
                 if self.apply_bp_filter:
                     packet.apply_bp_filter(exg_filter=self.filter)
                 packet.push_to_imp_dashboard(dashboard)
+                
         return packet
 
     def read(self, n_bytes):
@@ -183,6 +157,11 @@ class Parser:
         """
          tries to send a message through socket.
          """
+        if msg is None:
+            ts_packet = TimeStamp()
+            ts_packet.translate()
+            msg = ts_packet.raw_data
+
         if self.socket is not None:
             self.socket.send(msg)
         else:
