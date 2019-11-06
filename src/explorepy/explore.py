@@ -244,28 +244,26 @@ class Explore:
                 self.parser.socket = self.device[device_id].bt_connect()
 
     def measure_imp(self, n_chan, device_id=0, notch_freq=50):
-        self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance")
-        self.m_dashboard.start_server()
+        try:
+            self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance")
+            self.m_dashboard.start_server()
 
-        thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
-        thread.setDaemon(True)
-        thread.start()
+            thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
+            thread.setDaemon(True)
+            thread.start()
 
-        self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq)
+            self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq)
 
-        self.m_dashboard.start_loop()
-        #
-        # while True:
-        #     try:
-        #         self.parser.parse_packet(mode="impedance")
-        #     except ValueError:
-        #         # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-        #         print("Disconnected, scanning for last connected device")
-        #         socket = self.device[device_id].bt_connect()
-        #         self.parser.socket = socket
-        #     except bluetooth.BluetoothError as error:
-        #         print("Bluetooth Error: attempting reconnect. Error: ", error)
-        #         self.parser.socket = self.device[device_id].bt_connect()
+            # Activate impedance measurement mode in the device
+            from explorepy import command
+            imp_activate_cmd = command.ZmeasurementEnable()
+            self.change_settings(imp_activate_cmd)
+
+            self.m_dashboard.start_loop()
+        except:
+            from explorepy import command
+            imp_deactivate_cmd = command.ZmeasurementDisable()
+            self.change_settings(imp_deactivate_cmd)
 
     def pass_msg(self, device_id=0, msg2send=None):
         r"""
