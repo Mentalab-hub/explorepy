@@ -26,7 +26,7 @@ N_MOVING_AVERAGE = 60
 V_TH = [10**-5, 5 * 10 ** -3]  # Noise threshold for ECG (Volt)
 ORN_LIST = ['accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'magX', 'magY', 'magZ']
 
-SCALE_MENU = {"1 uV": 6., "5 uV": 5.3333, "10 uV": 5., "100 uV": 4., "500 uV": 3.3333, "1 mV": 3., "5 mV": 2.3333,
+SCALE_MENU = {"1 uV": 6., "5 uV": 5.3333, "10 uV": 5., "100 uV": 4., "200 uV": 3.6666, "500 uV": 3.3333, "1 mV": 3., "5 mV": 2.3333,
               "10 mV": 2., "100 mV": 1.}
 TIME_RANGE_MENU = {"10 s": 10., "5 s": 5., "20 s": 20.}
 
@@ -347,18 +347,20 @@ class Dashboard:
         p = figure(plot_width=600, plot_height=200, x_range=CHAN_LIST[0:self.n_chan],
                    y_range=[str(1)], toolbar_location=None)
 
-        p.circle(x='channel', y="row", radius=.4, source=self.imp_source, fill_alpha=0.6, color="color")
+        p.circle(x='channel', y="row", radius=.3, source=self.imp_source, fill_alpha=0.6, color="color",
+                 line_color='color', line_width=2)
 
         text_props = {"source": self.imp_source, "text_align": "center",
-                      "text_color": "white", "text_baseline": "middle"}
+                      "text_color": "black", "text_baseline": "middle", "text_font": "helvetica",
+                      "text_font_style": "bold"}
 
         x = dodge("channel", -0.1, range=p.x_range)
 
-        r = p.text(x=x, y=dodge('row', -.05, range=p.y_range), text="impedance", **text_props)
-        r.glyph.text_font_size = "8pt"
-
-        r = p.text(x=x, y=dodge('row', .05, range=p.y_range), text="channel", **text_props)
+        r = p.text(x=x, y=dodge('row', -.4, range=p.y_range), text="impedance", **text_props)
         r.glyph.text_font_size = "10pt"
+
+        r = p.text(x=x, y=dodge('row', -.3, range=p.y_range), text="channel", **text_props)
+        r.glyph.text_font_size = "12pt"
 
         p.outline_line_color = None
         p.grid.grid_line_color = None
