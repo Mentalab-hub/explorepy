@@ -2,7 +2,7 @@
 import numpy as np
 import struct
 from explorepy.packet import PACKET_ID, PACKET_CLASS_DICT, TimeStamp, EEG, Environment, CommandRCV, CommandStatus,\
-                                Orientation, DeviceInfo, Disconnect
+                                Orientation, DeviceInfo, Disconnect, MarkerEvent
 from explorepy.filters import Filter
 
 
@@ -130,6 +130,8 @@ class Parser:
                 if self.apply_bp_filter:
                     packet.apply_bp_filter(exg_filter=self.filter)
                 packet.push_to_imp_dashboard(dashboard)
+            elif isinstance(packet, Environment):
+                packet.push_to_dashboard(dashboard)
                 
         return packet
 
