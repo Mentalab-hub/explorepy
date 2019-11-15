@@ -231,13 +231,13 @@ class Dashboard:
         if self.mode == "impedance":
             color = []
             for x in imp:
-                if x > 0.01:
+                if x > 100:
                     color.append("black")
-                elif x > 0.001:
+                elif x > 50:
                     color.append("red")
-                elif x > 0.0005:
+                elif x > 25:
                     color.append("orange")
-                elif x > 0.00025:
+                elif x > 15:
                     color.append("yellow")
                 else:
                     color.append("green")

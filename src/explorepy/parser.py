@@ -2,7 +2,7 @@
 import numpy as np
 import struct
 from explorepy.packet import PACKET_ID, PACKET_CLASS_DICT, TimeStamp, EEG, Environment, CommandRCV, CommandStatus,\
-                                Orientation, DeviceInfo, Disconnect, MarkerEvent
+                                Orientation, DeviceInfo, Disconnect, MarkerEvent, CalibrationInfo
 from explorepy.filters import Filter
 
 
@@ -117,6 +117,8 @@ class Parser:
             if isinstance(packet, CommandRCV):
                 print(packet)
             elif isinstance(packet, CommandStatus):
+                print(packet)
+            elif isinstance(packet, CalibrationInfo):
                 print(packet)
                 
         elif mode == "debug":
