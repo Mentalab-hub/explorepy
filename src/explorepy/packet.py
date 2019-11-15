@@ -116,8 +116,9 @@ class EEG(Packet):
     def calculate_impedance(self):
         # mag = np.linalg.norm(self.data, axis=1, ord=2)
         mag = np.ptp(self.data, axis=1)
-        print(mag[[0,1,2,3]])
-        self.imp_data = mag # TODO: Compute exact impedances
+        print(mag)
+        mag = (mag - 0.000182) * (9400 - 2170) / (8800 - 1820) + 0.000217
+        self.imp_data = np.round(mag*2.018e5-46.5, decimals=0) # TODO: Compute exact impedances
 
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
