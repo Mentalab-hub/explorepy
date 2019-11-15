@@ -10,8 +10,7 @@ import time
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
 from datetime import datetime
-from explorepy.packet import CommandRCV, CommandStatus
-
+from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo
 
 class Explore:
     r"""Mentalab Explore device"""
@@ -390,14 +389,17 @@ class Explore:
         while is_listening[0]:
             try:
                 packet = self.parser.parse_packet(mode="listen")
+
                 if isinstance(packet, CommandRCV):
                     temp = command.int2bytearray(packet.opcode, 1)
                     if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
                         print("The opcode matches the sent command, Explore has received the command")
+                if isinstance(packet, CalibrationInfo):
+                    print("AHA!\n")
                 if isinstance(packet, CommandStatus):
                     if command.int2bytearray(packet.opcode,1) == command.opcode.value:
                         print("The opcode matches the sent command, Explore has processed the command")
-                        is_listening = [False]
+                        #is_listening = [False]
                         command_processed = True
 
             except ValueError:
