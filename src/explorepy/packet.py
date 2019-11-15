@@ -21,6 +21,8 @@ class PACKET_ID(IntEnum):
     EEG98R = 210
     CMDRCV = 192
     CMDSTAT = 193
+    MARKER = 194
+    CALIBINFO = 195
 
 
 class Packet:
@@ -472,6 +474,28 @@ class CommandStatus(Packet):
     def __str__(self):
         return "Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode)
 
+
+class CalibrationInfo(Packet):
+    """Calibration Info packet"""
+    def __init__(self, timestamp, payload):
+        super(CalibrationInfo, self).__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        slope = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
+        self.slope = slope*100.0
+
+        offset = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=2)
+        self.offset = offset * 0.001
+
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+
+    def __str__(self):
+        return "calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset)
+
+
 PACKET_CLASS_DICT = {
     PACKET_ID.ORN: Orientation,
     PACKET_ID.ENV: Environment,
@@ -486,5 +510,6 @@ PACKET_CLASS_DICT = {
     PACKET_ID.EEG98R: EEG98,
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
+    PACKET_ID.CALIBINFO: CalibrationInfo,
 }
 
