@@ -115,20 +115,20 @@ class EEG(Packet):
         for sample in self.data.T:
             outlet.push_sample(sample.tolist())
 
-    def calculate_impedance(self):
+    def calculate_impedance(self, imp_calib_info):
         # mag = np.linalg.norm(self.data, axis=1, ord=2)
         mag = np.ptp(self.data, axis=1)
-        print(mag)
-        mag = (mag - 0.000182) * (9400 - 2170) / (8800 - 1820) + 0.000217
-        self.imp_data = np.round(mag*2.018e5-46.5, decimals=0) # TODO: Compute exact impedances
+        print("mag: ", mag)
+        self.imp_data = np.round(mag * imp_calib_info['slope'] - imp_calib_info['offset'], decimals=0)
+        print("imp: ", self.imp_data)
 
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
         time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / 250., n_sample)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
 
-    def push_to_imp_dashboard(self, dashboard):
-        self.calculate_impedance()
+    def push_to_imp_dashboard(self, dashboard, imp_calib_info):
+        self.calculate_impedance(imp_calib_info)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
 
 

@@ -56,6 +56,7 @@ class Parser:
             # Initialize filters
             self.filter = Filter(l_freq=self.bp_freq[0], h_freq=self.bp_freq[1], line_freq=notch_freq)
 
+        self.imp_calib_info = {}
 
     def parse_packet(self, mode="print", csv_files=None, outlets=None, dashboard=None):
         """Reads and parses a package from a file or socket
@@ -131,7 +132,7 @@ class Parser:
                     packet.apply_notch_filter(exg_filter=self.filter)
                 if self.apply_bp_filter:
                     packet.apply_bp_filter(exg_filter=self.filter)
-                packet.push_to_imp_dashboard(dashboard)
+                packet.push_to_imp_dashboard(dashboard, self.imp_calib_info)
             elif isinstance(packet, Environment):
                 packet.push_to_dashboard(dashboard)
                 

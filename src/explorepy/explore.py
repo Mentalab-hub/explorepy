@@ -328,7 +328,9 @@ class Explore:
                     if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
                         print("The opcode matches the sent command, Explore has received the command")
                 if isinstance(packet, CalibrationInfo):
-                    print("AHA!\n")
+                    self.parser.imp_calib_info['slope'] = packet.slope
+                    self.parser.imp_calib_info['offset'] = packet.offset
+
                 if isinstance(packet, CommandStatus):
                     if command.int2bytearray(packet.opcode,1) == command.opcode.value:
                         print("The opcode matches the sent command, Explore has processed the command")
