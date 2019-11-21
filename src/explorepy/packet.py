@@ -21,6 +21,8 @@ class PACKET_ID(IntEnum):
     EEG98R = 210
     CMDRCV = 192
     CMDSTAT = 193
+    MARKER = 194
+    CALIBINFO = 195
 
 
 class Packet:
@@ -93,6 +95,14 @@ class EEG(Packet):
         """
         self.data = exg_filter.apply_bp_filter(self.data)
 
+    def apply_bp_filter_test(self, exg_filter):
+        """Bandpass filtering of ExG data
+
+        Args:
+        exg_filter: Filter object
+        """
+        self.data = exg_filter.apply_bp_filter_test(self.data)
+
     def apply_notch_filter(self, exg_filter):
         """Band_stop filtering of ExG data
 
@@ -113,20 +123,20 @@ class EEG(Packet):
         for sample in self.data.T:
             outlet.push_sample(sample.tolist())
 
-    def calculate_impedance(self):
+    def calculate_impedance(self, imp_calib_info):
         # mag = np.linalg.norm(self.data, axis=1, ord=2)
         mag = np.ptp(self.data, axis=1)
-        print(mag)
-        mag = (mag - 0.000182) * (9400 - 2170) / (8800 - 1820) + 0.000217
-        self.imp_data = np.round(mag*2.018e5-46.5, decimals=0) # TODO: Compute exact impedances
+        self.imp_data = np.round(
+            (mag - imp_calib_info['noise_level']) * imp_calib_info['slope'] - imp_calib_info['offset'], decimals=0)
+        print("imp:\t", self.imp_data)
 
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
         time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / 250., n_sample)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
 
-    def push_to_imp_dashboard(self, dashboard):
-        self.calculate_impedance()
+    def push_to_imp_dashboard(self, dashboard, imp_calib_info):
+        self.calculate_impedance(imp_calib_info)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
 
 
@@ -472,6 +482,28 @@ class CommandStatus(Packet):
     def __str__(self):
         return "Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode)
 
+
+class CalibrationInfo(Packet):
+    """Calibration Info packet"""
+    def __init__(self, timestamp, payload):
+        super(CalibrationInfo, self).__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        slope = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
+        self.slope = slope*100.0
+
+        offset = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=2)
+        self.offset = offset * 0.001
+
+    def _check_fletcher(self, fletcher):
+        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+
+    def __str__(self):
+        return "calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset)
+
+
 PACKET_CLASS_DICT = {
     PACKET_ID.ORN: Orientation,
     PACKET_ID.ENV: Environment,
@@ -486,5 +518,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.EEG98R: EEG98,
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
+    PACKET_ID.CALIBINFO: CalibrationInfo,
+    PACKET_ID.MARKER: MarkerEvent
 }
 
