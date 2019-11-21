@@ -139,6 +139,7 @@ class Parser:
                 packet.push_to_imp_dashboard(dashboard, self.imp_calib_info)
             elif isinstance(packet, Environment):
                 packet.push_to_dashboard(dashboard)
+        return packet
     def read(self, n_bytes):
         """Read n_bytes from socket or file
 
