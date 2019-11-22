@@ -132,7 +132,7 @@ class EEG(Packet):
         """
         mag = np.ptp(self.data, axis=1)
         self.imp_data = np.round(
-            (mag - imp_calib_info['noise_level']) * imp_calib_info['slope'] - imp_calib_info['offset'], decimals=1)
+            (mag - imp_calib_info['noise_level']) * imp_calib_info['slope'] - imp_calib_info['offset'], decimals=0)
         print("imp:\t", self.imp_data)
 
     def push_to_dashboard(self, dashboard):
@@ -498,7 +498,6 @@ class CalibrationInfo(Packet):
     def _convert(self, bin_data):
         slope = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
         self.slope = slope * 10.0
-
         offset = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=2)
         self.offset = offset * 0.001
 
@@ -525,5 +524,5 @@ PACKET_CLASS_DICT = {
     PACKET_ID.CMDSTAT: CommandStatus,
     PACKET_ID.CALIBINFO: CalibrationInfo,
     PACKET_ID.MARKER: MarkerEvent
-}
+
 

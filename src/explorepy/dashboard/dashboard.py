@@ -230,19 +230,25 @@ class Dashboard:
     def update_imp(self, imp):
         if self.mode == "impedance":
             color = []
+            imp_str = []
             for x in imp:
-                if x > 100:
+                if x > 500:
                     color.append("black")
-                elif x > 50:
+                    imp_str.append("Open")
+                elif x > 100:
                     color.append("red")
-                elif x > 25:
+                    imp_str.append(str(round(x, 0))+" K\u03A9")
+                elif x > 50:
                     color.append("orange")
-                elif x > 15:
+                    imp_str.append(str(round(x, 0))+" K\u03A9")
+                elif x > 10:
                     color.append("yellow")
+                    imp_str.append(str(round(x, 1))+" K\u03A9")
                 else:
                     color.append("green")
+                    imp_str.append(str(round(x, 1))+" K\u03A9")
 
-            data = {"impedance": [str(round(x,2)) for x in imp],
+            data = {"impedance": imp_str,
                     'channel': [CHAN_LIST[i] for i in range(0, self.n_chan)],
                     'row': ['1' for i in range(self.n_chan)],
                     'color': color
@@ -265,7 +271,6 @@ class Dashboard:
                 self.exg_source.data[ch] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
         self.r_peak_source.data['r_peak'] = (np.array(self.r_peak_source.data['r_peak'])-self.offsets[0]) *\
                                             (old_unit / self.y_unit) + self.offsets[0]
-        print(self.r_peak_source.data['r_peak'].shape, self.r_peak_source.data['t'].shape)
 
 
     @gen.coroutine

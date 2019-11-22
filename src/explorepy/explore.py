@@ -12,7 +12,6 @@ from threading import Thread, Timer
 from datetime import datetime
 from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
 
-
 class Explore:
     r"""Mentalab Explore device"""
     def __init__(self, n_device=1):
@@ -26,6 +25,7 @@ class Explore:
         self.m_dashboard = None
         for i in range(n_device):
             self.device.append(BtClient())
+        self.is_connected = False
 
     def connect(self, device_name=None, device_addr=None, device_id=0):
         r"""
@@ -44,12 +44,7 @@ class Explore:
 
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
-
-        if self.socket is None:
-            self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
+        self.is_connected = True
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -58,6 +53,7 @@ class Explore:
             device_id (int): device id (not needed in the current version)
         """
         self.device[device_id].socket.close()
+        self.is_connected = False
 
     def acquire(self, device_id=0, duration=None):
         r"""Start getting data from the device
@@ -66,6 +62,8 @@ class Explore:
             device_id (int): device id (not needed in the current version)
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
+
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         is_acquiring = [True]
 
@@ -99,6 +97,8 @@ class Explore:
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
         """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
         # Check invalid characters
         if set(r'[<>/{}[\]~`]*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
@@ -166,6 +166,7 @@ class Explore:
         """
 
         assert (n_chan is not None), "Number of channels missing"
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
         info_exg = StreamInfo('Explore', 'ExG', n_chan, 250, 'float32', 'ExG')
@@ -213,6 +214,8 @@ class Explore:
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
         """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
         self.m_dashboard = Dashboard(n_chan=n_chan)
         self.m_dashboard.start_server()
 
@@ -244,6 +247,18 @@ class Explore:
                 self.parser.socket = self.device[device_id].bt_connect()
 
     def measure_imp(self, n_chan, device_id=0, notch_freq=50):
+        """
+        Visualization of the electrode impedances
+
+        Args:
+            n_chan (int): Number of channels
+            device_id (int): Device ID
+            notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
+
+        Returns:
+
+        """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
         try:
             self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance")
             self.m_dashboard.start_server()
@@ -269,7 +284,7 @@ class Explore:
         """
         sends a message to the device
         Args:
-            device_id:
+            device_id (int): Device ID
             command (explorepy.command.Command): Command object
 
         Returns:
@@ -277,6 +292,7 @@ class Explore:
         """
         from explorepy.command import send_command
 
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         sending_attempt = 5
         while sending_attempt:
@@ -306,6 +322,7 @@ class Explore:
         while is_listening[0]:
             try:
                 packet = self.parser.parse_packet(mode="listen")
+
                 if isinstance(packet, CommandRCV):
                     temp = command.int2bytearray(packet.opcode, 1)
                     if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
@@ -313,10 +330,11 @@ class Explore:
                 if isinstance(packet, CalibrationInfo):
                     self.parser.imp_calib_info['slope'] = packet.slope
                     self.parser.imp_calib_info['offset'] = packet.offset
+                    
                 if isinstance(packet, CommandStatus):
                     if command.int2bytearray(packet.opcode,1) == command.opcode.value:
                         print("The opcode matches the sent command, Explore has processed the command")
-                        is_listening = [False]
+                        #is_listening = [False]
                         command_processed = True
 
             except ValueError:
