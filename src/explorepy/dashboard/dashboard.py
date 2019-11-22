@@ -243,10 +243,14 @@ class Dashboard:
                     imp_str.append(str(round(x, 0))+" K\u03A9")
                 elif x > 10:
                     color.append("yellow")
-                    imp_str.append(str(round(x, 1))+" K\u03A9")
+                    imp_str.append(str(round(x, 0))+" K\u03A9")
+                elif x > 5:
+                    imp_str.append(str(round(x, 0)) + " K\u03A9")
+                    color.append("green")
                 else:
                     color.append("green")
-                    imp_str.append(str(round(x, 1))+" K\u03A9")
+                    imp_str.append("<5K\u03A9")  # As the ADS is not precise in low values.
+
 
             data = {"impedance": imp_str,
                     'channel': [CHAN_LIST[i] for i in range(0, self.n_chan)],
