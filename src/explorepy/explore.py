@@ -10,9 +10,7 @@ import time
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
 from datetime import datetime
-from explorepy.packet import Orientation, Environment, TimeStamp, Disconnect, DeviceInfo, EEG, EEG94, EEG98, EEG99s, \
-    CommandRCV, CommandStatus
-
+from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
 
 class Explore:
     r"""Mentalab Explore device"""
@@ -27,6 +25,7 @@ class Explore:
         self.m_dashboard = None
         for i in range(n_device):
             self.device.append(BtClient())
+        self.is_connected = False
 
     def connect(self, device_name=None, device_addr=None, device_id=0):
         r"""
@@ -45,6 +44,7 @@ class Explore:
 
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
+        self.is_connected = True
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -53,6 +53,7 @@ class Explore:
             device_id (int): device id (not needed in the current version)
         """
         self.device[device_id].socket.close()
+        self.is_connected = False
 
     def acquire(self, device_id=0, duration=None):
         r"""Start getting data from the device
@@ -61,6 +62,8 @@ class Explore:
             device_id (int): device id (not needed in the current version)
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
+
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         is_acquiring = [True]
 
@@ -94,6 +97,8 @@ class Explore:
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
         """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
         # Check invalid characters
         if set(r'[<>/{}[\]~`]*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
@@ -161,6 +166,7 @@ class Explore:
         """
 
         assert (n_chan is not None), "Number of channels missing"
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
         info_exg = StreamInfo('Explore', 'ExG', n_chan, 250, 'float32', 'ExG')
@@ -201,7 +207,6 @@ class Explore:
 
     def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
-
         Args:
             n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
             device_id (int): Device ID (not needed in the current version)
@@ -209,6 +214,8 @@ class Explore:
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
         """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
         self.m_dashboard = Dashboard(n_chan=n_chan)
         self.m_dashboard.start_server()
 
@@ -220,7 +227,7 @@ class Explore:
 
         self.m_dashboard.start_loop()
 
-    def _io_loop(self, device_id=0):
+    def _io_loop(self, device_id=0, mode="visualize"):
         is_acquiring = True
 
         # Wait until dashboard is initialized.
@@ -229,7 +236,7 @@ class Explore:
             time.sleep(.2)
         while is_acquiring:
             try:
-                packet = self.parser.parse_packet(mode="visualize", dashboard=self.m_dashboard)
+                packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -239,50 +246,61 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def pass_msg(self, device_id=0, msg2send=None):
-        r"""
-        sends a set of parameters to the device
-        Returns:
-        sample commands and messages:
-        msg = Host time stamp: default message if the msg2send field is empty
-        msg = b'\xA0\x00\x0A\x00\xda\xba\xad\xde\xA1\x02\xaf\xbe\xad\xde' it is the command to switch to 500sps mode
-        msg = b'\xA0\x00\x0A\x00\xda\xba\xad\xde\xA3\x00\xaf\xbe\xad\xde' it is the command to format memory
-
-        example:
-        myexplore.pass_msg(msg2send=command.Command.FORMAT_MEMORY.value)
+    def measure_imp(self, n_chan, device_id=0, notch_freq=50):
         """
+        Visualization of the electrode impedances
 
-        if self.socket is None:
-            self.socket = self.device[device_id].bt_connect()
+        Args:
+            n_chan (int): Number of channels
+            device_id (int): Device ID
+            notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
 
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
+        Returns:
 
-        if msg2send is None:
-            # current date and time
-            msg_is_command = 0
-            now = datetime.now()
-            print(now)
-            timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
-            ts_str = hex(timestamp)
-            ts_str = ts_str[2:18]
-            host_ts = bytes.fromhex(ts_str)
-            ID = b'\x1B'
-            CNT = b'\x01'
-            Payload = b'\x10\x00' # i.e. 0x0010
-            device_ts = b'\x00\x00\x00\x00'
-            Fletcher = b'\xFF\xFF\xFF\xFF'
-            msg2send = ID + CNT + Payload + device_ts + host_ts + Fletcher
-        else:
-            msg_is_command = msg2send[-6]
-        is_sending = True
+        """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        try:
+            self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance")
+            self.m_dashboard.start_server()
 
-        while is_sending:
+            thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
+            thread.setDaemon(True)
+            thread.start()
+
+            self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq)
+
+            # Activate impedance measurement mode in the device
+            from explorepy import command
+            imp_activate_cmd = command.ZmeasurementEnable()
+            self.change_settings(imp_activate_cmd)
+
+            self.m_dashboard.start_loop()
+        except:
+            from explorepy import command
+            imp_deactivate_cmd = command.ZmeasurementDisable()
+            self.change_settings(imp_deactivate_cmd)
+
+    def change_settings(self, command, device_id=0):
+        """
+        sends a message to the device
+        Args:
+            device_id (int): Device ID
+            command (explorepy.command.Command): Command object
+
+        Returns:
+
+        """
+        from explorepy.command import send_command
+
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
+        sending_attempt = 5
+        while sending_attempt:
             try:
+                sending_attempt = sending_attempt-1
                 time.sleep(0.1)
-                self.parser.send_msg(msg2send)
-                print(" Message Sent :)")
-                is_sending = False
+                send_command(command, self.socket)
+                sending_attempt = 0
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -298,18 +316,25 @@ class Explore:
         def stop_listening(flag):
             flag[0] = False
 
-        Timer(100, stop_listening, [is_listening]).start()
+        waiting_time = 10
+        Timer(waiting_time, stop_listening, [is_listening]).start()
         print("waiting for ack and status messages...")
         while is_listening[0]:
             try:
                 packet = self.parser.parse_packet(mode="listen")
+
                 if isinstance(packet, CommandRCV):
-                    if packet.opcode == msg_is_command:
-                        print ("the opcode matches the sent command, Explore has received the command")
+                    temp = command.int2bytearray(packet.opcode, 1)
+                    if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
+                        print("The opcode matches the sent command, Explore has received the command")
+                if isinstance(packet, CalibrationInfo):
+                    self.parser.imp_calib_info['slope'] = packet.slope
+                    self.parser.imp_calib_info['offset'] = packet.offset
+                    
                 if isinstance(packet, CommandStatus):
-                    if packet.opcode == msg_is_command:
-                        print ("the opcode matches the sent command, Explore has processed the command")
-                        is_listening = [False]
+                    if command.int2bytearray(packet.opcode,1) == command.opcode.value:
+                        print("The opcode matches the sent command, Explore has processed the command")
+                        #is_listening = [False]
                         command_processed = True
 
             except ValueError:
@@ -321,7 +346,7 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
         if not command_processed:
-            print("No status message has been received after ", 100, " seconds. Please send the command again")
+            print("No status message has been received after ", waiting_time, " seconds. Please send the command again")
 
 
 if __name__ == '__main__':

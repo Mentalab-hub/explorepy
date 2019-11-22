@@ -14,7 +14,7 @@ from bokeh.models.widgets import Select, DataTable, TableColumn, RadioButtonGrou
 from bokeh.models import SingleIntervalTicker
 from bokeh.core.property.validation import validate
 from tornado import gen
-
+from bokeh.transform import dodge
 
 EEG_SRATE = 250  # Hz
 ORN_SRATE = 20  # Hz
@@ -26,7 +26,7 @@ N_MOVING_AVERAGE = 60
 V_TH = [10**-5, 5 * 10 ** -3]  # Noise threshold for ECG (Volt)
 ORN_LIST = ['accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'magX', 'magY', 'magZ']
 
-SCALE_MENU = {"1 uV": 6., "5 uV": 5.3333, "10 uV": 5., "100 uV": 4., "500 uV": 3.3333, "1 mV": 3., "5 mV": 2.3333,
+SCALE_MENU = {"1 uV": 6., "5 uV": 5.3333, "10 uV": 5., "100 uV": 4., "200 uV": 3.6666, "500 uV": 3.3333, "1 mV": 3., "5 mV": 2.3333,
               "10 mV": 2., "100 mV": 1.}
 TIME_RANGE_MENU = {"10 s": 10., "5 s": 5., "20 s": 20.}
 
@@ -37,7 +37,7 @@ FFT_COLORS = Colorblind[8]
 class Dashboard:
     """Explorepy dashboard class"""
 
-    def __init__(self, n_chan):
+    def __init__(self, n_chan, mode="signal"):
         self.n_chan = n_chan
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
@@ -45,6 +45,7 @@ class Dashboard:
         self.exg_mode = 'EEG'
         self.rr_estimator = None
         self.win_length = WIN_LENGTH
+        self.mode = mode
 
         # Init ExG data source
         exg_temp = np.zeros((n_chan, 2))
@@ -77,6 +78,13 @@ class Dashboard:
         init_data['f'] = np.array([0.])
         self.fft_source = ColumnDataSource(data=init_data)
 
+        # Init impedance measurement source
+        init_data = {'channel': [CHAN_LIST[i] for i in range(0, self.n_chan)],
+                     'impedance': ['NA' for i in range(self.n_chan)],
+                     'row': ['1' for i in range(self.n_chan)],
+                     'color': ['black' for i in range(self.n_chan)]}
+        self.imp_source = ColumnDataSource(data=init_data)
+
     def start_server(self):
         """Start bokeh server"""
         validation = validate(False)
@@ -102,7 +110,12 @@ class Dashboard:
         orn_tab = Panel(child=column([self.acc_plot, self.gyro_plot, self.mag_plot], sizing_mode='fixed'),
                         title="Orientation")
         fft_tab = Panel(child=self.fft_plot, title="Spectral analysis")
-        self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=1200)
+        imp_tab = Panel(child=self.imp_plot, title="Impedance")
+        if self.mode == "signal":
+            self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=1200)
+        elif self.mode == "impedance":
+            self.tabs = Tabs(tabs=[imp_tab], width=1200)
+
         self.doc.add_root(row([m_widgetbox, self.tabs]))
         self.doc.add_periodic_callback(self._update_fft, 2000)
         self.doc.add_periodic_callback(self._update_heart_rate, 2000)
@@ -214,6 +227,38 @@ class Dashboard:
         self.heart_rate_source.stream(data, rollover=1)
 
     @gen.coroutine
+    def update_imp(self, imp):
+        if self.mode == "impedance":
+            color = []
+            imp_str = []
+            for x in imp:
+                if x > 500:
+                    color.append("black")
+                    imp_str.append("Open")
+                elif x > 100:
+                    color.append("red")
+                    imp_str.append(str(round(x, 0))+" K\u03A9")
+                elif x > 50:
+                    color.append("orange")
+                    imp_str.append(str(round(x, 0))+" K\u03A9")
+                elif x > 10:
+                    color.append("yellow")
+                    imp_str.append(str(round(x, 1))+" K\u03A9")
+                else:
+                    color.append("green")
+                    imp_str.append(str(round(x, 1))+" K\u03A9")
+
+            data = {"impedance": imp_str,
+                    'channel': [CHAN_LIST[i] for i in range(0, self.n_chan)],
+                    'row': ['1' for i in range(self.n_chan)],
+                    'color': color
+                    }
+            self.imp_source.stream(data, rollover=self.n_chan)
+        else:
+            raise RuntimeError("Trying to compute impedances while the dashboard is not in Impedance mode!")
+
+
+    @gen.coroutine
     def _change_scale(self, attr, old, new):
         """Change y-scale of ExG plot"""
         new, old = SCALE_MENU[new], SCALE_MENU[old]
@@ -226,7 +271,6 @@ class Dashboard:
                 self.exg_source.data[ch] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
         self.r_peak_source.data['r_peak'] = (np.array(self.r_peak_source.data['r_peak'])-self.offsets[0]) *\
                                             (old_unit / self.y_unit) + self.offsets[0]
-        print(self.r_peak_source.data['r_peak'].shape, self.r_peak_source.data['t'].shape)
 
 
     @gen.coroutine
@@ -266,6 +310,8 @@ class Dashboard:
         self.fft_plot = figure(y_axis_label='Amplitude (uV)', x_axis_label='Frequency (Hz)', title="FFT",
                                x_range=(0, 70), plot_height=600, plot_width=1270, y_axis_type="log")
 
+        self.imp_plot = self._init_imp_plot()
+
         # Set yaxis properties
         self.exg_plot.yaxis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=10)
 
@@ -301,6 +347,33 @@ class Dashboard:
                 plot.legend.location = "bottom_left"
                 plot.legend.orientation = "horizontal"
                 plot.legend.padding = 2
+
+    def _init_imp_plot(self):
+        p = figure(plot_width=600, plot_height=200, x_range=CHAN_LIST[0:self.n_chan],
+                   y_range=[str(1)], toolbar_location=None)
+
+        p.circle(x='channel', y="row", radius=.3, source=self.imp_source, fill_alpha=0.6, color="color",
+                 line_color='color', line_width=2)
+
+        text_props = {"source": self.imp_source, "text_align": "center",
+                      "text_color": "black", "text_baseline": "middle", "text_font": "helvetica",
+                      "text_font_style": "bold"}
+
+        x = dodge("channel", -0.1, range=p.x_range)
+
+        r = p.text(x=x, y=dodge('row', -.4, range=p.y_range), text="impedance", **text_props)
+        r.glyph.text_font_size = "10pt"
+
+        r = p.text(x=x, y=dodge('row', -.3, range=p.y_range), text="channel", **text_props)
+        r.glyph.text_font_size = "12pt"
+
+        p.outline_line_color = None
+        p.grid.grid_line_color = None
+        p.axis.axis_line_color = None
+        p.axis.major_tick_line_color = None
+        p.axis.major_label_standoff = 0
+        p.axis.visible = False
+        return p
 
     def _init_controls(self):
         """Initialize all controls in the dashboard"""
