@@ -23,7 +23,7 @@ class Filter:
 
     def _design_filter_test(self, nchan):
         nyq = 0.5 * self.sample_frequency
-        low_freq = (self.low_cutoff_freq+3) / nyq
+        low_freq = (self.low_cutoff_freq+4) / nyq
         high_freq = (self.high_cutoff_freq+4) / nyq
         b, a = butter(self.order, [low_freq, high_freq], btype='band')
         zi = np.zeros((nchan, self.order*2))
@@ -49,7 +49,7 @@ class Filter:
         self.bp_param['zi'] = zi
         return filtered_data
 
-    def apply_bp_filter_test(self, raw_data):
+    def apply_bp_filter_noise(self, raw_data):
         if len(raw_data.shape) < 2:
             raw_data = np.array(raw_data)[np.newaxis, :]
         if self.bp_param_test is None:

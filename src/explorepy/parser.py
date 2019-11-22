@@ -6,6 +6,7 @@ from explorepy.packet import PACKET_ID, PACKET_CLASS_DICT, TimeStamp, EEG, Envir
 from explorepy.filters import Filter
 import copy
 
+
 def generate_packet(pid, timestamp, bin_data):
     """Generates the packets according to the pid
 
@@ -132,7 +133,7 @@ class Parser:
                     packet.apply_notch_filter(exg_filter=self.filter)
                 if self.apply_bp_filter:
                     temp_packet = copy.deepcopy(packet)
-                    temp_packet.apply_bp_filter_test(exg_filter=self.filter)
+                    temp_packet.apply_bp_filter_noise(exg_filter=self.filter)
                     mag = np.ptp(temp_packet.data, axis=1)
                     self.imp_calib_info['noise_level'] = mag
                     packet.apply_bp_filter(exg_filter=self.filter)
@@ -140,6 +141,7 @@ class Parser:
             elif isinstance(packet, Environment):
                 packet.push_to_dashboard(dashboard)
         return packet
+
     def read(self, n_bytes):
         """Read n_bytes from socket or file
 
