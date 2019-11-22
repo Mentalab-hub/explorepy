@@ -95,6 +95,14 @@ class EEG(Packet):
         """
         self.data = exg_filter.apply_bp_filter(self.data)
 
+    def apply_bp_filter_noise(self, exg_filter):
+        """Bandpass filtering of ExG data
+
+        Args:
+        exg_filter: Filter object
+        """
+        self.data = exg_filter.apply_bp_filter_noise(self.data)
+
     def apply_notch_filter(self, exg_filter):
         """Band_stop filtering of ExG data
 
@@ -103,7 +111,6 @@ class EEG(Packet):
 
         """
         self.data = exg_filter.apply_notch_filter(self.data)
-
 
     def push_to_lsl(self, outlet):
         """Push data to lsl socket
@@ -116,11 +123,17 @@ class EEG(Packet):
             outlet.push_sample(sample.tolist())
 
     def calculate_impedance(self, imp_calib_info):
-        # mag = np.linalg.norm(self.data, axis=1, ord=2)
+        """
+        calculate impedance with the help of impedance calibration info
+
+        Args:
+            imp_calib_info (dict): dictionary of impedance calibration info including slope, offset and noise level
+
+        """
         mag = np.ptp(self.data, axis=1)
-        print("mag: ", mag)
-        self.imp_data = np.round(mag * imp_calib_info['slope'] - imp_calib_info['offset'], decimals=0)
-        print("imp: ", self.imp_data)
+        self.imp_data = np.round(
+            (mag - imp_calib_info['noise_level']) * imp_calib_info['slope'] - imp_calib_info['offset'], decimals=0)
+        print("imp:\t", self.imp_data)
 
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
@@ -340,7 +353,7 @@ class TimeStamp(Packet):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
-        self.raw_data
+        self.raw_data = None
 
     def _convert(self, bin_data):
         self.hostTimeStamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
@@ -484,8 +497,7 @@ class CalibrationInfo(Packet):
 
     def _convert(self, bin_data):
         slope = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
-        self.slope = slope*100.0
-
+        self.slope = slope * 10.0
         offset = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=2)
         self.offset = offset * 0.001
 
@@ -511,5 +523,6 @@ PACKET_CLASS_DICT = {
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
     PACKET_ID.CALIBINFO: CalibrationInfo,
-}
+    PACKET_ID.MARKER: MarkerEvent
+
 

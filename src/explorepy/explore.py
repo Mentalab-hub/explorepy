@@ -10,7 +10,7 @@ import time
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
 from datetime import datetime
-from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo
+from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
 
 class Explore:
     r"""Mentalab Explore device"""
@@ -330,7 +330,7 @@ class Explore:
                 if isinstance(packet, CalibrationInfo):
                     self.parser.imp_calib_info['slope'] = packet.slope
                     self.parser.imp_calib_info['offset'] = packet.offset
-
+                    
                 if isinstance(packet, CommandStatus):
                     if command.int2bytearray(packet.opcode,1) == command.opcode.value:
                         print("The opcode matches the sent command, Explore has processed the command")

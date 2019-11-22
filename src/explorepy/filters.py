@@ -11,6 +11,7 @@ class Filter:
         self.order = order
         self.bp_param = None
         self.notch_param = None
+        self.bp_param_test = None
 
     def _design_filter(self, nchan):
         nyq = 0.5 * self.sample_frequency
@@ -19,6 +20,14 @@ class Filter:
         b, a = butter(self.order, [low_freq, high_freq], btype='band')
         zi = np.zeros((nchan, self.order*2))
         self.bp_param = {'a': a, 'b': b, 'zi': zi}
+
+    def _design_filter_test(self, nchan):
+        nyq = 0.5 * self.sample_frequency
+        low_freq = (self.low_cutoff_freq+4) / nyq
+        high_freq = (self.high_cutoff_freq+4) / nyq
+        b, a = butter(self.order, [low_freq, high_freq], btype='band')
+        zi = np.zeros((nchan, self.order*2))
+        self.bp_param_test = {'a': a, 'b': b, 'zi': zi}
 
     def _design_notch_filter(self, nchan):
         # Q = 50
@@ -38,6 +47,16 @@ class Filter:
 
         filtered_data, zi = lfilter(self.bp_param['b'], self.bp_param['a'], raw_data, zi=self.bp_param['zi'])
         self.bp_param['zi'] = zi
+        return filtered_data
+
+    def apply_bp_filter_noise(self, raw_data):
+        if len(raw_data.shape) < 2:
+            raw_data = np.array(raw_data)[np.newaxis, :]
+        if self.bp_param_test is None:
+            self._design_filter_test(nchan=raw_data.shape[0])
+
+        filtered_data, zi = lfilter(self.bp_param_test['b'], self.bp_param_test['a'], raw_data, zi=self.bp_param_test['zi'])
+        self.bp_param_test['zi'] = zi
         return filtered_data
 
     def apply_notch_filter(self, raw_data):

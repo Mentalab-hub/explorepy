@@ -4,6 +4,7 @@ import struct
 from explorepy.packet import PACKET_ID, PACKET_CLASS_DICT, TimeStamp, EEG, Environment, CommandRCV, CommandStatus,\
                                 Orientation, DeviceInfo, Disconnect, MarkerEvent, CalibrationInfo
 from explorepy.filters import Filter
+import copy
 
 
 def generate_packet(pid, timestamp, bin_data):
@@ -131,11 +132,14 @@ class Parser:
                 if self.notch_freq:
                     packet.apply_notch_filter(exg_filter=self.filter)
                 if self.apply_bp_filter:
+                    temp_packet = copy.deepcopy(packet)
+                    temp_packet.apply_bp_filter_noise(exg_filter=self.filter)
+                    mag = np.ptp(temp_packet.data, axis=1)
+                    self.imp_calib_info['noise_level'] = mag
                     packet.apply_bp_filter(exg_filter=self.filter)
                 packet.push_to_imp_dashboard(dashboard, self.imp_calib_info)
             elif isinstance(packet, Environment):
                 packet.push_to_dashboard(dashboard)
-                
         return packet
 
     def read(self, n_bytes):
