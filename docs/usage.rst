@@ -59,12 +59,15 @@ Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the
 * ``-c`` or ``--channels``   Number of channels.
 * ``-nf`` or ``--notchfreq`` Frequency of applied notch filter (By default, no notch filter is applied)
 
-**pass_msg**
-sends a byte array to the Bluetooth device. the byte array corresponding to specific commands has been declared in command class definition. when the message field is empty, default message which is host timestamp will be sent to the device. When a message is received by Explore, it will send an acknowledge message and also another status message after processing if received command message.
+
+**impedance**
+Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome is the supported browser.
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
-* ``-m`` or ``--message``    The message to be sent, the input format is byte array. If not used, host timestamp will be sent.
+* ``-c`` or ``--channels``   Number of channels.
+* ``-nf`` or ``--notchfreq`` Frequency of applied notch filter (By default, no notch filter is applied)
+
 
 **format_memory**
 This command formats the memory of the specified Explore device.
@@ -73,7 +76,7 @@ This command formats the memory of the specified Explore device.
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
 
 **set_sampling_rate**
-This command sets the sampling rate of ExG input on the specified Explore device. The only acceptable values for sampling rates are 250, 500 or 1000.
+This command sets the sampling rate of ExG input on the specified Explore device. The only acceptable values for sampling rates are 250, 500 or 1000. Please note that this feature is in its alpha state. There might be some inconsistency with other modules in sampling rates except 250 Hz.
 
 * ``-a`` or ``--address``        Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``           Device name (e.g. Explore_12AB).
@@ -92,11 +95,11 @@ Convert a binary file to csv: ``explorepy bin2csv -i input_file``
 
 Visualize in real-time: ``explorepy visualize -n Explore_XXXX -c 4``
 
-send a message: ``explorepy pass_msg -n Explore_XXXX``
+Impedance measurement: ``explorepy impedance -n Explore_XXXX -c 4``
 
-format the memory: ``explorepy format_memory -n Explore_XXXX``
+Format the memory: ``explorepy format_memory -n Explore_XXXX``
 
-set the sampling rate: ``explorepy set_sampling_rate -n Explore_XXXX -r 500``
+Set the sampling rate: ``explorepy set_sampling_rate -n Explore_XXXX -r 500``
 
 To see the full list of commands ``explorepy -h``.
 
@@ -112,7 +115,7 @@ Initialization
 Before starting a session, make sure your device is paired to your computer. The device will be shown under the following name: Explore_XXXX,
 with the last 4 characters being the last 4 hex numbers of the devices MAC adress
 
-Make sure to initialize the bluetooth connection before starting a recording session or a push to lsl using the following lines::
+**Make sure to initialize the Bluetooth connection before streaming using the following lines**::
 
     explorer = explorepy.Explore()
     explorer.connect(device_name="Explore_XXXX") #Put your device Bluetooth name
@@ -166,6 +169,21 @@ ECG with heart beat detection:
   :width: 800
   :alt: ECG Dashboard
 
+
+Impedance measurement
+^^^^^^^^^^^^^^^^^^^^^
+To measure electrodes impedances::
+
+
+    explorer.impedance(n_chan=4, notch_freq=50)
+
+
+.. image:: /images/Dashboard_imp.jpg
+  :width: 800
+  :alt: Impedance Dashboard
+
+.. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature.
+
 Labstreaminglayer (lsl)
 ^^^^^^^^^^^^^^^^^^^^^^^
 You can push data directly to LSL using the following line::
@@ -190,28 +208,4 @@ and converts it to 2 CSV files (one for orientation, the other one for ExG data)
 If you want to overwrite existing files, use::
 
     bin2csv(bin_file, do_overwrite=True)
-
-
-Passmessage
-^^^^^^^^^^^^
-Once the Explore device is connected. you can send message to the device these messages can be commands or host timestamp::
-the current set of commands are::
-
-    FORMAT_MEMORY   #formats memory and resume the run
-    SPS_250         #sets sampling rate to 250 samples per second
-    SPS_500         #sets sampling rate to 500 samples per second
-    SPS_1000        #sets sampling rate to 1000 samples per second
-
-and this is how to use it::
-
-    from explorepy import command
-    myexplore.connect(device_name="Explore_XXXX")
-    explorer.pass_msg(msg2send=Command.FORMAT_MEMORY.value)
-
-
-If you want to send a host timestamp, use::
-
-    explorer.pass_msg()
-
-
 

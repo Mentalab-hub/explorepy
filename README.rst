@@ -1,25 +1,12 @@
-==================
-explorepy overview
-==================
-
 .. image:: logo.png
    :scale: 100 %
    :align: center
 
 
+
 .. start-badges
 
-.. list-table::
-    :stub-columns: 1
-
-    * - docs
-      - |docs|
-    * - tests
-      - | |travis|
-        |
-    * - package
-      - | |version| |wheel| |supported-versions| |supported-implementations|
-        | |commits-since|
+|docs| |version| |wheel| |supported-versions| |commits-since| |travis|
 
 .. |docs| image:: https://readthedocs.org/projects/explorepy/badge/?style=flat
     :target: https://readthedocs.org/projects/explorepy
@@ -33,9 +20,9 @@ explorepy overview
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/explorepy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.4.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.5.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.4.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.5.0...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
     :alt: PyPI Wheel
@@ -52,10 +39,26 @@ explorepy overview
 
 .. end-badges
 
-A Python API for Mentalab biosignal aquisition devices
+==================
+Explorepy overview
+==================
+
+Explorepy is an open-source Python-based biosignal acquisition API for Mentalab's Explore device. It provides users the following features:
+
+* Real-time streaming of ExG, orientation and environmental data
+* Real-time visualization
+* Data recording
+* LSL integration
+* Impedance measurement
+* Explore device configuration
+
+
+Quick installation
+==================
 
 Requirements
-============
+------------
+
 * Python 3.5 or newer version
 * `numpy <https://github.com/pybluez/pybluez>`_
 * `pybluez <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
@@ -63,9 +66,6 @@ Requirements
 * `scipy <https://github.com/scipy/scipy>`_
 * `bokeh <https://github.com/bokeh/bokeh>`_
 
-
-Installation
-============
 To install ``explorepy`` from PyPI run:
 ::
 
@@ -77,14 +77,21 @@ To install the latest development version run:
 
     pip install git+https://github.com/Mentalab-hub/explorepy
 
+For a more detailed installation guide please see `Installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_
 
-Example use
+Get started
 ===========
-CLI command:
+
+CLI command
+-----------
+
 ``explorepy acquire -n Explore_XXXX``
 
 Enter ``explorepy -h`` for help.
 
+
+Python code
+-----------
 
 The following code connects to the Explore device and prints the data.
 
@@ -138,7 +145,7 @@ Authors
 
 License
 =======
-This project is licensed under the [MIT](LICENSE) license
+This project is licensed under the `MIT <https://github.com/Mentalab-hub/explorepy/blob/master/LICENSE>`_ license.
 
 
 
