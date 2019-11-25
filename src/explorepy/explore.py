@@ -9,7 +9,8 @@ import os
 import time
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
-
+from datetime import datetime
+from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
 
 class Explore:
     r"""Mentalab Explore device"""
@@ -24,6 +25,7 @@ class Explore:
         self.m_dashboard = None
         for i in range(n_device):
             self.device.append(BtClient())
+        self.is_connected = False
 
     def connect(self, device_name=None, device_addr=None, device_id=0):
         r"""
@@ -37,6 +39,12 @@ class Explore:
         """
 
         self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
+        if self.socket is None:
+            self.socket = self.device[device_id].bt_connect()
+
+        if self.parser is None:
+            self.parser = Parser(socket=self.socket)
+        self.is_connected = True
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -45,6 +53,7 @@ class Explore:
             device_id (int): device id (not needed in the current version)
         """
         self.device[device_id].socket.close()
+        self.is_connected = False
 
     def acquire(self, device_id=0, duration=None):
         r"""Start getting data from the device
@@ -54,10 +63,7 @@ class Explore:
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
 
-        self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         is_acquiring = [True]
 
@@ -91,6 +97,8 @@ class Explore:
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
         """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
         # Check invalid characters
         if set(r'[<>/{}[\]~`]*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
@@ -98,22 +106,23 @@ class Explore:
         time_offset = None
         exg_out_file = file_name + "_ExG.csv"
         orn_out_file = file_name + "_ORN.csv"
+        marker_out_file = file_name + "_Marker.csv"
 
-        assert not (os.path.isfile(exg_out_file) and do_overwrite), exg_out_file + " already exists!"
-        assert not (os.path.isfile(orn_out_file) and do_overwrite), orn_out_file + " already exists!"
+        if not do_overwrite:
+            assert not os.path.isfile(exg_out_file), exg_out_file + " already exists!"
+            assert not os.path.isfile(orn_out_file), orn_out_file + " already exists!"
+            assert not os.path.isfile(marker_out_file), marker_out_file + " already exists!"
 
-        self.socket = self.device[device_id].bt_connect()
+        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, open(marker_out_file, "w") as f_marker:
+            f_orn.write("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz\n")
+            # f_orn.write(
+            #     "hh:mm:ss,mg/LSB,mg/LSB,mg/LSB,mdps/LSB,mdps/LSB,mdps/LSB,mgauss/LSB,mgauss/LSB,mgauss/LSB\n")
+            f_exg.write("TimeStamp,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8\n")
+            f_marker.write("TimeStamp,Marker_code\n")
 
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
-
-        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn:
-            f_orn.write("TimeStamp, ax, ay, az, gx, gy, gz, mx, my, mz \n")
-            f_orn.write(
-                "hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB, mgauss/LSB, mgauss/LSB, mgauss/LSB\n")
-            f_exg.write("TimeStamp, ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8\n")
             csv_exg = csv.writer(f_exg, delimiter=",")
             csv_orn = csv.writer(f_orn, delimiter=",")
+            csv_marker = csv.writer(f_marker, delimiter=",")
 
             is_acquiring = [True]
 
@@ -128,8 +137,8 @@ class Explore:
 
             while is_acquiring[0]:
                 try:
-                    self.parser.parse_packet()
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn))
+                    # self.parser.parse_packet()
+                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn, csv_marker))
                     if time_offset is not None:
                         packet.timestamp = packet.timestamp-time_offset
                     else:
@@ -140,9 +149,12 @@ class Explore:
                     print("Disconnected, scanning for last connected device")
                     self.parser.socket = self.device[device_id].bt_connect()
                 except bluetooth.BluetoothError as error:
-                    print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                    print("Bluetooth Error: Timeout, attempting reconnect. Error: ", error)
                     self.parser.socket = self.device[device_id].bt_connect()
             print("Recording finished after ", duration, " seconds.")
+            f_marker.close()
+            f_exg.close()
+            f_orn.close()
 
     def push2lsl(self, n_chan, device_id=0, duration=None):
         r"""Push samples to two lsl streams
@@ -153,19 +165,16 @@ class Explore:
             duration (float): duration of data acquiring (if None it streams endlessly).
         """
 
-        self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
-
         assert (n_chan is not None), "Number of channels missing"
-        assert n_chan in [2, 4, 8], "Number of channels should be either 2, 4 or 8"
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
-        info_orn = StreamInfo('Mentalab', 'Orientation', 9, 20, 'float32', 'explore_orn')
-        info_exg = StreamInfo('Mentalab', 'ExG', n_chan, 250, 'float32', 'explore_exg')
+        info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
+        info_exg = StreamInfo('Explore', 'ExG', n_chan, 250, 'float32', 'ExG')
+        info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
 
         orn_outlet = StreamOutlet(info_orn)
         exg_outlet = StreamOutlet(info_exg)
+        marker_outlet = StreamOutlet(info_marker)
 
         is_acquiring = [True]
 
@@ -181,7 +190,7 @@ class Explore:
         while is_acquiring[0]:
 
             try:
-                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet))
+                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet, marker_outlet))
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -190,7 +199,7 @@ class Explore:
                 self.parser = Parser(self.socket)
 
             except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: Probably timeout, attempting reconnect. Error: ", error)
+                print("Bluetooth Error: Timeout, attempting reconnect. Error: ", error)
                 self.socket = self.device[device_id].bt_connect()
                 time.sleep(1)
                 self.parser = Parser(self.socket)
@@ -198,7 +207,6 @@ class Explore:
 
     def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
-
         Args:
             n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
             device_id (int): Device ID (not needed in the current version)
@@ -206,6 +214,8 @@ class Explore:
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
         """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
         self.m_dashboard = Dashboard(n_chan=n_chan)
         self.m_dashboard.start_server()
 
@@ -213,14 +223,11 @@ class Explore:
         thread.setDaemon(True)
         thread.start()
 
-        self.socket = self.device[device_id].bt_connect()
-
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
+        self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
 
         self.m_dashboard.start_loop()
 
-    def _io_loop(self, device_id=0):
+    def _io_loop(self, device_id=0, mode="visualize"):
         is_acquiring = True
 
         # Wait until dashboard is initialized.
@@ -229,7 +236,7 @@ class Explore:
             time.sleep(.2)
         while is_acquiring:
             try:
-                packet = self.parser.parse_packet(mode="visualize", dashboard=self.m_dashboard)
+                packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -238,6 +245,109 @@ class Explore:
             except bluetooth.BluetoothError as error:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
+
+    def measure_imp(self, n_chan, device_id=0, notch_freq=50):
+        """
+        Visualization of the electrode impedances
+
+        Args:
+            n_chan (int): Number of channels
+            device_id (int): Device ID
+            notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
+
+        Returns:
+
+        """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        try:
+            self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance")
+            self.m_dashboard.start_server()
+
+            thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
+            thread.setDaemon(True)
+            thread.start()
+
+            self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq)
+
+            # Activate impedance measurement mode in the device
+            from explorepy import command
+            imp_activate_cmd = command.ZmeasurementEnable()
+            self.change_settings(imp_activate_cmd)
+
+            self.m_dashboard.start_loop()
+        except:
+            from explorepy import command
+            imp_deactivate_cmd = command.ZmeasurementDisable()
+            self.change_settings(imp_deactivate_cmd)
+
+    def change_settings(self, command, device_id=0):
+        """
+        sends a message to the device
+        Args:
+            device_id (int): Device ID
+            command (explorepy.command.Command): Command object
+
+        Returns:
+
+        """
+        from explorepy.command import send_command
+
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
+        sending_attempt = 5
+        while sending_attempt:
+            try:
+                sending_attempt = sending_attempt-1
+                time.sleep(0.1)
+                send_command(command, self.socket)
+                sending_attempt = 0
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                socket = self.device[device_id].bt_connect()
+                self.parser.socket = socket
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: attempting reconnect. Error: ", error)
+                self.parser.socket = self.device[device_id].bt_connect()
+
+        is_listening = [True]
+        command_processed = False
+
+        def stop_listening(flag):
+            flag[0] = False
+
+        waiting_time = 10
+        command_timer = Timer(waiting_time, stop_listening, [is_listening])
+        command_timer.start()
+        print("waiting for ack and status messages...")
+        while is_listening[0]:
+            try:
+                packet = self.parser.parse_packet(mode="listen")
+
+                if isinstance(packet, CommandRCV):
+                    temp = command.int2bytearray(packet.opcode, 1)
+                    if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
+                        print("The opcode matches the sent command, Explore has received the command")
+                if isinstance(packet, CalibrationInfo):
+                    self.parser.imp_calib_info['slope'] = packet.slope
+                    self.parser.imp_calib_info['offset'] = packet.offset
+                    
+                if isinstance(packet, CommandStatus):
+                    if command.int2bytearray(packet.opcode,1) == command.opcode.value:
+                        print("The opcode matches the sent command, Explore has processed the command")
+                        is_listening = [False]
+                        command_processed = True
+                        command_timer.cancel()
+            except ValueError:
+                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
+                print("Disconnected, scanning for last connected device")
+                socket = self.device[device_id].bt_connect()
+                self.parser.socket = socket
+            except bluetooth.BluetoothError as error:
+                print("Bluetooth Error: attempting reconnect. Error: ", error)
+                self.parser.socket = self.device[device_id].bt_connect()
+        if not command_processed:
+            print("No status message has been received after ", waiting_time, " seconds. Please send the command again")
 
 
 if __name__ == '__main__':
