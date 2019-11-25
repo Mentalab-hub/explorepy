@@ -138,7 +138,7 @@ class Parser:
                     self.imp_calib_info['noise_level'] = mag
                     packet.apply_bp_filter(exg_filter=self.filter)
                 packet.push_to_imp_dashboard(dashboard, self.imp_calib_info)
-            elif isinstance(packet, Environment):
+            elif isinstance(packet, Environment) | isinstance(packet, DeviceInfo):
                 packet.push_to_dashboard(dashboard)
         return packet
 
