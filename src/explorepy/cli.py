@@ -237,9 +237,9 @@ class CLI:
         elif args.sampling_rate == '250':
             explorer.change_settings(command.SetSPS(250))
         elif args.sampling_rate == '500':
-            explorer.pass_msg(command.SetSPS(500))
+            explorer.change_settings(command.SetSPS(500))
         elif args.sampling_rate == '1000':
-            explorer.pass_msg(command.SetSPS(1000))
+            explorer.change_settings(command.SetSPS(1000))
         else:
             raise ValueError("The only acceptable values are 250, 500 or 1000.")
 

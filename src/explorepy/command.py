@@ -140,10 +140,8 @@ class SetSPS(Command2B):
         else:
             raise ValueError("Invalid input")
 
-       # self.param = sps_rate
         self.get_time()
         self.delivery_state = DeliveryState.NOT_SENT
-        #self.result = Result.NA
 
     def __str__(self):
         return "set sampling rate command!!!"
