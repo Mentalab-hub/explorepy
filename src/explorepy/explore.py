@@ -317,7 +317,8 @@ class Explore:
             flag[0] = False
 
         waiting_time = 10
-        Timer(waiting_time, stop_listening, [is_listening]).start()
+        command_timer = Timer(waiting_time, stop_listening, [is_listening])
+        command_timer.start()
         print("waiting for ack and status messages...")
         while is_listening[0]:
             try:
@@ -334,9 +335,9 @@ class Explore:
                 if isinstance(packet, CommandStatus):
                     if command.int2bytearray(packet.opcode,1) == command.opcode.value:
                         print("The opcode matches the sent command, Explore has processed the command")
-                        #is_listening = [False]
+                        is_listening = [False]
                         command_processed = True
-
+                        command_timer.cancel()
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
