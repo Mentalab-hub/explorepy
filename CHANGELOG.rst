@@ -1,6 +1,13 @@
 
 Changelog
 =========
+0.5.0 (25-11-2019)
+------------------
+* Impedance measurement
+* Send commands to device
+* Configuring device settings
+* Update push to lsl feature
+
 0.4.0 (09-09-2019)
 ------------------
 * Added marker feature

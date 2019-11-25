@@ -201,13 +201,16 @@ class CLI:
             explorer.connect(device_addr=args.address)
         elif args.address is None:
             explorer.connect(device_name=args.name)
-        explorer.pass_msg(msg2send=Command.FORMAT_MEMORY.value)
+
+        from explorepy import command
+        memory_format_cmd = command.MemoryFormat()
+        explorer.change_settings(memory_format_cmd)
 
     @staticmethod
     def set_sampling_rate():
         explorer = Explore()
         parser = argparse.ArgumentParser(
-            description='format the memory of selected explore device')
+            description='format the memory of selected explore device (yet in alpha state)')
 
         parser.add_argument("-a", "--address",
                             dest="address", type=str, default=None,
@@ -227,15 +230,17 @@ class CLI:
             explorer.connect(device_addr=args.address)
         elif args.address is None:
             explorer.connect(device_name=args.name)
+
+        from explorepy import command
         if args.sampling_rate is None:
-            print("Please specify the sampling rate")
+            raise ValueError("Please specify the sampling rate")
         elif args.sampling_rate == '250':
-            explorer.pass_msg(msg2send=Command.SPS_250.value)
+            explorer.change_settings(command.SetSPS(250))
         elif args.sampling_rate == '500':
-            explorer.pass_msg(msg2send=Command.SPS_250.value)
+            explorer.pass_msg(command.SetSPS(500))
         elif args.sampling_rate == '1000':
-            explorer.pass_msg(msg2send=Command.SPS_250.value)
+            explorer.pass_msg(command.SetSPS(1000))
         else:
-            print("The only acceptable values are 250, 500 or 1000.")
+            raise ValueError("The only acceptable values are 250, 500 or 1000.")
 
 

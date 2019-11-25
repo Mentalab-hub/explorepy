@@ -34,8 +34,8 @@ Mac OS
 For more details on pybluez dependencies please see `pybluez docs <https://github.com/pybluez/pybluez>`_.
 
 
-How to install
-^^^^^^^^^^^^^^
+How to install (Windows)
+--------------
 This instructions guides you to install Explorepy API with all its dependencies on Windows.
 
 1. Install Python 3 on your computer. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Windows installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
@@ -50,7 +50,7 @@ This instructions guides you to install Explorepy API with all its dependencies 
 4. To install ``explorepy`` from PyPI run: ``pip install explorepy``
 
 Quick test
-^^^^^^^^^^
+----------
 * Open Conda command prompt
 
 * Activate the virtual environment: ``conda activate myenv``
