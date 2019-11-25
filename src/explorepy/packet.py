@@ -382,7 +382,7 @@ class TimeStamp(Packet):
     def push_to_lsl(self, outlet):
         outlet.push_sample([1])
 
-
+        
 class MarkerEvent(Packet):
     """Marker packet"""
 

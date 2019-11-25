@@ -16,6 +16,7 @@ from bokeh.core.property.validation import validate
 from tornado import gen
 from bokeh.transform import dodge
 
+
 EEG_SRATE = 250  # Hz
 ORN_SRATE = 20  # Hz
 WIN_LENGTH = 10  # Seconds
