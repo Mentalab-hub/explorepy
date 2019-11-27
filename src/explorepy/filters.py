@@ -17,8 +17,10 @@ class Filter:
         nyq = 0.5 * self.sample_frequency
         low_freq = self.low_cutoff_freq / nyq
         high_freq = self.high_cutoff_freq / nyq
-        b, a = butter(self.order, [low_freq, high_freq], btype='band')
-        zi = np.zeros((nchan, self.order*2))
+        #b, a = butter(self.order, [low_freq, high_freq], btype='band')
+        #zi = np.zeros((nchan, self.order*2))
+        b, a = butter(self.order, high_freq, btype='lowpass')
+        zi = np.zeros((nchan, self.order))
         self.bp_param = {'a': a, 'b': b, 'zi': zi}
 
     def _design_filter_test(self, nchan):
