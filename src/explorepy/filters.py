@@ -3,11 +3,11 @@ from scipy.signal import butter, lfilter, iirnotch, iirfilter
 
 
 class Filter:
-    def __init__(self, l_freq, h_freq, line_freq=50, order=5):
+    def __init__(self, l_freq, h_freq, sampling_freq, line_freq=50, order=5):
         self.low_cutoff_freq = l_freq
         self.high_cutoff_freq = h_freq
         self.line_freq = line_freq
-        self.sample_frequency = 250.0
+        self.sample_frequency = np.float(sampling_freq)
         self.order = order
         self.bp_param = None
         self.notch_param = None
