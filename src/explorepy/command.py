@@ -18,6 +18,7 @@ class OpcodeID(Enum):
     CMD_MODULE_ENABLE = b'\xA5'
     CMD_ZM_DISABLE = b'\xA6'
     CMD_ZM_ENABLE = b'\xA7'
+    CMD_SOFT_RESET = b'\xA8'
 
 
 class DeliveryState(Enum):
@@ -209,6 +210,19 @@ class ZmeasurementEnable(Command2B):
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_ENABLE
         self.param = b'\x00'
+
+
+class SoftReset(Command2B):
+    def __init__(self):
+        """
+        Reset the Device.
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_SOFT_RESET
+        self.param = b'\x00'
+
+    def __str__(self):
+        return "Reset command"
 
 
 def send_command(command, socket):

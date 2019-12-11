@@ -243,4 +243,34 @@ class CLI:
         else:
             raise ValueError("The only acceptable values are 250, 500 or 1000.")
 
+    @staticmethod
+    def soft_reset():
+        explorer = Explore()
+        parser = argparse.ArgumentParser(
+            description='Terminate the recording session and reset the selected explore device')
+
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        parser.add_argument("-i", "--deviceID",
+                            dest="device_id", type=int, default=0,
+                            help="ID of the device.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explorer.connect(device_addr=args.address)
+        elif args.address is None:
+            explorer.connect(device_name=args.name)
+
+        from explorepy import command
+        soft_reset_cmd = command.SoftReset()
+        explorer.change_settings(soft_reset_cmd)
+
+
 
