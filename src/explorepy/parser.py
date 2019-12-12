@@ -29,7 +29,7 @@ def generate_packet(pid, timestamp, bin_data):
 
 
 class Parser:
-    def __init__(self, bp_freq=None, notch_freq=50, socket=None, fid=None):
+    def __init__(self, bp_freq=None, notch_freq=50, sampling_rate=250, socket=None, fid=None):
         """Parser class for explore device
 
         Args:
@@ -51,13 +51,17 @@ class Parser:
             self.apply_bp_filter = False
             self.bp_freq = (0, 100)  # dummy values
         self.notch_freq = notch_freq
-        self.firmware_version = None
         self.filter = None
         if self.apply_bp_filter or notch_freq:
             # Initialize filters
-            self.filter = Filter(l_freq=self.bp_freq[0], h_freq=self.bp_freq[1], line_freq=notch_freq)
+            self.filter = Filter(l_freq=self.bp_freq[0], h_freq=self.bp_freq[1], line_freq=notch_freq, sampling_freq=sampling_rate)
 
+        self.firmware_version = None
+        self.sampling_rate = sampling_rate
+        self.data_rate_info = 250
+        self.adc_mask = 255
         self.imp_calib_info = {}
+        self.signal_dc = np.zeros((4,), dtype=np.float)
 
     def parse_packet(self, mode="print", csv_files=None, outlets=None, dashboard=None):
         """Reads and parses a package from a file or socket
@@ -87,6 +91,8 @@ class Parser:
 
         if isinstance(packet, DeviceInfo):
             self.firmware_version = packet.firmware_version
+            self.data_rate_info = packet.data_rate_info
+            self.adc_mask = packet.adc_mask
         if mode == "print":
             print(packet)
 
@@ -98,6 +104,8 @@ class Parser:
                 packet.write_to_csv(csv_files[0])
             elif isinstance(packet, MarkerEvent):
                 packet.write_to_csv(csv_files[2])
+            elif isinstance(packet, DeviceInfo):
+                packet.write_to_csv(csv_files[3])
 
         elif mode == "lsl":
             if isinstance(packet, Orientation):
@@ -113,6 +121,10 @@ class Parser:
                     packet.apply_notch_filter(exg_filter=self.filter)
                 if self.apply_bp_filter:
                     packet.apply_bp_filter(exg_filter=self.filter)
+                # remove DC
+                for column in range((packet.data).shape[1]):
+                    self.signal_dc = 5.e-4 * packet.data[:, column] + 9.995e-1 * self.signal_dc
+                    packet.data[:, column] = packet.data[:, column] - self.signal_dc
             packet.push_to_dashboard(dashboard)
 
         elif mode == "listen":

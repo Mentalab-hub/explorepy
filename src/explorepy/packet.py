@@ -136,7 +136,7 @@ class EEG(Packet):
 
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
-        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / 250., n_sample)
+        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / dashboard.EEG_SRATE, n_sample)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
 
     def push_to_imp_dashboard(self, dashboard, imp_calib_info):
@@ -437,14 +437,20 @@ class DeviceInfo(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'))[0]
-        self.firmware_version = '.'.join([char for char in str(fw_num)])
+        fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
+        self.firmware_version = '.'.join([char for char in str(fw_num)[1:-1]])
+        self.data_rate_info = 16000/(2**bin_data[2])
+        self.adc_mask = bin_data[3]
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "Firmware version: " + self.firmware_version
+        return "Firmware version: " + self.firmware_version + "\tdata rate: " + str(self.data_rate_info)\
+               + " sample per sec" + "\tADC mask: " + str(self.adc_mask)
+
+    def write_to_csv(self, csv_writer):
+        csv_writer.writerow([self.timestamp, self.firmware_version, self.data_rate_info, self.adc_mask])
 
     def push_to_dashboard(self, dashboard):
         data = {'firmware_version': [self.firmware_version]}
