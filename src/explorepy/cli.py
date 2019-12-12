@@ -244,11 +244,11 @@ class CLI:
             raise ValueError("The only acceptable values are 250, 500 or 1000.")
 
     @staticmethod
-    def set_channels():
+    def soft_reset():
         explorer = Explore()
         parser = argparse.ArgumentParser(
-            description='format the memory of selected explore device (yet in alpha state)')
-
+            description='Terminate the recording session and reset the selected explore device')
+        
         parser.add_argument("-a", "--address",
                             dest="address", type=str, default=None,
                             help="Explore device's MAC address.")
@@ -256,18 +256,45 @@ class CLI:
         parser.add_argument("-n", "--name",
                             dest="name", type=str, default=None,
                             help="Name of the device.")
-
+        
+        parser.add_argument("-i", "--deviceID",
+                            dest="device_id", type=int, default=0,
+                            help="ID of the device.")
+        
+        if args.name is None:
+            explorer.connect(device_addr=args.address)
+        elif args.address is None:
+            explorer.connect(device_name=args.name)
+            
+        from explorepy import command
+        soft_reset_cmd = command.SoftReset()
+        explorer.change_settings(soft_reset_cmd)
+        
+    @staticmethod
+    def set_channels():
+        explorer = Explore()
+        parser = argparse.ArgumentParser(
+            description='Mask the channels of selected explore device (yet in alpha state)')
+        
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+        
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+        
         parser.add_argument("-m", "--channel_mask",
                             dest="channel_mask", type=str, default=None,
                             help="Channel mask, it should be an integer between 1 and 255, the binarry representation will be interpreted as mask.")
-
+        
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
             explorer.connect(device_addr=args.address)
         elif args.address is None:
             explorer.connect(device_name=args.name)
-
+            
         from explorepy import command
         if args.channel_mask is None:
             raise ValueError("Please specify the mask")
