@@ -17,7 +17,6 @@ from tornado import gen
 from bokeh.transform import dodge
 
 
-EEG_SRATE = 250  # Hz
 ORN_SRATE = 20  # Hz
 WIN_LENGTH = 10  # Seconds
 MODE_LIST = ['EEG', 'ECG']
@@ -38,7 +37,7 @@ FFT_COLORS = Colorblind[8]
 class Dashboard:
     """Explorepy dashboard class"""
 
-    def __init__(self, n_chan, mode="signal"):
+    def __init__(self, n_chan, sampling_rate, mode="signal"):
         self.n_chan = n_chan
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
@@ -47,6 +46,7 @@ class Dashboard:
         self.rr_estimator = None
         self.win_length = WIN_LENGTH
         self.mode = mode
+        self.EEG_SRATE = sampling_rate
 
         # Init ExG data source
         exg_temp = np.zeros((n_chan, 2))
@@ -136,7 +136,7 @@ class Dashboard:
         ExG = self.offsets + ExG / self.y_unit
         new_data = dict(zip(self.chan_key_list, ExG))
         new_data['t'] = time_vector
-        self.exg_source.stream(new_data, rollover=2 * EEG_SRATE * WIN_LENGTH)
+        self.exg_source.stream(new_data, rollover=2 * self.EEG_SRATE * WIN_LENGTH)
 
     @gen.coroutine
     def update_orn(self, timestamp, orn_data):
@@ -189,9 +189,10 @@ class Dashboard:
         exg_data = np.array([self.exg_source.data[key] for key in self.chan_key_list])
 
         # Check if the length of data is enough for FFT
-        if exg_data.shape[1] < EEG_SRATE * 4.5:
+        # TODO
+        if exg_data.shape[1] < self.EEG_SRATE * 4.5:
             return
-        fft_content, freq = get_fft(exg_data)
+        fft_content, freq = get_fft(exg_data, self.EEG_SRATE)
         data = dict(zip(self.chan_key_list, fft_content))
         data['f'] = freq
         self.fft_source.data = data
@@ -428,7 +429,7 @@ class Dashboard:
             plot.x_range.min_interval = t_length
 
 
-def get_fft(exg):
+def get_fft(exg, EEG_SRATE):
     """Compute FFT"""
     n_chan, n_sample = exg.shape
     L = n_sample / EEG_SRATE
