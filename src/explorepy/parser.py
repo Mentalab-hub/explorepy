@@ -29,7 +29,7 @@ def generate_packet(pid, timestamp, bin_data):
 
 
 class Parser:
-    def __init__(self, bp_freq=None, notch_freq=50, sampling_rate=250, socket=None, fid=None):
+    def __init__(self, bp_freq=None, notch_freq=50, sampling_rate=250, n_chan=4, socket=None, fid=None):
         """Parser class for explore device
 
         Args:
@@ -61,7 +61,7 @@ class Parser:
         self.data_rate_info = 250
         self.adc_mask = 255
         self.imp_calib_info = {}
-        self.signal_dc = np.zeros((4,), dtype=np.float)
+        self.signal_dc = np.zeros((n_chan,), dtype=np.float)
 
     def parse_packet(self, mode="print", csv_files=None, outlets=None, dashboard=None):
         """Reads and parses a package from a file or socket
@@ -123,7 +123,9 @@ class Parser:
                     packet.apply_bp_filter(exg_filter=self.filter)
                 # remove DC
                 for column in range((packet.data).shape[1]):
-                    self.signal_dc = 5.e-4 * packet.data[:, column] + 9.995e-1 * self.signal_dc
+                    # each packet has 33 or 16 samples (EEG4,EEG8) so here equivalent low frequency is 0.06Hz or 0.125Hz
+                    self.signal_dc = (2 / self.sampling_rate) * packet.data[:, column] + (
+                            1 - (2 / self.sampling_rate)) * self.signal_dc
                     packet.data[:, column] = packet.data[:, column] - self.signal_dc
             packet.push_to_dashboard(dashboard)
 

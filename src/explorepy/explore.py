@@ -116,7 +116,7 @@ class Explore:
             assert not os.path.isfile(meta_data_file), meta_data_file + " already exists!"
 
         with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, \
-        open(marker_out_file, "w") as f_marker, open(meta_data_file, "w") as f_metadata:
+                open(marker_out_file, "w") as f_marker, open(meta_data_file, "w") as f_metadata:
             f_orn.write("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz\n")
             # f_orn.write(
             #     "hh:mm:ss,mg/LSB,mg/LSB,mg/LSB,mdps/LSB,mdps/LSB,mdps/LSB,mgauss/LSB,mgauss/LSB,mgauss/LSB\n")
@@ -230,7 +230,8 @@ class Explore:
         thread.setDaemon(True)
         thread.start()
 
-        self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq, sampling_rate=sampling_rate)
+        self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq, sampling_rate=sampling_rate, \
+                             n_chan=n_chan)
         self.m_dashboard.start_loop()
 
     def _io_loop(self, device_id=0, mode="visualize"):
@@ -266,7 +267,7 @@ class Explore:
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
         try:
-            self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance")
+            self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance", sampling_rate=sampling_rate)
             self.m_dashboard.start_server()
 
             thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
@@ -340,10 +341,10 @@ class Explore:
                     
                 if isinstance(packet, CommandStatus):
                     if command.int2bytearray(packet.opcode,1) == command.opcode.value:
-                        print("The opcode matches the sent command, Explore has processed the command")
-                        is_listening = [False]
                         command_processed = True
+                        is_listening = [False]
                         command_timer.cancel()
+                        print("The opcode matches the sent command, Explore has processed the command")
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")

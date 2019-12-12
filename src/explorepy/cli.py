@@ -260,7 +260,9 @@ class CLI:
         parser.add_argument("-i", "--deviceID",
                             dest="device_id", type=int, default=0,
                             help="ID of the device.")
-        
+
+        args = parser.parse_args(sys.argv[2:])
+
         if args.name is None:
             explorer.connect(device_addr=args.address)
         elif args.address is None:
