@@ -145,7 +145,7 @@ class SetSPS(Command2B):
         self.delivery_state = DeliveryState.NOT_SENT
 
     def __str__(self):
-        return "set sampling rate command!!!"
+        return "Set sampling rate command"
 
 
 class MemoryFormat(Command2B):
@@ -156,6 +156,9 @@ class MemoryFormat(Command2B):
         super().__init__()
         self.opcode = OpcodeID.CMD_MEM_FORMAT
         self.param = b'\x00'
+
+    def __str__(self):
+        return "Format memory command"
 
 
 class ModuleDisable(Command2B):
@@ -174,6 +177,9 @@ class ModuleDisable(Command2B):
         elif module_name == "EEG":
             self.param = b'\x03'
 
+    def __str__(self):
+        return "Module disable command"
+
 
 class ModuleEnable(Command2B):
     def __init__(self, module_name):
@@ -191,6 +197,9 @@ class ModuleEnable(Command2B):
         elif module_name == "EEG":
             self.param = b'\x03'
 
+    def __str__(self):
+        return "Module enable command"
+
 
 class ZmeasurementDisable(Command2B):
     def __init__(self):
@@ -201,6 +210,9 @@ class ZmeasurementDisable(Command2B):
         self.opcode = OpcodeID.CMD_ZM_DISABLE
         self.param = b'\x00'
 
+    def __str__(self):
+        return "Impedance measurement disable command"
+
 
 class ZmeasurementEnable(Command2B):
     def __init__(self):
@@ -210,6 +222,30 @@ class ZmeasurementEnable(Command2B):
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_ENABLE
         self.param = b'\x00'
+
+    def __str__(self):
+        return "Impedance measurement enable command"
+
+
+class SetCh(Command2B):
+    def __init__(self, ch_mask):
+        """
+        Gets the desired rate and initializes the packet
+
+        Args:
+            ch_mask (int): ExG channel mask. It should be integers between 1 and 255.
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_CH_SET
+        if 1 <= ch_mask <= 255:
+            self.param = bytes([ch_mask])
+        else:
+            raise ValueError("Invalid input")
+        self.get_time()
+        self.delivery_state = DeliveryState.NOT_SENT
+
+    def __str__(self):
+        return "Channel set command"
 
 
 class SoftReset(Command2B):

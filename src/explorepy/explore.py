@@ -107,22 +107,27 @@ class Explore:
         exg_out_file = file_name + "_ExG.csv"
         orn_out_file = file_name + "_ORN.csv"
         marker_out_file = file_name + "_Marker.csv"
+        meta_data_file = file_name + "_Metadata.csv"
 
         if not do_overwrite:
             assert not os.path.isfile(exg_out_file), exg_out_file + " already exists!"
             assert not os.path.isfile(orn_out_file), orn_out_file + " already exists!"
             assert not os.path.isfile(marker_out_file), marker_out_file + " already exists!"
+            assert not os.path.isfile(meta_data_file), meta_data_file + " already exists!"
 
-        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, open(marker_out_file, "w") as f_marker:
+        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, \
+        open(marker_out_file, "w") as f_marker, open(meta_data_file, "w") as f_metadata:
             f_orn.write("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz\n")
             # f_orn.write(
             #     "hh:mm:ss,mg/LSB,mg/LSB,mg/LSB,mdps/LSB,mdps/LSB,mdps/LSB,mgauss/LSB,mgauss/LSB,mgauss/LSB\n")
             f_exg.write("TimeStamp,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8\n")
             f_marker.write("TimeStamp,Marker_code\n")
+            f_metadata.write("TimeStamp,firmware_version, data_rate_info, adc_mask\n")
 
             csv_exg = csv.writer(f_exg, delimiter=",")
             csv_orn = csv.writer(f_orn, delimiter=",")
             csv_marker = csv.writer(f_marker, delimiter=",")
+            csv_metadata = csv.writer(f_metadata, delimiter=",")
 
             is_acquiring = [True]
 
@@ -138,7 +143,7 @@ class Explore:
             while is_acquiring[0]:
                 try:
                     # self.parser.parse_packet()
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn, csv_marker))
+                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn, csv_marker, csv_metadata))
                     if time_offset is not None:
                         packet.timestamp = packet.timestamp-time_offset
                     else:
@@ -156,20 +161,21 @@ class Explore:
             f_exg.close()
             f_orn.close()
 
-    def push2lsl(self, n_chan, device_id=0, duration=None):
+    def push2lsl(self, n_chan, device_id=0, duration=None, sampling_rate=250):
         r"""Push samples to two lsl streams
 
         Args:
             device_id (int): device id (not needed in the current version)
             n_chan (int): Number of channels (4 or 8)
             duration (float): duration of data acquiring (if None it streams endlessly).
+            sampling_rate : sampling_rate of ExG data stream
         """
 
         assert (n_chan is not None), "Number of channels missing"
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
-        info_exg = StreamInfo('Explore', 'ExG', n_chan, 250, 'float32', 'ExG')
+        info_exg = StreamInfo('Explore', 'ExG', n_chan, sampling_rate, 'float32', 'ExG')
         info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
 
         orn_outlet = StreamOutlet(info_orn)
@@ -205,7 +211,7 @@ class Explore:
                 self.parser = Parser(self.socket)
         print("Data acquisition finished after ", duration, " seconds.")
 
-    def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
+    def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50, sampling_rate=250):
         r"""Visualization of the signal in the dashboard
         Args:
             n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
@@ -213,18 +219,18 @@ class Explore:
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
+            sampling_rate : sampling_rate of ExG data stream
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
-        self.m_dashboard = Dashboard(n_chan=n_chan)
+        self.m_dashboard = Dashboard(n_chan=n_chan, sampling_rate=sampling_rate)
         self.m_dashboard.start_server()
 
         thread = Thread(target=self._io_loop)
         thread.setDaemon(True)
         thread.start()
 
-        self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
-
+        self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq, sampling_rate=sampling_rate)
         self.m_dashboard.start_loop()
 
     def _io_loop(self, device_id=0, mode="visualize"):
@@ -246,7 +252,7 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
 
-    def measure_imp(self, n_chan, device_id=0, notch_freq=50):
+    def measure_imp(self, n_chan, device_id=0, notch_freq=50, sampling_rate=250):
         """
         Visualization of the electrode impedances
 
@@ -267,7 +273,7 @@ class Explore:
             thread.setDaemon(True)
             thread.start()
 
-            self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq)
+            self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq, sampling_rate=sampling_rate)
 
             # Activate impedance measurement mode in the device
             from explorepy import command
