@@ -82,7 +82,6 @@ This command sets the sampling rate of ExG input on the specified Explore device
 * ``-n`` or ``--name``           Device name (e.g. Explore_12AB).
 * ``-r`` or ``--sampling_rate``  Sampling rate of ExG channels, it can be 250, 500 or 1000.
 
-
 Example commands:
 """""""""""""""""
 Data acquisition: ``explorepy acquire -n Explore_XXXX  #Put your device Bluetooth name``
