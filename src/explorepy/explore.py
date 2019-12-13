@@ -7,10 +7,12 @@ import bluetooth
 import csv
 import os
 import time
+import signal
+import sys
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
-from datetime import datetime
 from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
+
 
 class Explore:
     r"""Mentalab Explore device"""
@@ -26,6 +28,7 @@ class Explore:
         for i in range(n_device):
             self.device.append(BtClient())
         self.is_connected = False
+        self.is_acquiring = None
 
     def connect(self, device_name=None, device_addr=None, device_id=0):
         r"""
@@ -118,8 +121,6 @@ class Explore:
         with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, \
                 open(marker_out_file, "w") as f_marker, open(meta_data_file, "w") as f_metadata:
             f_orn.write("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz\n")
-            # f_orn.write(
-            #     "hh:mm:ss,mg/LSB,mg/LSB,mg/LSB,mdps/LSB,mdps/LSB,mdps/LSB,mgauss/LSB,mgauss/LSB,mgauss/LSB\n")
             f_exg.write("TimeStamp,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8\n")
             f_marker.write("TimeStamp,Marker_code\n")
             f_metadata.write("TimeStamp,firmware_version, data_rate_info, adc_mask\n")
@@ -142,7 +143,6 @@ class Explore:
 
             while is_acquiring[0]:
                 try:
-                    # self.parser.parse_packet()
                     packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn, csv_marker, csv_metadata))
                     if time_offset is not None:
                         packet.timestamp = packet.timestamp-time_offset
@@ -235,13 +235,13 @@ class Explore:
         self.m_dashboard.start_loop()
 
     def _io_loop(self, device_id=0, mode="visualize"):
-        is_acquiring = True
-
+        self.is_acquiring = [True]
         # Wait until dashboard is initialized.
         while not hasattr(self.m_dashboard, 'doc'):
-            print('wait')
-            time.sleep(.2)
-        while is_acquiring:
+            print('wait...')
+            time.sleep(.5)
+
+        while self.is_acquiring[0]:
             try:
                 packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
             except ValueError:
@@ -252,6 +252,13 @@ class Explore:
             except bluetooth.BluetoothError as error:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
+        sys.exit(0)
+
+    def signal_handler(self, signal, frame):
+        # Safe handler of keyboardInterrupt
+        self.is_acquiring = [False]
+        print("Program is exiting...")
+        sys.exit(0)
 
     def measure_imp(self, n_chan, device_id=0, notch_freq=50, sampling_rate=250):
         """
@@ -261,31 +268,38 @@ class Explore:
             n_chan (int): Number of channels
             device_id (int): Device ID
             notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
+            sampling_rate (int): Sampling rate of the device
 
         Returns:
 
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        self.is_acquiring = [True]
+
+        signal.signal(signal.SIGINT, self.signal_handler)
+
         try:
             self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance", sampling_rate=sampling_rate)
             self.m_dashboard.start_server()
 
             thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
             thread.setDaemon(True)
-            thread.start()
-
             self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq, sampling_rate=sampling_rate)
+            thread.start()
 
             # Activate impedance measurement mode in the device
             from explorepy import command
             imp_activate_cmd = command.ZmeasurementEnable()
-            self.change_settings(imp_activate_cmd)
-
-            self.m_dashboard.start_loop()
-        except:
+            if self.change_settings(imp_activate_cmd):
+                self.m_dashboard.start_loop()
+            else:
+                os._exit(0)
+        finally:
+            print("Disabling impedance mode...")
             from explorepy import command
             imp_deactivate_cmd = command.ZmeasurementDisable()
             self.change_settings(imp_deactivate_cmd)
+            sys.exit(0)
 
     def change_settings(self, command, device_id=0):
         """
@@ -345,6 +359,8 @@ class Explore:
                         is_listening = [False]
                         command_timer.cancel()
                         print("The opcode matches the sent command, Explore has processed the command")
+                        return True
+
             except ValueError:
                 # If value error happens, scan again for devices and try to reconnect (see reconnect function)
                 print("Disconnected, scanning for last connected device")
@@ -354,7 +370,9 @@ class Explore:
                 print("Bluetooth Error: attempting reconnect. Error: ", error)
                 self.parser.socket = self.device[device_id].bt_connect()
         if not command_processed:
-            print("No status message has been received after ", waiting_time, " seconds. Please send the command again")
+            print("No status message has been received after ", waiting_time, " seconds. Please restart the device and "
+                                                                              "send the command again.")
+            return False
 
 
 if __name__ == '__main__':
