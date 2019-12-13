@@ -135,6 +135,7 @@ Authors
 - `Mohamad Atayi`_
 - `Philipp Jakovleski`_
 - `Andreas Gutsche`_
+- `Masooma Fazelian`_
 
 .. _Sebastian Herberger: https://github.com/SHerberger
 .. _Mohamad Atayi: https://github.com/bmeatayi
