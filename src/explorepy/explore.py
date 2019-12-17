@@ -279,9 +279,6 @@ class Explore:
         signal.signal(signal.SIGINT, self.signal_handler)
 
         try:
-            self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance", sampling_rate=sampling_rate)
-            self.m_dashboard.start_server()
-
             thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
             thread.setDaemon(True)
             self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq, sampling_rate=sampling_rate)
@@ -291,6 +288,9 @@ class Explore:
             from explorepy import command
             imp_activate_cmd = command.ZmeasurementEnable()
             if self.change_settings(imp_activate_cmd):
+                self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance", sampling_rate=sampling_rate,
+                                             firmware_version=self.parser.firmware_version)
+                self.m_dashboard.start_server()
                 self.m_dashboard.start_loop()
             else:
                 os._exit(0)
@@ -354,7 +354,7 @@ class Explore:
                     self.parser.imp_calib_info['offset'] = packet.offset
                     
                 if isinstance(packet, CommandStatus):
-                    if command.int2bytearray(packet.opcode,1) == command.opcode.value:
+                    if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
                         command_processed = True
                         is_listening = [False]
                         command_timer.cancel()
