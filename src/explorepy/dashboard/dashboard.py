@@ -37,7 +37,7 @@ FFT_COLORS = Colorblind[8]
 class Dashboard:
     """Explorepy dashboard class"""
 
-    def __init__(self, n_chan, sampling_rate, mode="signal"):
+    def __init__(self, n_chan, sampling_rate, mode="signal", firmware_version="NA"):
         self.n_chan = n_chan
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
@@ -67,7 +67,7 @@ class Dashboard:
 
         # Init table sources
         self.heart_rate_source = ColumnDataSource(data={'heart_rate': ['NA']})
-        self.firmware_source = ColumnDataSource(data={'firmware_version': ['NA']})
+        self.firmware_source = ColumnDataSource(data={'firmware_version': [firmware_version]})
         self.battery_source = ColumnDataSource(data={'battery': ['NA']})
         self.temperature_source = ColumnDataSource(data={'temperature': ['NA']})
         self.light_source = ColumnDataSource(data={'light': ['NA']})
