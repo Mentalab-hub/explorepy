@@ -128,7 +128,7 @@ class SetSPS(Command2B):
         Gets the desired rate and initializes the packet
 
         Args:
-            sps_rate (int): sampling rate per seconds. It should be one of these values: 250, 500, 1000
+            sps_rate (int): sampling rate per seconds. It should be one of these values: 250 or 500
         """
         super().__init__()
         self.opcode = OpcodeID.CMD_SPS_SET
@@ -136,8 +136,6 @@ class SetSPS(Command2B):
             self.param = b'\x01'
         elif sps_rate == 500:
             self.param = b'\x02'
-        elif sps_rate == 1000:
-            self.param = b'\x03'
         else:
             raise ValueError("Invalid input")
 
