@@ -122,10 +122,10 @@ class Parser:
                 if self.apply_bp_filter:
                     packet.apply_bp_filter(exg_filter=self.filter)
                 # remove DC
-                for column in range((packet.data).shape[1]):
-                    # each packet has 33 or 16 samples (EEG4,EEG8) so here equivalent low frequency is 0.06Hz or 0.125Hz
-                    self.signal_dc = (2 / self.sampling_rate) * packet.data[:, column] + (
-                            1 - (2 / self.sampling_rate)) * self.signal_dc
+                n_samples = (packet.data).shape[1]
+                for column in range(n_samples):
+                    self.signal_dc = ( self.bp_freq[0] / (self.sampling_rate*0.5)) * packet.data[:, column] + (
+                            1 - (self.bp_freq[0] / (self.sampling_rate*0.5))) * self.signal_dc
                     packet.data[:, column] = packet.data[:, column] - self.signal_dc
             packet.push_to_dashboard(dashboard)
 
