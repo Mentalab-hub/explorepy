@@ -222,7 +222,7 @@ class CLI:
 
         parser.add_argument("-r", "--sampling_rate",
                             dest="sampling_rate", type=str, default=None,
-                            help="Sampling rate of ExG channels, it can be 250, 500 or 1000.")
+                            help="Sampling rate of ExG channels, it can be 250 or 500")
 
         args = parser.parse_args(sys.argv[2:])
 
@@ -238,10 +238,8 @@ class CLI:
             explorer.change_settings(command.SetSPS(250))
         elif args.sampling_rate == '500':
             explorer.change_settings(command.SetSPS(500))
-        elif args.sampling_rate == '1000':
-            explorer.change_settings(command.SetSPS(1000))
         else:
-            raise ValueError("The only acceptable values are 250, 500 or 1000.")
+            raise ValueError("The only acceptable values are 250 or 500")
 
     @staticmethod
     def soft_reset():
@@ -288,7 +286,8 @@ class CLI:
         
         parser.add_argument("-m", "--channel_mask",
                             dest="channel_mask", type=str, default=None,
-                            help="Channel mask, it should be an integer between 1 and 255, the binarry representation will be interpreted as mask.")
+                            help="Channel mask, it should be an integer between 1 and 255, the binarry representation "
+                                 "will be interpreted as mask.")
         
         args = parser.parse_args(sys.argv[2:])
 
