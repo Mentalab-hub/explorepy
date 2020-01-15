@@ -16,13 +16,11 @@ Requirements
 
 Windows
 ^^^^^^^
-* Visual C++ 2010 Express for build
-* Visual Studio 2017 community edition (In order to build 64-bit debug and release executables)
+* Visual C++ build tools
+* Visual Studio 2015 community edition (In order to build 64-bit debug and release executables)
 
-Linux
-^^^^^
-* Python distutils
-* Bluez and header files
+Ubuntu 16.04 or 18.04
+^^^^^^^^^^^^^^^^^^^^^
 * ``sudo apt-get install libbluetooth-dev``
 
 Mac OS
@@ -40,7 +38,7 @@ How to install (Windows)
 This instructions guides you to install Explorepy API with all its dependencies on Windows.
 
 1. Install Python 3 on your computer. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Windows installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
-2. Download and install MS Visual Studio Community Edition 2017 (or 2015) from this `link <https://visualstudio.microsoft.com/vs/older-downloads/>`_. Make sure you check Python and C++ development tools.
+2. Download and install MS Visual Studio Community Edition 2015 from this `link <https://visualstudio.microsoft.com/vs/older-downloads/>`_. Make sure you install Build Tools for Visual Studio 2017 (version 15.9) from this `link <https://my.visualstudio.com/Downloads?q=visual%20studio%202017&wt.mc_id=o~msft~vscom~older-downloads>`_.
 3. We recommend using a virtual environment.
 
   * In Conda command prompt: ``conda create -n myenv python=3.6``
