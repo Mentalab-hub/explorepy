@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from explorepy._exceptions import *
 import bluetooth
 import time
 import sys
@@ -23,21 +24,21 @@ class BtClient:
             device_name(str): Name of the device (either device_name or device address should be given)
             device_addr(str): Devices MAC address
         """
-        assert (device_addr is not None) or (device_name is not None), "Missing name or address"
+        if (device_addr is None) and (device_name is None):
+            raise InputError("Missing name or address")
 
         if device_name is not None:
             if device_addr is None:
-                assert self.find_mac_addr(device_name), "Error: Couldn't find the device! Restart your device and " \
-                                                        "run the code again and check if MAC address/name is entered" \
-                                                        " correctly."
-                assert ((device_name[-4:-2] == self.lastUsedAddress[-5:-3]) and
-                        (device_name[-2:] == self.lastUsedAddress[-2:])), \
-                    "MAC address does not match the expected value!"
+                if not self.find_mac_addr(device_name):
+                    raise DeviceNotFoundError("Error: Couldn't find the device! Restart your device and run the code "
+                                              "again and check if MAC address/name is entered correctly.")
+
+                if not self._check_mac_address(device_name=device_name, mac_address=self.lastUsedAddress):
+                    raise ValueError("MAC address does not match the expected value!")
             else:
                 self.lastUsedAddress = device_addr
-                assert ((device_name[-4:-2] == self.lastUsedAddress[-5:-3]) and
-                        (device_name[-2:] == self.lastUsedAddress[-2:])), \
-                    "MAC address does not match the expected value!"
+                if not self._check_mac_address(device_name=device_name, mac_address=self.lastUsedAddress):
+                    raise ValueError("MAC address does not match the expected value!")
         else:
             # No need to scan if we have the address
             self.lastUsedAddress = device_addr
@@ -46,34 +47,40 @@ class BtClient:
 
         service_matches = self.find_explore_service()
 
-        assert service_matches, "SSP service for the device %s, with MAC address %s could not be found." \
-            "restart the device and try again" %(device_name, self.lastUsedAddress)
+        if service_matches is None:
+            raise DeviceNotFoundError("SSP service for the device %s, with MAC address %s could not be found. Please "
+                                      "restart the device and try again" %(device_name, self.lastUsedAddress))
 
         for services in service_matches:
             self.port = services["port"]
             self.name = services["name"]
             self.host = services["host"]
             # Checking if "Explore_ABCD" matches "XX:XX:XX:XX:AB:CD"
-            if (device_name[-4:-2] == self.host[-5:-3])and(device_name[-2:] == self.host[-2:]):
+            if self._check_mac_address(device_name=device_name, mac_address=self.host):
                 break
 
-        assert((device_name[-4:-2] == self.host[-5:-3])and(device_name[-2:] == self.host[-2:])), \
-            "MAC address does not match the expected value on the SSP service!!"
-
-        print("Connecting to %s with address %s" % (self.name, self.host))
+        if not self._check_mac_address(device_name=device_name, mac_address=self.host):
+            raise ValueError("MAC address does not match the expected value on the SSP service!!")
 
     def bt_connect(self):
         """Creates the socket
         """
+        timeout = 0
         while True:
             try:
                 self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+                print("Connecting to %s with address %s" % (self.name, self.host))
                 self.socket.connect((self.host, self.port))
                 break
             except bluetooth.BluetoothError as error:
                 self.socket.close()
-                print("Could not connect: ", error, "; Retrying in 2s...")
+                print("Could not connect; Retrying in 2s...")
                 time.sleep(2)
+            timeout += 1
+            if timeout > 5:
+                raise DeviceNotFoundError("Could not find the device! Please make sure the device is on and in "
+                                          "advertising mode.")
+
         return self.socket
 
     def reconnect(self):
@@ -94,10 +101,10 @@ class BtClient:
 
             timeout += 1
 
-        if timeout == 5:
-            print("Device not found!")
+        if timeout > 5:
             self.socket.close()
-            return False
+            raise DeviceNotFoundError("Could not find the device! Please make sure the device is on and in "
+                                      "advertising mode.")
 
     def find_mac_addr(self, device_name):
         i = 0
@@ -108,7 +115,7 @@ class BtClient:
                     self.lastUsedAddress = address
                     return True
             i += 1
-            print("No device found with name: %s, searching again in 0,1 seconds" % device_name)
+            print("No device found with the name: %s, searching again..." % device_name)
             time.sleep(0.1)
         return False
 
@@ -120,5 +127,9 @@ class BtClient:
             if len(service_matches) > 0:
                 return service_matches
             i += 1
-        return False
+        return None
+
+    @staticmethod
+    def _check_mac_address(device_name, mac_address):
+        return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])
 
