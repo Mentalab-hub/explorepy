@@ -136,11 +136,11 @@ class Parser:
                 print(packet)
             elif isinstance(packet, CalibrationInfo):
                 print(packet)
-                
+
         elif mode == "debug":
             if isinstance(packet, EEG):
                 print(packet)
-        
+
         elif mode == "impedance":
             if isinstance(packet, EEG):
                 if self.notch_freq:
@@ -166,7 +166,10 @@ class Parser:
             list of bytes
         """
         if self.socket is not None:
-            byte_data = self.socket.recv(n_bytes)
+            try:
+                byte_data = self.socket.recv(n_bytes)
+            except ValueError as e:
+                raise ConnectionAbortedError(e.__str__())
         elif not self.fid.closed:
             byte_data = self.fid.read(n_bytes)
         else:

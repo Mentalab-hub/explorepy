@@ -3,6 +3,7 @@
 from explorepy.bt_client import BtClient
 from explorepy.parser import Parser
 from explorepy.dashboard.dashboard import Dashboard
+from explorepy._exceptions import *
 import bluetooth
 import csv
 import os
@@ -80,14 +81,13 @@ class Explore:
         while is_acquiring[0]:
             try:
                 self.parser.parse_packet(mode="print")
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                socket = self.device[device_id].bt_connect()
-                self.parser.socket = socket
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: attempting reconnect. Error: ", error)
-                self.parser.socket = self.device[device_id].bt_connect()
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
+                try:
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    return 0
 
         print("Data acquisition stopped after ", duration, " seconds.")
 
@@ -113,10 +113,17 @@ class Explore:
         meta_data_file = file_name + "_Metadata.csv"
 
         if not do_overwrite:
-            assert not os.path.isfile(exg_out_file), exg_out_file + " already exists!"
-            assert not os.path.isfile(orn_out_file), orn_out_file + " already exists!"
-            assert not os.path.isfile(marker_out_file), marker_out_file + " already exists!"
-            assert not os.path.isfile(meta_data_file), meta_data_file + " already exists!"
+            if os.path.isfile(exg_out_file):
+                raise FileExistsError(exg_out_file + " already exists!")
+            if os.path.isfile(orn_out_file):
+                raise FileExistsError(orn_out_file + " already exists!")
+            if os.path.isfile(marker_out_file):
+                raise FileExistsError(marker_out_file + " already exists!")
+            if os.path.isfile(meta_data_file):
+                raise FileExistsError(meta_data_file + " already exists!")
+
+        if duration <= 0:
+            raise ValueError("Recording time must be a positive number!")
 
         with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, \
                 open(marker_out_file, "w") as f_marker, open(meta_data_file, "w") as f_metadata:
@@ -136,11 +143,12 @@ class Explore:
                 flag[0] = False
 
             if duration is not None:
-                Timer(duration, stop_acquiring, [is_acquiring]).start()
+                rec_timer = Timer(duration, stop_acquiring, [is_acquiring])
+                rec_timer.start()
                 print("Start recording for ", duration, " seconds...")
             else:
                 print("Recording...")
-
+            is_disconnect_occurred = False
             while is_acquiring[0]:
                 try:
                     packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn, csv_marker, csv_metadata))
@@ -149,14 +157,20 @@ class Explore:
                     else:
                         time_offset = packet.timestamp
 
-                except ValueError:
-                    # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                    print("Disconnected, scanning for last connected device")
-                    self.parser.socket = self.device[device_id].bt_connect()
-                except bluetooth.BluetoothError as error:
-                    print("Bluetooth Error: Timeout, attempting reconnect. Error: ", error)
-                    self.parser.socket = self.device[device_id].bt_connect()
-            print("Recording finished after ", duration, " seconds.")
+                except ConnectionAbortedError:
+                    print("Device has been disconnected! Scanning for last connected device...")
+                    try:
+                        self.parser.socket = self.device[device_id].bt_connect()
+                    except DeviceNotFoundError as e:
+                        print(e)
+                        rec_timer.cancel()
+                        return 0
+
+            if is_disconnect_occurred:
+                print("Error: Recording finished before ", duration, "seconds.")
+                rec_timer.cancel()
+            else:
+                print("Recording finished after ", duration, " seconds.")
             f_marker.close()
             f_exg.close()
             f_orn.close()
@@ -197,18 +211,14 @@ class Explore:
 
             try:
                 self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet, marker_outlet))
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                self.socket = self.device[device_id].bt_connect()
-                time.sleep(1)
-                self.parser = Parser(self.socket)
 
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: Timeout, attempting reconnect. Error: ", error)
-                self.socket = self.device[device_id].bt_connect()
-                time.sleep(1)
-                self.parser = Parser(self.socket)
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
+                try:
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    return 0
         print("Data acquisition finished after ", duration, " seconds.")
 
     def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50, sampling_rate=250):
@@ -244,15 +254,16 @@ class Explore:
         while self.is_acquiring[0]:
             try:
                 packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                socket = self.device[device_id].bt_connect()
-                self.parser.socket = socket
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: attempting reconnect. Error: ", error)
-                self.parser.socket = self.device[device_id].bt_connect()
-        sys.exit(0)
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
+                try:
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    self.is_acquiring[0] = False
+                    if mode == "visualize":
+                        os._exit(0)
+        os.exit(0)
 
     def signal_handler(self, signal, frame):
         # Safe handler of keyboardInterrupt
@@ -322,14 +333,13 @@ class Explore:
                 time.sleep(0.1)
                 send_command(command, self.socket)
                 sending_attempt = 0
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                socket = self.device[device_id].bt_connect()
-                self.parser.socket = socket
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: attempting reconnect. Error: ", error)
-                self.parser.socket = self.device[device_id].bt_connect()
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
+                try:
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    return 0
 
         is_listening = [True]
         command_processed = False
@@ -352,7 +362,7 @@ class Explore:
                 if isinstance(packet, CalibrationInfo):
                     self.parser.imp_calib_info['slope'] = packet.slope
                     self.parser.imp_calib_info['offset'] = packet.offset
-                    
+
                 if isinstance(packet, CommandStatus):
                     if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
                         command_processed = True
@@ -361,14 +371,13 @@ class Explore:
                         print("The opcode matches the sent command, Explore has processed the command")
                         return True
 
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                socket = self.device[device_id].bt_connect()
-                self.parser.socket = socket
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: attempting reconnect. Error: ", error)
-                self.parser.socket = self.device[device_id].bt_connect()
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
+                try:
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    return 0
         if not command_processed:
             print("No status message has been received after ", waiting_time, " seconds. Please restart the device and "
                                                                               "send the command again.")

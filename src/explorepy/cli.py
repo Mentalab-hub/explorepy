@@ -58,7 +58,7 @@ class CLI:
                             dest="filename", type=str, default=None,
                             help="Name of the CSV_Files.")
 
-        parser.add_argument("-o", "--overwrite", action='store_false',
+        parser.add_argument("-o", "--overwrite", action='store_true', default=False,
                             help="Overwrite files with same name.")
 
         parser.add_argument("-d", "--duration", type=int, default=None,

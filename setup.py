@@ -27,7 +27,7 @@ def read(*names, **kwargs):
 my_req = ['numpy', 'scipy']
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pybluez==0.22')  # Add pybluez if the environment is other than READTHEDOCS
-    my_req.append('pylsl==1.13.1')
+    my_req.append('pylsl')
     my_req.append('bokeh==1.0.4')
 
 setup(
