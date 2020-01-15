@@ -61,10 +61,13 @@ Requirements
 
 * Python 3.5 or newer version
 * `numpy <https://github.com/pybluez/pybluez>`_
-* `pybluez <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
+* `pybluez 0.22 <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
 * `pylsl <https://github.com/labstreaminglayer/liblsl-Python>`_
 * `scipy <https://github.com/scipy/scipy>`_
-* `bokeh <https://github.com/bokeh/bokeh>`_
+* `bokeh 1.0.4 <https://github.com/bokeh/bokeh>`_
+
+
+Please check `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_ for more detailed instruction.
 
 To install ``explorepy`` from PyPI run:
 ::
@@ -77,7 +80,6 @@ To install the latest development version run:
 
     pip install git+https://github.com/Mentalab-hub/explorepy
 
-For a more detailed installation guide please see `Installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_
 
 Get started
 ===========
