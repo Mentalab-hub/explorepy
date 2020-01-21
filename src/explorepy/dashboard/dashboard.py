@@ -204,7 +204,7 @@ class Dashboard:
             self.heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
         if self.rr_estimator is None:
-            self.rr_estimator = HeartRateEstimator()
+            self.rr_estimator = HeartRateEstimator(fs=self.EEG_SRATE)
             # Init R-peaks plot
             self.exg_plot.circle(x='t', y='r_peak', source=self.r_peak_source,
                                  fill_color="red", size=8)

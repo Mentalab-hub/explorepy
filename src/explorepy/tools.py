@@ -107,7 +107,7 @@ class HeartRateEstimator:
         self.prev_times = np.zeros(smoothing_win)
         self.prev_max_slope = 0
 
-        self.bp_filter = Filter(l_freq=1, h_freq=30, order=3)
+        self.bp_filter = Filter(l_freq=1, h_freq=30, order=3, sampling_freq=fs)
         self.hamming_window = signal.windows.hamming(smoothing_win, sym=True)
         self.hamming_window /= self.hamming_window.sum()
 
