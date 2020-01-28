@@ -306,7 +306,7 @@ class FileRecorder:
 
     """
 
-    def __init__(self, file_name, ch_label, fs, ch_unit, ch_min, ch_max,
+    def __init__(self, file_name, ch_label, fs, ch_unit, ch_min=None, ch_max=None,
                  device_name='Explore', file_type='edf', do_overwrite=False):
         """
 
@@ -314,8 +314,11 @@ class FileRecorder:
             file_name (str): File name
             ch_label (list): List of channel labels.
             fs (int): Sampling rate (must be identical for all channels)
+            ch_unit (list): List of channels unit (e.g. 'V', 'mG', 's', etc.)
+            ch_min (list): List of minimum value of each channel. Only needed in edf mode (can be None in csv mode)
+            ch_max (list): List of maximum value of each channel. Only needed in edf mode (can be None in csv mode)
             device_name (str): Recording device name
-            file_type (str): File type. current options: 'edf'.
+            file_type (str): File type. current options: 'edf' and 'csv'.
             do_overwrite (bool): Overwrite file if a file with the same name exists already.
         """
 
@@ -324,40 +327,54 @@ class FileRecorder:
             raise ValueError("Invalid character in file name")
 
         self._file_obj = None
+        self._file_type = file_type
         self._ch_label = ch_label
         self._ch_unit = ch_unit
         self._ch_max = ch_max
         self._ch_min = ch_min
-        if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
-            raise ValueError('ch_unit, ch_label, ch_min and ch_max must have the same length!')
+        if len(ch_unit) != len(ch_label):
+            raise ValueError('ch_unit and ch_label must have the same length!')
         self._n_chan = len(ch_label)
         self._device_name = device_name
         self._fs = fs
 
         if file_type == 'edf':
+            if (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
+                raise ValueError('ch_unit, ch_min and ch_max must have the same length!')
             self._file_name = file_name + '.edf'
-            self._file_type = file_type
-            self._file_obj = self._create_edf(do_overwrite=do_overwrite)
-            self._init_channels()
-
-        self._data = np.zeros((self._n_chan, 0))
+            self._create_edf(do_overwrite=do_overwrite)
+            self._init_edf_channels()
+            self._data = np.zeros((self._n_chan, 0))
+        elif file_type == 'csv':
+            self._file_name = file_name + '.csv'
+            self._create_csv(do_overwrite=do_overwrite)
 
     def _create_edf(self, do_overwrite):
         if (not do_overwrite) and os.path.isfile(self._file_name):
             raise FileExistsError(self._file_name + 'already exists!')
         assert self._file_obj is None, "Usage Error: File object has been created already."
-        return pyedflib.EdfWriter(self._file_name, self._n_chan, file_type=pyedflib.FILETYPE_EDFPLUS)
+        self._file_obj = pyedflib.EdfWriter(self._file_name, self._n_chan, file_type=pyedflib.FILETYPE_EDFPLUS)
+
+    def _create_csv(self, do_overwrite):
+        if (not do_overwrite) and os.path.isfile(self._file_name):
+            raise FileExistsError(self._file_name + 'already exists!')
+        assert self._file_obj is None, "Usage Error: File object has been created already."
+        self._file_obj = open(self._file_name, 'w')
+        self._csv_obj = csv.writer(self._file_obj, delimiter=",")
+        self._csv_obj.writerow(self._ch_label)
 
     def stop(self):
         """Stop recording"""
         assert self._file_obj is not None, "Usage Error: File object has not been created yet."
-        if self._data.shape[1] > 0:
-            self._file_obj.writeSamples(list(self._data))
-        self._file_obj.close()
-        self._file_obj = None
-        return
+        if self._file_type == 'edf':
+            if self._data.shape[1] > 0:
+                self._file_obj.writeSamples(list(self._data))
+            self._file_obj.close()
+            self._file_obj = None
+        elif self._file_type == 'csv':
+            self._file_obj.close()
 
-    def _init_channels(self):
+    def _init_edf_channels(self):
         self._file_obj.setEquipment(self._device_name)
         self._file_obj.setStartdatetime(datetime.datetime.now())
 
@@ -376,34 +393,39 @@ class FileRecorder:
         for i, ch_info in enumerate(ch_info_list):
             self._file_obj.setSignalHeader(i, ch_info)
 
-    def buffer_data(self, data):
-        """Buffers data for writing to the file
+    def write_data(self, data):
+        """writes data to the file
+
+        Notes:
+            If file type is set to EDF, this function writes each 1 seconds of data. If the input is less than 1 second,
+            it will be buffered in the memory and it will be written in the file when enough data is in the buffer.
 
         Args:
             data (np.array): Array of data to be written in the file with dimension of n_chan x n_sample
 
-        Returns:
-
         """
-        if data.shape[0] != self._n_chan:
-            raise ValueError('Input first dimension must be {}'.format(self._n_chan))
-        self._data = np.concatenate((self._data, data), axis=1)
+        if self._file_type == 'edf':
+            if data.shape[0] != self._n_chan:
+                raise ValueError('Input first dimension must be {}'.format(self._n_chan))
+            self._data = np.concatenate((self._data, data), axis=1)
 
-        if self._data.shape[1] > self._fs:
-            self._file_obj.writeSamples(list(self._data[:, :self._fs]))
-            self._data = self._data[:, self._fs:]
+            if self._data.shape[1] > self._fs:
+                self._file_obj.writeSamples(list(self._data[:, :self._fs]))
+                self._data = self._data[:, self._fs:]
+        elif self._file_type == 'csv':
+            self._csv_obj.writerows(data.T.tolist())
 
 
 if __name__ == '__main__':
     file_name = 'test_rec'
-    labels = ['ch01', 'ch02', 'ch_03', 'ch04', 'timestamp']
+    labels = ['timestamp', 'ch01', 'ch02', 'ch_03', 'ch04']
     units = ['V', 'V', 'V', 'V', 's']
     mins = [-1, -1, -1, -1, 0]
     maxs = [1, 1, 1, 1, 86400]
-    recorder = FileRecorder(file_name=file_name, fs=250, ch_label=labels,
+    recorder = FileRecorder(file_name=file_name, fs=250, ch_label=labels, file_type='csv',
                             ch_unit=units, ch_max=maxs, ch_min=mins, do_overwrite=True)
 
     for i in range(1002):
         chunk = np.random.normal(0, 1, (5, 33))
-        recorder.buffer_data(chunk)
+        recorder.write_data(chunk)
     recorder.stop()
