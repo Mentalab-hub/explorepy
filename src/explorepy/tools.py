@@ -53,31 +53,36 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
     if out_dir is None:
         out_dir = head_path + '/'
 
-    eeg_out_file = out_dir + filename + '_eeg.csv'
+    exg_out_file = out_dir + filename + '_exg.csv'
     orn_out_file = out_dir + filename + '_orn.csv'
     marker_out_file = out_dir + filename + '_marker.csv'
+    #
+    # if not do_overwrite:
+    #     assert not os.path.isfile(exg_out_file), exg_out_file + " already exists!"
+    #     assert not os.path.isfile(orn_out_file), orn_out_file + " already exists!"
+    #     assert not os.path.isfile(marker_out_file), marker_out_file + " already exists!"
 
-    if not do_overwrite:
-        assert not os.path.isfile(eeg_out_file), eeg_out_file + " already exists!"
-        assert not os.path.isfile(orn_out_file), orn_out_file + " already exists!"
-        assert not os.path.isfile(marker_out_file), marker_out_file + " already exists!"
+    exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+    exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V']
+    exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=250, ch_unit=exg_unit,
+                                file_type='csv', do_overwrite=do_overwrite)
 
-    with open(bin_file, "rb") as f_bin, open(eeg_out_file, "w") as f_eeg, open(orn_out_file, "w") as f_orn, \
-        open(marker_out_file, "w") as f_marker:
+    orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
+    orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+    orn_recorder = FileRecorder(file_name=orn_out_file, ch_label=orn_ch, fs=20,
+                                ch_unit=orn_unit, file_type='csv', do_overwrite=do_overwrite)
+
+    marker_ch = ['TimeStamp', 'Code']
+    marker_unit = ['s', '-']
+    marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=None, ch_unit=marker_unit,
+                                   file_type='csv', do_overwrite=do_overwrite)
+    with open(bin_file, "rb") as f_bin:
         parser = Parser(fid=f_bin)
-        f_orn.write('TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz\n')
-        # f_orn.write('hh:mm:ss, mg/LSB, mg/LSB, mg/LSB, mdps/LSB, mdps/LSB, mdps/LSB,'
-        #             ' mgauss/LSB, mgauss/LSB, mgauss/LSB\n')
-        f_eeg.write('TimeStamp,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8\n')
-
-        csv_eeg = csv.writer(f_eeg, delimiter=',')
-        csv_orn = csv.writer(f_orn, delimiter=',')
-        csv_marker = csv.writer(f_marker, delimiter=',')
 
         print("Converting...")
         while True:
             try:
-                parser.parse_packet(mode='record', csv_files=(csv_eeg, csv_orn, csv_marker))
+                parser.parse_packet(mode='record', recorders=(exg_recorder, orn_recorder, marker_recorder))
             except ValueError:
                 print("Binary file ended suddenly! Conversion finished!")
                 break
@@ -332,15 +337,13 @@ class FileRecorder:
         self._ch_unit = ch_unit
         self._ch_max = ch_max
         self._ch_min = ch_min
-        if len(ch_unit) != len(ch_label):
-            raise ValueError('ch_unit and ch_label must have the same length!')
         self._n_chan = len(ch_label)
         self._device_name = device_name
         self._fs = fs
 
         if file_type == 'edf':
-            if (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
-                raise ValueError('ch_unit, ch_min and ch_max must have the same length!')
+            if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
+                raise ValueError('ch_label, ch_unit, ch_min and ch_max must have the same length!')
             self._file_name = file_name + '.edf'
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
@@ -387,8 +390,8 @@ class FileRecorder:
                                  'physical_min': ch[3],
                                  'digital_max':  8388607,
                                  'digital_min':  -8388608,
-                                 'prefilter':  '',
-                                 'transducer': ''
+                                 'prefilter':    '',
+                                 'transducer':   ''
                                  })
         for i, ch_info in enumerate(ch_info_list):
             self._file_obj.setSignalHeader(i, ch_info)
