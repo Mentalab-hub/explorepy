@@ -63,12 +63,12 @@ class Parser:
         self.imp_calib_info = {}
         self.signal_dc = np.zeros((n_chan,), dtype=np.float)
 
-    def parse_packet(self, mode="print", csv_files=None, outlets=None, dashboard=None):
+    def parse_packet(self, mode="print", recorders=None, outlets=None, dashboard=None):
         """Reads and parses a package from a file or socket
 
         Args:
             mode (str): logging mode {'print', 'record', 'lsl', 'visualize', None}
-            csv_files (tuple): Tuple of csv file objects (EEG_csv_file, ORN_csv_file, Marker_csv_file)
+            recorders (tuple): Tuple of recorder objects
             outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet, marker_outlet)
             dashboard (Dashboard): Dashboard object for visualization
         Returns:
@@ -97,15 +97,15 @@ class Parser:
             print(packet)
 
         elif mode == "record":
-            assert isinstance(csv_files, tuple), "Invalid csv writer objects!"
+            assert isinstance(recorders, tuple), "Invalid csv writer objects!"
             if isinstance(packet, Orientation):
-                packet.write_to_csv(csv_files[1])
+                packet.write_to_file(recorders[1])
             elif isinstance(packet, EEG):
-                packet.write_to_csv(csv_files[0])
+                packet.write_to_file(recorders[0])
             elif isinstance(packet, MarkerEvent):
-                packet.write_to_csv(csv_files[2])
-            elif isinstance(packet, DeviceInfo):
-                packet.write_to_csv(csv_files[3])
+                packet.write_to_file(recorders[2])
+            # elif isinstance(packet, DeviceInfo):
+            #     packet.write_to_file(recorders[3])
 
         elif mode == "lsl":
             if isinstance(packet, Orientation):
