@@ -6,6 +6,8 @@ import bluetooth
 import numpy as np
 from explorepy.filters import Filter
 from scipy import signal
+import pyedflib
+import datetime
 
 
 def bt_scan():
@@ -33,7 +35,6 @@ def bt_scan():
 
 
 def bin2csv(bin_file, do_overwrite=False, out_dir=None):
-
     """Binary to CSV file converter.
     This function converts the given binary file to ExG and ORN csv files.
 
@@ -98,7 +99,7 @@ class HeartRateEstimator:
             MIT/BIH arrhythmia database. IEEE transactions on biomedical engineering.
         """
         self.fs = fs
-        self.threshold = .35   # Generally between 0.3125 and 0.475
+        self.threshold = .35  # Generally between 0.3125 and 0.475
         self.ns200ms = int(self.fs * .2)
         self.r_peaks_buffer = [(0., 0.)]
         self.noise_peaks_buffer = [(0., 0., 0.)]
@@ -141,7 +142,7 @@ class HeartRateEstimator:
                 print('Missing peaks!')
                 return 'NA'
             else:
-                estimated_heart_rate = int(1./np.mean(rr_intervals) * 60)
+                estimated_heart_rate = int(1. / np.mean(rr_intervals) * 60)
                 if estimated_heart_rate > 140 or estimated_heart_rate < 40:
                     print('Estimated heart rate <40 or >140!')
                     estimated_heart_rate = 'NA'
@@ -223,8 +224,8 @@ class HeartRateEstimator:
                     st_idx = 0
                 else:
                     st_idx = peak_idx - 15
-                if (peak_idx + 15) > (len(ecg_sig)-1):
-                    end_idx = len(ecg_sig)-1
+                if (peak_idx + 15) > (len(ecg_sig) - 1):
+                    end_idx = len(ecg_sig) - 1
                 else:
                     end_idx = peak_idx + 15
 
@@ -240,11 +241,11 @@ class HeartRateEstimator:
             pval = peak_val  # ecg_sig[st_idx:peak_idx].max()
 
             if pval > self.decision_threshold:
-                temp_idx = st_idx + np.argmax(ecg_sig[st_idx:peak_idx+1])
+                temp_idx = st_idx + np.argmax(ecg_sig[st_idx:peak_idx + 1])
                 temp_time = time_vector[temp_idx]
 
                 detected_peaks_idx.append(temp_idx)
-                detected_peaks_val.append(ecg_sig[st_idx:peak_idx+1].max())
+                detected_peaks_val.append(ecg_sig[st_idx:peak_idx + 1].max())
                 detected_peaks_time.append(temp_time)
                 self.push_r_peak(pval, temp_time)
 
@@ -252,7 +253,7 @@ class HeartRateEstimator:
                     st_idx = 0
                 else:
                     st_idx = peak_idx - 25
-                self.prev_max_slope = np.abs(np.diff(ecg_sig[st_idx:peak_idx+25])).max()
+                self.prev_max_slope = np.abs(np.diff(ecg_sig[st_idx:peak_idx + 25])).max()
             else:
                 self.push_noise_peak(pval, peak_idx, peak_time)
 
@@ -293,3 +294,116 @@ class HeartRateEstimator:
                         # TODO: return a negative index for it!
                         pass
 
+
+class FileRecorder:
+    """Explorepy file recorder class.
+
+    This class can write ExG, orientation and environment data into (separated) EDF+ files. It can write data while
+    streaming from Explore device. The incoming data will be stored in a buffer and after it reached fs samples, it
+    writes the buffer in EDF file.
+
+    Attributes:
+
+    """
+
+    def __init__(self, file_name, ch_label, fs, ch_unit, ch_min, ch_max,
+                 device_name='Explore', file_type='edf', do_overwrite=False):
+        """
+
+        Args:
+            file_name (str): File name
+            ch_label (list): List of channel labels.
+            fs (int): Sampling rate (must be identical for all channels)
+            device_name (str): Recording device name
+            file_type (str): File type. current options: 'edf'.
+            do_overwrite (bool): Overwrite file if a file with the same name exists already.
+        """
+
+        # Check invalid characters
+        if set(r'[<>/{}[\]~`]*%:').intersection(file_name):
+            raise ValueError("Invalid character in file name")
+
+        self._file_obj = None
+        self._ch_label = ch_label
+        self._ch_unit = ch_unit
+        self._ch_max = ch_max
+        self._ch_min = ch_min
+        if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
+            raise ValueError('ch_unit, ch_label, ch_min and ch_max must have the same length!')
+        self._n_chan = len(ch_label)
+        self._device_name = device_name
+        self._fs = fs
+
+        if file_type == 'edf':
+            self._file_name = file_name + '.edf'
+            self._file_type = file_type
+            self._file_obj = self._create_edf(do_overwrite=do_overwrite)
+            self._init_channels()
+
+        self._data = np.zeros((self._n_chan, 0))
+
+    def _create_edf(self, do_overwrite):
+        if (not do_overwrite) and os.path.isfile(self._file_name):
+            raise FileExistsError(self._file_name + 'already exists!')
+        assert self._file_obj is None, "Usage Error: File object has been created already."
+        return pyedflib.EdfWriter(self._file_name, self._n_chan, file_type=pyedflib.FILETYPE_EDFPLUS)
+
+    def stop(self):
+        """Stop recording"""
+        assert self._file_obj is not None, "Usage Error: File object has not been created yet."
+        if self._data.shape[1] > 0:
+            self._file_obj.writeSamples(list(self._data))
+        self._file_obj.close()
+        self._file_obj = None
+        return
+
+    def _init_channels(self):
+        self._file_obj.setEquipment(self._device_name)
+        self._file_obj.setStartdatetime(datetime.datetime.now())
+
+        ch_info_list = []
+        for ch in zip(self._ch_label, self._ch_unit, self._ch_max, self._ch_min):
+            ch_info_list.append({'label':        ch[0],
+                                 'dimension':    ch[1],
+                                 'sample_rate':  self._fs,
+                                 'physical_max': ch[2],
+                                 'physical_min': ch[3],
+                                 'digital_max':  8388607,
+                                 'digital_min':  -8388608,
+                                 'prefilter':  '',
+                                 'transducer': ''
+                                 })
+        for i, ch_info in enumerate(ch_info_list):
+            self._file_obj.setSignalHeader(i, ch_info)
+
+    def buffer_data(self, data):
+        """Buffers data for writing to the file
+
+        Args:
+            data (np.array): Array of data to be written in the file with dimension of n_chan x n_sample
+
+        Returns:
+
+        """
+        if data.shape[0] != self._n_chan:
+            raise ValueError('Input first dimension must be {}'.format(self._n_chan))
+        self._data = np.concatenate((self._data, data), axis=1)
+
+        if self._data.shape[1] > self._fs:
+            self._file_obj.writeSamples(list(self._data[:, :self._fs]))
+            self._data = self._data[:, self._fs:]
+
+
+if __name__ == '__main__':
+    file_name = 'test_rec'
+    labels = ['ch01', 'ch02', 'ch_03', 'ch04', 'timestamp']
+    units = ['V', 'V', 'V', 'V', 's']
+    mins = [-1, -1, -1, -1, 0]
+    maxs = [1, 1, 1, 1, 86400]
+    recorder = FileRecorder(file_name=file_name, fs=250, ch_label=labels,
+                            ch_unit=units, ch_max=maxs, ch_min=mins, do_overwrite=True)
+
+    for i in range(1002):
+        chunk = np.random.normal(0, 1, (5, 33))
+        recorder.buffer_data(chunk)
+    recorder.stop()
