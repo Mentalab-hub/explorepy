@@ -355,7 +355,7 @@ class FileRecorder:
 
     def _create_csv(self, do_overwrite):
         if (not do_overwrite) and os.path.isfile(self._file_name):
-            raise FileExistsError(self._file_name + 'already exists!')
+            raise FileExistsError(self._file_name + ' already exists!')
         assert self._file_obj is None, "Usage Error: File object has been created already."
         self._file_obj = open(self._file_name, 'w')
         self._csv_obj = csv.writer(self._file_obj, delimiter=",")
@@ -412,6 +412,18 @@ class FileRecorder:
                 self._data = self._data[:, self._fs:]
         elif self._file_type == 'csv':
             self._csv_obj.writerows(data.T.tolist())
+
+    def set_marker(self, data):
+        """Writes a marker event in the file
+
+        Args:
+            data (np.array): Array of marker data with size 2x1 ([[timestamp],[code]])
+
+        """
+        if self._file_type == 'csv':
+            self.write_data(data)
+        elif self._file_type == 'edf':
+            self._file_obj.writeAnnotation(data[0, 0], 0.001, str(int(data[1, 0])))
 
 
 if __name__ == '__main__':
