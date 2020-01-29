@@ -385,7 +385,7 @@ class MarkerEvent(Packet):
         return "Event marker: " + str(self.marker_code)
 
     def write_to_file(self, recorder):
-        recorder.write_data(np.array([self.timestamp, self.marker_code])[:,np.newaxis])
+        recorder.set_marker(np.array([self.timestamp, self.marker_code])[:, np.newaxis])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample([self.marker_code])
