@@ -54,6 +54,10 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
+        parser.add_argument("-c", "--channel",
+                            dest="n_chan", type=int,
+                            help="Number of channels.")
+
         parser.add_argument("-f", "--filename",
                             dest="filename", type=str, default=None,
                             help="Name of the CSV_Files.")
@@ -64,6 +68,10 @@ class CLI:
         parser.add_argument("-d", "--duration", type=int, default=None,
                             help="Recording duration in seconds")
 
+        parser.add_argument("-t", "--type",
+                            dest="file_type", type=str, default='edf',
+                            help="File type (edf or csv).")
+
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
@@ -72,7 +80,8 @@ class CLI:
             explorer.connect(device_name=args.name)
 
         assert (args.filename is not None), "Missing Filename"
-        explorer.record_data(file_name=args.filename, do_overwrite=args.overwrite, duration=args.duration)
+        explorer.record_data(file_name=args.filename, n_chan=args.n_chan, file_type=args.file_type,
+                             do_overwrite=args.overwrite, duration=args.duration)
 
     @staticmethod
     def push2lsl():
@@ -246,7 +255,7 @@ class CLI:
         explorer = Explore()
         parser = argparse.ArgumentParser(
             description='Terminate the recording session and reset the selected explore device')
-        
+
         parser.add_argument("-a", "--address",
                             dest="address", type=str, default=None,
                             help="Explore device's MAC address.")
@@ -254,7 +263,7 @@ class CLI:
         parser.add_argument("-n", "--name",
                             dest="name", type=str, default=None,
                             help="Name of the device.")
-        
+
         parser.add_argument("-i", "--deviceID",
                             dest="device_id", type=int, default=0,
                             help="ID of the device.")
@@ -265,37 +274,37 @@ class CLI:
             explorer.connect(device_addr=args.address)
         elif args.address is None:
             explorer.connect(device_name=args.name)
-            
+
         from explorepy import command
         soft_reset_cmd = command.SoftReset()
         explorer.change_settings(soft_reset_cmd)
-        
+
     @staticmethod
     def set_channels():
         explorer = Explore()
         parser = argparse.ArgumentParser(
             description='Mask the channels of selected explore device (yet in alpha state)')
-        
+
         parser.add_argument("-a", "--address",
                             dest="address", type=str, default=None,
                             help="Explore device's MAC address.")
-        
+
         parser.add_argument("-n", "--name",
                             dest="name", type=str, default=None,
                             help="Name of the device.")
-        
+
         parser.add_argument("-m", "--channel_mask",
                             dest="channel_mask", type=str, default=None,
                             help="Channel mask, it should be an integer between 1 and 255, the binarry representation "
                                  "will be interpreted as mask.")
-        
+
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
             explorer.connect(device_addr=args.address)
         elif args.address is None:
             explorer.connect(device_name=args.name)
-            
+
         from explorepy import command
         if args.channel_mask is None:
             raise ValueError("Please specify the mask")
