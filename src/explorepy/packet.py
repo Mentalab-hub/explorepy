@@ -143,6 +143,11 @@ class EEG(Packet):
         self.calculate_impedance(imp_calib_info)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
 
+    def write_to_file(self, recorder):
+        tmpstmp = np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)*0.004,
+                              self.data.shape[1])  # 250 Hz
+        recorder.write_data(np.concatenate((tmpstmp[:, np.newaxis], self.data.T), axis=1).T)
+
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
@@ -167,11 +172,6 @@ class EEG94(EEG):
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.dataStatus[-1]  )
 
-    def write_to_file(self, recorder):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:, :] = self.timestamp
-        recorder.write_data(np.concatenate((tmpstmp, self.data.T), axis=1))
-
 
 class EEG98(EEG):
     """EEG packet for 8 channel device"""
@@ -194,12 +194,7 @@ class EEG98(EEG):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str((self.status))
-
-    def write_to_file(self, recorder):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:, :] = self.timestamp
-        recorder.write_data(np.concatenate((tmpstmp, self.data.T), axis=1))
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
 
 class EEG99s(EEG):
@@ -225,13 +220,6 @@ class EEG99s(EEG):
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
-    def write_to_file(self, recorder):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        for i in range(0, 16):
-            tmpstmp[i, :] = (self.timestamp - 0.064 + i * 40) / 10000
-
-        recorder.write_data(np.concatenate((tmpstmp, self.data.T), axis=1))
-
 
 class EEG99(EEG):
     """EEG packet for 8 channel device"""
@@ -255,11 +243,6 @@ class EEG99(EEG):
     def __str__(self):
         return "EEG: " + str(self.data[:, -1])
 
-    def write_to_file(self, recorder):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:, :] = self.timestamp
-        recorder.write_data(np.concatenate((tmpstmp, self.data.T), axis=1))
-
 
 class Orientation(Packet):
     """Orientation data packet"""
@@ -282,7 +265,8 @@ class Orientation(Packet):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
     def write_to_file(self, recorder):
-        recorder.write_data([self.timestamp] + self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
+        recorder.write_data(np.array([self.timestamp] + self.acc.tolist() +
+                                     self.gyro.tolist() + self.mag.tolist())[:, np.newaxis])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
@@ -401,7 +385,7 @@ class MarkerEvent(Packet):
         return "Event marker: " + str(self.marker_code)
 
     def write_to_file(self, recorder):
-        recorder.write_data([self.timestamp, self.marker_code])
+        recorder.write_data(np.array([self.timestamp, self.marker_code])[:,np.newaxis])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample([self.marker_code])
