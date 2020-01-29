@@ -136,15 +136,14 @@ class Explore:
         elif file_type == 'edf':
             marker_recorder = exg_recorder
 
-        if duration <= 0:
-            raise ValueError("Recording time must be a positive number!")
-
         is_acquiring = [True]
 
         def stop_acquiring(flag):
             flag[0] = False
 
         if duration is not None:
+            if duration <= 0:
+                raise ValueError("Recording time must be a positive number!")
             rec_timer = Timer(duration, stop_acquiring, [is_acquiring])
             rec_timer.start()
             print("Start recording for ", duration, " seconds...")
