@@ -328,7 +328,7 @@ class FileRecorder:
         """
 
         # Check invalid characters
-        if set(r'[<>/{}[\]~`]*%:').intersection(file_name):
+        if set(r'<>{}[]~`*%:').intersection(file_name):
             raise ValueError("Invalid character in file name")
 
         self._file_obj = None
