@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-
 from explorepy.bt_client import BtClient
 from explorepy.parser import Parser
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy._exceptions import *
-import bluetooth
+from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
+from explorepy.tools import FileRecorder
 import csv
 import os
 import time
@@ -12,7 +12,6 @@ import signal
 import sys
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
-from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
 
 
 class Explore:
@@ -91,89 +90,93 @@ class Explore:
 
         print("Data acquisition stopped after ", duration, " seconds.")
 
-    def record_data(self, file_name, do_overwrite=False, device_id=0, duration=None):
+    def record_data(self, file_name, n_chan, do_overwrite=False, device_id=0, duration=None, file_type='csv'):
         r"""Records the data in real-time
 
         Args:
-            file_name (str): output file name
-            device_id (int): device id (not needed in the current version)
+            file_name (str): Output file name
+            n_chan (int): Number of channels
+            device_id (int): Device id (not needed in the current version)
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
+            file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         # Check invalid characters
-        if set(r'[<>/{}[\]~`]*%').intersection(file_name):
+        if set(r'<>{}[]~`*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
 
+        if file_type not in ['edf', 'csv']:
+            raise ValueError('{} is not a supported file extension!'.format(file_type))
         time_offset = None
-        exg_out_file = file_name + "_ExG.csv"
-        orn_out_file = file_name + "_ORN.csv"
-        marker_out_file = file_name + "_Marker.csv"
-        meta_data_file = file_name + "_Metadata.csv"
+        exg_out_file = file_name + "_ExG"
+        orn_out_file = file_name + "_ORN"
+        marker_out_file = file_name + "_Marker"
 
-        if not do_overwrite:
-            if os.path.isfile(exg_out_file):
-                raise FileExistsError(exg_out_file + " already exists!")
-            if os.path.isfile(orn_out_file):
-                raise FileExistsError(orn_out_file + " already exists!")
-            if os.path.isfile(marker_out_file):
-                raise FileExistsError(marker_out_file + " already exists!")
-            if os.path.isfile(meta_data_file):
-                raise FileExistsError(meta_data_file + " already exists!")
+        exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8'][0:n_chan+1]
+        exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'][0:n_chan+1]
+        exg_max = [86400, 1, 1, 1, 1, 1, 1, 1, 1][0:n_chan + 1]
+        exg_min = [0, -1, -1, -1, -1, -1, -1, -1, -1][0:n_chan + 1]
+        exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=250, ch_unit=exg_unit,
+                                    file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
+
+        orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
+        orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+        orn_max = [86400, 2000, 2000, 2000, 287000, 287000, 287000, 50000, 50000, 50000]
+        orn_min = [0, -2000, -2000, -2000, -287000, -287000, -287000, -50000, -50000, -50000]
+        orn_recorder = FileRecorder(file_name=orn_out_file, ch_label=orn_ch, fs=20,
+                                    ch_unit=orn_unit, file_type=file_type, do_overwrite=do_overwrite,
+                                    ch_min=orn_min, ch_max=orn_max)
+        if file_type == 'csv':
+            marker_ch = ['TimeStamp', 'Code']
+            marker_unit = ['s', '-']
+            marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=None, ch_unit=marker_unit,
+                                           file_type=file_type, do_overwrite=do_overwrite)
+        elif file_type == 'edf':
+            marker_recorder = exg_recorder
 
         if duration <= 0:
             raise ValueError("Recording time must be a positive number!")
 
-        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, \
-                open(marker_out_file, "w") as f_marker, open(meta_data_file, "w") as f_metadata:
-            f_orn.write("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz\n")
-            f_exg.write("TimeStamp,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8\n")
-            f_marker.write("TimeStamp,Marker_code\n")
-            f_metadata.write("TimeStamp,firmware_version, data_rate_info, adc_mask\n")
+        is_acquiring = [True]
 
-            csv_exg = csv.writer(f_exg, delimiter=",")
-            csv_orn = csv.writer(f_orn, delimiter=",")
-            csv_marker = csv.writer(f_marker, delimiter=",")
-            csv_metadata = csv.writer(f_metadata, delimiter=",")
+        def stop_acquiring(flag):
+            flag[0] = False
 
-            is_acquiring = [True]
+        if duration is not None:
+            rec_timer = Timer(duration, stop_acquiring, [is_acquiring])
+            rec_timer.start()
+            print("Start recording for ", duration, " seconds...")
+        else:
+            print("Recording...")
+        is_disconnect_occurred = False
+        while is_acquiring[0]:
+            try:
+                packet = self.parser.parse_packet(mode="record", recorders=(exg_recorder, orn_recorder, marker_recorder))
+                if time_offset is not None:
+                    packet.timestamp = packet.timestamp-time_offset
+                else:
+                    time_offset = packet.timestamp
 
-            def stop_acquiring(flag):
-                flag[0] = False
-
-            if duration is not None:
-                rec_timer = Timer(duration, stop_acquiring, [is_acquiring])
-                rec_timer.start()
-                print("Start recording for ", duration, " seconds...")
-            else:
-                print("Recording...")
-            is_disconnect_occurred = False
-            while is_acquiring[0]:
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn, csv_marker, csv_metadata))
-                    if time_offset is not None:
-                        packet.timestamp = packet.timestamp-time_offset
-                    else:
-                        time_offset = packet.timestamp
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    rec_timer.cancel()
+                    return 0
 
-                except ConnectionAbortedError:
-                    print("Device has been disconnected! Scanning for last connected device...")
-                    try:
-                        self.parser.socket = self.device[device_id].bt_connect()
-                    except DeviceNotFoundError as e:
-                        print(e)
-                        rec_timer.cancel()
-                        return 0
-
-            if is_disconnect_occurred:
-                print("Error: Recording finished before ", duration, "seconds.")
-                rec_timer.cancel()
-            else:
-                print("Recording finished after ", duration, " seconds.")
-            f_marker.close()
-            f_exg.close()
-            f_orn.close()
+        if is_disconnect_occurred:
+            print("Error: Recording finished before ", duration, "seconds.")
+            rec_timer.cancel()
+        else:
+            print("Recording finished after ", duration, " seconds.")
+        exg_recorder.stop()
+        orn_recorder.stop()
+        if file_type == 'csv':
+            marker_recorder.stop()
 
     def push2lsl(self, n_chan, device_id=0, duration=None, sampling_rate=250):
         r"""Push samples to two lsl streams
