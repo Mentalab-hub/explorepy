@@ -53,14 +53,9 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
     if out_dir is None:
         out_dir = head_path + '/'
 
-    exg_out_file = out_dir + filename + '_exg.csv'
-    orn_out_file = out_dir + filename + '_orn.csv'
-    marker_out_file = out_dir + filename + '_marker.csv'
-    #
-    # if not do_overwrite:
-    #     assert not os.path.isfile(exg_out_file), exg_out_file + " already exists!"
-    #     assert not os.path.isfile(orn_out_file), orn_out_file + " already exists!"
-    #     assert not os.path.isfile(marker_out_file), marker_out_file + " already exists!"
+    exg_out_file = out_dir + filename + '_exg'
+    orn_out_file = out_dir + filename + '_orn'
+    marker_out_file = out_dir + filename + '_marker'
 
     exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
     exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V']
