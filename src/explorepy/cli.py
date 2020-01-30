@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import argparse
-from explorepy.tools import bin2csv, bt_scan
+from explorepy.tools import bin2csv, bt_scan, bin2edf
 from explorepy.explore import Explore
 from explorepy.command import Command
 
@@ -117,14 +117,33 @@ class CLI:
 
         parser.add_argument("-i", "--inputfile",
                             dest="inputfile", type=str, default=None,
-                            help="Name of the Bin_File. ")
+                            help="Name of the Bin_File.")
 
         parser.add_argument("-o", "--overwrite", action='store_false',
                             help="Overwrite files with same name.")
 
         args = parser.parse_args(sys.argv[2:])
 
-        bin2csv(args.inputfile, args.overwrite)
+        bin2csv(bin_file=args.inputfile, do_overwrite=args.overwrite)
+
+    @staticmethod
+    def bin2edf():
+        parser = argparse.ArgumentParser(
+            description='Convert Binary data to EDF')
+
+        parser.add_argument("-i", "--inputfile",
+                            dest="inputfile", type=str, default=None,
+                            help="Name of the Bin_File.")
+
+        parser.add_argument("-o", "--overwrite", action='store_true',
+                            help="Overwrite files with same name.")
+
+        parser.add_argument("-c", "--channels",
+                            dest="channels", type=int,
+                            help="Number of channels")
+
+        args = parser.parse_args(sys.argv[2:])
+        bin2edf(bin_file=args.inputfile, do_overwrite=args.overwrite, n_chan=args.channels)
 
     @staticmethod
     def visualize():
