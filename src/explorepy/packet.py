@@ -77,12 +77,12 @@ class Packet:
 class EEG(Packet):
 
     @abc.abstractmethod
-    def write_to_csv(self, csv_writer):
+    def write_to_file(self, recorder):
         """
         Write EEG data to csv file
 
         Args:
-            csv_writer(csv_writer): csv writer object
+            recorder(explorepy.tools.FileRecorder): File recorder object
 
         """
         pass
@@ -143,6 +143,11 @@ class EEG(Packet):
         self.calculate_impedance(imp_calib_info)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
 
+    def write_to_file(self, recorder):
+        tmpstmp = np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)*0.004,
+                              self.data.shape[1])  # 250 Hz
+        recorder.write_data(np.concatenate((tmpstmp[:, np.newaxis], self.data.T), axis=1).T)
+
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
@@ -167,11 +172,6 @@ class EEG94(EEG):
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.dataStatus[-1]  )
 
-    def write_to_csv(self, csv_writer):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:, :] = self.timestamp
-        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
-
 
 class EEG98(EEG):
     """EEG packet for 8 channel device"""
@@ -194,12 +194,7 @@ class EEG98(EEG):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str((self.status))
-
-    def write_to_csv(self, csv_writer):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:, :] = self.timestamp
-        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
 
 class EEG99s(EEG):
@@ -223,14 +218,7 @@ class EEG99s(EEG):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status )
-
-    def write_to_csv(self, csv_writer):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        for i in range(0, 16):
-            tmpstmp[i, :] = (self.timestamp - 0.064 + i * 40) / 10000
-
-        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
 
 class EEG99(EEG):
@@ -255,11 +243,6 @@ class EEG99(EEG):
     def __str__(self):
         return "EEG: " + str(self.data[:, -1])
 
-    def write_to_csv(self, csv_writer):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:, :] = self.timestamp
-        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
-
 
 class Orientation(Packet):
     """Orientation data packet"""
@@ -281,8 +264,9 @@ class Orientation(Packet):
     def __str__(self):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
-    def write_to_csv(self, csv_writer):
-        csv_writer.writerow([self.timestamp] + self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
+    def write_to_file(self, recorder):
+        recorder.write_data(np.array([self.timestamp] + self.acc.tolist() +
+                                     self.gyro.tolist() + self.mag.tolist())[:, np.newaxis])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
@@ -359,7 +343,7 @@ class TimeStamp(Packet):
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xff\xff\xff\xff', "Fletcher error!"
-    
+
     def translate(self):
         now = datetime.now()
         timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
@@ -376,13 +360,13 @@ class TimeStamp(Packet):
     def __str__(self):
         return "Host timestamp: " + str(self.hostTimeStamp)
 
-    def write_to_csv(self, csv_writer):
-        csv_writer.writerow([self.timestamp])
+    def write_to_csv(self, recorder):
+        recorder.write_data([self.timestamp])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample([1])
 
-        
+
 class MarkerEvent(Packet):
     """Marker packet"""
 
@@ -400,8 +384,8 @@ class MarkerEvent(Packet):
     def __str__(self):
         return "Event marker: " + str(self.marker_code)
 
-    def write_to_csv(self, csv_writer):
-        csv_writer.writerow([self.timestamp, self.marker_code])
+    def write_to_file(self, recorder):
+        recorder.set_marker(np.array([self.timestamp, self.marker_code])[:, np.newaxis])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample([self.marker_code])
@@ -450,8 +434,8 @@ class DeviceInfo(Packet):
         return "Firmware version: " + self.firmware_version + "\tdata rate: " + str(self.data_rate_info)\
                + " sample per sec" + "\tADC mask: " + str(self.adc_mask)
 
-    def write_to_csv(self, csv_writer):
-        csv_writer.writerow([self.timestamp, self.firmware_version, self.data_rate_info, self.adc_mask])
+    def write_to_file(self, recorder):
+        recorder.write_data([self.timestamp, self.firmware_version, self.data_rate_info, self.adc_mask])
 
     def push_to_dashboard(self, dashboard):
         data = {'firmware_version': [self.firmware_version]}
