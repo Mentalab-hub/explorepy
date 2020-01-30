@@ -43,8 +43,6 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
         out_dir (str): Output directory (if None, uses the same directory as binary file)
         do_overwrite (bool): Overwrite if files exist already
 
-    Returns:
-
     """
     head_path, full_filename = os.path.split(bin_file)
     filename, extension = os.path.splitext(full_filename)
@@ -79,7 +77,54 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
             try:
                 parser.parse_packet(mode='record', recorders=(exg_recorder, orn_recorder, marker_recorder))
             except ValueError:
-                print("Binary file ended suddenly! Conversion finished!")
+                print("Binary file ended! Conversion finished!")
+                break
+
+
+def bin2edf(bin_file, n_chan, do_overwrite=False, out_dir=None):
+    """Binary to EDF file converter.
+    This function converts the given binary file to ExG and ORN csv files.
+
+    Args:
+        bin_file (str): Binary file full address
+        n_chan (int): Number of channels
+        out_dir (str): Output directory (if None, uses the same directory as binary file)
+        do_overwrite (bool): Overwrite if files exist already
+    """
+    head_path, full_filename = os.path.split(bin_file)
+    filename, extension = os.path.splitext(full_filename)
+    assert os.path.isfile(bin_file), "Error: File does not exist!"
+    assert n_chan is not None, "Number of channels is not given!"
+    assert extension == '.BIN', "File type error! File extension must be BIN."
+    if out_dir is None:
+        out_dir = head_path + '/'
+
+    exg_out_file = out_dir + filename + '_exg'
+    orn_out_file = out_dir + filename + '_orn'
+
+    exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8'][0:n_chan+1]
+    exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'][0:n_chan+1]
+    exg_max = [86400, 1, 1, 1, 1, 1, 1, 1, 1][0:n_chan + 1]
+    exg_min = [0, -1, -1, -1, -1, -1, -1, -1, -1][0:n_chan + 1]
+    exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=250, ch_unit=exg_unit,
+                                file_type='edf', do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
+
+    orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
+    orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+    orn_max = [86400, 2000, 2000, 2000, 287000, 287000, 287000, 50000, 50000, 50000]
+    orn_min = [0, -2000, -2000, -2000, -287000, -287000, -287000, -50000, -50000, -50000]
+    orn_recorder = FileRecorder(file_name=orn_out_file, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type='edf',
+                                do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min)
+
+    with open(bin_file, "rb") as f_bin:
+        parser = Parser(fid=f_bin)
+
+        print("Converting...")
+        while True:
+            try:
+                parser.parse_packet(mode='record', recorders=(exg_recorder, orn_recorder, exg_recorder))
+            except ValueError:
+                print("Binary file ended! Conversion finished!")
                 break
 
 
@@ -323,7 +368,7 @@ class FileRecorder:
         """
 
         # Check invalid characters
-        if set(r'<>{}[]~`*%:').intersection(file_name):
+        if set(r'<>{}[]~`*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
 
         self._file_obj = None
@@ -349,7 +394,7 @@ class FileRecorder:
 
     def _create_edf(self, do_overwrite):
         if (not do_overwrite) and os.path.isfile(self._file_name):
-            raise FileExistsError(self._file_name + 'already exists!')
+            raise FileExistsError(self._file_name + ' already exists!')
         assert self._file_obj is None, "Usage Error: File object has been created already."
         self._file_obj = pyedflib.EdfWriter(self._file_name, self._n_chan, file_type=pyedflib.FILETYPE_EDFPLUS)
 

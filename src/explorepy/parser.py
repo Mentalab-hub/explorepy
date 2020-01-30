@@ -68,7 +68,7 @@ class Parser:
 
         Args:
             mode (str): logging mode {'print', 'record', 'lsl', 'visualize', None}
-            recorders (tuple): Tuple of recorder objects
+            recorders (tuple): Tuple of recorder objects (ExG_recorder, ORN_recorder, Marker_recorder)
             outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet, marker_outlet)
             dashboard (Dashboard): Dashboard object for visualization
         Returns:
