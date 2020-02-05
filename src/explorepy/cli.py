@@ -97,10 +97,6 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-c", "--channels",
-                            dest="channels", type=int, default=None,
-                            help="the device's number of channels")
-
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
@@ -108,7 +104,7 @@ class CLI:
         else:
             explorer.connect(device_name=args.name)
 
-        explorer.push2lsl(n_chan=args.channels)
+        explorer.push2lsl()
 
     @staticmethod
     def bin2csv():

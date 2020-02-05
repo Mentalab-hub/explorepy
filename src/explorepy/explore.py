@@ -175,21 +175,18 @@ class Explore:
         if file_type == 'csv':
             marker_recorder.stop()
 
-    def push2lsl(self, n_chan, device_id=0, duration=None, sampling_rate=250):
+    def push2lsl(self, device_id=0, duration=None):
         r"""Push samples to two lsl streams
 
         Args:
             device_id (int): device id (not needed in the current version)
-            n_chan (int): Number of channels (4 or 8)
             duration (float): duration of data acquiring (if None it streams endlessly).
-            sampling_rate : sampling_rate of ExG data stream
         """
 
-        assert (n_chan is not None), "Number of channels missing"
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
-        info_exg = StreamInfo('Explore', 'ExG', n_chan, sampling_rate, 'float32', 'ExG')
+        info_exg = StreamInfo('Explore', 'ExG', self.parser.n_chan, self.parser.fs, 'float32', 'ExG')
         info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
 
         orn_outlet = StreamOutlet(info_orn)
@@ -208,10 +205,8 @@ class Explore:
             print("Pushing to lsl...")
 
         while is_acquiring[0]:
-
             try:
                 self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet, marker_outlet))
-
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
