@@ -96,7 +96,7 @@ class Parser:
 
         if isinstance(packet, DeviceInfo):
             self.firmware_version = packet.firmware_version
-            self.fs = packet.data_rate_info
+            self.fs = int(packet.data_rate_info)
             self.adc_mask = packet.adc_mask
             self.n_chan = self.adc_mask.count('1')
         if mode == "print":

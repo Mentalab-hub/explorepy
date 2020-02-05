@@ -216,27 +216,27 @@ class Explore:
                     return 0
         print("Data acquisition finished after ", duration, " seconds.")
 
-    def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50, sampling_rate=250):
+    def visualize(self, device_id=0, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
         Args:
-            n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
             device_id (int): Device ID (not needed in the current version)
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
-            sampling_rate : sampling_rate of ExG data stream
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
-        self.m_dashboard = Dashboard(n_chan=n_chan, sampling_rate=sampling_rate)
+        self.parser.notch_freq = notch_freq
+        if bp_freq is not None:
+            self.parser.apply_bp_filter = True
+            self.parser.bp_freq = bp_freq
+
+        self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, sampling_rate=self.parser.fs)
         self.m_dashboard.start_server()
 
         thread = Thread(target=self._io_loop)
         thread.setDaemon(True)
         thread.start()
-
-        self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq, sampling_rate=sampling_rate, \
-                             n_chan=n_chan)
         self.m_dashboard.start_loop()
 
     def _io_loop(self, device_id=0, mode="visualize"):
@@ -275,7 +275,7 @@ class Explore:
             notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
-        assert self.parser.fs == 250., "Impedance mode only works in 250 Hz sampling rate!"
+        assert self.parser.fs == 250, "Impedance mode only works in 250 Hz sampling rate!"
         self.is_acquiring = [True]
 
         signal.signal(signal.SIGINT, self.signal_handler)
