@@ -138,12 +138,8 @@ class CLI:
         parser.add_argument("-o", "--overwrite", action='store_true',
                             help="Overwrite files with same name.")
 
-        parser.add_argument("-c", "--channels",
-                            dest="channels", type=int,
-                            help="Number of channels")
-
         args = parser.parse_args(sys.argv[2:])
-        bin2edf(bin_file=args.inputfile, do_overwrite=args.overwrite, n_chan=args.channels)
+        bin2edf(bin_file=args.inputfile, do_overwrite=args.overwrite)
 
     @staticmethod
     def visualize():
