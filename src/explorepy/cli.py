@@ -152,13 +152,17 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-c", "--channels",
-                            dest="channels", type=int, default=None,
-                            help="the device's number of channels (2, 4 or 8)")
-
         parser.add_argument("-nf", "--notchfreq",
                             dest="notchfreq", type=int, default=None,
                             help="Frequency of notch filter.")
+
+        parser.add_argument("-lf", "--lowfreq",
+                            dest="lf", type=float, default=None,
+                            help="Low cutoff frequency of bandpass filter.")
+
+        parser.add_argument("-hf", "--highfreq",
+                            dest="hf", type=float, default=None,
+                            help="High cutoff frequency of bandpass filter.")
 
         args = parser.parse_args(sys.argv[2:])
 
@@ -167,7 +171,10 @@ class CLI:
         else:
             explorer.connect(device_name=args.name)
 
-        explorer.visualize(n_chan=args.channels)
+        if (args.lf is not None) and (args.hf is not None):
+            explorer.visualize(notch_freq=args.notchfreq, bp_freq=(args.lf, args.hf))
+        else:
+            explorer.visualize(notch_freq=args.notchfreq, bp_freq=None)
 
     @staticmethod
     def impedance():
