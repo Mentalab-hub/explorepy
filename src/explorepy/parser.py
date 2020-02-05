@@ -29,7 +29,7 @@ def generate_packet(pid, timestamp, bin_data):
 
 
 class Parser:
-    def __init__(self, bp_freq=None, notch_freq=50, socket=None, fid=None):
+    def __init__(self, bp_freq=None, notch_freq=None, socket=None, fid=None):
         """Parser class for explore device
 
         Args:
@@ -128,11 +128,11 @@ class Parser:
                 if self.apply_bp_filter:
                     packet.apply_bp_filter(exg_filter=self.filter)
                 # remove DC
-                n_samples = packet.data.shape[1]
-                for column in range(n_samples):
-                    self.signal_dc = (self.bp_freq[0] / (self.fs*0.5)) * packet.data[:, column] + (
-                            1 - (self.bp_freq[0] / (self.fs*0.5))) * self.signal_dc
-                    packet.data[:, column] = packet.data[:, column] - self.signal_dc
+                # n_samples = packet.data.shape[1]
+                # for column in range(n_samples):
+                #     self.signal_dc = (self.bp_freq[0] / (self.fs*0.5)) * packet.data[:, column] + (
+                #             1 - (self.bp_freq[0] / (self.fs*0.5))) * self.signal_dc
+                #     packet.data[:, column] = packet.data[:, column] - self.signal_dc
             packet.push_to_dashboard(dashboard)
 
         elif mode == "listen":

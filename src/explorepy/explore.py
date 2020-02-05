@@ -266,20 +266,16 @@ class Explore:
         print("Program is exiting...")
         sys.exit(0)
 
-    def measure_imp(self, n_chan, device_id=0, notch_freq=50, sampling_rate=250):
+    def measure_imp(self, device_id=0, notch_freq=50):
         """
         Visualization of the electrode impedances
 
         Args:
-            n_chan (int): Number of channels
             device_id (int): Device ID
             notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
-            sampling_rate (int): Sampling rate of the device
-
-        Returns:
-
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        assert self.parser.fs == 250., "Impedance mode only works in 250 Hz sampling rate!"
         self.is_acquiring = [True]
 
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -287,14 +283,16 @@ class Explore:
         try:
             thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
             thread.setDaemon(True)
-            self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq, sampling_rate=sampling_rate)
+            self.parser.apply_bp_filter = True
+            self.parser.bp_freq = (61, 64)
+            self.parser.notch_freq = notch_freq
             thread.start()
 
             # Activate impedance measurement mode in the device
             from explorepy import command
             imp_activate_cmd = command.ZmeasurementEnable()
             if self.change_settings(imp_activate_cmd):
-                self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance", sampling_rate=sampling_rate,
+                self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, mode="impedance", sampling_rate=self.parser.fs,
                                              firmware_version=self.parser.firmware_version)
                 self.m_dashboard.start_server()
                 self.m_dashboard.start_loop()

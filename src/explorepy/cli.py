@@ -184,10 +184,6 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-c", "--channels",
-                            dest="channels", type=int, default=None,
-                            help="the device's number of channels")
-
         parser.add_argument("-nf", "--notchfreq",
                             dest="notchfreq", type=int, default=50,
                             help="Frequency of notch filter.")
@@ -199,7 +195,7 @@ class CLI:
         else:
             explorer.connect(device_name=args.name)
 
-        explorer.measure_imp(n_chan=args.channels, notch_freq=args.notchfreq)
+        explorer.measure_imp(notch_freq=args.notchfreq)
 
     @staticmethod
     def format_memory():
