@@ -57,7 +57,10 @@ class Parser:
         self.adc_mask = None
         self.n_chan = None
         self.imp_calib_info = {}
-        self.signal_dc = None  # np.zeros((n_chan,), dtype=np.float)
+        packet = None
+        while not isinstance(packet, DeviceInfo):
+            packet = self.parse_packet(mode=None)
+        self.signal_dc = np.zeros((self.n_chan,), dtype=np.float)
 
     @property
     def filter(self):

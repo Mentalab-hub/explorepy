@@ -431,8 +431,8 @@ class DeviceInfo(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "Firmware version: " + self.firmware_version + "\tdata rate: " + str(self.data_rate_info)\
-               + " sample per sec" + "\tADC mask: " + str(self.adc_mask)
+        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.data_rate_info)\
+               + " Hz" + " - ADC mask: " + str(self.adc_mask)
 
     def write_to_file(self, recorder):
         recorder.write_data([self.timestamp, self.firmware_version, self.data_rate_info, self.adc_mask])

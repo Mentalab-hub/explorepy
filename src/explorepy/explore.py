@@ -3,7 +3,7 @@ from explorepy.bt_client import BtClient
 from explorepy.parser import Parser
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy._exceptions import *
-from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
+from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, DeviceInfo
 from explorepy.tools import FileRecorder
 import csv
 import os
@@ -44,10 +44,10 @@ class Explore:
         self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
         if self.socket is None:
             self.socket = self.device[device_id].bt_connect()
-
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
         self.is_connected = True
+        packet = None
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -90,12 +90,11 @@ class Explore:
 
         print("Data acquisition stopped after ", duration, " seconds.")
 
-    def record_data(self, file_name, n_chan, do_overwrite=False, device_id=0, duration=None, file_type='csv'):
+    def record_data(self, file_name, do_overwrite=False, device_id=0, duration=None, file_type='csv'):
         r"""Records the data in real-time
 
         Args:
             file_name (str): Output file name
-            n_chan (int): Number of channels
             device_id (int): Device id (not needed in the current version)
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
@@ -106,7 +105,7 @@ class Explore:
         # Check invalid characters
         if set(r'<>{}[]~`*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
-
+        n_chan = self.parser.n_chan
         if file_type not in ['edf', 'csv']:
             raise ValueError('{} is not a supported file extension!'.format(file_type))
         time_offset = None
@@ -118,7 +117,7 @@ class Explore:
         exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'][0:n_chan+1]
         exg_max = [86400, 1, 1, 1, 1, 1, 1, 1, 1][0:n_chan + 1]
         exg_min = [0, -1, -1, -1, -1, -1, -1, -1, -1][0:n_chan + 1]
-        exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=250, ch_unit=exg_unit,
+        exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=self.parser.fs, ch_unit=exg_unit,
                                     file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
 
         orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
@@ -131,8 +130,8 @@ class Explore:
         if file_type == 'csv':
             marker_ch = ['TimeStamp', 'Code']
             marker_unit = ['s', '-']
-            marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=None, ch_unit=marker_unit,
-                                           file_type=file_type, do_overwrite=do_overwrite)
+            marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=None,
+                                           ch_unit=marker_unit, file_type=file_type, do_overwrite=do_overwrite)
         elif file_type == 'edf':
             marker_recorder = exg_recorder
 
@@ -157,7 +156,6 @@ class Explore:
                     packet.timestamp = packet.timestamp-time_offset
                 else:
                     time_offset = packet.timestamp
-
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
