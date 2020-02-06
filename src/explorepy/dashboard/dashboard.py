@@ -37,7 +37,14 @@ FFT_COLORS = Colorblind[8]
 class Dashboard:
     """Explorepy dashboard class"""
 
-    def __init__(self, n_chan, sampling_rate, mode="signal", firmware_version="NA"):
+    def __init__(self, n_chan, exg_fs, mode="signal", firmware_version="NA"):
+        """
+        Args:
+            n_chan (int): Number of channels
+            exg_fs (int): Sampling rate of ExG signal
+            mode (str): Visualization mode {'signal', 'impedance'}
+            firmware_version:
+        """
         self.n_chan = n_chan
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
@@ -46,7 +53,7 @@ class Dashboard:
         self.rr_estimator = None
         self.win_length = WIN_LENGTH
         self.mode = mode
-        self.EEG_SRATE = sampling_rate
+        self.exg_fs = exg_fs
 
         # Init ExG data source
         exg_temp = np.zeros((n_chan, 2))
@@ -121,7 +128,6 @@ class Dashboard:
         self.doc.add_periodic_callback(self._update_fft, 2000)
         self.doc.add_periodic_callback(self._update_heart_rate, 2000)
 
-
     @gen.coroutine
     def update_exg(self, time_vector, ExG):
         """update_exg()
@@ -136,7 +142,7 @@ class Dashboard:
         ExG = self.offsets + ExG / self.y_unit
         new_data = dict(zip(self.chan_key_list, ExG))
         new_data['t'] = time_vector
-        self.exg_source.stream(new_data, rollover=2 * self.EEG_SRATE * WIN_LENGTH)
+        self.exg_source.stream(new_data, rollover=2 * self.exg_fs * WIN_LENGTH)
 
     @gen.coroutine
     def update_orn(self, timestamp, orn_data):
@@ -190,9 +196,9 @@ class Dashboard:
 
         # Check if the length of data is enough for FFT
         # TODO
-        if exg_data.shape[1] < self.EEG_SRATE * 4.5:
+        if exg_data.shape[1] < self.exg_fs * 4.5:
             return
-        fft_content, freq = get_fft(exg_data, self.EEG_SRATE)
+        fft_content, freq = get_fft(exg_data, self.exg_fs)
         data = dict(zip(self.chan_key_list, fft_content))
         data['f'] = freq
         self.fft_source.data = data
@@ -204,7 +210,7 @@ class Dashboard:
             self.heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
         if self.rr_estimator is None:
-            self.rr_estimator = HeartRateEstimator(fs=self.EEG_SRATE)
+            self.rr_estimator = HeartRateEstimator(fs=self.exg_fs)
             # Init R-peaks plot
             self.exg_plot.circle(x='t', y='r_peak', source=self.r_peak_source,
                                  fill_color="red", size=8)
