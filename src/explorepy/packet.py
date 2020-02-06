@@ -136,7 +136,7 @@ class EEG(Packet):
 
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
-        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / dashboard.EEG_SRATE, n_sample)
+        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / dashboard.exg_fs, n_sample)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
 
     def push_to_imp_dashboard(self, dashboard, imp_calib_info):
@@ -144,8 +144,8 @@ class EEG(Packet):
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
 
     def write_to_file(self, recorder):
-        tmpstmp = np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)*0.004,
-                              self.data.shape[1])  # 250 Hz
+        tmpstmp = np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)/recorder.fs,
+                              self.data.shape[1])
         recorder.write_data(np.concatenate((tmpstmp[:, np.newaxis], self.data.T), axis=1).T)
 
 
@@ -170,7 +170,7 @@ class EEG94(EEG):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.dataStatus[-1]  )
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.dataStatus[-1])
 
 
 class EEG98(EEG):
@@ -431,8 +431,8 @@ class DeviceInfo(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "Firmware version: " + self.firmware_version + "\tdata rate: " + str(self.data_rate_info)\
-               + " sample per sec" + "\tADC mask: " + str(self.adc_mask)
+        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.data_rate_info)\
+               + " Hz" + " - ADC mask: " + str(self.adc_mask)
 
     def write_to_file(self, recorder):
         recorder.write_data([self.timestamp, self.firmware_version, self.data_rate_info, self.adc_mask])

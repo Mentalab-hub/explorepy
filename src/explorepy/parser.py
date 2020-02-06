@@ -29,7 +29,7 @@ def generate_packet(pid, timestamp, bin_data):
 
 
 class Parser:
-    def __init__(self, bp_freq=None, notch_freq=50, sampling_rate=250, n_chan=4, socket=None, fid=None):
+    def __init__(self, bp_freq=None, notch_freq=None, socket=None, fid=None):
         """Parser class for explore device
 
         Args:
@@ -51,17 +51,22 @@ class Parser:
             self.apply_bp_filter = False
             self.bp_freq = (0, 100)  # dummy values
         self.notch_freq = notch_freq
-        self.filter = None
-        if self.apply_bp_filter or notch_freq:
-            # Initialize filters
-            self.filter = Filter(l_freq=self.bp_freq[0], h_freq=self.bp_freq[1], line_freq=notch_freq, sampling_freq=sampling_rate)
-
+        self._filter = None
         self.firmware_version = None
-        self.sampling_rate = sampling_rate
-        self.data_rate_info = 250
-        self.adc_mask = 255
+        self.fs = None
+        self.adc_mask = None
+        self.n_chan = None
         self.imp_calib_info = {}
-        self.signal_dc = np.zeros((n_chan,), dtype=np.float)
+        packet = None
+        while not isinstance(packet, DeviceInfo):
+            packet = self.parse_packet(mode=None)
+        self.signal_dc = np.zeros((self.n_chan,), dtype=np.float)
+
+    @property
+    def filter(self):
+        if self._filter is None:
+            self._init_filters()
+        return self._filter
 
     def parse_packet(self, mode="print", recorders=None, outlets=None, dashboard=None):
         """Reads and parses a package from a file or socket
@@ -91,8 +96,9 @@ class Parser:
 
         if isinstance(packet, DeviceInfo):
             self.firmware_version = packet.firmware_version
-            self.data_rate_info = packet.data_rate_info
+            self.fs = int(packet.data_rate_info)
             self.adc_mask = packet.adc_mask
+            self.n_chan = self.adc_mask.count('1')
         if mode == "print":
             print(packet)
 
@@ -122,11 +128,11 @@ class Parser:
                 if self.apply_bp_filter:
                     packet.apply_bp_filter(exg_filter=self.filter)
                 # remove DC
-                n_samples = (packet.data).shape[1]
-                for column in range(n_samples):
-                    self.signal_dc = ( self.bp_freq[0] / (self.sampling_rate*0.5)) * packet.data[:, column] + (
-                            1 - (self.bp_freq[0] / (self.sampling_rate*0.5))) * self.signal_dc
-                    packet.data[:, column] = packet.data[:, column] - self.signal_dc
+                # n_samples = packet.data.shape[1]
+                # for column in range(n_samples):
+                #     self.signal_dc = (self.bp_freq[0] / (self.fs*0.5)) * packet.data[:, column] + (
+                #             1 - (self.bp_freq[0] / (self.fs*0.5))) * self.signal_dc
+                #     packet.data[:, column] = packet.data[:, column] - self.signal_dc
             packet.push_to_dashboard(dashboard)
 
         elif mode == "listen":
@@ -193,3 +199,10 @@ class Parser:
         else:
             raise ValueError("Cannot send the msg")
         return True
+
+    def _init_filters(self):
+        if self.apply_bp_filter or self.notch_freq:
+            self._filter = Filter(l_freq=self.bp_freq[0],
+                                  h_freq=self.bp_freq[1],
+                                  line_freq=self.notch_freq,
+                                  sampling_freq=self.fs)
