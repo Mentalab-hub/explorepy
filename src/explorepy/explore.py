@@ -231,7 +231,9 @@ class Explore:
             self.parser.apply_bp_filter = True
             self.parser.bp_freq = bp_freq
 
-        self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, sampling_rate=self.parser.fs)
+        self.m_dashboard = Dashboard(n_chan=self.parser.n_chan,
+                                     exg_fs=self.parser.fs,
+                                     firmware_version=self.parser.firmware_version)
         self.m_dashboard.start_server()
 
         thread = Thread(target=self._io_loop)
@@ -292,7 +294,7 @@ class Explore:
             from explorepy import command
             imp_activate_cmd = command.ZmeasurementEnable()
             if self.change_settings(imp_activate_cmd):
-                self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, mode="impedance", sampling_rate=self.parser.fs,
+                self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, mode="impedance", exg_fs=self.parser.fs,
                                              firmware_version=self.parser.firmware_version)
                 self.m_dashboard.start_server()
                 self.m_dashboard.start_loop()
