@@ -378,6 +378,43 @@ class Explore:
                                                                               "send the command again.")
             return False
 
+    def calibrate_orn(self, device_id=0, file_name=None, do_overwrite=False):
+        r"""Start getting data from the device
+
+        Args:
+            device_id (int): device id (id=None for disconnecting all devices)
+        """
+        print("Starting 100 secs recording for calibrating movement sensors, please move the device around during this time, in all directions")
+        self.record_data(self, file_name, do_overwrite=do_overwrite, device_id=device_id, duration=100, file_type='csv')
+        calibre_out_file = file_name + "_calibre_coef.csv"
+        assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
+        import numpy as np
+        with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
+            f_coef.write("kx, ky, kz, mx_offset, my_offset, mz_offset\n")
+            csv_reader = csv.reader(f_set, delimiter=",")
+            csv_coef = csv.writer(f_coef, delimiter=",")
+            np_set = list(csv_reader)
+            np_set = np.array(np_set[1:], dtype=np.float)
+            mag_set_x = np.sort(np_set[:, -3])
+            mag_set_y = np.sort(np_set[:, -2])
+            mag_set_z = np.sort(np_set[:, -1])
+            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
+            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
+            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
+            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
+            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
+            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
+            k = np.sort(np.array([kx, ky, kz]))
+            kx = 1 / kx
+            ky = 1 / ky
+            kz = 1 / kz
+            calibre_set = np.array([kx, ky, kz, mx_offset, my_offset, mz_offset])
+            csv_coef.writerow(calibre_set)
+            f_set.close()
+            f_coef.close()
+        os.remove((file_name + "_ORN.csv"))
+        os.remove((file_name + "_ExG.csv"))
+        os.remove((file_name + "_Marker.csv"))
 
 if __name__ == '__main__':
     pass

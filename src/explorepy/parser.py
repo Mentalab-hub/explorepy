@@ -160,6 +160,51 @@ class Parser:
                 packet.push_to_imp_dashboard(dashboard, self.imp_calib_info)
             elif isinstance(packet, Environment) | isinstance(packet, DeviceInfo):
                 packet.push_to_dashboard(dashboard)
+
+        elif mode == "calibrate":
+            assert isinstance(recorders, tuple), "Invalid csv writer objects!"
+            if isinstance(packet, Orientation):
+                packet.write_to_csv(recorders[0])
+            elif isinstance(packet, MarkerEvent):
+                packet.write_to_file(recorders[1])
+
+        elif mode == "initialize":
+            if isinstance(packet, Orientation):
+                th = np.zeros(3)
+                T_init = np.zeros((3, 3))
+                D = packet.acc / (np.dot(packet.acc, packet.acc) ** 0.5)
+                [kx, ky, kz, mx_offset, my_offset, mz_offset] = self.calibre_set
+                packet.mag[0] = kx * (packet.mag[0] - mx_offset)
+                packet.mag[1] = ky * (packet.mag[1] - my_offset)
+                packet.mag[2] = kz * (packet.mag[2] - mz_offset)
+
+                #packet.mag = np.multiply(packet.mag, np.array([1, 1, 0]))
+                E = -1*np.cross(D, packet.mag)
+                E = E / (np.dot(E, E) ** 0.5)
+                # here you can find an estimation of actual north from packet.mag, it is perpendicular to D and still
+                # co-planar with D and mag, somehow reducing error
+                N = -1*np.cross(E, D)
+                N = N / (np.dot(N, N) ** 0.5)
+                T_init[0][0] = N[0]
+                T_init[0][1] = E[0]
+                T_init[0][2] = D[0]
+
+                T_init[1][0] = N[1]
+                T_init[1][1] = E[1]
+                T_init[1][2] = D[1]
+
+                T_init[2][0] = N[2]
+                T_init[2][1] = E[2]
+                T_init[2][2] = D[2]
+                #print(N)
+                #print(E)
+                #print(D)
+                N_init = np.matmul(np.transpose(T_init), N)
+                E_init = np.matmul(np.transpose(T_init), E)
+                D_init = np.matmul(np.transpose(T_init), D)
+                self.init_set = [T_init, N_init, E_init, D_init]
+                #print(self.init_set)
+                self.ED_prv = [E, D]
         return packet
 
     def read(self, n_bytes):

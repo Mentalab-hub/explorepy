@@ -275,6 +275,17 @@ class Orientation(Packet):
         data = self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_orn, timestamp=self.timestamp, orn_data=data))
 
+    def compute_angle(self, init_set=None):
+        trace = init_set[0][0]+init_set[1][1]+init_set[2][2]
+        theta = np.arccos((trace-1)/2)*57.2958
+        nx = init_set[2][1] - init_set[1][2]
+        ny = init_set[0][2] - init_set[2][0]
+        nz = init_set[1][0] - init_set[0][1]
+        rot_axis = 1/np.sqrt((3-trace)*(1+trace))*np.array([nx, ny, nz])
+        self.theta = theta
+        self.rot_axis = rot_axis
+        return [theta, rot_axis]
+
 
 class Environment(Packet):
     """Environment data packet"""
