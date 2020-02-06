@@ -130,7 +130,7 @@ class Explore:
         if file_type == 'csv':
             marker_ch = ['TimeStamp', 'Code']
             marker_unit = ['s', '-']
-            marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=None,
+            marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=0,
                                            ch_unit=marker_unit, file_type=file_type, do_overwrite=do_overwrite)
         elif file_type == 'edf':
             marker_recorder = exg_recorder
