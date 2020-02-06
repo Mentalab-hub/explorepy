@@ -30,18 +30,16 @@ Connects to a device and records ExG and orientation data into 2 separate files.
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB). Note that either device name or MAC address is needed.
 * ``-f`` or ``--filename``   The name of the new CSV Files.
 * ``-t`` or ``--type``       File type (edf and csv types are supported currently).
-* ``-c`` or ``--channels``   Number of channels
 * ``-o`` or ``--overwrite``  Overwrite already existing files with the same name (optional - the default mode is False).
 * ``-d`` or ``--duration``   Recording duration in seconds
 
 
 
 **push2lsl**
-Streams Data to Lab stream layer. Inputs: Name or Address and Channel number
+Streams Data to Lab stream layer.
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB). Note that either device name or MAC address is needed.
-* ``-c`` or ``--channels``   Number of channels. This is necessary for push2lsl
 
 
 
@@ -57,7 +55,6 @@ Takes a Binary file and converts it to 2 EDF+ files (ExG and orientation - marke
 
 * ``-i`` or ``--inputfile``  Name of the input file
 * ``-o`` or ``--overwrite``  Overwrite already existing files with the same name.
-* ``-c`` or ``--channels``   Number of channels
 
 
 **visualize**
@@ -65,16 +62,14 @@ Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
-* ``-c`` or ``--channels``   Number of channels.
 * ``-nf`` or ``--notchfreq`` Frequency of applied notch filter (By default, no notch filter is applied)
-
-
+* ``-lf`` or ``--lowfreq``   Low cutoff frequency of bandpass filter (By default no bandpass filter is applied)
+* ``-hf`` or ``--highfreq``  High cutoff frequency of bandpass filter (Both ``-lf`` and ``-hf`` must be given if you want to apply a bandpass filter)
 **impedance**
 Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome is the supported browser.
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
-* ``-c`` or ``--channels``   Number of channels.
 * ``-nf`` or ``--notchfreq`` Frequency of applied notch filter (By default, no notch filter is applied)
 
 
@@ -97,15 +92,15 @@ Data acquisition: ``explorepy acquire -n Explore_XXXX  #Put your device Bluetoot
 
 Record data: ``explorepy record_data -n Explore_XXXX -f test_file -t edf -o``
 
-Push data to lsl: ``explorepy push2lsl -n Explore_XXXX -c 4 #-c number of channels``
+Push data to lsl: ``explorepy push2lsl -n Explore_XXXX``
 
 Convert a binary file to csv: ``explorepy bin2csv -i input_file.BIN``
 
 Convert a binary file to EDF and overwrite if files exist already: ``explorepy bin2edf -i input_file.BIN -o``
 
-Visualize in real-time: ``explorepy visualize -n Explore_XXXX -c 4``
+Visualize in real-time: ``explorepy visualize -n Explore_XXXX``
 
-Impedance measurement: ``explorepy impedance -n Explore_XXXX -c 4``
+Impedance measurement: ``explorepy impedance -n Explore_XXXX``
 
 Format the memory: ``explorepy format_memory -n Explore_XXXX``
 
@@ -147,7 +142,7 @@ Recording
 ^^^^^^^^^
 You can record data in realtime to EDF+ or CSV files::
 
-    explorer.record_data(file_name='test', duration=120, n_chan=8, file_type='edf')
+    explorer.record_data(file_name='test', duration=120, file_type='edf')
 
 This will record data in three separate files "test_ExG.csv", "test_ORN.csv" and "test_marker.csv" which contain ExG, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. The duration of the recording can be specified (in seconds).
 The program will usually stop if files with the same name are detected. If you want to overwrite already existing files, change the line above::
@@ -160,9 +155,9 @@ Visualization
 It is possible to visualize real-time signal in a browser-based dashboard by the following code. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow.::
 
 
-    explorer.visualize(n_chan=4, bp_freq=(1, 30), notch_freq=50)
+    explorer.visualize(bp_freq=(1, 30), notch_freq=50)
 
-Where `n_chan`, `bp_freq` and `notch_freq` determine the number of channels, cut-off frequencies of bandpass filter and frequency of notch filter (either 50 or 60) respectively.
+Where `bp_freq` and `notch_freq` determine cut-off frequencies of bandpass filter and frequency of notch filter (either 50 or 60) respectively.
 
 
 In the dashboard, you can set signal mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heart beats are detected and heart rate is estimated from RR-intervals.
@@ -185,7 +180,7 @@ Impedance measurement
 To measure electrodes impedances::
 
 
-    explorer.impedance(n_chan=4, notch_freq=50)
+    explorer.impedance(notch_freq=50)
 
 
 .. image:: /images/Dashboard_imp.jpg
@@ -198,10 +193,9 @@ Labstreaminglayer (lsl)
 ^^^^^^^^^^^^^^^^^^^^^^^
 You can push data directly to LSL using the following line::
 
-    explorer.push2lsl(n_chan=4)
+    explorer.push2lsl()
 
 
-It is important that you state the number of channels your device has.
 After that you can stream data from other software such as OpenVibe or other programming languages such as MATLAB, Java, C++ and so on. (See `labstreaminglayer <https://github.com/sccn/labstreaminglayer>`_, `OpenVibe <http://openvibe.inria.fr/how-to-use-labstreaminglayer-in-openvibe/>`_ documentations for details).
 This function creates three LSL streams for ExG, Orientation and markers.
 In case of a disconnect (device loses connection), the program will try to reconnect automatically.

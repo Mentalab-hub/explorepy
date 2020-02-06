@@ -3,7 +3,7 @@ from explorepy.bt_client import BtClient
 from explorepy.parser import Parser
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy._exceptions import *
-from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
+from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, DeviceInfo
 from explorepy.tools import FileRecorder
 import csv
 import os
@@ -44,10 +44,10 @@ class Explore:
         self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
         if self.socket is None:
             self.socket = self.device[device_id].bt_connect()
-
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
         self.is_connected = True
+        packet = None
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -90,12 +90,11 @@ class Explore:
 
         print("Data acquisition stopped after ", duration, " seconds.")
 
-    def record_data(self, file_name, n_chan, do_overwrite=False, device_id=0, duration=None, file_type='csv'):
+    def record_data(self, file_name, do_overwrite=False, device_id=0, duration=None, file_type='csv'):
         r"""Records the data in real-time
 
         Args:
             file_name (str): Output file name
-            n_chan (int): Number of channels
             device_id (int): Device id (not needed in the current version)
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
@@ -106,7 +105,7 @@ class Explore:
         # Check invalid characters
         if set(r'<>{}[]~`*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
-
+        n_chan = self.parser.n_chan
         if file_type not in ['edf', 'csv']:
             raise ValueError('{} is not a supported file extension!'.format(file_type))
         time_offset = None
@@ -118,7 +117,7 @@ class Explore:
         exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'][0:n_chan+1]
         exg_max = [86400, 1, 1, 1, 1, 1, 1, 1, 1][0:n_chan + 1]
         exg_min = [0, -1, -1, -1, -1, -1, -1, -1, -1][0:n_chan + 1]
-        exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=250, ch_unit=exg_unit,
+        exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=self.parser.fs, ch_unit=exg_unit,
                                     file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
 
         orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
@@ -131,8 +130,8 @@ class Explore:
         if file_type == 'csv':
             marker_ch = ['TimeStamp', 'Code']
             marker_unit = ['s', '-']
-            marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=None, ch_unit=marker_unit,
-                                           file_type=file_type, do_overwrite=do_overwrite)
+            marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=0,
+                                           ch_unit=marker_unit, file_type=file_type, do_overwrite=do_overwrite)
         elif file_type == 'edf':
             marker_recorder = exg_recorder
 
@@ -157,7 +156,6 @@ class Explore:
                     packet.timestamp = packet.timestamp-time_offset
                 else:
                     time_offset = packet.timestamp
-
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
@@ -177,21 +175,18 @@ class Explore:
         if file_type == 'csv':
             marker_recorder.stop()
 
-    def push2lsl(self, n_chan, device_id=0, duration=None, sampling_rate=250):
+    def push2lsl(self, device_id=0, duration=None):
         r"""Push samples to two lsl streams
 
         Args:
             device_id (int): device id (not needed in the current version)
-            n_chan (int): Number of channels (4 or 8)
             duration (float): duration of data acquiring (if None it streams endlessly).
-            sampling_rate : sampling_rate of ExG data stream
         """
 
-        assert (n_chan is not None), "Number of channels missing"
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
-        info_exg = StreamInfo('Explore', 'ExG', n_chan, sampling_rate, 'float32', 'ExG')
+        info_exg = StreamInfo('Explore', 'ExG', self.parser.n_chan, self.parser.fs, 'float32', 'ExG')
         info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
 
         orn_outlet = StreamOutlet(info_orn)
@@ -210,10 +205,8 @@ class Explore:
             print("Pushing to lsl...")
 
         while is_acquiring[0]:
-
             try:
                 self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet, marker_outlet))
-
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
@@ -223,27 +216,29 @@ class Explore:
                     return 0
         print("Data acquisition finished after ", duration, " seconds.")
 
-    def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50, sampling_rate=250):
+    def visualize(self, device_id=0, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
         Args:
-            n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
             device_id (int): Device ID (not needed in the current version)
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
-            sampling_rate : sampling_rate of ExG data stream
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
-        self.m_dashboard = Dashboard(n_chan=n_chan, sampling_rate=sampling_rate)
+        self.parser.notch_freq = notch_freq
+        if bp_freq is not None:
+            self.parser.apply_bp_filter = True
+            self.parser.bp_freq = bp_freq
+
+        self.m_dashboard = Dashboard(n_chan=self.parser.n_chan,
+                                     exg_fs=self.parser.fs,
+                                     firmware_version=self.parser.firmware_version)
         self.m_dashboard.start_server()
 
         thread = Thread(target=self._io_loop)
         thread.setDaemon(True)
         thread.start()
-
-        self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq, sampling_rate=sampling_rate, \
-                             n_chan=n_chan)
         self.m_dashboard.start_loop()
 
     def _io_loop(self, device_id=0, mode="visualize"):
@@ -273,20 +268,16 @@ class Explore:
         print("Program is exiting...")
         sys.exit(0)
 
-    def measure_imp(self, n_chan, device_id=0, notch_freq=50, sampling_rate=250):
+    def measure_imp(self, device_id=0, notch_freq=50):
         """
         Visualization of the electrode impedances
 
         Args:
-            n_chan (int): Number of channels
             device_id (int): Device ID
             notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
-            sampling_rate (int): Sampling rate of the device
-
-        Returns:
-
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        assert self.parser.fs == 250, "Impedance mode only works in 250 Hz sampling rate!"
         self.is_acquiring = [True]
 
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -294,14 +285,16 @@ class Explore:
         try:
             thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
             thread.setDaemon(True)
-            self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq, sampling_rate=sampling_rate)
+            self.parser.apply_bp_filter = True
+            self.parser.bp_freq = (61, 64)
+            self.parser.notch_freq = notch_freq
             thread.start()
 
             # Activate impedance measurement mode in the device
             from explorepy import command
             imp_activate_cmd = command.ZmeasurementEnable()
             if self.change_settings(imp_activate_cmd):
-                self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance", sampling_rate=sampling_rate,
+                self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, mode="impedance", exg_fs=self.parser.fs,
                                              firmware_version=self.parser.firmware_version)
                 self.m_dashboard.start_server()
                 self.m_dashboard.start_loop()

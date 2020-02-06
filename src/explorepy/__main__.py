@@ -30,20 +30,19 @@ def main():
     push2lsl                Streams Data to Lab stream layer. Inputs: Name or Address and Channel number (either 4 or 8)
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX).
                             -n --name       Device name (e.g. Explore_12AB). Either device name or MAC address is needed.
-                            -c --channels   Number of channels. This is necessary for push2lsl
 
 
     visualize               Visualizes real-time data in a browser-based dashboard
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX).
                             -n --name       Device name (e.g. Explore_12AB). Either device name or MAC address is needed.
-                            -c --channels   Number of channels.
                             -nf --notchfreq Frequency of applied notch filter (By default, no notch filter is applied)
+                            -lf --lowfreq   Low cutoff frequency of bandpass filter
+                            -hf --highfreq  High cutoff frequency of bandpass filter
 
 
     impedance               Show electrode impedances
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX).
                             -n --name       Device name (e.g. Explore_12AB). Either device name or MAC address is needed.
-                            -c --channels   Number of channels.
                             -nf --notchfreq Frequency of applied notch filter (By default, no notch filter is applied)
 
 
@@ -55,7 +54,6 @@ def main():
     bin2edf                Takes a Binary file and converts it to 2 EDF+ files (Exg and orientation)
                             -i --inputfile  Name of the input file
                             -o --overwrite  Overwrite already existing files with the same name.
-                            -c --channels   Number of channels
 
 
 

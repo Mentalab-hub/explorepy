@@ -97,10 +97,6 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-c", "--channels",
-                            dest="channels", type=int, default=None,
-                            help="the device's number of channels")
-
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
@@ -108,7 +104,7 @@ class CLI:
         else:
             explorer.connect(device_name=args.name)
 
-        explorer.push2lsl(n_chan=args.channels)
+        explorer.push2lsl()
 
     @staticmethod
     def bin2csv():
@@ -138,12 +134,8 @@ class CLI:
         parser.add_argument("-o", "--overwrite", action='store_true',
                             help="Overwrite files with same name.")
 
-        parser.add_argument("-c", "--channels",
-                            dest="channels", type=int,
-                            help="Number of channels")
-
         args = parser.parse_args(sys.argv[2:])
-        bin2edf(bin_file=args.inputfile, do_overwrite=args.overwrite, n_chan=args.channels)
+        bin2edf(bin_file=args.inputfile, do_overwrite=args.overwrite)
 
     @staticmethod
     def visualize():
@@ -160,13 +152,17 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-c", "--channels",
-                            dest="channels", type=int, default=None,
-                            help="the device's number of channels (2, 4 or 8)")
-
         parser.add_argument("-nf", "--notchfreq",
                             dest="notchfreq", type=int, default=None,
                             help="Frequency of notch filter.")
+
+        parser.add_argument("-lf", "--lowfreq",
+                            dest="lf", type=float, default=None,
+                            help="Low cutoff frequency of bandpass filter.")
+
+        parser.add_argument("-hf", "--highfreq",
+                            dest="hf", type=float, default=None,
+                            help="High cutoff frequency of bandpass filter.")
 
         args = parser.parse_args(sys.argv[2:])
 
@@ -175,7 +171,10 @@ class CLI:
         else:
             explorer.connect(device_name=args.name)
 
-        explorer.visualize(n_chan=args.channels)
+        if (args.lf is not None) and (args.hf is not None):
+            explorer.visualize(notch_freq=args.notchfreq, bp_freq=(args.lf, args.hf))
+        else:
+            explorer.visualize(notch_freq=args.notchfreq, bp_freq=None)
 
     @staticmethod
     def impedance():
@@ -192,10 +191,6 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-c", "--channels",
-                            dest="channels", type=int, default=None,
-                            help="the device's number of channels")
-
         parser.add_argument("-nf", "--notchfreq",
                             dest="notchfreq", type=int, default=50,
                             help="Frequency of notch filter.")
@@ -207,7 +202,7 @@ class CLI:
         else:
             explorer.connect(device_name=args.name)
 
-        explorer.measure_imp(n_chan=args.channels, notch_freq=args.notchfreq)
+        explorer.measure_imp(notch_freq=args.notchfreq)
 
     @staticmethod
     def format_memory():
