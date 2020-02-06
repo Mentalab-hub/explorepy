@@ -388,6 +388,10 @@ class FileRecorder:
             self._file_name = file_name + '.csv'
             self._create_csv(do_overwrite=do_overwrite)
 
+    @property
+    def fs(self):
+        return self._fs
+
     def _create_edf(self, do_overwrite):
         if (not do_overwrite) and os.path.isfile(self._file_name):
             raise FileExistsError(self._file_name + ' already exists!')
