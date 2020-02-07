@@ -67,7 +67,7 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
 
     marker_ch = ['TimeStamp', 'Code']
     marker_unit = ['s', '-']
-    marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=None, ch_unit=marker_unit,
+    marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=0, ch_unit=marker_unit,
                                    file_type='csv', do_overwrite=do_overwrite)
     with open(bin_file, "rb") as f_bin:
         parser = Parser(fid=f_bin)
