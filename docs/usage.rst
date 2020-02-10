@@ -124,12 +124,12 @@ with the last 4 characters being the last 4 hex numbers of the devices MAC adres
 
 **Make sure to initialize the Bluetooth connection before streaming using the following lines**::
 
-    explorer = explorepy.Explore()
-    explorer.connect(device_name="Explore_XXXX") #Put your device Bluetooth name
+    explore = explorepy.Explore()
+    explore.connect(device_name="Explore_XXXX") #Put your device Bluetooth name
 
 Alternatively you can use the device's MAC address::
 
-    explorer.connect(device_addr="XX:XX:XX:XX:XX:XX")
+    explore.connect(device_addr="XX:XX:XX:XX:XX:XX")
 
 If the device is not found it will raise an error.
 
@@ -137,19 +137,19 @@ Streaming
 ^^^^^^^^^
 After connecting to the device you are able to stream data and print the data in the console.::
 
-    explorer.acquire()
+    explore.acquire()
 
 
 Recording
 ^^^^^^^^^
 You can record data in realtime to EDF (BDF+) or CSV files::
 
-    explorer.record_data(file_name='test', duration=120, file_type='csv')
+    explore.record_data(file_name='test', duration=120, file_type='csv')
 
 This will record data in three separate files "test_ExG.csv", "test_ORN.csv" and "test_marker.csv" which contain ExG, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. The duration of the recording can be specified (in seconds).
 If you want to overwrite already existing files, change the line above::
 
-    explorer.record_data(file_name='test', do_overwrite=True,file_type='csv', duration=120)
+    explore.record_data(file_name='test', do_overwrite=True,file_type='csv', duration=120)
 
 
 Visualization
@@ -157,7 +157,7 @@ Visualization
 It is possible to visualize real-time signal in a browser-based dashboard by the following code. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow.::
 
 
-    explorer.visualize(bp_freq=(1, 30), notch_freq=50)
+    explore.visualize(bp_freq=(1, 30), notch_freq=50)
 
 Where `bp_freq` and `notch_freq` determine cut-off frequencies of bandpass filter and frequency of notch filter (either 50 or 60) respectively.
 
@@ -182,7 +182,7 @@ Impedance measurement
 To measure electrodes impedances::
 
 
-    explorer.impedance(notch_freq=50)
+    explore.impedance(notch_freq=50)
 
 
 .. image:: /images/Dashboard_imp.jpg
@@ -195,7 +195,7 @@ Labstreaminglayer (lsl)
 ^^^^^^^^^^^^^^^^^^^^^^^
 You can push data directly to LSL using the following line::
 
-    explorer.push2lsl()
+    explore.push2lsl()
 
 
 After that you can stream data from other software such as OpenVibe or other programming languages such as MATLAB, Java, C++ and so on. (See `labstreaminglayer <https://github.com/sccn/labstreaminglayer>`_, `OpenVibe <http://openvibe.inria.fr/how-to-use-labstreaminglayer-in-openvibe/>`_ documentations for details).
