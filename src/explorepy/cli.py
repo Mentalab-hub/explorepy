@@ -111,7 +111,7 @@ class CLI:
                             dest="inputfile", type=str, default=None,
                             help="Name of the Bin_File.")
 
-        parser.add_argument("-o", "--overwrite", action='store_false',
+        parser.add_argument("-o", "--overwrite", action='store_true', default=False,
                             help="Overwrite files with same name.")
 
         args = parser.parse_args(sys.argv[2:])
@@ -127,7 +127,7 @@ class CLI:
                             dest="inputfile", type=str, default=None,
                             help="Name of the Bin_File.")
 
-        parser.add_argument("-o", "--overwrite", action='store_true',
+        parser.add_argument("-o", "--overwrite", action='store_true', default=False,
                             help="Overwrite files with same name.")
 
         args = parser.parse_args(sys.argv[2:])
