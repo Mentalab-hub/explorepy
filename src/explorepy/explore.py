@@ -115,15 +115,15 @@ class Explore:
 
         exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8'][0:n_chan+1]
         exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'][0:n_chan+1]
-        exg_max = [86400, 1, 1, 1, 1, 1, 1, 1, 1][0:n_chan + 1]
-        exg_min = [0, -1, -1, -1, -1, -1, -1, -1, -1][0:n_chan + 1]
+        exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4][0:n_chan + 1]
+        exg_min = [0, -.4, -.4, -.4, -.4, -.4, -.4, -.4, -.4][0:n_chan + 1]
         exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=self.parser.fs, ch_unit=exg_unit,
                                     file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
 
         orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
         orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
-        orn_max = [86400, 2000, 2000, 2000, 287000, 287000, 287000, 50000, 50000, 50000]
-        orn_min = [0, -2000, -2000, -2000, -287000, -287000, -287000, -50000, -50000, -50000]
+        orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
+        orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
         orn_recorder = FileRecorder(file_name=orn_out_file, ch_label=orn_ch, fs=20,
                                     ch_unit=orn_unit, file_type=file_type, do_overwrite=do_overwrite,
                                     ch_min=orn_min, ch_max=orn_max)

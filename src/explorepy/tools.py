@@ -104,15 +104,15 @@ def bin2edf(bin_file, do_overwrite=False, out_dir=None):
         parser = Parser(fid=f_bin)
         exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8'][0:parser.n_chan + 1]
         exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'][0:parser.n_chan + 1]
-        exg_max = [86400, 1, 1, 1, 1, 1, 1, 1, 1][0:parser.n_chan + 1]
-        exg_min = [0, -1, -1, -1, -1, -1, -1, -1, -1][0:parser.n_chan + 1]
+        exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4][0:parser.n_chan + 1]
+        exg_min = [0, -.4, -.4, -.4, -.4, -.4, -.4, -.4, -.4][0:parser.n_chan + 1]
         exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=parser.fs, ch_unit=exg_unit,
                                     file_type='edf', do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
 
         orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
         orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
-        orn_max = [86400, 2000, 2000, 2000, 287000, 287000, 287000, 50000, 50000, 50000]
-        orn_min = [0, -2000, -2000, -2000, -287000, -287000, -287000, -50000, -50000, -50000]
+        orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
+        orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
         orn_recorder = FileRecorder(file_name=orn_out_file, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type='edf',
                                     do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min)
         print("Converting...")
@@ -396,7 +396,7 @@ class FileRecorder:
         if (not do_overwrite) and os.path.isfile(self._file_name):
             raise FileExistsError(self._file_name + ' already exists!')
         assert self._file_obj is None, "Usage Error: File object has been created already."
-        self._file_obj = pyedflib.EdfWriter(self._file_name, self._n_chan, file_type=pyedflib.FILETYPE_EDFPLUS)
+        self._file_obj = pyedflib.EdfWriter(self._file_name, self._n_chan, file_type=pyedflib.FILETYPE_BDFPLUS)
 
     def _create_csv(self, do_overwrite):
         if (not do_overwrite) and os.path.isfile(self._file_name):
