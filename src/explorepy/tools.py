@@ -402,7 +402,7 @@ class FileRecorder:
         if (not do_overwrite) and os.path.isfile(self._file_name):
             raise FileExistsError(self._file_name + ' already exists!')
         assert self._file_obj is None, "Usage Error: File object has been created already."
-        self._file_obj = open(self._file_name, 'w')
+        self._file_obj = open(self._file_name, 'w', newline='\n')
         self._csv_obj = csv.writer(self._file_obj, delimiter=",")
         self._csv_obj.writerow(self._ch_label)
 

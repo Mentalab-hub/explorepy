@@ -54,10 +54,6 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-c", "--channel",
-                            dest="n_chan", type=int,
-                            help="Number of channels.")
-
         parser.add_argument("-f", "--filename",
                             dest="filename", type=str, default=None,
                             help="Name of the CSV_Files.")
@@ -80,7 +76,7 @@ class CLI:
             explorer.connect(device_name=args.name)
 
         assert (args.filename is not None), "Missing Filename"
-        explorer.record_data(file_name=args.filename, n_chan=args.n_chan, file_type=args.file_type,
+        explorer.record_data(file_name=args.filename, file_type=args.file_type,
                              do_overwrite=args.overwrite, duration=args.duration)
 
     @staticmethod
