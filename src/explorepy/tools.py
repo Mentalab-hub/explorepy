@@ -34,13 +34,13 @@ def bt_scan():
     return explore_devices
 
 
-def bin2csv(bin_file, do_overwrite=False, out_dir=None):
+def bin2csv(bin_file, do_overwrite=False, out_dir=''):
     """Binary to CSV file converter.
     This function converts the given binary file to ExG and ORN csv files.
 
     Args:
         bin_file (str): Binary file full address
-        out_dir (str): Output directory (if None, uses the same directory as binary file)
+        out_dir (str): Relative output directory (if not given, it uses the current working directory.)
         do_overwrite (bool): Overwrite if files exist already
 
     """
@@ -48,8 +48,7 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=None):
     filename, extension = os.path.splitext(full_filename)
     assert os.path.isfile(bin_file), "Error: File does not exist!"
     assert extension == '.BIN', "File type error! File extension must be BIN."
-    if out_dir is None:
-        out_dir = head_path + '/'
+    out_dir = os.getcwd() + out_dir + '/'
 
     exg_out_file = out_dir + filename + '_exg'
     orn_out_file = out_dir + filename + '_orn'
@@ -94,8 +93,7 @@ def bin2edf(bin_file, do_overwrite=False, out_dir=None):
     filename, extension = os.path.splitext(full_filename)
     assert os.path.isfile(bin_file), "Error: File does not exist!"
     assert extension == '.BIN', "File type error! File extension must be BIN."
-    if out_dir is None:
-        out_dir = head_path + '/'
+    out_dir = os.getcwd() + out_dir + '/'
 
     exg_out_file = out_dir + filename + '_exg'
     orn_out_file = out_dir + filename + '_orn'
