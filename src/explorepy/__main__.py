@@ -18,12 +18,11 @@ def main():
                             -n --name       Device name (e.g. "Explore_12AB").
 
 
-    record_data:            Connects to a device and records ExG and orientation data live to separate CSV files
-                            Inputs: Name or Address, filename, overwrite flag
+    record_data:            Connects to a device and records ExG and orientation data live to separate files
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX).
                             -n --name       Device name (e.g. Explore_12AB). Either device name or MAC address is needed.
                             -f --filename   The prefix of the files.
-                            -t --type       File type (either edf or csv
+                            -t --type       File type (either edf or csv).
                             -o --overwrite  Overwrite already existing files with the same name.
                             -d --duration   Recording duration in seconds
 
@@ -51,7 +50,7 @@ def main():
                             -o --overwrite  Overwrite already existing files with the same name.
 
 
-    bin2edf                Takes a Binary file and converts it to 2 EDF+ files (Exg and orientation)
+    bin2edf                Takes a Binary file and converts it to 2 BDF+ files (ExG and orientation, markers are saved in ExG file)
                             -i --inputfile  Name of the input file
                             -o --overwrite  Overwrite already existing files with the same name.
 

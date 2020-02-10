@@ -16,15 +16,15 @@ Scans for nearby explore-devices. Prints out Name and MAC address of the found d
 
 
 **acquire**
-
 Connects to device, needs either MAC or Name of the desired device as input
+
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. "Explore_12AB").
 
 
 
 **record_data**
-Connects to a device and records ExG and orientation data into 2 separate files. Note that in CSV mode there will be an extra file for the marker events.
+Connects to a device and records ExG and orientation data into 2 separate files. Note that in CSV mode there will be an extra file for the marker events. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution).
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB). Note that either device name or MAC address is needed.
@@ -32,7 +32,6 @@ Connects to a device and records ExG and orientation data into 2 separate files.
 * ``-t`` or ``--type``       File type (edf and csv types are supported currently).
 * ``-o`` or ``--overwrite``  Overwrite already existing files with the same name (optional - the default mode is False).
 * ``-d`` or ``--duration``   Recording duration in seconds
-
 
 
 **push2lsl**
@@ -51,7 +50,7 @@ Takes a Binary file and converts it to 3 CSV files (ExG, orientation and marker 
 
 
 **bin2edf**
-Takes a Binary file and converts it to 2 EDF+ files (ExG and orientation - markers will be written in ExG file)
+Takes a Binary file and converts it to 2 EDF+ files (ExG and orientation - markers will be written in ExG file). The data is actually recorded in BDF+ format (in 24-bit resolution).
 
 * ``-i`` or ``--inputfile``  Name of the input file
 * ``-o`` or ``--overwrite``  Overwrite already existing files with the same name.
@@ -65,6 +64,8 @@ Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the
 * ``-nf`` or ``--notchfreq`` Frequency of applied notch filter (By default, no notch filter is applied)
 * ``-lf`` or ``--lowfreq``   Low cutoff frequency of bandpass filter (By default no bandpass filter is applied)
 * ``-hf`` or ``--highfreq``  High cutoff frequency of bandpass filter (Both ``-lf`` and ``-hf`` must be given if you want to apply a bandpass filter)
+
+
 **impedance**
 Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome is the supported browser.
 
@@ -78,6 +79,7 @@ This command formats the memory of the specified Explore device.
 
 * ``-a`` or ``--address``    Device MAC address (Form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
+
 
 **set_sampling_rate**
 This command sets the sampling rate of ExG input on the specified Explore device. The only acceptable values for sampling rates are 250, 500 or 1000. Please note that this feature is in its alpha state. There might be some inconsistency with other modules in sampling rates except 250 Hz.
@@ -140,14 +142,14 @@ After connecting to the device you are able to stream data and print the data in
 
 Recording
 ^^^^^^^^^
-You can record data in realtime to EDF+ or CSV files::
+You can record data in realtime to EDF (BDF+) or CSV files::
 
-    explorer.record_data(file_name='test', duration=120, file_type='edf')
+    explorer.record_data(file_name='test', duration=120, file_type='csv')
 
 This will record data in three separate files "test_ExG.csv", "test_ORN.csv" and "test_marker.csv" which contain ExG, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. The duration of the recording can be specified (in seconds).
-The program will usually stop if files with the same name are detected. If you want to overwrite already existing files, change the line above::
+If you want to overwrite already existing files, change the line above::
 
-    explorer.record_data(file_name='test', do_overwrite=True, duration=120)
+    explorer.record_data(file_name='test', do_overwrite=True,file_type='csv', duration=120)
 
 
 Visualization
