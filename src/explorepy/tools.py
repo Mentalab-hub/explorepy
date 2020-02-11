@@ -80,7 +80,7 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=''):
                 break
 
 
-def bin2edf(bin_file, do_overwrite=False, out_dir=None):
+def bin2edf(bin_file, do_overwrite=False, out_dir=''):
     """Binary to EDF file converter.
     This function converts the given binary file to ExG and ORN csv files.
 
