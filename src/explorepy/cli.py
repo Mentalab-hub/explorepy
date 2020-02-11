@@ -58,7 +58,7 @@ class CLI:
                             dest="filename", type=str, default=None,
                             help="Name of the CSV_Files.")
 
-        parser.add_argument("-o", "--overwrite", action='store_true', default=False,
+        parser.add_argument("-ow", "--overwrite", action='store_true', default=False,
                             help="Overwrite files with same name.")
 
         parser.add_argument("-d", "--duration", type=int, default=None,
@@ -77,7 +77,7 @@ class CLI:
 
         assert (args.filename is not None), "Missing Filename"
         explore.record_data(file_name=args.filename, file_type=args.file_type,
-                             do_overwrite=args.overwrite, duration=args.duration)
+                            do_overwrite=args.overwrite, duration=args.duration)
 
     @staticmethod
     def push2lsl():
@@ -111,7 +111,7 @@ class CLI:
                             dest="inputfile", type=str, default=None,
                             help="Name of the Bin_File.")
 
-        parser.add_argument("-o", "--overwrite", action='store_true', default=False,
+        parser.add_argument("-ow", "--overwrite", action='store_true', default=False,
                             help="Overwrite files with same name.")
 
         args = parser.parse_args(sys.argv[2:])
@@ -127,7 +127,7 @@ class CLI:
                             dest="inputfile", type=str, default=None,
                             help="Name of the Bin_File.")
 
-        parser.add_argument("-o", "--overwrite", action='store_true', default=False,
+        parser.add_argument("-ow", "--overwrite", action='store_true', default=False,
                             help="Overwrite files with same name.")
 
         args = parser.parse_args(sys.argv[2:])
@@ -239,7 +239,7 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-r", "--sampling_rate",
+        parser.add_argument("-sr", "--sampling_rate",
                             dest="sampling_rate", type=str, default=None,
                             help="Sampling rate of ExG channels, it can be 250 or 500")
 
@@ -273,10 +273,6 @@ class CLI:
         parser.add_argument("-n", "--name",
                             dest="name", type=str, default=None,
                             help="Name of the device.")
-
-        parser.add_argument("-i", "--deviceID",
-                            dest="device_id", type=int, default=0,
-                            help="ID of the device.")
 
         args = parser.parse_args(sys.argv[2:])
 
