@@ -20,7 +20,7 @@ class CLI:
 
     @staticmethod
     def acquire():
-        explorer = Explore()
+        explore = Explore()
         parser = argparse.ArgumentParser(
             description='Connect to a device with selected name or address. Only one input is necessary')
 
@@ -35,14 +35,14 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr=args.address)
+            explore.connect(device_addr=args.address)
         elif args.address is None:
-            explorer.connect(device_name=args.name)
-        explorer.acquire()
+            explore.connect(device_name=args.name)
+        explore.acquire()
 
     @staticmethod
     def record_data():
-        explorer = Explore()
+        explore = Explore()
         parser = argparse.ArgumentParser(
             description='Connect to a device with selected name')
 
@@ -54,15 +54,11 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-c", "--channel",
-                            dest="n_chan", type=int,
-                            help="Number of channels.")
-
         parser.add_argument("-f", "--filename",
                             dest="filename", type=str, default=None,
                             help="Name of the CSV_Files.")
 
-        parser.add_argument("-o", "--overwrite", action='store_true', default=False,
+        parser.add_argument("-ow", "--overwrite", action='store_true', default=False,
                             help="Overwrite files with same name.")
 
         parser.add_argument("-d", "--duration", type=int, default=None,
@@ -75,17 +71,17 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr=args.address)
+            explore.connect(device_addr=args.address)
         else:
-            explorer.connect(device_name=args.name)
+            explore.connect(device_name=args.name)
 
         assert (args.filename is not None), "Missing Filename"
-        explorer.record_data(file_name=args.filename, n_chan=args.n_chan, file_type=args.file_type,
-                             do_overwrite=args.overwrite, duration=args.duration)
+        explore.record_data(file_name=args.filename, file_type=args.file_type,
+                            do_overwrite=args.overwrite, duration=args.duration)
 
     @staticmethod
     def push2lsl():
-        explorer = Explore()
+        explore = Explore()
         parser = argparse.ArgumentParser(
             description='Push data to lsl')
 
@@ -100,11 +96,11 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr=args.address)
+            explore.connect(device_addr=args.address)
         else:
-            explorer.connect(device_name=args.name)
+            explore.connect(device_name=args.name)
 
-        explorer.push2lsl()
+        explore.push2lsl()
 
     @staticmethod
     def bin2csv():
@@ -115,7 +111,7 @@ class CLI:
                             dest="inputfile", type=str, default=None,
                             help="Name of the Bin_File.")
 
-        parser.add_argument("-o", "--overwrite", action='store_false',
+        parser.add_argument("-ow", "--overwrite", action='store_true', default=False,
                             help="Overwrite files with same name.")
 
         args = parser.parse_args(sys.argv[2:])
@@ -131,7 +127,7 @@ class CLI:
                             dest="inputfile", type=str, default=None,
                             help="Name of the Bin_File.")
 
-        parser.add_argument("-o", "--overwrite", action='store_true',
+        parser.add_argument("-ow", "--overwrite", action='store_true', default=False,
                             help="Overwrite files with same name.")
 
         args = parser.parse_args(sys.argv[2:])
@@ -139,7 +135,7 @@ class CLI:
 
     @staticmethod
     def visualize():
-        explorer = Explore()
+        explore = Explore()
 
         parser = argparse.ArgumentParser(
             description='Visualizing signal in a browser-based dashboard')
@@ -167,18 +163,18 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr=args.address)
+            explore.connect(device_addr=args.address)
         else:
-            explorer.connect(device_name=args.name)
+            explore.connect(device_name=args.name)
 
         if (args.lf is not None) and (args.hf is not None):
-            explorer.visualize(notch_freq=args.notchfreq, bp_freq=(args.lf, args.hf))
+            explore.visualize(notch_freq=args.notchfreq, bp_freq=(args.lf, args.hf))
         else:
-            explorer.visualize(notch_freq=args.notchfreq, bp_freq=None)
+            explore.visualize(notch_freq=args.notchfreq, bp_freq=None)
 
     @staticmethod
     def impedance():
-        explorer = Explore()
+        explore = Explore()
 
         parser = argparse.ArgumentParser(
             description='Impedance measurement in a browser-based dashboard')
@@ -198,15 +194,15 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr=args.address)
+            explore.connect(device_addr=args.address)
         else:
-            explorer.connect(device_name=args.name)
+            explore.connect(device_name=args.name)
 
-        explorer.measure_imp(notch_freq=args.notchfreq)
+        explore.measure_imp(notch_freq=args.notchfreq)
 
     @staticmethod
     def format_memory():
-        explorer = Explore()
+        explore = Explore()
         parser = argparse.ArgumentParser(
             description='format the memory of selected explore device')
 
@@ -221,17 +217,17 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr=args.address)
+            explore.connect(device_addr=args.address)
         elif args.address is None:
-            explorer.connect(device_name=args.name)
+            explore.connect(device_name=args.name)
 
         from explorepy import command
         memory_format_cmd = command.MemoryFormat()
-        explorer.change_settings(memory_format_cmd)
+        explore.change_settings(memory_format_cmd)
 
     @staticmethod
     def set_sampling_rate():
-        explorer = Explore()
+        explore = Explore()
         parser = argparse.ArgumentParser(
             description='format the memory of selected explore device (yet in alpha state)')
 
@@ -243,30 +239,30 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-r", "--sampling_rate",
+        parser.add_argument("-sr", "--sampling_rate",
                             dest="sampling_rate", type=str, default=None,
                             help="Sampling rate of ExG channels, it can be 250 or 500")
 
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr=args.address)
+            explore.connect(device_addr=args.address)
         elif args.address is None:
-            explorer.connect(device_name=args.name)
+            explore.connect(device_name=args.name)
 
         from explorepy import command
         if args.sampling_rate is None:
             raise ValueError("Please specify the sampling rate")
         elif args.sampling_rate == '250':
-            explorer.change_settings(command.SetSPS(250))
+            explore.change_settings(command.SetSPS(250))
         elif args.sampling_rate == '500':
-            explorer.change_settings(command.SetSPS(500))
+            explore.change_settings(command.SetSPS(500))
         else:
             raise ValueError("The only acceptable values are 250 or 500")
 
     @staticmethod
     def soft_reset():
-        explorer = Explore()
+        explore = Explore()
         parser = argparse.ArgumentParser(
             description='Terminate the recording session and reset the selected explore device')
 
@@ -278,24 +274,20 @@ class CLI:
                             dest="name", type=str, default=None,
                             help="Name of the device.")
 
-        parser.add_argument("-i", "--deviceID",
-                            dest="device_id", type=int, default=0,
-                            help="ID of the device.")
-
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr=args.address)
+            explore.connect(device_addr=args.address)
         elif args.address is None:
-            explorer.connect(device_name=args.name)
+            explore.connect(device_name=args.name)
 
         from explorepy import command
         soft_reset_cmd = command.SoftReset()
-        explorer.change_settings(soft_reset_cmd)
+        explore.change_settings(soft_reset_cmd)
 
     @staticmethod
     def set_channels():
-        explorer = Explore()
+        explore = Explore()
         parser = argparse.ArgumentParser(
             description='Mask the channels of selected explore device (yet in alpha state)')
 
@@ -315,15 +307,15 @@ class CLI:
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
-            explorer.connect(device_addr=args.address)
+            explore.connect(device_addr=args.address)
         elif args.address is None:
-            explorer.connect(device_name=args.name)
+            explore.connect(device_name=args.name)
 
         from explorepy import command
         if args.channel_mask is None:
             raise ValueError("Please specify the mask")
         elif 1 <= int(args.channel_mask) <= 255:
-            explorer.change_settings(command.SetCh(int(args.channel_mask)))
+            explore.change_settings(command.SetCh(int(args.channel_mask)))
         else:
             raise ValueError("Acceptable values are integers between 1 to 255.")
 

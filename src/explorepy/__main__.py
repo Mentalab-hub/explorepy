@@ -18,16 +18,15 @@ def main():
                             -n --name       Device name (e.g. "Explore_12AB").
 
 
-    record_data:            Connects to a device and records ExG and orientation data live to separate CSV files
-                            Inputs: Name or Address, filename, overwrite flag
+    record_data:            Connects to a device and records ExG and orientation data live to separate files
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX).
                             -n --name       Device name (e.g. Explore_12AB). Either device name or MAC address is needed.
                             -f --filename   The prefix of the files.
-                            -t --type       File type (either edf or csv
-                            -o --overwrite  Overwrite already existing files with the same name.
+                            -t --type       File type (either edf or csv).
+                            -ow --overwrite  Overwrite already existing files with the same name.
                             -d --duration   Recording duration in seconds
 
-    push2lsl                Streams Data to Lab stream layer. Inputs: Name or Address and Channel number (either 4 or 8)
+    push2lsl                Streams Data to Lab Streaming Layer (LSL).
                             -a --address    Device MAC address (Form XX:XX:XX:XX:XX:XX).
                             -n --name       Device name (e.g. Explore_12AB). Either device name or MAC address is needed.
 
@@ -48,12 +47,12 @@ def main():
 
     bin2csv                Takes a Binary file and converts it to 3 CSV files (ExG, orientation and marker files)
                             -i --inputfile  Name of the input file
-                            -o --overwrite  Overwrite already existing files with the same name.
+                            -ow --overwrite  Overwrite already existing files with the same name.
 
 
-    bin2edf                Takes a Binary file and converts it to 2 EDF+ files (Exg and orientation)
+    bin2edf                Takes a Binary file and converts it to 2 BDF+ files (ExG and orientation, markers are saved in ExG file)
                             -i --inputfile  Name of the input file
-                            -o --overwrite  Overwrite already existing files with the same name.
+                            -ow --overwrite  Overwrite already existing files with the same name.
 
 
 
@@ -66,6 +65,10 @@ def main():
                             -a --address        Device MAC address (Form XX:XX:XX:XX:XX:XX).
                             -n --name           Device name (e.g. Explore_12AB).
                             -r --sampling_rate  Sampling rate of ExG channels, it can be 250, 500 or 1000.
+
+    soft_reset              This command does a soft reset of the device. All the settings (e.g. sampling rate, channel mask) return to the default values.
+                            -a --address        Device MAC address (Form XX:XX:XX:XX:XX:XX).
+                            -n --name           Device name (e.g. Explore_12AB).
     ''')
 
     parser.add_argument('command', help='Command to run.')
