@@ -414,11 +414,11 @@ class Explore:
                                                                               "send the command again.")
             return False
 
-    def calibrate_orn(self, device_id=0, file_name=None, do_overwrite=False):
+    def calibrate_orn(self, file_name, device_id=0, do_overwrite=False):
         r"""Calibrate the orientation module of the specified device
 
         Args:
-            device_id (int): device id (id=None for disconnecting all devices)
+            device_id (int): device id
             file_name (str): filename to be used for calibration output
             do_overwrite (bool): Overwrite if files exist already
         """
@@ -453,6 +453,7 @@ class Explore:
         os.remove((file_name + "_ORN.csv"))
         os.remove((file_name + "_ExG.csv"))
         os.remove((file_name + "_Marker.csv"))
+
 
 if __name__ == '__main__':
     pass
