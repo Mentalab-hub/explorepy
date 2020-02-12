@@ -147,8 +147,8 @@ class Parser:
                 #     self.signal_dc = (self.bp_freq[0] / (self.fs*0.5)) * packet.data[:, column] + (
                 #             1 - (self.bp_freq[0] / (self.fs*0.5))) * self.signal_dc
                 #     packet.data[:, column] = packet.data[:, column] - self.signal_dc
-            if isinstance(packet, Orientation):
-                packet = self.compute_NED(packet)
+            if isinstance(packet, Orientation) and self.calibre_set is not None:
+                packet = self._compute_NED(packet)
             packet.push_to_dashboard(dashboard)
 
         elif mode == "listen":
@@ -246,7 +246,7 @@ class Parser:
                                   line_freq=self.notch_freq,
                                   sampling_freq=self.fs)
 
-    def compute_NED(self, packet):
+    def _compute_NED(self, packet):
         [kx, ky, kz, mx_offset, my_offset, mz_offset] = self.calibre_set
         D_prv = self.ED_prv[1]
         E_prv = self.ED_prv[0]
@@ -276,7 +276,6 @@ class Parser:
         E = E_tmp / (np.dot(E_tmp, E_tmp) ** 0.5)
         N = -1*np.cross(E, D)
         N = N / (np.dot(N, N) ** 0.5)
-
         '''
         If you comment this block it will give you the absolute orientation based on {East,North,Up} coordinate system.
         If you keep this block of code it will give you the relative orientation based on itial state of the device. so
@@ -309,7 +308,6 @@ class Parser:
         N = N / (np.dot(N, N) ** 0.5)
         E = E / (np.dot(E, E) ** 0.5)
         D = D / (np.dot(D, D) ** 0.5)
-        packet.NED = np.array([N, E, D])
         self.ED_prv = [E, D]
         self.matrix = self.matrix*0.9+0.1*matrix
         [theta, rot_axis] = packet.compute_angle(matrix=self.matrix)
