@@ -216,7 +216,7 @@ class Explore:
                     return 0
         print("Data acquisition finished after ", duration, " seconds.")
 
-    def visualize(self, device_id=0, bp_freq=(1, 30), notch_freq=50):
+    def visualize(self, device_id=0, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
         r"""Visualization of the signal in the dashboard
         Args:
             device_id (int): Device ID (not needed in the current version)
@@ -224,8 +224,12 @@ class Explore:
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
         """
+        import numpy as np
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
-
+        with open(calibre_file, "r") as f_calibre:
+            csv_reader_calibre = csv.reader(f_calibre, delimiter=",")
+            calibre_set = list(csv_reader_calibre)
+            self.parser.calibre_set = np.asarray(calibre_set[1], dtype=np.float64)
         self.parser.notch_freq = notch_freq
         if bp_freq is not None:
             self.parser.apply_bp_filter = True
@@ -243,23 +247,40 @@ class Explore:
 
     def _io_loop(self, device_id=0, mode="visualize"):
         self.is_acquiring = [True]
+        is_initialized = False
         # Wait until dashboard is initialized.
         while not hasattr(self.m_dashboard, 'doc'):
             print('wait...')
             time.sleep(.5)
 
         while self.is_acquiring[0]:
-            try:
-                packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
+            if is_initialized:
                 try:
-                    self.parser.socket = self.device[device_id].bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
-                    self.is_acquiring[0] = False
-                    if mode == "visualize":
-                        os._exit(0)
+                    packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
+                except ConnectionAbortedError:
+                    print("Device has been disconnected! Scanning for last connected device...")
+                    try:
+                        self.parser.socket = self.device[device_id].bt_connect()
+                    except DeviceNotFoundError as e:
+                        print(e)
+                        self.is_acquiring[0] = False
+                        if mode == "visualize":
+                            os._exit(0)
+            else:
+                try:
+                    packet = self.parser.parse_packet(mode="initialize", dashboard=self.m_dashboard)
+                    if hasattr(packet, 'NED'):
+                        if self.parser.init_set is not None:
+                            is_initialized = True
+                except ConnectionAbortedError:
+                    print("Device has been disconnected! Scanning for last connected device...")
+                    try:
+                        self.parser.socket = self.device[device_id].bt_connect()
+                    except DeviceNotFoundError as e:
+                        print(e)
+                        self.is_acquiring[0] = False
+                        if mode == "visualize":
+                            os._exit(0)
         os.exit(0)
 
     def signal_handler(self, signal, frame):
@@ -388,6 +409,43 @@ class Explore:
                                                                               "send the command again.")
             return False
 
+    def calibrate_orn(self, device_id=0, file_name=None, do_overwrite=False):
+        r"""Start getting data from the device
+
+        Args:
+            device_id (int): device id (id=None for disconnecting all devices)
+        """
+        print("Starting 100 secs recording for calibrating movement sensors, please move the device around during this time, in all directions")
+        self.record_data(self, file_name, do_overwrite=do_overwrite, device_id=device_id, duration=100, file_type='csv')
+        calibre_out_file = file_name + "_calibre_coef.csv"
+        assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
+        import numpy as np
+        with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
+            f_coef.write("kx, ky, kz, mx_offset, my_offset, mz_offset\n")
+            csv_reader = csv.reader(f_set, delimiter=",")
+            csv_coef = csv.writer(f_coef, delimiter=",")
+            np_set = list(csv_reader)
+            np_set = np.array(np_set[1:], dtype=np.float)
+            mag_set_x = np.sort(np_set[:, -3])
+            mag_set_y = np.sort(np_set[:, -2])
+            mag_set_z = np.sort(np_set[:, -1])
+            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
+            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
+            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
+            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
+            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
+            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
+            k = np.sort(np.array([kx, ky, kz]))
+            kx = 1 / kx
+            ky = 1 / ky
+            kz = 1 / kz
+            calibre_set = np.array([kx, ky, kz, mx_offset, my_offset, mz_offset])
+            csv_coef.writerow(calibre_set)
+            f_set.close()
+            f_coef.close()
+        os.remove((file_name + "_ORN.csv"))
+        os.remove((file_name + "_ExG.csv"))
+        os.remove((file_name + "_Marker.csv"))
 
 if __name__ == '__main__':
     pass

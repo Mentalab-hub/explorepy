@@ -256,7 +256,8 @@ class Orientation(Packet):
         data = np.copy(np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder('<'))).astype(np.float)
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
-        self.mag = 1.52 * data[6:]  # Unit [mgauss/LSB]
+        self.mag = 1.52 *  np.multiply (data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
+        self.NED = np.zeros((3, 3))
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -274,6 +275,17 @@ class Orientation(Packet):
     def push_to_dashboard(self, dashboard):
         data = self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_orn, timestamp=self.timestamp, orn_data=data))
+
+    def compute_angle(self, matrix=None):
+        trace = matrix[0][0]+matrix[1][1]+matrix[2][2]
+        theta = np.arccos((trace-1)/2)*57.2958
+        nx = matrix[2][1] - matrix[1][2]
+        ny = matrix[0][2] - matrix[2][0]
+        nz = matrix[1][0] - matrix[0][1]
+        rot_axis = 1/np.sqrt((3-trace)*(1+trace))*np.array([nx, ny, nz])
+        self.theta = theta
+        self.rot_axis = rot_axis
+        return [theta, rot_axis]
 
 
 class Environment(Packet):

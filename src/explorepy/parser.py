@@ -60,6 +60,12 @@ class Parser:
         self.adc_mask = None
         self.n_chan = None
         self.imp_calib_info = {}
+        self.calibre_set = None
+        self.init_set = None
+        self.ED_prv = None
+        self.theta = 0.
+        self.axis = np.array([0, 0, -1])
+        self.matrix = np.identity(4)
         packet = None
         while not isinstance(packet, DeviceInfo):
             packet = self.parse_packet(mode=None)
@@ -141,6 +147,8 @@ class Parser:
                 #     self.signal_dc = (self.bp_freq[0] / (self.fs*0.5)) * packet.data[:, column] + (
                 #             1 - (self.bp_freq[0] / (self.fs*0.5))) * self.signal_dc
                 #     packet.data[:, column] = packet.data[:, column] - self.signal_dc
+            if isinstance(packet, Orientation):
+                packet = self.compute_NED(packet)
             packet.push_to_dashboard(dashboard)
 
         elif mode == "listen":
@@ -168,6 +176,35 @@ class Parser:
                 packet.push_to_imp_dashboard(dashboard, self.imp_calib_info)
             elif isinstance(packet, Environment) | isinstance(packet, DeviceInfo):
                 packet.push_to_dashboard(dashboard)
+
+        elif mode == "calibrate":
+            assert isinstance(recorders, tuple), "Invalid csv writer objects!"
+            if isinstance(packet, Orientation):
+                packet.write_to_csv(recorders[0])
+            elif isinstance(packet, MarkerEvent):
+                packet.write_to_file(recorders[1])
+
+        elif mode == "initialize":
+            if isinstance(packet, Orientation):
+                th = np.zeros(3)
+                T_init = np.zeros((3, 3))
+                D = packet.acc / (np.dot(packet.acc, packet.acc) ** 0.5)
+                [kx, ky, kz, mx_offset, my_offset, mz_offset] = self.calibre_set
+                packet.mag[0] = kx * (packet.mag[0] - mx_offset)
+                packet.mag[1] = ky * (packet.mag[1] - my_offset)
+                packet.mag[2] = kz * (packet.mag[2] - mz_offset)
+                E = -1*np.cross(D, packet.mag)
+                E = E / (np.dot(E, E) ** 0.5)
+                # here you can find an estimation of actual north from packet.mag, it is perpendicular to D and still
+                # co-planar with D and mag, somehow reducing error
+                N = -1*np.cross(E, D)
+                N = N / (np.dot(N, N) ** 0.5)
+                T_init = np.column_stack((E,N,D))
+                N_init = np.matmul(np.transpose(T_init), N)
+                E_init = np.matmul(np.transpose(T_init), E)
+                D_init = np.matmul(np.transpose(T_init), D)
+                self.init_set = [T_init, N_init, E_init, D_init]
+                self.ED_prv = [E, D]
         return packet
 
     def read(self, n_bytes):
@@ -208,3 +245,76 @@ class Parser:
                                   h_freq=self.bp_freq[1],
                                   line_freq=self.notch_freq,
                                   sampling_freq=self.fs)
+
+    def compute_NED(self, packet):
+        [kx, ky, kz, mx_offset, my_offset, mz_offset] = self.calibre_set
+        D_prv = self.ED_prv[1]
+        E_prv = self.ED_prv[0]
+        acc = packet.acc
+        acc = acc / (np.dot(acc, acc) ** 0.5)
+        gyro = packet.gyro * 1.745329e-5 #radian per second
+        #mag = np.array([0, 0, 0])
+        packet.mag[0] = kx * (packet.mag[0] - mx_offset)
+        packet.mag[1] = ky * (packet.mag[1] - my_offset)
+        packet.mag[2] = kz * (packet.mag[2] - mz_offset)
+        mag = packet.mag
+        D = acc
+        dD = D-D_prv
+        da = np.cross(D_prv, dD)
+        E = -1*np.cross(D, mag)
+        E = E / (np.dot(E, E) ** 0.5)
+        dE = E-E_prv
+        dm = np.cross(E_prv, dE)
+        dg = 0.05 * gyro
+        dth = -0.95 * dg + 0.025 * da + 0.025 * dm
+        D = D_prv + np.cross(dth, D_prv)
+        D = D / (np.dot(D, D) ** 0.5)
+        Err = np.dot(D, E)
+        D_tmp = D - 0.5*Err*E
+        E_tmp = E - 0.5*Err*D
+        D = D_tmp / (np.dot(D_tmp, D_tmp) ** 0.5)
+        E = E_tmp / (np.dot(E_tmp, E_tmp) ** 0.5)
+        N = -1*np.cross(E, D)
+        N = N / (np.dot(N, N) ** 0.5)
+
+        '''
+        If you comment this block it will give you the absolute orientation based on {East,North,Up} coordinate system.
+        If you keep this block of code it will give you the relative orientation based on itial state of the device. so
+        It is important to keep the device steady, so that the device can capture the initial direction properly.
+        '''
+        ##########################
+        T = np.zeros((3,3))
+        T_init = self.init_set[0]
+        N_init = self.init_set[1]
+        E_init = self.init_set[2]
+        D_init = self.init_set[3]
+        T = np.column_stack((E, N, D))
+        T_test = np.matmul(T, T_init.transpose())
+        N = np.matmul(T_test.transpose(), N_init)
+        E = np.matmul(T_test.transpose(), E_init)
+        D = np.matmul(T_test.transpose(), D_init)
+        ##########################
+        matrix = np.identity(4)
+        matrix[0][0] = E[0]
+        matrix[0][1] = N[0]
+        matrix[0][2] = D[0]
+
+        matrix[1][0] = E[1]
+        matrix[1][1] = N[1]
+        matrix[1][2] = D[1]
+
+        matrix[2][0] = E[2]
+        matrix[2][1] = N[2]
+        matrix[2][2] = D[2]
+        N = N / (np.dot(N, N) ** 0.5)
+        E = E / (np.dot(E, E) ** 0.5)
+        D = D / (np.dot(D, D) ** 0.5)
+        packet.NED = np.array([N, E, D])
+        self.ED_prv = [E, D]
+        self.matrix = self.matrix*0.9+0.1*matrix
+        [theta, rot_axis] = packet.compute_angle(matrix=self.matrix)
+        self.theta = self.theta*0.9+0.1*theta
+        packet.theta = self.theta
+        self.axis = self.axis*0.9+0.1*rot_axis
+        packet.rot_axis = self.axis
+        return packet
