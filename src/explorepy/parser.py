@@ -5,6 +5,7 @@ from explorepy.packet import PACKET_ID, PACKET_CLASS_DICT, TimeStamp, EEG, Envir
                                 Orientation, DeviceInfo, Disconnect, MarkerEvent, CalibrationInfo
 from explorepy.filters import Filter
 import copy
+import time
 
 
 def generate_packet(pid, timestamp, bin_data):
@@ -43,6 +44,8 @@ class Parser:
         self.dt_int16 = np.dtype(np.int16).newbyteorder('<')
         self.dt_uint16 = np.dtype(np.uint16).newbyteorder('<')
         self.time_offset = None
+        self.events = []
+        self.start_timer = None
         if bp_freq is not None:
             assert bp_freq[0] < bp_freq[1], "High cut-off frequency must be larger than low cut-off frequency"
             self.bp_freq = bp_freq
@@ -86,10 +89,12 @@ class Parser:
 
         # Timestamp conversion
         if self.time_offset is None:
-            self.time_offset = timestamp
+            self.time_offset = timestamp * .0001
             timestamp = 0
+            self.start_timer = time.time()
         else:
-            timestamp = (timestamp - self.time_offset) * .0001  # Timestamp unit is .1 ms
+            timestamp = timestamp * .0001 - self.time_offset   # Timestamp unit is .1 ms
+            # print(f"Packet time: {timestamp:.5f} \t diff time: {(time.time()-self.start_timer - timestamp):.5f}")
 
         payload_data = self.read(payload - 4)
         packet = generate_packet(pid, timestamp, payload_data)
@@ -103,13 +108,16 @@ class Parser:
             print(packet)
 
         elif mode == "record":
-            assert isinstance(recorders, tuple), "Invalid csv writer objects!"
+            assert isinstance(recorders, tuple), "Invalid writer objects!"
             if isinstance(packet, Orientation):
                 packet.write_to_file(recorders[1])
             elif isinstance(packet, EEG):
                 packet.write_to_file(recorders[0])
             elif isinstance(packet, MarkerEvent):
                 packet.write_to_file(recorders[2])
+            for event in self.events:
+                event.write_to_file(recorders[2])
+            self.events = []
             # elif isinstance(packet, DeviceInfo):
             #     packet.write_to_file(recorders[3])
 
@@ -185,20 +193,14 @@ class Parser:
             # TODO: Create a specific exception for this case
         return byte_data
 
-    def send_msg(self, msg):
-        """
-         tries to send a message through socket.
-         """
-        if msg is None:
-            ts_packet = TimeStamp()
-            ts_packet.translate()
-            msg = ts_packet.raw_data
+    def set_marker(self, marker_code):
+        if type(marker_code) is not int:
+            raise TypeError('Marker code must be an integer!')
+        if 0 <= marker_code <= 7:
+            raise ValueError('Marker code value is not valid')
 
-        if self.socket is not None:
-            self.socket.send(msg)
-        else:
-            raise ValueError("Cannot send the msg")
-        return True
+        self.events.append(MarkerEvent(timestamp=time.time()-self.start_timer,
+                                       payload=bytearray(struct.pack('<H', marker_code) + b'\xaf\xbe\xad\xde')))
 
     def _init_filters(self):
         if self.apply_bp_filter or self.notch_freq:
