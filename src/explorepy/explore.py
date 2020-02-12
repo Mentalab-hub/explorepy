@@ -307,6 +307,16 @@ class Explore:
             self.change_settings(imp_deactivate_cmd)
             sys.exit(0)
 
+    def set_marker(self, code):
+        """Sets an event marker during the recording
+
+        Args:
+            code (int): Marker code. It must be an integer larger than 7 (codes from 0 to 7 are reserved for hardware markers).
+
+        """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        self.parser.set_marker(marker_code=code)
+
     def change_settings(self, command, device_id=0):
         """
         sends a message to the device
