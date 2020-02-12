@@ -12,7 +12,7 @@ from bokeh.server.server import Server
 from bokeh.palettes import Colorblind
 from bokeh.models.widgets import Select, DataTable, TableColumn, RadioButtonGroup
 from bokeh.models import SingleIntervalTicker
-from bokeh.core.property.validation import validate
+from bokeh.core.property.validation import validate, without_property_validation
 from tornado import gen
 from bokeh.transform import dodge
 
@@ -129,6 +129,7 @@ class Dashboard:
         self.doc.add_periodic_callback(self._update_heart_rate, 2000)
 
     @gen.coroutine
+    @without_property_validation
     def update_exg(self, time_vector, ExG):
         """update_exg()
         Update ExG data in the visualization
@@ -145,6 +146,7 @@ class Dashboard:
         self.exg_source.stream(new_data, rollover=2 * self.exg_fs * WIN_LENGTH)
 
     @gen.coroutine
+    @without_property_validation
     def update_orn(self, timestamp, orn_data):
         """Update orientation data
 
@@ -157,6 +159,7 @@ class Dashboard:
         self.orn_source.stream(new_data, rollover=2 * WIN_LENGTH * ORN_SRATE)
 
     @gen.coroutine
+    @without_property_validation
     def update_info(self, new):
         """Update device information in the dashboard
 
@@ -185,6 +188,7 @@ class Dashboard:
                 print("Warning: There is no field named: " + key)
 
     @gen.coroutine
+    @without_property_validation
     def _update_fft(self):
         """ Update spectral frequency analysis plot
         """
@@ -204,6 +208,7 @@ class Dashboard:
         self.fft_source.data = data
 
     @gen.coroutine
+    @without_property_validation
     def _update_heart_rate(self):
         """Detect R-peaks and update the plot and heart rate"""
         if self.exg_mode == 'EEG':
@@ -235,6 +240,7 @@ class Dashboard:
         self.heart_rate_source.stream(data, rollover=1)
 
     @gen.coroutine
+    @without_property_validation
     def update_imp(self, imp):
         if self.mode == "impedance":
             color = []
@@ -331,14 +337,14 @@ class Dashboard:
         for i in range(self.n_chan):
             self.exg_plot.line(x='t', y=CHAN_LIST[i], source=self.exg_source,
                                line_width=1.5, alpha=.9, line_color="#42C4F7")
-            self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend=CHAN_LIST[i] + " ",
+            self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend_label=CHAN_LIST[i] + " ",
                                line_width=2, alpha=.9, line_color=FFT_COLORS[i])
         for i in range(3):
-            self.acc_plot.line(x='t', y=ORN_LIST[i], source=self.orn_source, legend=ORN_LIST[i] + " ",
+            self.acc_plot.line(x='t', y=ORN_LIST[i], source=self.orn_source, legend_label=ORN_LIST[i] + " ",
                                line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
-            self.gyro_plot.line(x='t', y=ORN_LIST[i + 3], source=self.orn_source, legend=ORN_LIST[i + 3] + " ",
+            self.gyro_plot.line(x='t', y=ORN_LIST[i + 3], source=self.orn_source, legend_label=ORN_LIST[i + 3] + " ",
                                 line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
-            self.mag_plot.line(x='t', y=ORN_LIST[i + 6], source=self.orn_source, legend=ORN_LIST[i + 6] + " ",
+            self.mag_plot.line(x='t', y=ORN_LIST[i + 6], source=self.orn_source, legend_label=ORN_LIST[i + 6] + " ",
                                line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
 
         # Set x_range
