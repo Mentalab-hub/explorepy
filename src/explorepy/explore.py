@@ -216,7 +216,7 @@ class Explore:
                     return 0
         print("Data acquisition finished after ", duration, " seconds.")
 
-    def visualize(self, device_id=0, bp_freq=(1, 30), notch_freq=50):
+    def visualize(self, device_id=0, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
         r"""Visualization of the signal in the dashboard
         Args:
             device_id (int): Device ID (not needed in the current version)
@@ -224,8 +224,12 @@ class Explore:
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
         """
+        import numpy as np
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
-
+        with open(calibre_file, "r") as f_calibre:
+            csv_reader_calibre = csv.reader(f_calibre, delimiter=",")
+            calibre_set = list(csv_reader_calibre)
+            self.parser.calibre_set = np.asarray(calibre_set[1], dtype=np.float64)
         self.parser.notch_freq = notch_freq
         if bp_freq is not None:
             self.parser.apply_bp_filter = True
@@ -243,23 +247,40 @@ class Explore:
 
     def _io_loop(self, device_id=0, mode="visualize"):
         self.is_acquiring = [True]
+        is_initialized = False
         # Wait until dashboard is initialized.
         while not hasattr(self.m_dashboard, 'doc'):
             print('wait...')
             time.sleep(.5)
 
         while self.is_acquiring[0]:
-            try:
-                packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
+            if is_initialized:
                 try:
-                    self.parser.socket = self.device[device_id].bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
-                    self.is_acquiring[0] = False
-                    if mode == "visualize":
-                        os._exit(0)
+                    packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
+                except ConnectionAbortedError:
+                    print("Device has been disconnected! Scanning for last connected device...")
+                    try:
+                        self.parser.socket = self.device[device_id].bt_connect()
+                    except DeviceNotFoundError as e:
+                        print(e)
+                        self.is_acquiring[0] = False
+                        if mode == "visualize":
+                            os._exit(0)
+            else:
+                try:
+                    packet = self.parser.parse_packet(mode="initialize", dashboard=self.m_dashboard)
+                    if hasattr(packet, 'NED'):
+                        if self.parser.init_set is not None:
+                            is_initialized = True
+                except ConnectionAbortedError:
+                    print("Device has been disconnected! Scanning for last connected device...")
+                    try:
+                        self.parser.socket = self.device[device_id].bt_connect()
+                    except DeviceNotFoundError as e:
+                        print(e)
+                        self.is_acquiring[0] = False
+                        if mode == "visualize":
+                            os._exit(0)
         os.exit(0)
 
     def signal_handler(self, signal, frame):
