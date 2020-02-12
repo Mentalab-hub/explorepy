@@ -257,7 +257,8 @@ class Orientation(Packet):
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
         self.mag = 1.52 *  np.multiply (data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
-        self.NED = np.zeros((3, 3))
+        self.theta = None
+        self.rot_axis = None
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"

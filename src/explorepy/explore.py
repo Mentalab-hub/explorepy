@@ -223,13 +223,15 @@ class Explore:
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
+            calibre_file (str): Calibration data file name
         """
         import numpy as np
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
-        with open(calibre_file, "r") as f_calibre:
-            csv_reader_calibre = csv.reader(f_calibre, delimiter=",")
-            calibre_set = list(csv_reader_calibre)
-            self.parser.calibre_set = np.asarray(calibre_set[1], dtype=np.float64)
+        if calibre_file is not None:
+            with open(calibre_file, "r") as f_calibre:
+                csv_reader_calibre = csv.reader(f_calibre, delimiter=",")
+                calibre_set = list(csv_reader_calibre)
+                self.parser.calibre_set = np.asarray(calibre_set[1], dtype=np.float64)
         self.parser.notch_freq = notch_freq
         if bp_freq is not None:
             self.parser.apply_bp_filter = True
@@ -247,7 +249,10 @@ class Explore:
 
     def _io_loop(self, device_id=0, mode="visualize"):
         self.is_acquiring = [True]
-        is_initialized = False
+        if self.parser.calibre_set is not None:
+            is_initialized = False
+        else:
+            is_initialized = True # flag as True since it doesn't matter and we skip orientation calculation process
         # Wait until dashboard is initialized.
         while not hasattr(self.m_dashboard, 'doc'):
             print('wait...')
@@ -269,7 +274,7 @@ class Explore:
             else:
                 try:
                     packet = self.parser.parse_packet(mode="initialize", dashboard=self.m_dashboard)
-                    if hasattr(packet, 'NED'):
+                    if hasattr(packet, 'acc'):
                         if self.parser.init_set is not None:
                             is_initialized = True
                 except ConnectionAbortedError:
@@ -410,13 +415,15 @@ class Explore:
             return False
 
     def calibrate_orn(self, device_id=0, file_name=None, do_overwrite=False):
-        r"""Start getting data from the device
+        r"""Calibrate the orientation module of the specified device
 
         Args:
             device_id (int): device id (id=None for disconnecting all devices)
+            file_name (str): filename to be used for calibration output
+            do_overwrite (bool): Overwrite if files exist already
         """
-        print("Starting 100 secs recording for calibrating movement sensors, please move the device around during this time, in all directions")
-        self.record_data(self, file_name, do_overwrite=do_overwrite, device_id=device_id, duration=100, file_type='csv')
+        print("Start recording for 100 seconds, please move the device around during this time, in all directions")
+        self.record_data(file_name, do_overwrite=do_overwrite, device_id=device_id, duration=100, file_type='csv')
         calibre_out_file = file_name + "_calibre_coef.csv"
         assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
         import numpy as np

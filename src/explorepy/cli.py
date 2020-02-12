@@ -44,7 +44,7 @@ class CLI:
     def record_data():
         explore = Explore()
         parser = argparse.ArgumentParser(
-            description='Connect to a device with selected name')
+            description='Record data from a device with Specified name')
 
         parser.add_argument("-a", "--address",
                             dest="address", type=str, default=None,
@@ -160,6 +160,10 @@ class CLI:
                             dest="hf", type=float, default=None,
                             help="High cutoff frequency of bandpass filter.")
 
+        parser.add_argument("-cf", "--calibration_file",
+                            dest="cf", type=str, default=None,
+                            help="Calibration file name")
+
         args = parser.parse_args(sys.argv[2:])
 
         if args.name is None:
@@ -168,9 +172,9 @@ class CLI:
             explore.connect(device_name=args.name)
 
         if (args.lf is not None) and (args.hf is not None):
-            explore.visualize(notch_freq=args.notchfreq, bp_freq=(args.lf, args.hf))
+            explore.visualize(notch_freq=args.notchfreq, bp_freq=(args.lf, args.hf), calibre_file=args.cf)
         else:
-            explore.visualize(notch_freq=args.notchfreq, bp_freq=None)
+            explore.visualize(notch_freq=args.notchfreq, bp_freq=None, calibre_file=args.cf)
 
     @staticmethod
     def impedance():
@@ -318,5 +322,36 @@ class CLI:
             explore.change_settings(command.SetCh(int(args.channel_mask)))
         else:
             raise ValueError("Acceptable values are integers between 1 to 255.")
+
+    @staticmethod
+    def calibrate_orn():
+        explore = Explore()
+        parser = argparse.ArgumentParser(
+            description='Calibrate the orientation module of the specified device')
+
+        parser.add_argument("-a", "--address",
+                            dest="address", type=str, default=None,
+                            help="Explore device's MAC address.")
+
+        parser.add_argument("-n", "--name",
+                            dest="name", type=str, default=None,
+                            help="Name of the device.")
+
+        parser.add_argument("-cf", "--calibration_file",
+                            dest="filename", type=str, default=None,
+                            help="name of the calibration file starts with this string.")
+
+        parser.add_argument("-ow", "--overwrite", action='store_true', default=False,
+                            help="Overwrite files with same name.")
+
+        args = parser.parse_args(sys.argv[2:])
+
+        if args.name is None:
+            explore.connect(device_addr=args.address)
+        else:
+            explore.connect(device_name=args.name)
+
+        assert (args.filename is not None), "Missing Filename"
+        explore.calibrate_orn(file_name=args.filename, do_overwrite=args.overwrite)
 
 
