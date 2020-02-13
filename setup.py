@@ -28,7 +28,7 @@ my_req = ['numpy', 'scipy', 'pyedflib==0.1.15']
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pybluez==0.22')  # Add pybluez if the environment is other than READTHEDOCS
     my_req.append('pylsl')
-    my_req.append('bokeh==1.0.4')
+    my_req.append('bokeh==1.4.0')
 
 setup(
     name='explorepy',
