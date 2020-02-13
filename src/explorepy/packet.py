@@ -404,7 +404,9 @@ class MarkerEvent(Packet):
         outlet.push_sample([self.marker_code])
 
     def push_to_dashboard(self, dashboard):
-        pass
+        dashboard.doc.add_next_tick_callback(partial(dashboard.update_marker,
+                                                     timestamp=self.timestamp,
+                                                     code=self.marker_code))
 
 
 class Disconnect(Packet):

@@ -67,6 +67,10 @@ class Dashboard:
         init_data = dict(zip(['r_peak', 't'], [np.array([None], dtype=np.double), np.array([None], dtype=np.double)]))
         self.r_peak_source = ColumnDataSource(data=init_data)
 
+        # Init marker source
+        init_data = dict(zip(['marker', 't'], [np.array([None], dtype=np.double), np.array([None], dtype=np.double)]))
+        self.marker_source = ColumnDataSource(data=init_data)
+
         # Init ORN data source
         init_data = dict(zip(ORN_LIST, np.zeros((9, 1))))
         init_data['t'] = [0.]
@@ -154,6 +158,8 @@ class Dashboard:
             timestamp (float): timestamp of the sample
             orn_data (float vector): Vector of orientation data with shape of (9,)
         """
+        if self.tabs.active != 1:
+            return
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
         new_data['t'] = [timestamp]
         self.orn_source.stream(new_data, rollover=2 * WIN_LENGTH * ORN_SRATE)
@@ -198,8 +204,6 @@ class Dashboard:
 
         exg_data = np.array([self.exg_source.data[key] for key in self.chan_key_list])
 
-        # Check if the length of data is enough for FFT
-        # TODO
         if exg_data.shape[1] < self.exg_fs * 4.5:
             return
         fft_content, freq = get_fft(exg_data, self.exg_fs)
@@ -241,6 +245,15 @@ class Dashboard:
 
     @gen.coroutine
     @without_property_validation
+    def update_marker(self, timestamp, code):
+        if self.mode == "impedance":
+            return
+        new_data = dict(zip(['marker', 't', 'code'], [np.array([0.01, self.n_chan+0.99, None], dtype=np.double),
+                                                      np.array([timestamp, timestamp, None], dtype=np.double)]))
+        self.marker_source.stream(new_data=new_data, rollover=100)
+
+    @gen.coroutine
+    @without_property_validation
     def update_imp(self, imp):
         if self.mode == "impedance":
             color = []
@@ -265,7 +278,6 @@ class Dashboard:
                     color.append("green")
                     imp_str.append("<5K\u03A9")  # As the ADS is not precise in low values.
 
-
             data = {"impedance": imp_str,
                     'channel': [CHAN_LIST[i] for i in range(0, self.n_chan)],
                     'row': ['1' for i in range(self.n_chan)],
@@ -275,8 +287,8 @@ class Dashboard:
         else:
             raise RuntimeError("Trying to compute impedances while the dashboard is not in Impedance mode!")
 
-
     @gen.coroutine
+    @without_property_validation
     def _change_scale(self, attr, old, new):
         """Change y-scale of ExG plot"""
         new, old = SCALE_MENU[new], SCALE_MENU[old]
@@ -292,6 +304,7 @@ class Dashboard:
 
 
     @gen.coroutine
+    @without_property_validation
     def _change_t_range(self, attr, old, new):
         """Change time range"""
         self._set_t_range(TIME_RANGE_MENU[new])
@@ -339,6 +352,10 @@ class Dashboard:
                                line_width=1.5, alpha=.9, line_color="#42C4F7")
             self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend_label=CHAN_LIST[i] + " ",
                                line_width=2, alpha=.9, line_color=FFT_COLORS[i])
+
+        self.exg_plot.line(x='t', y='marker', source=self.marker_source,
+                           line_width=1, alpha=.8, line_color='#7AB904', line_dash="4 4")
+
         for i in range(3):
             self.acc_plot.line(x='t', y=ORN_LIST[i], source=self.orn_source, legend_label=ORN_LIST[i] + " ",
                                line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
