@@ -373,9 +373,6 @@ class TimeStamp(Packet):
     def __str__(self):
         return "Host timestamp: " + str(self.hostTimeStamp)
 
-    def write_to_csv(self, recorder):
-        recorder.write_data([self.timestamp])
-
     def push_to_lsl(self, outlet):
         outlet.push_sample([1])
 
