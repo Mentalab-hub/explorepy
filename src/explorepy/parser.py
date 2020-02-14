@@ -81,7 +81,7 @@ class Parser:
         """Reads and parses a package from a file or socket
 
         Args:
-            mode (str): logging mode {'print', 'record', 'lsl', 'visualize', None}
+            mode (str): Parsing mode {'print', 'record', 'lsl', 'visualize', 'impedance', None}
             recorders (tuple): Tuple of recorder objects (ExG_recorder, ORN_recorder, Marker_recorder)
             outlets (tuple): Tuple of lsl StreamOutlet (orientation_outlet, EEG_outlet, marker_outlet)
             dashboard (Dashboard): Dashboard object for visualization
@@ -100,7 +100,6 @@ class Parser:
             self.start_timer = time.time()
         else:
             timestamp = timestamp * .0001 - self.time_offset   # Timestamp unit is .1 ms
-            # print(f"Packet time: {timestamp:.5f} \t diff time: {(time.time()-self.start_timer - timestamp):.5f}")
 
         payload_data = self.read(payload - 4)
         packet = generate_packet(pid, timestamp, payload_data)
@@ -124,8 +123,6 @@ class Parser:
             for event in self.events:
                 event.write_to_file(recorders[2])
             self.events = []
-            # elif isinstance(packet, DeviceInfo):
-            #     packet.write_to_file(recorders[3])
 
         elif mode == "lsl":
             if isinstance(packet, Orientation):
@@ -156,8 +153,6 @@ class Parser:
                 print(packet)
             elif isinstance(packet, CommandStatus):
                 print(packet)
-            elif isinstance(packet, CalibrationInfo):
-                print(packet)
 
         elif mode == "debug":
             if isinstance(packet, EEG):
@@ -177,17 +172,8 @@ class Parser:
             elif isinstance(packet, Environment) | isinstance(packet, DeviceInfo):
                 packet.push_to_dashboard(dashboard)
 
-        elif mode == "calibrate":
-            assert isinstance(recorders, tuple), "Invalid csv writer objects!"
-            if isinstance(packet, Orientation):
-                packet.write_to_csv(recorders[0])
-            elif isinstance(packet, MarkerEvent):
-                packet.write_to_file(recorders[1])
-
         elif mode == "initialize":
             if isinstance(packet, Orientation):
-                th = np.zeros(3)
-                T_init = np.zeros((3, 3))
                 D = packet.acc / (np.dot(packet.acc, packet.acc) ** 0.5)
                 [kx, ky, kz, mx_offset, my_offset, mz_offset] = self.calibre_set
                 packet.mag[0] = kx * (packet.mag[0] - mx_offset)
@@ -199,7 +185,7 @@ class Parser:
                 # co-planar with D and mag, somehow reducing error
                 N = -1*np.cross(E, D)
                 N = N / (np.dot(N, N) ** 0.5)
-                T_init = np.column_stack((E,N,D))
+                T_init = np.column_stack((E, N, D))
                 N_init = np.matmul(np.transpose(T_init), N)
                 E_init = np.matmul(np.transpose(T_init), E)
                 D_init = np.matmul(np.transpose(T_init), D)
@@ -252,8 +238,7 @@ class Parser:
         E_prv = self.ED_prv[0]
         acc = packet.acc
         acc = acc / (np.dot(acc, acc) ** 0.5)
-        gyro = packet.gyro * 1.745329e-5 #radian per second
-        #mag = np.array([0, 0, 0])
+        gyro = packet.gyro * 1.745329e-5  # radian per second
         packet.mag[0] = kx * (packet.mag[0] - mx_offset)
         packet.mag[1] = ky * (packet.mag[1] - my_offset)
         packet.mag[2] = kz * (packet.mag[2] - mz_offset)
