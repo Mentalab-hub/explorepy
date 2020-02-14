@@ -419,7 +419,7 @@ class Explore:
 
         Args:
             device_id (int): device id
-            file_name (str): filename to be used for calibration output
+            file_name (str): filename to be used for calibration. If you pass this parameter, ORN module should be ACTIVE!
             do_overwrite (bool): Overwrite if files exist already
         """
         print("Start recording for 100 seconds, please move the device around during this time, in all directions")
