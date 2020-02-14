@@ -86,7 +86,7 @@ This command sets the sampling rate of ExG on the specified Explore device. The 
 
 * ``-a`` or ``--address``        Device MAC address (form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``           Device name (e.g. Explore_12AB).
-* ``-sr`` or ``--sampling_rate`` Sampling rate of ExG channels, it can be 250, 500 or 1000.
+* ``-sr`` or ``--sampling_rate`` Sampling rate of ExG channels, it can be 250 or 500.
 
 
 **soft_reset**
