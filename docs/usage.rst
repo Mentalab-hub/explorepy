@@ -231,6 +231,7 @@ If you want to overwrite existing files, use::
 
     bin2csv(bin_file, do_overwrite=True)
 
+.. note:: Currently, the binary files which the sampling rate or ADC mask are changed during recording are not supported. You can use python script and `explorepy.Explore.record_data()` function as an alternative.
 
 Event markers
 ^^^^^^^^^^^^^
