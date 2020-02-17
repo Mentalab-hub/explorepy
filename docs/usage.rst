@@ -64,6 +64,7 @@ Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the
 * ``-nf`` or ``--notchfreq`` Frequency of applied notch filter (By default, no notch filter is applied)
 * ``-lf`` or ``--lowfreq``   Low cutoff frequency of bandpass filter (By default no bandpass filter is applied)
 * ``-hf`` or ``--highfreq``  High cutoff frequency of bandpass filter (Both ``-lf`` and ``-hf`` must be given if you want to apply a bandpass filter)
+* ``-cf`` or ``--calibration_file`` Calibration file name (e.g. "X_calibre_coef.csv"). If you pass this parameter, ORN module should be ACTIVE! To obtain this file refer to Explore.calibrate_orn module.
 
 
 **impedance**
@@ -72,6 +73,15 @@ Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome
 * ``-a`` or ``--address``    Device MAC address (form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
 * ``-nf`` or ``--notchfreq`` Frequency of applied notch filter (By default, no notch filter is applied)
+
+
+**calibrate_orn**
+Calibrate the orientation module of the specified device. After running this module, a file containing calibration data will be generated. Using this file, an extra computation block can be activated in the visualize to compute the physical orientation of the device from raw sensor data.
+
+* ``-a`` or ``--address``    Device MAC address (form XX:XX:XX:XX:XX:XX).
+* ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
+* ``-cf`` or ``--calibration_file`` Calibration file name. If you pass this parameter, ORN module should be ACTIVE!
+* ``-ow`` or ``--overwrite`` Overwrite already existing files with the same name.
 
 
 **format_memory**
@@ -86,7 +96,7 @@ This command sets the sampling rate of ExG on the specified Explore device. The 
 
 * ``-a`` or ``--address``        Device MAC address (form XX:XX:XX:XX:XX:XX).
 * ``-n`` or ``--name``           Device name (e.g. Explore_12AB).
-* ``-sr`` or ``--sampling_rate`` Sampling rate of ExG channels, it can be 250, 500 or 1000.
+* ``-sr`` or ``--sampling_rate`` Sampling rate of ExG channels, it can be 250 or 500.
 
 
 **soft_reset**
@@ -221,6 +231,7 @@ If you want to overwrite existing files, use::
 
     bin2csv(bin_file, do_overwrite=True)
 
+.. note:: Currently, the binary files which the sampling rate or ADC mask are changed during recording are not supported. You can use python script and `explorepy.Explore.record_data()` function as an alternative.
 
 Event markers
 ^^^^^^^^^^^^^

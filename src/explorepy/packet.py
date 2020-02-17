@@ -373,9 +373,6 @@ class TimeStamp(Packet):
     def __str__(self):
         return "Host timestamp: " + str(self.hostTimeStamp)
 
-    def write_to_csv(self, recorder):
-        recorder.write_data([self.timestamp])
-
     def push_to_lsl(self, outlet):
         outlet.push_sample([1])
 
@@ -404,7 +401,9 @@ class MarkerEvent(Packet):
         outlet.push_sample([self.marker_code])
 
     def push_to_dashboard(self, dashboard):
-        pass
+        dashboard.doc.add_next_tick_callback(partial(dashboard.update_marker,
+                                                     timestamp=self.timestamp,
+                                                     code=self.marker_code))
 
 
 class Disconnect(Packet):

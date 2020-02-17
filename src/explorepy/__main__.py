@@ -64,7 +64,7 @@ def main():
     set_sampling_rate       This command sets the sampling rate of ExG input (yet in alpha state)
                             -a --address        Device MAC address (Form XX:XX:XX:XX:XX:XX).
                             -n --name           Device name (e.g. Explore_12AB).
-                            -r --sampling_rate  Sampling rate of ExG channels, it can be 250, 500 or 1000.
+                            -sr --sampling_rate  Sampling rate of ExG channels, it can be 250 or 500.
 
     soft_reset              This command does a soft reset of the device. All the settings (e.g. sampling rate, channel mask) return to the default values.
                             -a --address        Device MAC address (Form XX:XX:XX:XX:XX:XX).

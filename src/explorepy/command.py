@@ -1,7 +1,6 @@
 from datetime import datetime
 import abc
 from enum import Enum
-import time
 
 
 class COMMAND_ID(Enum):
@@ -49,14 +48,13 @@ class Command:
         self.result = None
 
     def translate(self):
-        """translate the command to binary array understandable by Explore device. """
+        """Translates the command to binary array understandable by Explore device. """
         self.get_time()
         return self.ID.value + self.cnt + self.payload_length + self.host_ts + \
                self.opcode.value + self.param + self.fletcher
 
     def get_time(self):
-        """
-        gets the current machine time based on unix format and fills the corresponding field.
+        """Gets the current machine time based on unix format and fills the corresponding field.
 
         Args:
 
@@ -67,17 +65,17 @@ class Command:
 
     @abc.abstractmethod
     def get_ack(self):
-        """issue a command and gets the acknowledge from the device. """
+        """Gets the acknowledge from the device. """
         pass
 
     @abc.abstractmethod
     def get_status(self):
-        """issue a command and gets the status from the device. """
+        """Gets the status from the device. """
         pass
 
     def int2bytearray(self, x, n):
-        """
-        gets an integer and convert it to a byte array with specified number of bytes
+        """Gets an integer and convert it to a byte array with specified number of bytes
+
         Args:
             x: integer
             n: number of bytes
@@ -124,8 +122,7 @@ class Command4B(Command):
 
 class SetSPS(Command2B):
     def __init__(self, sps_rate):
-        """
-        Gets the desired rate and initializes the packet
+        """Gets the desired rate and initializes the packet
 
         Args:
             sps_rate (int): sampling rate per seconds. It should be one of these values: 250 or 500
@@ -148,9 +145,7 @@ class SetSPS(Command2B):
 
 class MemoryFormat(Command2B):
     def __init__(self):
-        """
-        Format device memory
-        """
+        """Format device memory"""
         super().__init__()
         self.opcode = OpcodeID.CMD_MEM_FORMAT
         self.param = b'\x00'
@@ -161,7 +156,7 @@ class MemoryFormat(Command2B):
 
 class ModuleDisable(Command2B):
     def __init__(self, module_name):
-        """
+        """Disable module class
 
         Args:
             module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
@@ -181,7 +176,7 @@ class ModuleDisable(Command2B):
 
 class ModuleEnable(Command2B):
     def __init__(self, module_name):
-        """
+        """Enable module command class
 
         Args:
             module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
@@ -201,9 +196,7 @@ class ModuleEnable(Command2B):
 
 class ZmeasurementDisable(Command2B):
     def __init__(self):
-        """
-        Enables Z measurement
-        """
+        """Enables Z measurement"""
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_DISABLE
         self.param = b'\x00'
@@ -214,9 +207,7 @@ class ZmeasurementDisable(Command2B):
 
 class ZmeasurementEnable(Command2B):
     def __init__(self):
-        """
-        Enables Z measurement
-        """
+        """Enables Z measurement"""
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_ENABLE
         self.param = b'\x00'
@@ -227,8 +218,7 @@ class ZmeasurementEnable(Command2B):
 
 class SetCh(Command2B):
     def __init__(self, ch_mask):
-        """
-        Gets the desired rate and initializes the packet
+        """Gets the desired rate and initializes the packet
 
         Args:
             ch_mask (int): ExG channel mask. It should be integers between 1 and 255.
@@ -248,9 +238,7 @@ class SetCh(Command2B):
 
 class SoftReset(Command2B):
     def __init__(self):
-        """
-        Reset the Device.
-        """
+        """Reset the Device."""
         super().__init__()
         self.opcode = OpcodeID.CMD_SOFT_RESET
         self.param = b'\x00'
@@ -260,20 +248,17 @@ class SoftReset(Command2B):
 
 
 def send_command(command, socket):
-    """
+    """Send a command to the device
 
     Args:
-        command (explorepy.command.Command):
-        socket (socket):
-        parser (explorepy.Parser)
-
-    Returns:
+        command (explorepy.command.Command): Command object
+        socket (socket): Bluetooth socket
 
     """
     print("Sending the message...")
 
     socket.send(command.translate())
-    print(" Message Sent :)")
+    print(" Message Sent.")
 
 
 COMMAND_CLASS_DICT = {
