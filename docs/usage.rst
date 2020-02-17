@@ -48,6 +48,7 @@ Takes a Binary file and converts it to 3 CSV files (ExG, orientation and marker 
 * ``-i`` or ``--inputfile``  Name of the input file
 * ``-ow`` or ``--overwrite`` Overwrite already existing files with the same name.
 
+.. note:: For devices with firmware version 2.1.1 and lower, explorepy v0.5.0 has to be used to convert binary files.
 
 **bin2edf**
 Takes a Binary file and converts it to 2 EDF files (ExG and orientation - markers will be written in ExG file). The data is actually recorded in BDF+ format (in 24-bit resolution).
@@ -55,6 +56,7 @@ Takes a Binary file and converts it to 2 EDF files (ExG and orientation - marker
 * ``-i`` or ``--inputfile``  Name of the input file
 * ``-ow`` or ``--overwrite`` Overwrite already existing files with the same name.
 
+.. note:: For devices with firmware version 2.1.1 and lower, explorepy v0.5.0 has to be used to convert binary files.
 
 **visualize**
 Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow.
