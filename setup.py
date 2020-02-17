@@ -24,15 +24,15 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy']
+my_req = ['numpy', 'scipy', 'pyedflib==0.1.15']
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pybluez==0.22')  # Add pybluez if the environment is other than READTHEDOCS
-    my_req.append('pylsl==1.13.1')
-    my_req.append('bokeh==1.0.4')
+    my_req.append('pylsl')
+    my_req.append('bokeh==1.4.0')
 
 setup(
     name='explorepy',
-    version='0.5.0',
+    version='0.6.0',
 
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',

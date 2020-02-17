@@ -12,12 +12,11 @@ from bokeh.server.server import Server
 from bokeh.palettes import Colorblind
 from bokeh.models.widgets import Select, DataTable, TableColumn, RadioButtonGroup
 from bokeh.models import SingleIntervalTicker
-from bokeh.core.property.validation import validate
+from bokeh.core.property.validation import validate, without_property_validation
 from tornado import gen
 from bokeh.transform import dodge
 
 
-EEG_SRATE = 250  # Hz
 ORN_SRATE = 20  # Hz
 WIN_LENGTH = 10  # Seconds
 MODE_LIST = ['EEG', 'ECG']
@@ -38,7 +37,14 @@ FFT_COLORS = Colorblind[8]
 class Dashboard:
     """Explorepy dashboard class"""
 
-    def __init__(self, n_chan, mode="signal"):
+    def __init__(self, n_chan, exg_fs, mode="signal", firmware_version="NA"):
+        """
+        Args:
+            n_chan (int): Number of channels
+            exg_fs (int): Sampling rate of ExG signal
+            mode (str): Visualization mode {'signal', 'impedance'}
+            firmware_version:
+        """
         self.n_chan = n_chan
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
@@ -47,6 +53,7 @@ class Dashboard:
         self.rr_estimator = None
         self.win_length = WIN_LENGTH
         self.mode = mode
+        self.exg_fs = exg_fs
 
         # Init ExG data source
         exg_temp = np.zeros((n_chan, 2))
@@ -60,6 +67,10 @@ class Dashboard:
         init_data = dict(zip(['r_peak', 't'], [np.array([None], dtype=np.double), np.array([None], dtype=np.double)]))
         self.r_peak_source = ColumnDataSource(data=init_data)
 
+        # Init marker source
+        init_data = dict(zip(['marker', 't'], [np.array([None], dtype=np.double), np.array([None], dtype=np.double)]))
+        self.marker_source = ColumnDataSource(data=init_data)
+
         # Init ORN data source
         init_data = dict(zip(ORN_LIST, np.zeros((9, 1))))
         init_data['t'] = [0.]
@@ -67,7 +78,7 @@ class Dashboard:
 
         # Init table sources
         self.heart_rate_source = ColumnDataSource(data={'heart_rate': ['NA']})
-        self.firmware_source = ColumnDataSource(data={'firmware_version': ['NA']})
+        self.firmware_source = ColumnDataSource(data={'firmware_version': [firmware_version]})
         self.battery_source = ColumnDataSource(data={'battery': ['NA']})
         self.temperature_source = ColumnDataSource(data={'temperature': ['NA']})
         self.light_source = ColumnDataSource(data={'light': ['NA']})
@@ -121,8 +132,8 @@ class Dashboard:
         self.doc.add_periodic_callback(self._update_fft, 2000)
         self.doc.add_periodic_callback(self._update_heart_rate, 2000)
 
-
     @gen.coroutine
+    @without_property_validation
     def update_exg(self, time_vector, ExG):
         """update_exg()
         Update ExG data in the visualization
@@ -136,9 +147,10 @@ class Dashboard:
         ExG = self.offsets + ExG / self.y_unit
         new_data = dict(zip(self.chan_key_list, ExG))
         new_data['t'] = time_vector
-        self.exg_source.stream(new_data, rollover=2 * EEG_SRATE * WIN_LENGTH)
+        self.exg_source.stream(new_data, rollover=2 * self.exg_fs * WIN_LENGTH)
 
     @gen.coroutine
+    @without_property_validation
     def update_orn(self, timestamp, orn_data):
         """Update orientation data
 
@@ -146,11 +158,14 @@ class Dashboard:
             timestamp (float): timestamp of the sample
             orn_data (float vector): Vector of orientation data with shape of (9,)
         """
+        if self.tabs.active != 1:
+            return
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
         new_data['t'] = [timestamp]
         self.orn_source.stream(new_data, rollover=2 * WIN_LENGTH * ORN_SRATE)
 
     @gen.coroutine
+    @without_property_validation
     def update_info(self, new):
         """Update device information in the dashboard
 
@@ -179,6 +194,7 @@ class Dashboard:
                 print("Warning: There is no field named: " + key)
 
     @gen.coroutine
+    @without_property_validation
     def _update_fft(self):
         """ Update spectral frequency analysis plot
         """
@@ -188,22 +204,22 @@ class Dashboard:
 
         exg_data = np.array([self.exg_source.data[key] for key in self.chan_key_list])
 
-        # Check if the length of data is enough for FFT
-        if exg_data.shape[1] < EEG_SRATE * 4.5:
+        if exg_data.shape[1] < self.exg_fs * 4.5:
             return
-        fft_content, freq = get_fft(exg_data)
+        fft_content, freq = get_fft(exg_data, self.exg_fs)
         data = dict(zip(self.chan_key_list, fft_content))
         data['f'] = freq
         self.fft_source.data = data
 
     @gen.coroutine
+    @without_property_validation
     def _update_heart_rate(self):
         """Detect R-peaks and update the plot and heart rate"""
         if self.exg_mode == 'EEG':
             self.heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
         if self.rr_estimator is None:
-            self.rr_estimator = HeartRateEstimator()
+            self.rr_estimator = HeartRateEstimator(fs=self.exg_fs)
             # Init R-peaks plot
             self.exg_plot.circle(x='t', y='r_peak', source=self.r_peak_source,
                                  fill_color="red", size=8)
@@ -228,6 +244,16 @@ class Dashboard:
         self.heart_rate_source.stream(data, rollover=1)
 
     @gen.coroutine
+    @without_property_validation
+    def update_marker(self, timestamp, code):
+        if self.mode == "impedance":
+            return
+        new_data = dict(zip(['marker', 't', 'code'], [np.array([0.01, self.n_chan+0.99, None], dtype=np.double),
+                                                      np.array([timestamp, timestamp, None], dtype=np.double)]))
+        self.marker_source.stream(new_data=new_data, rollover=100)
+
+    @gen.coroutine
+    @without_property_validation
     def update_imp(self, imp):
         if self.mode == "impedance":
             color = []
@@ -252,7 +278,6 @@ class Dashboard:
                     color.append("green")
                     imp_str.append("<5K\u03A9")  # As the ADS is not precise in low values.
 
-
             data = {"impedance": imp_str,
                     'channel': [CHAN_LIST[i] for i in range(0, self.n_chan)],
                     'row': ['1' for i in range(self.n_chan)],
@@ -262,8 +287,8 @@ class Dashboard:
         else:
             raise RuntimeError("Trying to compute impedances while the dashboard is not in Impedance mode!")
 
-
     @gen.coroutine
+    @without_property_validation
     def _change_scale(self, attr, old, new):
         """Change y-scale of ExG plot"""
         new, old = SCALE_MENU[new], SCALE_MENU[old]
@@ -279,6 +304,7 @@ class Dashboard:
 
 
     @gen.coroutine
+    @without_property_validation
     def _change_t_range(self, attr, old, new):
         """Change time range"""
         self._set_t_range(TIME_RANGE_MENU[new])
@@ -324,14 +350,18 @@ class Dashboard:
         for i in range(self.n_chan):
             self.exg_plot.line(x='t', y=CHAN_LIST[i], source=self.exg_source,
                                line_width=1.5, alpha=.9, line_color="#42C4F7")
-            self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend=CHAN_LIST[i] + " ",
+            self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend_label=CHAN_LIST[i] + " ",
                                line_width=2, alpha=.9, line_color=FFT_COLORS[i])
+
+        self.exg_plot.line(x='t', y='marker', source=self.marker_source,
+                           line_width=1, alpha=.8, line_color='#7AB904', line_dash="4 4")
+
         for i in range(3):
-            self.acc_plot.line(x='t', y=ORN_LIST[i], source=self.orn_source, legend=ORN_LIST[i] + " ",
+            self.acc_plot.line(x='t', y=ORN_LIST[i], source=self.orn_source, legend_label=ORN_LIST[i] + " ",
                                line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
-            self.gyro_plot.line(x='t', y=ORN_LIST[i + 3], source=self.orn_source, legend=ORN_LIST[i + 3] + " ",
+            self.gyro_plot.line(x='t', y=ORN_LIST[i + 3], source=self.orn_source, legend_label=ORN_LIST[i + 3] + " ",
                                 line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
-            self.mag_plot.line(x='t', y=ORN_LIST[i + 6], source=self.orn_source, legend=ORN_LIST[i + 6] + " ",
+            self.mag_plot.line(x='t', y=ORN_LIST[i + 6], source=self.orn_source, legend_label=ORN_LIST[i + 6] + " ",
                                line_width=1.5, line_color=LINE_COLORS[i], alpha=.9)
 
         # Set x_range
@@ -428,7 +458,7 @@ class Dashboard:
             plot.x_range.min_interval = t_length
 
 
-def get_fft(exg):
+def get_fft(exg, EEG_SRATE):
     """Compute FFT"""
     n_chan, n_sample = exg.shape
     L = n_sample / EEG_SRATE

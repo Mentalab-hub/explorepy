@@ -1,7 +1,6 @@
 from datetime import datetime
 import abc
 from enum import Enum
-import time
 
 
 class COMMAND_ID(Enum):
@@ -18,6 +17,7 @@ class OpcodeID(Enum):
     CMD_MODULE_ENABLE = b'\xA5'
     CMD_ZM_DISABLE = b'\xA6'
     CMD_ZM_ENABLE = b'\xA7'
+    CMD_SOFT_RESET = b'\xA8'
 
 
 class DeliveryState(Enum):
@@ -48,14 +48,13 @@ class Command:
         self.result = None
 
     def translate(self):
-        """translate the command to binary array understandable by Explore device. """
+        """Translates the command to binary array understandable by Explore device. """
         self.get_time()
         return self.ID.value + self.cnt + self.payload_length + self.host_ts + \
                self.opcode.value + self.param + self.fletcher
 
     def get_time(self):
-        """
-        gets the current machine time based on unix format and fills the corresponding field.
+        """Gets the current machine time based on unix format and fills the corresponding field.
 
         Args:
 
@@ -66,17 +65,17 @@ class Command:
 
     @abc.abstractmethod
     def get_ack(self):
-        """issue a command and gets the acknowledge from the device. """
+        """Gets the acknowledge from the device. """
         pass
 
     @abc.abstractmethod
     def get_status(self):
-        """issue a command and gets the status from the device. """
+        """Gets the status from the device. """
         pass
 
     def int2bytearray(self, x, n):
-        """
-        gets an integer and convert it to a byte array with specified number of bytes
+        """Gets an integer and convert it to a byte array with specified number of bytes
+
         Args:
             x: integer
             n: number of bytes
@@ -123,11 +122,10 @@ class Command4B(Command):
 
 class SetSPS(Command2B):
     def __init__(self, sps_rate):
-        """
-        Gets the desired rate and initializes the packet
+        """Gets the desired rate and initializes the packet
 
         Args:
-            sps_rate (int): sampling rate per seconds. It should be one of these values: 250, 500, 1000
+            sps_rate (int): sampling rate per seconds. It should be one of these values: 250 or 500
         """
         super().__init__()
         self.opcode = OpcodeID.CMD_SPS_SET
@@ -135,8 +133,6 @@ class SetSPS(Command2B):
             self.param = b'\x01'
         elif sps_rate == 500:
             self.param = b'\x02'
-        elif sps_rate == 1000:
-            self.param = b'\x03'
         else:
             raise ValueError("Invalid input")
 
@@ -144,22 +140,23 @@ class SetSPS(Command2B):
         self.delivery_state = DeliveryState.NOT_SENT
 
     def __str__(self):
-        return "set sampling rate command!!!"
+        return "Set sampling rate command"
 
 
 class MemoryFormat(Command2B):
     def __init__(self):
-        """
-        Format device memory
-        """
+        """Format device memory"""
         super().__init__()
         self.opcode = OpcodeID.CMD_MEM_FORMAT
         self.param = b'\x00'
 
+    def __str__(self):
+        return "Format memory command"
+
 
 class ModuleDisable(Command2B):
     def __init__(self, module_name):
-        """
+        """Disable module class
 
         Args:
             module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
@@ -173,10 +170,13 @@ class ModuleDisable(Command2B):
         elif module_name == "EEG":
             self.param = b'\x03'
 
+    def __str__(self):
+        return "Module disable command"
+
 
 class ModuleEnable(Command2B):
     def __init__(self, module_name):
-        """
+        """Enable module command class
 
         Args:
             module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
@@ -190,42 +190,75 @@ class ModuleEnable(Command2B):
         elif module_name == "EEG":
             self.param = b'\x03'
 
+    def __str__(self):
+        return "Module enable command"
+
 
 class ZmeasurementDisable(Command2B):
     def __init__(self):
-        """
-        Enables Z measurement
-        """
+        """Enables Z measurement"""
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_DISABLE
         self.param = b'\x00'
 
+    def __str__(self):
+        return "Impedance measurement disable command"
+
 
 class ZmeasurementEnable(Command2B):
     def __init__(self):
-        """
-        Enables Z measurement
-        """
+        """Enables Z measurement"""
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_ENABLE
         self.param = b'\x00'
 
+    def __str__(self):
+        return "Impedance measurement enable command"
+
+
+class SetCh(Command2B):
+    def __init__(self, ch_mask):
+        """Gets the desired rate and initializes the packet
+
+        Args:
+            ch_mask (int): ExG channel mask. It should be integers between 1 and 255.
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_CH_SET
+        if 1 <= ch_mask <= 255:
+            self.param = bytes([ch_mask])
+        else:
+            raise ValueError("Invalid input")
+        self.get_time()
+        self.delivery_state = DeliveryState.NOT_SENT
+
+    def __str__(self):
+        return "Channel set command"
+
+
+class SoftReset(Command2B):
+    def __init__(self):
+        """Reset the Device."""
+        super().__init__()
+        self.opcode = OpcodeID.CMD_SOFT_RESET
+        self.param = b'\x00'
+
+    def __str__(self):
+        return "Reset command"
+
 
 def send_command(command, socket):
-    """
+    """Send a command to the device
 
     Args:
-        command (explorepy.command.Command):
-        socket (socket):
-        parser (explorepy.Parser)
-
-    Returns:
+        command (explorepy.command.Command): Command object
+        socket (socket): Bluetooth socket
 
     """
     print("Sending the message...")
 
     socket.send(command.translate())
-    print(" Message Sent :)")
+    print(" Message Sent.")
 
 
 COMMAND_CLASS_DICT = {

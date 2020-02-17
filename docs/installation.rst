@@ -11,6 +11,7 @@ Requirements
 * `pybluez <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
 * `pylsl <https://github.com/labstreaminglayer/liblsl-Python>`_
 * `bokeh <https://github.com/bokeh/bokeh>`_
+* `pyEDFlib <https://github.com/holgern/pyedflib>`_
 
 ``explorepy`` is using ``pybluez`` as the bluetooth backend. ``pybluez`` has different dependencies in different operating systems.
 

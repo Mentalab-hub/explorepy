@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
-
 from explorepy.bt_client import BtClient
 from explorepy.parser import Parser
 from explorepy.dashboard.dashboard import Dashboard
-import bluetooth
+from explorepy._exceptions import *
+from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, DeviceInfo
+from explorepy.tools import FileRecorder
 import csv
 import os
 import time
+import signal
+import sys
 from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
-from datetime import datetime
-from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, MarkerEvent
+
 
 class Explore:
     r"""Mentalab Explore device"""
@@ -26,6 +28,7 @@ class Explore:
         for i in range(n_device):
             self.device.append(BtClient())
         self.is_connected = False
+        self.is_acquiring = None
 
     def connect(self, device_name=None, device_addr=None, device_id=0):
         r"""
@@ -41,10 +44,10 @@ class Explore:
         self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
         if self.socket is None:
             self.socket = self.device[device_id].bt_connect()
-
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
         self.is_connected = True
+        packet = None
 
     def disconnect(self, device_id=None):
         r"""Disconnects from the device
@@ -77,99 +80,113 @@ class Explore:
         while is_acquiring[0]:
             try:
                 self.parser.parse_packet(mode="print")
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                socket = self.device[device_id].bt_connect()
-                self.parser.socket = socket
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: attempting reconnect. Error: ", error)
-                self.parser.socket = self.device[device_id].bt_connect()
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
+                try:
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    return 0
 
         print("Data acquisition stopped after ", duration, " seconds.")
 
-    def record_data(self, file_name, do_overwrite=False, device_id=0, duration=None):
+    def record_data(self, file_name, do_overwrite=False, device_id=0, duration=None, file_type='csv'):
         r"""Records the data in real-time
 
         Args:
-            file_name (str): output file name
-            device_id (int): device id (not needed in the current version)
+            file_name (str): Output file name
+            device_id (int): Device id (not needed in the current version)
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
+            file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         # Check invalid characters
-        if set(r'[<>/{}[\]~`]*%').intersection(file_name):
+        if set(r'<>{}[]~`*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
-
+        n_chan = self.parser.n_chan
+        if file_type not in ['edf', 'csv']:
+            raise ValueError('{} is not a supported file extension!'.format(file_type))
         time_offset = None
-        exg_out_file = file_name + "_ExG.csv"
-        orn_out_file = file_name + "_ORN.csv"
-        marker_out_file = file_name + "_Marker.csv"
+        exg_out_file = file_name + "_ExG"
+        orn_out_file = file_name + "_ORN"
+        marker_out_file = file_name + "_Marker"
 
-        if not do_overwrite:
-            assert not os.path.isfile(exg_out_file), exg_out_file + " already exists!"
-            assert not os.path.isfile(orn_out_file), orn_out_file + " already exists!"
-            assert not os.path.isfile(marker_out_file), marker_out_file + " already exists!"
+        exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8'][0:n_chan+1]
+        exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'][0:n_chan+1]
+        exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4][0:n_chan + 1]
+        exg_min = [0, -.4, -.4, -.4, -.4, -.4, -.4, -.4, -.4][0:n_chan + 1]
+        exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=self.parser.fs, ch_unit=exg_unit,
+                                    file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
 
-        with open(exg_out_file, "w") as f_exg, open(orn_out_file, "w") as f_orn, open(marker_out_file, "w") as f_marker:
-            f_orn.write("TimeStamp,ax,ay,az,gx,gy,gz,mx,my,mz\n")
-            # f_orn.write(
-            #     "hh:mm:ss,mg/LSB,mg/LSB,mg/LSB,mdps/LSB,mdps/LSB,mdps/LSB,mgauss/LSB,mgauss/LSB,mgauss/LSB\n")
-            f_exg.write("TimeStamp,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8\n")
-            f_marker.write("TimeStamp,Marker_code\n")
+        orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
+        orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+        orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
+        orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
+        orn_recorder = FileRecorder(file_name=orn_out_file, ch_label=orn_ch, fs=20,
+                                    ch_unit=orn_unit, file_type=file_type, do_overwrite=do_overwrite,
+                                    ch_min=orn_min, ch_max=orn_max)
+        if file_type == 'csv':
+            marker_ch = ['TimeStamp', 'Code']
+            marker_unit = ['s', '-']
+            marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=0,
+                                           ch_unit=marker_unit, file_type=file_type, do_overwrite=do_overwrite)
+        elif file_type == 'edf':
+            marker_recorder = exg_recorder
 
-            csv_exg = csv.writer(f_exg, delimiter=",")
-            csv_orn = csv.writer(f_orn, delimiter=",")
-            csv_marker = csv.writer(f_marker, delimiter=",")
+        is_acquiring = [True]
 
-            is_acquiring = [True]
+        def stop_acquiring(flag):
+            flag[0] = False
 
-            def stop_acquiring(flag):
-                flag[0] = False
-
-            if duration is not None:
-                Timer(duration, stop_acquiring, [is_acquiring]).start()
-                print("Start recording for ", duration, " seconds...")
-            else:
-                print("Recording...")
-
-            while is_acquiring[0]:
+        if duration is not None:
+            if duration <= 0:
+                raise ValueError("Recording time must be a positive number!")
+            rec_timer = Timer(duration, stop_acquiring, [is_acquiring])
+            rec_timer.start()
+            print("Start recording for ", duration, " seconds...")
+        else:
+            print("Recording...")
+        is_disconnect_occurred = False
+        while is_acquiring[0]:
+            try:
+                packet = self.parser.parse_packet(mode="record", recorders=(exg_recorder, orn_recorder, marker_recorder))
+                if time_offset is not None:
+                    packet.timestamp = packet.timestamp-time_offset
+                else:
+                    time_offset = packet.timestamp
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    # self.parser.parse_packet()
-                    packet = self.parser.parse_packet(mode="record", csv_files=(csv_exg, csv_orn, csv_marker))
-                    if time_offset is not None:
-                        packet.timestamp = packet.timestamp-time_offset
-                    else:
-                        time_offset = packet.timestamp
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    rec_timer.cancel()
+                    return 0
 
-                except ValueError:
-                    # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                    print("Disconnected, scanning for last connected device")
-                    self.parser.socket = self.device[device_id].bt_connect()
-                except bluetooth.BluetoothError as error:
-                    print("Bluetooth Error: Timeout, attempting reconnect. Error: ", error)
-                    self.parser.socket = self.device[device_id].bt_connect()
+        if is_disconnect_occurred:
+            print("Error: Recording finished before ", duration, "seconds.")
+            rec_timer.cancel()
+        else:
             print("Recording finished after ", duration, " seconds.")
-            f_marker.close()
-            f_exg.close()
-            f_orn.close()
+        exg_recorder.stop()
+        orn_recorder.stop()
+        if file_type == 'csv':
+            marker_recorder.stop()
 
-    def push2lsl(self, n_chan, device_id=0, duration=None):
+    def push2lsl(self, device_id=0, duration=None):
         r"""Push samples to two lsl streams
 
         Args:
             device_id (int): device id (not needed in the current version)
-            n_chan (int): Number of channels (4 or 8)
             duration (float): duration of data acquiring (if None it streams endlessly).
         """
 
-        assert (n_chan is not None), "Number of channels missing"
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
         info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
-        info_exg = StreamInfo('Explore', 'ExG', n_chan, 250, 'float32', 'ExG')
+        info_exg = StreamInfo('Explore', 'ExG', self.parser.n_chan, self.parser.fs, 'float32', 'ExG')
         info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
 
         orn_outlet = StreamOutlet(info_orn)
@@ -188,97 +205,143 @@ class Explore:
             print("Pushing to lsl...")
 
         while is_acquiring[0]:
-
             try:
                 self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet, marker_outlet))
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                self.socket = self.device[device_id].bt_connect()
-                time.sleep(1)
-                self.parser = Parser(self.socket)
-
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: Timeout, attempting reconnect. Error: ", error)
-                self.socket = self.device[device_id].bt_connect()
-                time.sleep(1)
-                self.parser = Parser(self.socket)
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
+                try:
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    return 0
         print("Data acquisition finished after ", duration, " seconds.")
 
-    def visualize(self, n_chan, device_id=0, bp_freq=(1, 30), notch_freq=50):
+    def visualize(self, device_id=0, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
         r"""Visualization of the signal in the dashboard
         Args:
-            n_chan (int): Number of channels device_id (int): Device ID (in case of multiple device connection)
             device_id (int): Device ID (not needed in the current version)
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
+            calibre_file (str): Calibration data file name
         """
+        import numpy as np
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        if calibre_file is not None:
+            with open(calibre_file, "r") as f_calibre:
+                csv_reader_calibre = csv.reader(f_calibre, delimiter=",")
+                calibre_set = list(csv_reader_calibre)
+                self.parser.calibre_set = np.asarray(calibre_set[1], dtype=np.float64)
+        self.parser.notch_freq = notch_freq
+        if bp_freq is not None:
+            self.parser.apply_bp_filter = True
+            self.parser.bp_freq = bp_freq
 
-        self.m_dashboard = Dashboard(n_chan=n_chan)
+        self.m_dashboard = Dashboard(n_chan=self.parser.n_chan,
+                                     exg_fs=self.parser.fs,
+                                     firmware_version=self.parser.firmware_version)
         self.m_dashboard.start_server()
 
         thread = Thread(target=self._io_loop)
         thread.setDaemon(True)
         thread.start()
-
-        self.parser = Parser(socket=self.socket, bp_freq=bp_freq, notch_freq=notch_freq)
-
         self.m_dashboard.start_loop()
 
     def _io_loop(self, device_id=0, mode="visualize"):
-        is_acquiring = True
-
+        self.is_acquiring = [True]
+        if self.parser.calibre_set is not None:
+            is_initialized = False
+        else:
+            is_initialized = True # flag as True since it doesn't matter and we skip orientation calculation process
         # Wait until dashboard is initialized.
         while not hasattr(self.m_dashboard, 'doc'):
-            print('wait')
-            time.sleep(.2)
-        while is_acquiring:
-            try:
-                packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                socket = self.device[device_id].bt_connect()
-                self.parser.socket = socket
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: attempting reconnect. Error: ", error)
-                self.parser.socket = self.device[device_id].bt_connect()
+            print('wait...')
+            time.sleep(.5)
 
-    def measure_imp(self, n_chan, device_id=0, notch_freq=50):
+        while self.is_acquiring[0]:
+            if is_initialized:
+                try:
+                    packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
+                except ConnectionAbortedError:
+                    print("Device has been disconnected! Scanning for last connected device...")
+                    try:
+                        self.parser.socket = self.device[device_id].bt_connect()
+                    except DeviceNotFoundError as e:
+                        print(e)
+                        self.is_acquiring[0] = False
+                        if mode == "visualize":
+                            os._exit(0)
+            else:
+                try:
+                    packet = self.parser.parse_packet(mode="initialize", dashboard=self.m_dashboard)
+                    if hasattr(packet, 'acc'):
+                        if self.parser.init_set is not None:
+                            is_initialized = True
+                except ConnectionAbortedError:
+                    print("Device has been disconnected! Scanning for last connected device...")
+                    try:
+                        self.parser.socket = self.device[device_id].bt_connect()
+                    except DeviceNotFoundError as e:
+                        print(e)
+                        self.is_acquiring[0] = False
+                        if mode == "visualize":
+                            os._exit(0)
+        os.exit(0)
+
+    def signal_handler(self, signal, frame):
+        # Safe handler of keyboardInterrupt
+        self.is_acquiring = [False]
+        print("Program is exiting...")
+        sys.exit(0)
+
+    def measure_imp(self, device_id=0, notch_freq=50):
         """
         Visualization of the electrode impedances
 
         Args:
-            n_chan (int): Number of channels
             device_id (int): Device ID
             notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
-
-        Returns:
-
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
-        try:
-            self.m_dashboard = Dashboard(n_chan=n_chan, mode="impedance")
-            self.m_dashboard.start_server()
+        assert self.parser.fs == 250, "Impedance mode only works in 250 Hz sampling rate!"
+        self.is_acquiring = [True]
 
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+        try:
             thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
             thread.setDaemon(True)
+            self.parser.apply_bp_filter = True
+            self.parser.bp_freq = (61, 64)
+            self.parser.notch_freq = notch_freq
             thread.start()
-
-            self.parser = Parser(socket=self.socket, bp_freq=(61, 64), notch_freq=notch_freq)
 
             # Activate impedance measurement mode in the device
             from explorepy import command
             imp_activate_cmd = command.ZmeasurementEnable()
-            self.change_settings(imp_activate_cmd)
-
-            self.m_dashboard.start_loop()
-        except:
+            if self.change_settings(imp_activate_cmd):
+                self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, mode="impedance", exg_fs=self.parser.fs,
+                                             firmware_version=self.parser.firmware_version)
+                self.m_dashboard.start_server()
+                self.m_dashboard.start_loop()
+            else:
+                os._exit(0)
+        finally:
+            print("Disabling impedance mode...")
             from explorepy import command
             imp_deactivate_cmd = command.ZmeasurementDisable()
             self.change_settings(imp_deactivate_cmd)
+            sys.exit(0)
+
+    def set_marker(self, code):
+        """Sets an event marker during the recording
+
+        Args:
+            code (int): Marker code. It must be an integer larger than 7 (codes from 0 to 7 are reserved for hardware markers).
+
+        """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        self.parser.set_marker(marker_code=code)
 
     def change_settings(self, command, device_id=0):
         """
@@ -301,14 +364,13 @@ class Explore:
                 time.sleep(0.1)
                 send_command(command, self.socket)
                 sending_attempt = 0
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                socket = self.device[device_id].bt_connect()
-                self.parser.socket = socket
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: attempting reconnect. Error: ", error)
-                self.parser.socket = self.device[device_id].bt_connect()
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
+                try:
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    return 0
 
         is_listening = [True]
         command_processed = False
@@ -331,23 +393,66 @@ class Explore:
                 if isinstance(packet, CalibrationInfo):
                     self.parser.imp_calib_info['slope'] = packet.slope
                     self.parser.imp_calib_info['offset'] = packet.offset
-                    
+
                 if isinstance(packet, CommandStatus):
-                    if command.int2bytearray(packet.opcode,1) == command.opcode.value:
-                        print("The opcode matches the sent command, Explore has processed the command")
-                        is_listening = [False]
+                    if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
                         command_processed = True
+                        is_listening = [False]
                         command_timer.cancel()
-            except ValueError:
-                # If value error happens, scan again for devices and try to reconnect (see reconnect function)
-                print("Disconnected, scanning for last connected device")
-                socket = self.device[device_id].bt_connect()
-                self.parser.socket = socket
-            except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: attempting reconnect. Error: ", error)
-                self.parser.socket = self.device[device_id].bt_connect()
+                        print("The opcode matches the sent command, Explore has processed the command")
+                        return True
+
+            except ConnectionAbortedError:
+                print("Device has been disconnected! Scanning for last connected device...")
+                try:
+                    self.parser.socket = self.device[device_id].bt_connect()
+                except DeviceNotFoundError as e:
+                    print(e)
+                    return 0
         if not command_processed:
-            print("No status message has been received after ", waiting_time, " seconds. Please send the command again")
+            print("No status message has been received after ", waiting_time, " seconds. Please restart the device and "
+                                                                              "send the command again.")
+            return False
+
+    def calibrate_orn(self, file_name, device_id=0, do_overwrite=False):
+        r"""Calibrate the orientation module of the specified device
+
+        Args:
+            device_id (int): device id
+            file_name (str): filename to be used for calibration. If you pass this parameter, ORN module should be ACTIVE!
+            do_overwrite (bool): Overwrite if files exist already
+        """
+        print("Start recording for 100 seconds, please move the device around during this time, in all directions")
+        self.record_data(file_name, do_overwrite=do_overwrite, device_id=device_id, duration=100, file_type='csv')
+        calibre_out_file = file_name + "_calibre_coef.csv"
+        assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
+        import numpy as np
+        with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
+            f_coef.write("kx, ky, kz, mx_offset, my_offset, mz_offset\n")
+            csv_reader = csv.reader(f_set, delimiter=",")
+            csv_coef = csv.writer(f_coef, delimiter=",")
+            np_set = list(csv_reader)
+            np_set = np.array(np_set[1:], dtype=np.float)
+            mag_set_x = np.sort(np_set[:, -3])
+            mag_set_y = np.sort(np_set[:, -2])
+            mag_set_z = np.sort(np_set[:, -1])
+            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
+            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
+            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
+            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
+            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
+            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
+            k = np.sort(np.array([kx, ky, kz]))
+            kx = 1 / kx
+            ky = 1 / ky
+            kz = 1 / kz
+            calibre_set = np.array([kx, ky, kz, mx_offset, my_offset, mz_offset])
+            csv_coef.writerow(calibre_set)
+            f_set.close()
+            f_coef.close()
+        os.remove((file_name + "_ORN.csv"))
+        os.remove((file_name + "_ExG.csv"))
+        os.remove((file_name + "_Marker.csv"))
 
 
 if __name__ == '__main__':

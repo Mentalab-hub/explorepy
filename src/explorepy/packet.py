@@ -77,12 +77,12 @@ class Packet:
 class EEG(Packet):
 
     @abc.abstractmethod
-    def write_to_csv(self, csv_writer):
+    def write_to_file(self, recorder):
         """
         Write EEG data to csv file
 
         Args:
-            csv_writer(csv_writer): csv writer object
+            recorder(explorepy.tools.FileRecorder): File recorder object
 
         """
         pass
@@ -136,12 +136,17 @@ class EEG(Packet):
 
     def push_to_dashboard(self, dashboard):
         n_sample = self.data.shape[1]
-        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / 250., n_sample)
+        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / dashboard.exg_fs, n_sample)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
 
     def push_to_imp_dashboard(self, dashboard, imp_calib_info):
         self.calculate_impedance(imp_calib_info)
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
+
+    def write_to_file(self, recorder):
+        tmpstmp = np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)/recorder.fs,
+                              self.data.shape[1])
+        recorder.write_data(np.concatenate((tmpstmp[:, np.newaxis], self.data.T), axis=1).T)
 
 
 class EEG94(EEG):
@@ -165,12 +170,7 @@ class EEG94(EEG):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.dataStatus[-1]  )
-
-    def write_to_csv(self, csv_writer):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:, :] = self.timestamp
-        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.dataStatus[-1])
 
 
 class EEG98(EEG):
@@ -194,12 +194,7 @@ class EEG98(EEG):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str((self.status))
-
-    def write_to_csv(self, csv_writer):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:, :] = self.timestamp
-        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
 
 class EEG99s(EEG):
@@ -223,14 +218,7 @@ class EEG99s(EEG):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status )
-
-    def write_to_csv(self, csv_writer):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        for i in range(0, 16):
-            tmpstmp[i, :] = (self.timestamp - 0.064 + i * 40) / 10000
-
-        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
 
 class EEG99(EEG):
@@ -255,11 +243,6 @@ class EEG99(EEG):
     def __str__(self):
         return "EEG: " + str(self.data[:, -1])
 
-    def write_to_csv(self, csv_writer):
-        tmpstmp = np.zeros([self.data.shape[1], 1])
-        tmpstmp[:, :] = self.timestamp
-        csv_writer.writerows(np.concatenate((tmpstmp, self.data.T), axis=1).tolist())
-
 
 class Orientation(Packet):
     """Orientation data packet"""
@@ -273,7 +256,9 @@ class Orientation(Packet):
         data = np.copy(np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder('<'))).astype(np.float)
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
-        self.mag = 1.52 * data[6:]  # Unit [mgauss/LSB]
+        self.mag = 1.52 *  np.multiply (data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
+        self.theta = None
+        self.rot_axis = None
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -281,8 +266,9 @@ class Orientation(Packet):
     def __str__(self):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
-    def write_to_csv(self, csv_writer):
-        csv_writer.writerow([self.timestamp] + self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
+    def write_to_file(self, recorder):
+        recorder.write_data(np.array([self.timestamp] + self.acc.tolist() +
+                                     self.gyro.tolist() + self.mag.tolist())[:, np.newaxis])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
@@ -290,6 +276,17 @@ class Orientation(Packet):
     def push_to_dashboard(self, dashboard):
         data = self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_orn, timestamp=self.timestamp, orn_data=data))
+
+    def compute_angle(self, matrix=None):
+        trace = matrix[0][0]+matrix[1][1]+matrix[2][2]
+        theta = np.arccos((trace-1)/2)*57.2958
+        nx = matrix[2][1] - matrix[1][2]
+        ny = matrix[0][2] - matrix[2][0]
+        nz = matrix[1][0] - matrix[0][1]
+        rot_axis = 1/np.sqrt((3-trace)*(1+trace))*np.array([nx, ny, nz])
+        self.theta = theta
+        self.rot_axis = rot_axis
+        return [theta, rot_axis]
 
 
 class Environment(Packet):
@@ -359,7 +356,7 @@ class TimeStamp(Packet):
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xff\xff\xff\xff', "Fletcher error!"
-    
+
     def translate(self):
         now = datetime.now()
         timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
@@ -376,13 +373,10 @@ class TimeStamp(Packet):
     def __str__(self):
         return "Host timestamp: " + str(self.hostTimeStamp)
 
-    def write_to_csv(self, csv_writer):
-        csv_writer.writerow([self.timestamp])
-
     def push_to_lsl(self, outlet):
         outlet.push_sample([1])
 
-        
+
 class MarkerEvent(Packet):
     """Marker packet"""
 
@@ -400,14 +394,16 @@ class MarkerEvent(Packet):
     def __str__(self):
         return "Event marker: " + str(self.marker_code)
 
-    def write_to_csv(self, csv_writer):
-        csv_writer.writerow([self.timestamp, self.marker_code])
+    def write_to_file(self, recorder):
+        recorder.set_marker(np.array([self.timestamp, self.marker_code])[:, np.newaxis])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample([self.marker_code])
 
     def push_to_dashboard(self, dashboard):
-        pass
+        dashboard.doc.add_next_tick_callback(partial(dashboard.update_marker,
+                                                     timestamp=self.timestamp,
+                                                     code=self.marker_code))
 
 
 class Disconnect(Packet):
@@ -437,14 +433,21 @@ class DeviceInfo(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'))[0]
-        self.firmware_version = '.'.join([char for char in str(fw_num)])
+        fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
+        self.firmware_version = '.'.join([char for char in str(fw_num)[1:-1]])
+        self.data_rate_info = 16000/(2**bin_data[2])
+        self.adc_mask = bin(bin_data[3])
+        print(self)
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "Firmware version: " + self.firmware_version
+        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.data_rate_info)\
+               + " Hz" + " - ADC mask: " + str(self.adc_mask)
+
+    def write_to_file(self, recorder):
+        recorder.write_data([self.timestamp, self.firmware_version, self.data_rate_info, self.adc_mask])
 
     def push_to_dashboard(self, dashboard):
         data = {'firmware_version': [self.firmware_version]}

@@ -1,6 +1,19 @@
 
 Changelog
 =========
+0.6.0 (17-02-2020)
+------------------
+* EDF (BDF+) file writer
+* Channel disable/enable feature
+* Calibration of movement sensors
+* Extraction of physical orientation (angle and rotation)
+* Soft marker event
+* Visualization performance enhancement
+* Automatic number of channel and sampling rate detection
+* Exception handling improvement
+* Command for soft reset of Explore
+* Marker visualization
+
 
 0.5.0 (25-11-2019)
 ------------------
