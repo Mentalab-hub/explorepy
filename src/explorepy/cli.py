@@ -83,7 +83,7 @@ def bin2csv(filename, overwrite):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.")
+@click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
 @click.option("-lf", "--lowfreq", type=float, help="Low cutoff frequency of bandpass filter.")
 @click.option("-hf", "--highfreq", type=float, help="High cutoff frequency of bandpass filter.")
 @click.option("-cf", "--calib-file", help="Calibration file name", type=click.Path(exists=True))
@@ -93,21 +93,21 @@ def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file):
     explore.connect(device_addr=address, device_name=name)
 
     if (lowfreq is not None) and (highfreq is not None):
-        explore.visualize(notch_freq=notchfreq, bp_freq=(lowfreq, highfreq), calibre_file=calib_file)
+        explore.visualize(notch_freq=int(notchfreq), bp_freq=(lowfreq, highfreq), calibre_file=calib_file)
     else:
-        explore.visualize(notch_freq=notchfreq, bp_freq=None, calibre_file=calib_file)
+        explore.visualize(notch_freq=int(notchfreq), bp_freq=None, calibre_file=calib_file)
 
 
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.")
+@click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
 def impedance(address, name, notchfreq):
     """Impedance measurement in a browser-based dashboard"""
     explore = Explore()
     explore.connect(device_addr=address, device_name=name)
 
-    explore.measure_imp(notch_freq=notchfreq)
+    explore.measure_imp(notch_freq=int(notchfreq))
 
 
 @cli.command()
