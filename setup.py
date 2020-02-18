@@ -24,7 +24,7 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy', 'pyedflib==0.1.15']
+my_req = ['numpy', 'scipy', 'pyedflib==0.1.15', 'click==7.0']
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pybluez==0.22')  # Add pybluez if the environment is other than READTHEDOCS
     my_req.append('pylsl')
@@ -69,9 +69,8 @@ setup(
     ],
     install_requires=my_req,
     extras_require={},
-    entry_points={
-        'console_scripts': [
-            'explorepy = explorepy.__main__:main',
-        ]
-    },
+    entry_points='''
+        [console_scripts]
+        explorepy=explorepy.cli:cli
+    ''',
 )
