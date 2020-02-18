@@ -75,7 +75,7 @@ def bin2csv(filename, overwrite):
 @click.option("-f", "--filename", help="Name of (and path to) the binary file.", required=True,
               type=click.Path(exists=True, file_okay=True, dir_okay=True, resolve_path=True))
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
-def bin2csv(filename, overwrite):
+def bin2edf(filename, overwrite):
     """Convert a binary file to EDF (BDF+)"""
     bin2edf(bin_file=filename, do_overwrite=overwrite)
 
