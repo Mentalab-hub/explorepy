@@ -286,7 +286,6 @@ class Explore:
                         self.is_acquiring[0] = False
                         if mode == "visualize":
                             os._exit(0)
-        os.exit(0)
 
     def signal_handler(self, signal, frame):
         # Safe handler of keyboardInterrupt
