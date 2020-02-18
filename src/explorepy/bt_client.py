@@ -25,7 +25,7 @@ class BtClient:
             device_addr(str): Devices MAC address
         """
         if (device_addr is None) and (device_name is None):
-            raise InputError("Missing name or address")
+            raise InputError("Either name or address options must be provided!")
 
         if device_name is not None:
             if device_addr is None:
