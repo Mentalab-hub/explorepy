@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from explorepy.tools import bin2csv, bt_scan, bin2edf
-from explorepy.explore import Explore
+import explorepy
 import click
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -13,7 +12,6 @@ def cli(ctx, version, args=None):
     """Python API for Mentalab biosignal aquisition devices"""
     if ctx.invoked_subcommand is None:
         if version:
-            import explorepy
             click.echo(explorepy.__version__)
         else:
             click.echo(ctx.get_help())
@@ -22,7 +20,7 @@ def cli(ctx, version, args=None):
 @cli.command()
 def find_device():
     """List available Explore devices."""
-    bt_scan()
+    explorepy.tools.bt_scan()
 
 
 @cli.command()
@@ -30,7 +28,7 @@ def find_device():
 @click.option("--name", "-n", type=str, help="Name of the device")
 def acquire(name, address):
     """Connect to a device with selected name or address. Only one input is necessary"""
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
     explore.acquire()
 
@@ -46,7 +44,7 @@ def acquire(name, address):
 @click.option("--csv", 'file_type', flag_value='csv', help="Write in csv file")
 def record_data(address, name, filename, overwrite, duration, file_type):
     """Record data from Explore to a file """
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
     explore.record_data(file_name=filename, file_type=file_type,
                         do_overwrite=overwrite, duration=duration)
@@ -57,7 +55,7 @@ def record_data(address, name, filename, overwrite, duration, file_type):
 @click.option("--name", "-n", type=str, help="Name of the device")
 def push2lsl(address, name):
     """Push data to lsl"""
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
     explore.push2lsl()
 
@@ -68,7 +66,7 @@ def push2lsl(address, name):
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
 def bin2csv(filename, overwrite):
     """Convert a binary file to CSV"""
-    bin2csv(bin_file=filename, do_overwrite=overwrite)
+    explorepy.tools.bin2csv(bin_file=filename, do_overwrite=overwrite)
 
 
 @cli.command()
@@ -77,7 +75,7 @@ def bin2csv(filename, overwrite):
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
 def bin2edf(filename, overwrite):
     """Convert a binary file to EDF (BDF+)"""
-    bin2edf(bin_file=filename, do_overwrite=overwrite)
+    explorepy.tools.bin2edf(bin_file=filename, do_overwrite=overwrite)
 
 
 @cli.command()
@@ -89,7 +87,7 @@ def bin2edf(filename, overwrite):
 @click.option("-cf", "--calib-file", help="Calibration file name", type=click.Path(exists=True))
 def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file):
     """Visualizing signal in a browser-based dashboard"""
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
 
     if (lowfreq is not None) and (highfreq is not None):
@@ -104,7 +102,7 @@ def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file):
 @click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
 def impedance(address, name, notchfreq):
     """Impedance measurement in a browser-based dashboard"""
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
 
     explore.measure_imp(notch_freq=int(notchfreq))
@@ -115,7 +113,7 @@ def impedance(address, name, notchfreq):
 @click.option("--name", "-n", type=str, help="Name of the device")
 def format_memory(address, name):
     """format the memory of Explore device"""
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
 
     from explorepy import command
@@ -130,11 +128,10 @@ def format_memory(address, name):
               type=click.Choice(['250', '500']), required=True)
 def set_sampling_rate(address, name, sampling_rate):
     """Change sampling rate of the Explore device"""
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
 
-    from explorepy import command
-    explore.change_settings(command.SetSPS(int(sampling_rate)))
+    explore.change_settings(explorepy.command.SetSPS(int(sampling_rate)))
 
 
 @cli.command()
@@ -142,11 +139,10 @@ def set_sampling_rate(address, name, sampling_rate):
 @click.option("--name", "-n", type=str, help="Name of the device")
 def soft_reset(address, name):
     """Reset the selected explore device (current session will be terminated)."""
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
 
-    from explorepy import command
-    soft_reset_cmd = command.SoftReset()
+    soft_reset_cmd = explorepy.command.SoftReset()
     explore.change_settings(soft_reset_cmd)
 
 
@@ -158,11 +154,9 @@ def soft_reset(address, name):
                    "interpreted as mask.")
 def set_channels(address, name, channel_mask):
     """Mask the channels of selected explore device (yet in alpha state)"""
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
-
-    from explorepy import command
-    explore.change_settings(command.SetCh(channel_mask))
+    explore.change_settings(explorepy.command.SetCh(channel_mask))
 
 
 @cli.command()
@@ -173,7 +167,7 @@ def set_channels(address, name, channel_mask):
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
 def calibrate_orn(address, name, filename, overwrite):
     """Calibrate the orientation module of the specified device"""
-    explore = Explore()
+    explore = explorepy.explore.Explore()
     explore.connect(device_addr=address, device_name=name)
     explore.calibrate_orn(file_name=filename, do_overwrite=overwrite)
 
