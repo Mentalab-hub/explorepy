@@ -108,7 +108,7 @@ class Parser:
             self.firmware_version = packet.firmware_version
             self.fs = int(packet.data_rate_info)
             self.adc_mask = packet.adc_mask
-            self.n_chan = self.adc_mask.count('1')
+            self.n_chan = self.adc_mask.count(1)
         if mode == "print":
             print(packet)
 
