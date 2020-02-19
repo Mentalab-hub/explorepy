@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from explorepy.parser import Parser
+from explorepy.filters import Filter
+from explorepy.packet import DeviceInfo
 import os.path
 import csv
 import bluetooth
 import numpy as np
-from explorepy.filters import Filter
 from scipy import signal
 import pyedflib
 import datetime
@@ -50,27 +51,21 @@ def bin2csv(bin_file, do_overwrite=False, out_dir=''):
     assert extension == '.BIN', "File type error! File extension must be BIN."
     out_dir = os.getcwd() + out_dir + '/'
 
-    exg_out_file = out_dir + filename + '_exg'
-    orn_out_file = out_dir + filename + '_orn'
-    marker_out_file = out_dir + filename + '_marker'
+    exg_file_name = out_dir + filename + '_exg'
+    orn_file_name = out_dir + filename + '_orn'
+    marker_file_name = out_dir + filename + '_marker'
 
-    exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
-    exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V']
-    exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=250, ch_unit=exg_unit,
-                                file_type='csv', do_overwrite=do_overwrite)
-
-    orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
-    orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
-    orn_recorder = FileRecorder(file_name=orn_out_file, ch_label=orn_ch, fs=20,
-                                ch_unit=orn_unit, file_type='csv', do_overwrite=do_overwrite)
-
-    marker_ch = ['TimeStamp', 'Code']
-    marker_unit = ['s', '-']
-    marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=0, ch_unit=marker_unit,
-                                   file_type='csv', do_overwrite=do_overwrite)
     with open(bin_file, "rb") as f_bin:
         parser = Parser(fid=f_bin)
-
+        exg_recorder = create_exg_recorder(filename=exg_file_name,
+                                           file_type='csv',
+                                           adc_mask=parser.adc_mask,
+                                           do_overwrite=do_overwrite)
+        orn_recorder = create_orn_recorder(filename=orn_file_name,
+                                           file_type='csv',
+                                           do_overwrite=do_overwrite)
+        marker_recorder = create_marker_recorder(filename=marker_file_name,
+                                                 do_overwrite=do_overwrite)
         print("Converting...")
         while True:
             try:
@@ -95,31 +90,68 @@ def bin2edf(bin_file, do_overwrite=False, out_dir=''):
     assert extension == '.BIN', "File type error! File extension must be BIN."
     out_dir = os.getcwd() + out_dir + '/'
 
-    exg_out_file = out_dir + filename + '_exg'
-    orn_out_file = out_dir + filename + '_orn'
+    exg_file_name = out_dir + filename + '_exg'
+    orn_file_name = out_dir + filename + '_orn'
 
     with open(bin_file, "rb") as f_bin:
         parser = Parser(fid=f_bin)
-        exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8'][0:parser.n_chan + 1]
-        exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'][0:parser.n_chan + 1]
-        exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4][0:parser.n_chan + 1]
-        exg_min = [0, -.4, -.4, -.4, -.4, -.4, -.4, -.4, -.4][0:parser.n_chan + 1]
-        exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=parser.fs, ch_unit=exg_unit,
-                                    file_type='edf', do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
-
-        orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
-        orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
-        orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
-        orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
-        orn_recorder = FileRecorder(file_name=orn_out_file, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type='edf',
-                                    do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min)
+        old_adc_mask = parser.adc_mask
+        exg_recorder = create_exg_recorder(filename=exg_file_name,
+                                           file_type='edf',
+                                           adc_mask=parser.adc_mask,
+                                           fs=parser.fs,
+                                           do_overwrite=do_overwrite)
+        orn_recorder = create_orn_recorder(filename=orn_file_name,
+                                           file_type='edf',
+                                           do_overwrite=do_overwrite)
         print("Converting...")
         while True:
             try:
-                parser.parse_packet(mode='record', recorders=(exg_recorder, orn_recorder, exg_recorder))
+                packet = parser.parse_packet(mode='record', recorders=(exg_recorder, orn_recorder, exg_recorder))
+                if isinstance(packet, DeviceInfo):
+                    if (parser.fs != exg_recorder.fs) or (parser.adc_mask != old_adc_mask):
+                        new_filename = exg_file_name + "_" + "{0:.2f}".format(packet.timestamp)
+                        print("Sampling rate or channel mask of ExG has been changed! The remaining ExG data will be"
+                              "written in the following file:\n", new_filename+'.edf')
+                        exg_recorder.stop()
+                        exg_recorder = create_exg_recorder(filename=new_filename,
+                                                           file_type='edf',
+                                                           adc_mask=parser.adc_mask,
+                                                           fs=parser.fs,
+                                                           do_overwrite=do_overwrite)
+                        old_adc_mask = parser.adc_mask
             except ValueError:
                 print("Binary file ended! Conversion finished!")
                 break
+
+
+def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
+    exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+    exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(adc_mask) if flag == 1]
+    exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V']
+    exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
+    exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4]
+    exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
+    exg_min = [0, -.4, -.4, -.4, -.4, -.4, -.4, -.4, -.4]
+    exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
+    return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
+                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
+
+
+def create_orn_recorder(filename, file_type, do_overwrite):
+    orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
+    orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+    orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
+    orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
+    return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
+                        do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min)
+
+
+def create_marker_recorder(filename, do_overwrite):
+    marker_ch = ['TimeStamp', 'Code']
+    marker_unit = ['s', '-']
+    return FileRecorder(filename=filename, ch_label=marker_ch, fs=0, ch_unit=marker_unit,
+                        file_type='csv', do_overwrite=do_overwrite)
 
 
 class HeartRateEstimator:
@@ -345,12 +377,12 @@ class FileRecorder:
 
     """
 
-    def __init__(self, file_name, ch_label, fs, ch_unit, ch_min=None, ch_max=None,
+    def __init__(self, filename, ch_label, fs, ch_unit, ch_min=None, ch_max=None,
                  device_name='Explore', file_type='edf', do_overwrite=False):
         """
 
         Args:
-            file_name (str): File name
+            filename (str): File name
             ch_label (list): List of channel labels.
             fs (int): Sampling rate (must be identical for all channels)
             ch_unit (list): List of channels unit (e.g. 'V', 'mG', 's', etc.)
@@ -362,7 +394,7 @@ class FileRecorder:
         """
 
         # Check invalid characters
-        if set(r'<>{}[]~`*%').intersection(file_name):
+        if set(r'<>{}[]~`*%').intersection(filename):
             raise ValueError("Invalid character in file name")
 
         self._file_obj = None
@@ -378,12 +410,12 @@ class FileRecorder:
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
                 raise ValueError('ch_label, ch_unit, ch_min and ch_max must have the same length!')
-            self._file_name = file_name + '.edf'
+            self._file_name = filename + '.edf'
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
             self._data = np.zeros((self._n_chan, 0))
         elif file_type == 'csv':
-            self._file_name = file_name + '.csv'
+            self._file_name = filename + '.csv'
             self._create_csv(do_overwrite=do_overwrite)
 
     @property
@@ -475,7 +507,7 @@ if __name__ == '__main__':
     units = ['V', 'V', 'V', 'V', 's']
     mins = [-1, -1, -1, -1, 0]
     maxs = [1, 1, 1, 1, 86400]
-    recorder = FileRecorder(file_name=file_name, fs=250, ch_label=labels, file_type='csv',
+    recorder = FileRecorder(filename=file_name, fs=250, ch_label=labels, file_type='csv',
                             ch_unit=units, ch_max=maxs, ch_min=mins, do_overwrite=True)
 
     for i in range(1002):
