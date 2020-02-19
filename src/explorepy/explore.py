@@ -4,7 +4,7 @@ from explorepy.parser import Parser
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy._exceptions import *
 from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, DeviceInfo
-from explorepy.tools import FileRecorder
+from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder
 import csv
 import os
 import time
@@ -113,25 +113,19 @@ class Explore:
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
 
-        exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8'][0:n_chan+1]
-        exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V'][0:n_chan+1]
-        exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4][0:n_chan + 1]
-        exg_min = [0, -.4, -.4, -.4, -.4, -.4, -.4, -.4, -.4][0:n_chan + 1]
-        exg_recorder = FileRecorder(file_name=exg_out_file, ch_label=exg_ch, fs=self.parser.fs, ch_unit=exg_unit,
-                                    file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
+        exg_recorder = create_exg_recorder(filename=exg_out_file,
+                                           file_type=file_type,
+                                           fs=self.parser.fs,
+                                           adc_mask=self.parser.adc_mask,
+                                           do_overwrite=do_overwrite)
+        orn_recorder = create_orn_recorder(filename=orn_out_file,
+                                           file_type=file_type,
+                                           do_overwrite=do_overwrite)
 
-        orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
-        orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
-        orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
-        orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
-        orn_recorder = FileRecorder(file_name=orn_out_file, ch_label=orn_ch, fs=20,
-                                    ch_unit=orn_unit, file_type=file_type, do_overwrite=do_overwrite,
-                                    ch_min=orn_min, ch_max=orn_max)
         if file_type == 'csv':
             marker_ch = ['TimeStamp', 'Code']
             marker_unit = ['s', '-']
-            marker_recorder = FileRecorder(file_name=marker_out_file, ch_label=marker_ch, fs=0,
-                                           ch_unit=marker_unit, file_type=file_type, do_overwrite=do_overwrite)
+            marker_recorder = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         elif file_type == 'edf':
             marker_recorder = exg_recorder
 
