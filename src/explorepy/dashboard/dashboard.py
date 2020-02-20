@@ -18,6 +18,7 @@ from bokeh.transform import dodge
 
 
 ORN_SRATE = 20  # Hz
+EXG_VIS_SRATE = 125
 WIN_LENGTH = 10  # Seconds
 MODE_LIST = ['EEG', 'ECG']
 CHAN_LIST = ['Ch1', 'Ch2', 'Ch3', 'Ch4', 'Ch5', 'Ch6', 'Ch7', 'Ch8']
@@ -60,6 +61,7 @@ class Dashboard:
         exg_temp[:, 0] = self.offsets[:, 0]
         exg_temp[:, 1] = np.nan
         init_data = dict(zip(self.chan_key_list, exg_temp))
+        self.exg_source_orig = ColumnDataSource(data=init_data)
         init_data['t'] = np.array([0., 0.])
         self.exg_source = ColumnDataSource(data=init_data)
 
@@ -143,11 +145,14 @@ class Dashboard:
             ExG (np.ndarray): array of new data
 
         """
+        self.exg_source_orig.stream(dict(zip(self.chan_key_list, ExG)), rollover= self.exg_fs * self.win_length)
+        ExG = ExG[:, ::int(self.exg_fs/EXG_VIS_SRATE)]
+        time_vector = time_vector[::int(self.exg_fs/EXG_VIS_SRATE)]
         # Update ExG data
         ExG = self.offsets + ExG / self.y_unit
         new_data = dict(zip(self.chan_key_list, ExG))
         new_data['t'] = time_vector
-        self.exg_source.stream(new_data, rollover=2 * self.exg_fs * WIN_LENGTH)
+        self.exg_source.stream(new_data, rollover=EXG_VIS_SRATE * self.win_length)
 
     @gen.coroutine
     @without_property_validation
@@ -202,9 +207,9 @@ class Dashboard:
         if (self.tabs.active != 2) or (self.exg_mode != 'EEG'):
             return
 
-        exg_data = np.array([self.exg_source.data[key] for key in self.chan_key_list])
+        exg_data = np.array([self.exg_source_orig.data[key] for key in self.chan_key_list])
 
-        if exg_data.shape[1] < self.exg_fs * 4.5:
+        if exg_data.shape[1] < self.exg_fs * 5:
             return
         fft_content, freq = get_fft(exg_data, self.exg_fs)
         data = dict(zip(self.chan_key_list, fft_content))
@@ -301,7 +306,6 @@ class Dashboard:
                 self.exg_source.data[ch] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
         self.r_peak_source.data['r_peak'] = (np.array(self.r_peak_source.data['r_peak'])-self.offsets[0]) *\
                                             (old_unit / self.y_unit) + self.offsets[0]
-
 
     @gen.coroutine
     @without_property_validation
@@ -458,12 +462,10 @@ class Dashboard:
             plot.x_range.min_interval = t_length
 
 
-def get_fft(exg, EEG_SRATE):
+def get_fft(exg, fs):
     """Compute FFT"""
-    n_chan, n_sample = exg.shape
-    L = n_sample / EEG_SRATE
     n = 1024
-    freq = EEG_SRATE * np.arange(int(n / 2)) / n
+    freq = fs * np.arange(int(n / 2)) / n
     fft_content = np.fft.fft(exg, n=n) / n
     fft_content = np.abs(fft_content[:, range(int(n / 2))])
     return fft_content[:, 1:], freq[1:]
