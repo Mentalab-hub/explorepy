@@ -25,7 +25,7 @@ class PACKET_ID(IntEnum):
     CALIBINFO = 195
 
 
-EXG_UNIT = 10e-6
+EXG_UNIT = 1e-6
 
 
 class Packet:
@@ -150,7 +150,8 @@ class EEG94(EEG):
         v_ref = 2.4
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = data[1:, :] * v_ref / gain
         self.dataStatus = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -173,7 +174,8 @@ class EEG98(EEG):
         v_ref = 2.4
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = data[1:, :] * v_ref / gain
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
     def _check_fletcher(self, fletcher):
@@ -196,7 +198,8 @@ class EEG99s(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = data[1:, :] * v_ref / gain
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -219,7 +222,8 @@ class EEG99(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = data * v_ref / gain
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
