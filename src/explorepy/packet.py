@@ -25,13 +25,15 @@ class PACKET_ID(IntEnum):
     CALIBINFO = 195
 
 
+EXG_UNIT = 10e-6
+
+
 class Packet:
     """An abstract base class for Explore packet"""
     __metadata__ = abc.ABCMeta
 
     def __init__(self, timestamp, payload):
-        """
-        Gets the timestamp and payload and initializes the packet object
+        """Gets the timestamp and payload and initializes the packet object
 
         Args:
             payload (bytearray): a byte array including binary data and fletcher
@@ -55,8 +57,7 @@ class Packet:
 
     @staticmethod
     def int24to32(bin_data):
-        """
-        converts binary data to int32
+        """Converts binary data to int32
 
         Args:
             bin_data (list): list of bytes with the structure of int24
@@ -75,18 +76,6 @@ class Packet:
 
 
 class EEG(Packet):
-
-    @abc.abstractmethod
-    def write_to_file(self, recorder):
-        """
-        Write EEG data to csv file
-
-        Args:
-            recorder(explorepy.tools.FileRecorder): File recorder object
-
-        """
-        pass
-
     def apply_bp_filter(self, exg_filter):
         """Bandpass filtering of ExG data
 
@@ -123,8 +112,7 @@ class EEG(Packet):
             outlet.push_sample(sample.tolist())
 
     def calculate_impedance(self, imp_calib_info):
-        """
-        calculate impedance with the help of impedance calibration info
+        """calculate impedance with the help of impedance calibration info
 
         Args:
             imp_calib_info (dict): dictionary of impedance calibration info including slope, offset and noise level
@@ -151,7 +139,6 @@ class EEG(Packet):
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -175,7 +162,6 @@ class EEG94(EEG):
 
 class EEG98(EEG):
     """EEG packet for 8 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -199,7 +185,6 @@ class EEG98(EEG):
 
 class EEG99s(EEG):
     """EEG packet for 8 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -223,7 +208,6 @@ class EEG99s(EEG):
 
 class EEG99(EEG):
     """EEG packet for 8 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -246,7 +230,6 @@ class EEG99(EEG):
 
 class Orientation(Packet):
     """Orientation data packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -256,7 +239,7 @@ class Orientation(Packet):
         data = np.copy(np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder('<'))).astype(np.float)
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
-        self.mag = 1.52 *  np.multiply (data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
+        self.mag = 1.52 * np.multiply(data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
         self.theta = None
         self.rot_axis = None
 
@@ -291,7 +274,6 @@ class Orientation(Packet):
 
 class Environment(Packet):
     """Environment data packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -344,7 +326,6 @@ class Environment(Packet):
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -379,7 +360,6 @@ class TimeStamp(Packet):
 
 class MarkerEvent(Packet):
     """Marker packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -408,7 +388,6 @@ class MarkerEvent(Packet):
 
 class Disconnect(Packet):
     """Disconnect packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._check_fletcher(payload)
@@ -426,7 +405,6 @@ class Disconnect(Packet):
 
 class DeviceInfo(Packet):
     """Device information packet"""
-
     def __init__(self, timestamp, payload):
         super(DeviceInfo, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
