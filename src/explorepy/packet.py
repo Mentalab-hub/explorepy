@@ -132,8 +132,8 @@ class EEG(Packet):
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
 
     def write_to_file(self, recorder):
-        tmpstmp = np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)/recorder.fs,
-                              self.data.shape[1])
+        tmpstmp = np.round(np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)/recorder.fs,
+                                       self.data.shape[1]), 4)
         recorder.write_data(np.concatenate((tmpstmp[:, np.newaxis], self.data.T), axis=1).T)
 
 
@@ -151,7 +151,7 @@ class EEG94(EEG):
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
-        self.data = data[1:, :] * v_ref / gain
+        self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.dataStatus = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -175,7 +175,7 @@ class EEG98(EEG):
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
-        self.data = data[1:, :] * v_ref / gain
+        self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
     def _check_fletcher(self, fletcher):
@@ -199,7 +199,7 @@ class EEG99s(EEG):
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
-        self.data = data[1:, :] * v_ref / gain
+        self.data = np.round(data * v_ref / gain, 2)
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -223,7 +223,7 @@ class EEG99(EEG):
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
-        self.data = data * v_ref / gain
+        self.data = np.round(data * v_ref / gain, 2)
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -254,8 +254,8 @@ class Orientation(Packet):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
     def write_to_file(self, recorder):
-        recorder.write_data(np.array([self.timestamp] + self.acc.tolist() +
-                                     self.gyro.tolist() + self.mag.tolist())[:, np.newaxis])
+        recorder.write_data(np.array([round(self.timestamp, 4)] + np.round(self.acc, 4).tolist() +
+                                     np.round(self.gyro, 4).tolist() + np.round(self.mag, 4).tolist())[:, np.newaxis])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
