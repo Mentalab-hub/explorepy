@@ -128,7 +128,7 @@ def bin2edf(bin_file, do_overwrite=False, out_dir=''):
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
     exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
     exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(adc_mask) if flag == 1]
-    exg_unit = ['s', 'V', 'V', 'V', 'V', 'V', 'V', 'V', 'V']
+    exg_unit = ['s', 'uV', 'uV', 'uV', 'uV', 'uV', 'uV', 'uV', 'uV']
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
     exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
@@ -385,7 +385,7 @@ class FileRecorder:
             filename (str): File name
             ch_label (list): List of channel labels.
             fs (int): Sampling rate (must be identical for all channels)
-            ch_unit (list): List of channels unit (e.g. 'V', 'mG', 's', etc.)
+            ch_unit (list): List of channels unit (e.g. 'uV', 'mG', 's', etc.)
             ch_min (list): List of minimum value of each channel. Only needed in edf mode (can be None in csv mode)
             ch_max (list): List of maximum value of each channel. Only needed in edf mode (can be None in csv mode)
             device_name (str): Recording device name

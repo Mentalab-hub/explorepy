@@ -25,13 +25,15 @@ class PACKET_ID(IntEnum):
     CALIBINFO = 195
 
 
+EXG_UNIT = 1e-6
+
+
 class Packet:
     """An abstract base class for Explore packet"""
     __metadata__ = abc.ABCMeta
 
     def __init__(self, timestamp, payload):
-        """
-        Gets the timestamp and payload and initializes the packet object
+        """Gets the timestamp and payload and initializes the packet object
 
         Args:
             payload (bytearray): a byte array including binary data and fletcher
@@ -55,8 +57,7 @@ class Packet:
 
     @staticmethod
     def int24to32(bin_data):
-        """
-        converts binary data to int32
+        """Converts binary data to int32
 
         Args:
             bin_data (list): list of bytes with the structure of int24
@@ -75,18 +76,6 @@ class Packet:
 
 
 class EEG(Packet):
-
-    @abc.abstractmethod
-    def write_to_file(self, recorder):
-        """
-        Write EEG data to csv file
-
-        Args:
-            recorder(explorepy.tools.FileRecorder): File recorder object
-
-        """
-        pass
-
     def apply_bp_filter(self, exg_filter):
         """Bandpass filtering of ExG data
 
@@ -123,8 +112,7 @@ class EEG(Packet):
             outlet.push_sample(sample.tolist())
 
     def calculate_impedance(self, imp_calib_info):
-        """
-        calculate impedance with the help of impedance calibration info
+        """calculate impedance with the help of impedance calibration info
 
         Args:
             imp_calib_info (dict): dictionary of impedance calibration info including slope, offset and noise level
@@ -144,14 +132,13 @@ class EEG(Packet):
         dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
 
     def write_to_file(self, recorder):
-        tmpstmp = np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)/recorder.fs,
-                              self.data.shape[1])
+        tmpstmp = np.round(np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)/recorder.fs,
+                                       self.data.shape[1]), 4)
         recorder.write_data(np.concatenate((tmpstmp[:, np.newaxis], self.data.T), axis=1).T)
 
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -163,7 +150,8 @@ class EEG94(EEG):
         v_ref = 2.4
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.dataStatus = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -175,7 +163,6 @@ class EEG94(EEG):
 
 class EEG98(EEG):
     """EEG packet for 8 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -187,7 +174,8 @@ class EEG98(EEG):
         v_ref = 2.4
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
     def _check_fletcher(self, fletcher):
@@ -199,7 +187,6 @@ class EEG98(EEG):
 
 class EEG99s(EEG):
     """EEG packet for 8 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -211,7 +198,8 @@ class EEG99s(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = np.round(data * v_ref / gain, 2)
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -223,7 +211,6 @@ class EEG99s(EEG):
 
 class EEG99(EEG):
     """EEG packet for 8 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -235,7 +222,8 @@ class EEG99(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = np.round(data * v_ref / gain, 2)
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -246,7 +234,6 @@ class EEG99(EEG):
 
 class Orientation(Packet):
     """Orientation data packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -256,7 +243,7 @@ class Orientation(Packet):
         data = np.copy(np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder('<'))).astype(np.float)
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
-        self.mag = 1.52 *  np.multiply (data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
+        self.mag = 1.52 * np.multiply(data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
         self.theta = None
         self.rot_axis = None
 
@@ -267,8 +254,8 @@ class Orientation(Packet):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
     def write_to_file(self, recorder):
-        recorder.write_data(np.array([self.timestamp] + self.acc.tolist() +
-                                     self.gyro.tolist() + self.mag.tolist())[:, np.newaxis])
+        recorder.write_data(np.array([round(self.timestamp, 4)] + np.round(self.acc, 4).tolist() +
+                                     np.round(self.gyro, 4).tolist() + np.round(self.mag, 4).tolist())[:, np.newaxis])
 
     def push_to_lsl(self, outlet):
         outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
@@ -291,7 +278,6 @@ class Orientation(Packet):
 
 class Environment(Packet):
     """Environment data packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -344,7 +330,6 @@ class Environment(Packet):
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -379,7 +364,6 @@ class TimeStamp(Packet):
 
 class MarkerEvent(Packet):
     """Marker packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -408,7 +392,6 @@ class MarkerEvent(Packet):
 
 class Disconnect(Packet):
     """Disconnect packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._check_fletcher(payload)
@@ -426,7 +409,6 @@ class Disconnect(Packet):
 
 class DeviceInfo(Packet):
     """Device information packet"""
-
     def __init__(self, timestamp, payload):
         super(DeviceInfo, self).__init__(timestamp, payload)
         self._convert(payload[:-4])

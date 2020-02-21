@@ -27,8 +27,8 @@ N_MOVING_AVERAGE = 60
 V_TH = [10**-5, 5 * 10 ** -3]  # Noise threshold for ECG (Volt)
 ORN_LIST = ['accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'magX', 'magY', 'magZ']
 
-SCALE_MENU = {"1 uV": 6., "5 uV": 5.3333, "10 uV": 5., "100 uV": 4., "200 uV": 3.6666, "500 uV": 3.3333, "1 mV": 3., "5 mV": 2.3333,
-              "10 mV": 2., "100 mV": 1.}
+SCALE_MENU = {"1 uV": 0, "5 uV": -0.66667, "10 uV": -1, "100 uV": -2, "200 uV": -2.33333, "500 uV": -3.33333,
+              "1 mV": -3, "5 mV": -3.66667, "10 mV": -4, "100 mV": -5}
 TIME_RANGE_MENU = {"10 s": 10., "5 s": 5., "20 s": 20.}
 
 LINE_COLORS = ['green', '#42C4F7', 'red']
