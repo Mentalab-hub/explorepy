@@ -29,7 +29,7 @@ def find_device():
 def acquire(name, address):
     """Connect to a device with selected name or address. Only one input is necessary"""
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
     explore.acquire()
 
 
@@ -45,7 +45,7 @@ def acquire(name, address):
 def record_data(address, name, filename, overwrite, duration, file_type):
     """Record data from Explore to a file """
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
     explore.record_data(file_name=filename, file_type=file_type,
                         do_overwrite=overwrite, duration=duration)
 
@@ -56,7 +56,7 @@ def record_data(address, name, filename, overwrite, duration, file_type):
 def push2lsl(address, name):
     """Push data to lsl"""
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
     explore.push2lsl()
 
 
@@ -88,7 +88,7 @@ def bin2edf(filename, overwrite):
 def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file):
     """Visualizing signal in a browser-based dashboard"""
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
 
     if (lowfreq is not None) and (highfreq is not None):
         explore.visualize(notch_freq=int(notchfreq), bp_freq=(lowfreq, highfreq), calibre_file=calib_file)
@@ -103,7 +103,7 @@ def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file):
 def impedance(address, name, notchfreq):
     """Impedance measurement in a browser-based dashboard"""
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
 
     explore.measure_imp(notch_freq=int(notchfreq))
 
@@ -114,7 +114,7 @@ def impedance(address, name, notchfreq):
 def format_memory(address, name):
     """format the memory of Explore device"""
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
 
     from explorepy import command
     memory_format_cmd = command.MemoryFormat()
@@ -129,7 +129,7 @@ def format_memory(address, name):
 def set_sampling_rate(address, name, sampling_rate):
     """Change sampling rate of the Explore device"""
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
 
     explore.change_settings(explorepy.command.SetSPS(int(sampling_rate)))
 
@@ -140,7 +140,7 @@ def set_sampling_rate(address, name, sampling_rate):
 def soft_reset(address, name):
     """Reset the selected explore device (current session will be terminated)."""
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
 
     soft_reset_cmd = explorepy.command.SoftReset()
     explore.change_settings(soft_reset_cmd)
@@ -155,7 +155,7 @@ def soft_reset(address, name):
 def set_channels(address, name, channel_mask):
     """Mask the channels of selected explore device (yet in alpha state)"""
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
     explore.change_settings(explorepy.command.SetCh(channel_mask))
 
 
@@ -168,7 +168,7 @@ def set_channels(address, name, channel_mask):
 def calibrate_orn(address, name, filename, overwrite):
     """Calibrate the orientation module of the specified device"""
     explore = explorepy.explore.Explore()
-    explore.connect(device_addr=address, device_name=name)
+    explore.connect(mac_address=address, device_name=name)
     explore.calibrate_orn(file_name=filename, do_overwrite=overwrite)
 
 

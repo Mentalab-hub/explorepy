@@ -35,26 +35,25 @@ from explorepy.command import send_command, ZmeasurementEnable, ZmeasurementDisa
 class Explore:
     r"""Mentalab Explore device"""
     def __init__(self):
-        self.device = None
+        self.bt_client = None
         self.socket = None
         self.parser = None
         self.m_dashboard = None
-        self.device = BtClient()
         self.is_connected = False
         self.is_acquiring = None
 
-    def connect(self, device_name=None, device_addr=None):
+    def connect(self, device_name=None, mac_address=None):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
         Args:
             device_name (str): Device name("Explore_XXXX"). Either mac address or name should be in the input
-            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX"
+            mac_address (str): The MAC address in format "XX:XX:XX:XX:XX:XX"
         """
 
-        self.device.init_bt(device_name=device_name, device_addr=device_addr)
+        self.bt_client = BtClient(device_name=device_name, mac_address=mac_address)
         if self.socket is None:
-            self.socket = self.device.bt_connect()
+            self.socket = self.bt_client.connect()
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
         self.is_connected = True
@@ -62,7 +61,7 @@ class Explore:
     def disconnect(self):
         r"""Disconnects from the device
         """
-        self.device.socket.close()
+        self.bt_client.socket.close()
         self.is_connected = False
 
     def acquire(self, duration=None):
@@ -89,7 +88,7 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device.bt_connect()
+                    self.parser.socket = self.bt_client.connect()
                 except DeviceNotFoundError as error:
                     print(error)
                     return 0
@@ -157,7 +156,7 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device.bt_connect()
+                    self.parser.socket = self.bt_client.connect()
                 except DeviceNotFoundError as error:
                     print(error)
                     if duration is not None:
@@ -208,7 +207,7 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device.bt_connect()
+                    self.parser.socket = self.bt_client.connect()
                 except DeviceNotFoundError as error:
                     print(error)
                     return 0
@@ -261,7 +260,7 @@ class Explore:
                 except ConnectionAbortedError:
                     print("Device has been disconnected! Scanning for last connected device...")
                     try:
-                        self.parser.socket = self.device.bt_connect()
+                        self.parser.socket = self.bt_client.connect()
                     except DeviceNotFoundError as error:
                         print(error)
                         self.is_acquiring[0] = False
@@ -276,7 +275,7 @@ class Explore:
                 except ConnectionAbortedError:
                     print("Device has been disconnected! Scanning for last connected device...")
                     try:
-                        self.parser.socket = self.device.bt_connect()
+                        self.parser.socket = self.bt_client.connect()
                     except DeviceNotFoundError as error:
                         print(error)
                         self.is_acquiring[0] = False
@@ -355,7 +354,7 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device.bt_connect()
+                    self.parser.socket = self.bt_client.connect()
                 except DeviceNotFoundError as error:
                     print(error)
                     return 0
@@ -392,7 +391,7 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device.bt_connect()
+                    self.parser.socket = self.bt_client.connect()
                 except DeviceNotFoundError as error:
                     print(error)
                     return 0

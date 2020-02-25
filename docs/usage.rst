@@ -108,7 +108,7 @@ This command does a soft reset of the device. All the settings (e.g. sampling ra
 
 Example commands:
 """""""""""""""""
-Data acquisition: ``explorepy acquire -n Explore_XXXX  #Put your device Bluetooth name``
+Data acquisition: ``explorepy acquire -n Explore_XXXX  # Put your device Bluetooth name``
 
 Record data: ``explorepy record_data -n Explore_XXXX -f test_file -t edf -ow``
 
@@ -147,7 +147,7 @@ with the last 4 characters being the last 4 hex numbers of the devices MAC adres
 
 Alternatively you can use the device's MAC address::
 
-    explore.connect(device_addr="XX:XX:XX:XX:XX:XX")
+    explore.connect(mac_address="XX:XX:XX:XX:XX:XX")
 
 If the device is not found it will raise an error.
 
