@@ -19,7 +19,7 @@ def main():
     exp_device.connect(device_name=args.name)
 
     # Push data to lsl. Note that this function creates three lsl streams, ExG, ORN and marker.
-    exp_device.push2lsl(n_chan=args.channels)
+    exp_device.push2lsl()
 
 
 if __name__ == "__main__":
