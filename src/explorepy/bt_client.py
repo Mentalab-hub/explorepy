@@ -34,7 +34,6 @@ class BtClient:
         """
         if self.mac_address is None:
             self._find_mac_address()
-            print(self.mac_address)
         else:
             self.device_name = "Explore_" + str(self.mac_address[-5:-3]) + str(self.mac_address[-2:])
 
