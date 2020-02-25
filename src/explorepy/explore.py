@@ -16,53 +16,42 @@ from threading import Thread, Timer
 
 class Explore:
     r"""Mentalab Explore device"""
-    def __init__(self, n_device=1):
-        r"""
-        Args:
-            n_device (int): Number of devices to be connected
-        """
-        self.device = []
+    def __init__(self):
+        self.device = None
         self.socket = None
         self.parser = None
         self.m_dashboard = None
-        for i in range(n_device):
-            self.device.append(BtClient())
+        self.device = BtClient()
         self.is_connected = False
         self.is_acquiring = None
 
-    def connect(self, device_name=None, device_addr=None, device_id=0):
+    def connect(self, device_name=None, device_addr=None):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
         Args:
             device_name (str): Device name in the format of "Explore_XXXX"
             device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in the input
-            device_id (int): device id (not needed in the current version)
-
         """
 
-        self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
+        self.device.init_bt(device_name=device_name, device_addr=device_addr)
         if self.socket is None:
-            self.socket = self.device[device_id].bt_connect()
+            self.socket = self.device.bt_connect()
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
         self.is_connected = True
         packet = None
 
-    def disconnect(self, device_id=None):
+    def disconnect(self):
         r"""Disconnects from the device
-
-        Args:
-            device_id (int): device id (not needed in the current version)
         """
-        self.device[device_id].socket.close()
+        self.device.socket.close()
         self.is_connected = False
 
-    def acquire(self, device_id=0, duration=None):
+    def acquire(self, duration=None):
         r"""Start getting data from the device
 
         Args:
-            device_id (int): device id (not needed in the current version)
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
 
@@ -83,19 +72,18 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device[device_id].bt_connect()
+                    self.parser.socket = self.device.bt_connect()
                 except DeviceNotFoundError as e:
                     print(e)
                     return 0
 
         print("Data acquisition stopped after ", duration, " seconds.")
 
-    def record_data(self, file_name, do_overwrite=False, device_id=0, duration=None, file_type='csv'):
+    def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv'):
         r"""Records the data in real-time
 
         Args:
             file_name (str): Output file name
-            device_id (int): Device id (not needed in the current version)
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
@@ -153,7 +141,7 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device[device_id].bt_connect()
+                    self.parser.socket = self.device.bt_connect()
                 except DeviceNotFoundError as e:
                     print(e)
                     rec_timer.cancel()
@@ -169,11 +157,10 @@ class Explore:
         if file_type == 'csv':
             marker_recorder.stop()
 
-    def push2lsl(self, device_id=0, duration=None):
+    def push2lsl(self, duration=None):
         r"""Push samples to two lsl streams
 
         Args:
-            device_id (int): device id (not needed in the current version)
             duration (float): duration of data acquiring (if None it streams endlessly).
         """
 
@@ -204,16 +191,15 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device[device_id].bt_connect()
+                    self.parser.socket = self.device.bt_connect()
                 except DeviceNotFoundError as e:
                     print(e)
                     return 0
         print("Data acquisition finished after ", duration, " seconds.")
 
-    def visualize(self, device_id=0, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
+    def visualize(self, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
         r"""Visualization of the signal in the dashboard
         Args:
-            device_id (int): Device ID (not needed in the current version)
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
@@ -241,7 +227,7 @@ class Explore:
         thread.start()
         self.m_dashboard.start_loop()
 
-    def _io_loop(self, device_id=0, mode="visualize"):
+    def _io_loop(self, mode="visualize"):
         self.is_acquiring = [True]
         if self.parser.calibre_set is not None:
             is_initialized = False
@@ -259,7 +245,7 @@ class Explore:
                 except ConnectionAbortedError:
                     print("Device has been disconnected! Scanning for last connected device...")
                     try:
-                        self.parser.socket = self.device[device_id].bt_connect()
+                        self.parser.socket = self.device.bt_connect()
                     except DeviceNotFoundError as e:
                         print(e)
                         self.is_acquiring[0] = False
@@ -274,7 +260,7 @@ class Explore:
                 except ConnectionAbortedError:
                     print("Device has been disconnected! Scanning for last connected device...")
                     try:
-                        self.parser.socket = self.device[device_id].bt_connect()
+                        self.parser.socket = self.device.bt_connect()
                     except DeviceNotFoundError as e:
                         print(e)
                         self.is_acquiring[0] = False
@@ -287,12 +273,11 @@ class Explore:
         print("Program is exiting...")
         sys.exit(0)
 
-    def measure_imp(self, device_id=0, notch_freq=50):
+    def measure_imp(self, notch_freq=50):
         """
         Visualization of the electrode impedances
 
         Args:
-            device_id (int): Device ID
             notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
@@ -302,7 +287,7 @@ class Explore:
         signal.signal(signal.SIGINT, self.signal_handler)
 
         try:
-            thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
+            thread = Thread(target=self._io_loop, args=("impedance",))
             thread.setDaemon(True)
             self.parser.apply_bp_filter = True
             self.parser.bp_freq = (61, 64)
@@ -336,15 +321,11 @@ class Explore:
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
         self.parser.set_marker(marker_code=code)
 
-    def change_settings(self, command, device_id=0):
-        """
-        sends a message to the device
+    def change_settings(self, command):
+        """sends a message to the device
+
         Args:
-            device_id (int): Device ID
             command (explorepy.command.Command): Command object
-
-        Returns:
-
         """
         from explorepy.command import send_command
 
@@ -360,7 +341,7 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device[device_id].bt_connect()
+                    self.parser.socket = self.device.bt_connect()
                 except DeviceNotFoundError as e:
                     print(e)
                     return 0
@@ -398,7 +379,7 @@ class Explore:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
-                    self.parser.socket = self.device[device_id].bt_connect()
+                    self.parser.socket = self.device.bt_connect()
                 except DeviceNotFoundError as e:
                     print(e)
                     return 0
@@ -407,16 +388,15 @@ class Explore:
                                                                               "send the command again.")
             return False
 
-    def calibrate_orn(self, file_name, device_id=0, do_overwrite=False):
+    def calibrate_orn(self, file_name, do_overwrite=False):
         r"""Calibrate the orientation module of the specified device
 
         Args:
-            device_id (int): device id
             file_name (str): filename to be used for calibration. If you pass this parameter, ORN module should be ACTIVE!
             do_overwrite (bool): Overwrite if files exist already
         """
         print("Start recording for 100 seconds, please move the device around during this time, in all directions")
-        self.record_data(file_name, do_overwrite=do_overwrite, device_id=device_id, duration=100, file_type='csv')
+        self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
         calibre_out_file = file_name + "_calibre_coef.csv"
         assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
         import numpy as np
