@@ -1,17 +1,35 @@
 # -*- coding: utf-8 -*-
-from explorepy.bt_client import BtClient
-from explorepy.parser import Parser
-from explorepy.dashboard.dashboard import Dashboard
-from explorepy._exceptions import *
-from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, DeviceInfo
-from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder
-import csv
+"""Explorepy main module
+
+This module provides the main class for interacting with Explore devices.
+
+Examples:
+    Before starting a session, make sure your device is paired to your computer. The device will be shown under the
+    following name: Explore_XXXX, with the last 4 characters being the last 4 hex numbers of the devices MAC address
+
+    >>> import explorepy
+    >>> explore = explorepy.Explore()
+    >>> explore.connect(device_name='Explore_1432')  # Put your device Bluetooth name
+    >>> explore.visualize(bp_freq=(1, 40), notch_freq=50)
+"""
+
 import os
 import time
 import signal
 import sys
-from pylsl import StreamInfo, StreamOutlet
 from threading import Thread, Timer
+import csv
+
+import numpy as np
+from pylsl import StreamInfo, StreamOutlet
+
+from explorepy.bt_client import BtClient
+from explorepy.parser import Parser
+from explorepy.dashboard.dashboard import Dashboard
+from explorepy._exceptions import DeviceNotFoundError
+from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo
+from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder
+from explorepy.command import send_command, ZmeasurementEnable, ZmeasurementDisable
 
 
 class Explore:
@@ -30,8 +48,8 @@ class Explore:
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
         Args:
-            device_name (str): Device name in the format of "Explore_XXXX"
-            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in the input
+            device_name (str): Device name("Explore_XXXX"). Either mac address or name should be in the input
+            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX"
         """
 
         self.device.init_bt(device_name=device_name, device_addr=device_addr)
@@ -40,7 +58,6 @@ class Explore:
         if self.parser is None:
             self.parser = Parser(socket=self.socket)
         self.is_connected = True
-        packet = None
 
     def disconnect(self):
         r"""Disconnects from the device
@@ -73,8 +90,8 @@ class Explore:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
                     self.parser.socket = self.device.bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
+                except DeviceNotFoundError as error:
+                    print(error)
                     return 0
 
         print("Data acquisition stopped after ", duration, " seconds.")
@@ -93,7 +110,6 @@ class Explore:
         # Check invalid characters
         if set(r'<>{}[]~`*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
-        n_chan = self.parser.n_chan
         if file_type not in ['edf', 'csv']:
             raise ValueError('{} is not a supported file extension!'.format(file_type))
         time_offset = None
@@ -111,8 +127,6 @@ class Explore:
                                            do_overwrite=do_overwrite)
 
         if file_type == 'csv':
-            marker_ch = ['TimeStamp', 'Code']
-            marker_unit = ['s', '-']
             marker_recorder = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         elif file_type == 'edf':
             marker_recorder = exg_recorder
@@ -130,10 +144,12 @@ class Explore:
             print("Start recording for ", duration, " seconds...")
         else:
             print("Recording...")
+
         is_disconnect_occurred = False
         while is_acquiring[0]:
             try:
-                packet = self.parser.parse_packet(mode="record", recorders=(exg_recorder, orn_recorder, marker_recorder))
+                packet = self.parser.parse_packet(mode="record",
+                                                  recorders=(exg_recorder, orn_recorder, marker_recorder))
                 if time_offset is not None:
                     packet.timestamp = packet.timestamp-time_offset
                 else:
@@ -142,10 +158,11 @@ class Explore:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
                     self.parser.socket = self.device.bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
-                    rec_timer.cancel()
-                    return 0
+                except DeviceNotFoundError as error:
+                    print(error)
+                    if duration is not None:
+                        rec_timer.cancel()
+                    return
 
         if is_disconnect_occurred:
             print("Error: Recording finished before ", duration, "seconds.")
@@ -192,8 +209,8 @@ class Explore:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
                     self.parser.socket = self.device.bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
+                except DeviceNotFoundError as error:
+                    print(error)
                     return 0
         print("Data acquisition finished after ", duration, " seconds.")
 
@@ -205,7 +222,6 @@ class Explore:
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
             calibre_file (str): Calibration data file name
         """
-        import numpy as np
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
         if calibre_file is not None:
             with open(calibre_file, "r") as f_calibre:
@@ -246,8 +262,8 @@ class Explore:
                     print("Device has been disconnected! Scanning for last connected device...")
                     try:
                         self.parser.socket = self.device.bt_connect()
-                    except DeviceNotFoundError as e:
-                        print(e)
+                    except DeviceNotFoundError as error:
+                        print(error)
                         self.is_acquiring[0] = False
                         if mode == "visualize":
                             os._exit(0)
@@ -261,14 +277,14 @@ class Explore:
                     print("Device has been disconnected! Scanning for last connected device...")
                     try:
                         self.parser.socket = self.device.bt_connect()
-                    except DeviceNotFoundError as e:
-                        print(e)
+                    except DeviceNotFoundError as error:
+                        print(error)
                         self.is_acquiring[0] = False
                         if mode == "visualize":
                             os._exit(0)
 
     def signal_handler(self, signal, frame):
-        # Safe handler of keyboardInterrupt
+        """Safe handler of keyboardInterrupt"""
         self.is_acquiring = [False]
         print("Program is exiting...")
         sys.exit(0)
@@ -295,8 +311,7 @@ class Explore:
             thread.start()
 
             # Activate impedance measurement mode in the device
-            from explorepy import command
-            imp_activate_cmd = command.ZmeasurementEnable()
+            imp_activate_cmd = ZmeasurementEnable()
             if self.change_settings(imp_activate_cmd):
                 self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, mode="impedance", exg_fs=self.parser.fs,
                                              firmware_version=self.parser.firmware_version)
@@ -306,8 +321,7 @@ class Explore:
                 os._exit(0)
         finally:
             print("Disabling impedance mode...")
-            from explorepy import command
-            imp_deactivate_cmd = command.ZmeasurementDisable()
+            imp_deactivate_cmd = ZmeasurementDisable()
             self.change_settings(imp_deactivate_cmd)
             sys.exit(0)
 
@@ -315,19 +329,19 @@ class Explore:
         """Sets an event marker during the recording
 
         Args:
-            code (int): Marker code. It must be an integer larger than 7 (codes from 0 to 7 are reserved for hardware markers).
+            code (int): Marker code. It must be an integer larger than 7
+                        (codes from 0 to 7 are reserved for hardware markers).
 
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
         self.parser.set_marker(marker_code=code)
 
-    def change_settings(self, command):
+    def change_settings(self, cmd):
         """sends a message to the device
 
         Args:
-            command (explorepy.command.Command): Command object
+            cmd (explorepy.command.Command): Command object
         """
-        from explorepy.command import send_command
 
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
@@ -336,14 +350,14 @@ class Explore:
             try:
                 sending_attempt = sending_attempt-1
                 time.sleep(0.1)
-                send_command(command, self.socket)
+                send_command(cmd, self.socket)
                 sending_attempt = 0
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
                     self.parser.socket = self.device.bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
+                except DeviceNotFoundError as error:
+                    print(error)
                     return 0
 
         is_listening = [True]
@@ -361,15 +375,14 @@ class Explore:
                 packet = self.parser.parse_packet(mode="listen")
 
                 if isinstance(packet, CommandRCV):
-                    temp = command.int2bytearray(packet.opcode, 1)
-                    if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
+                    if cmd.int2bytearray(packet.opcode, 1) == cmd.opcode.value:
                         print("The opcode matches the sent command, Explore has received the command")
                 if isinstance(packet, CalibrationInfo):
                     self.parser.imp_calib_info['slope'] = packet.slope
                     self.parser.imp_calib_info['offset'] = packet.offset
 
                 if isinstance(packet, CommandStatus):
-                    if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
+                    if cmd.int2bytearray(packet.opcode, 1) == cmd.opcode.value:
                         command_processed = True
                         is_listening = [False]
                         command_timer.cancel()
@@ -380,11 +393,11 @@ class Explore:
                 print("Device has been disconnected! Scanning for last connected device...")
                 try:
                     self.parser.socket = self.device.bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
+                except DeviceNotFoundError as error:
+                    print(error)
                     return 0
         if not command_processed:
-            print("No status message has been received after ", waiting_time, " seconds. Please restart the device and "
+            print("No status message has been received after ", waiting_time, " seconds. Please restart the device and"
                                                                               "send the command again.")
             return False
 
@@ -392,14 +405,13 @@ class Explore:
         r"""Calibrate the orientation module of the specified device
 
         Args:
-            file_name (str): filename to be used for calibration. If you pass this parameter, ORN module should be ACTIVE!
+            file_name (str): filename for calibration. If you pass this parameter, ORN module should be ACTIVE!
             do_overwrite (bool): Overwrite if files exist already
         """
         print("Start recording for 100 seconds, please move the device around during this time, in all directions")
         self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
         calibre_out_file = file_name + "_calibre_coef.csv"
         assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
-        import numpy as np
         with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
             f_coef.write("kx, ky, kz, mx_offset, my_offset, mz_offset\n")
             csv_reader = csv.reader(f_set, delimiter=",")
