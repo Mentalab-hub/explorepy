@@ -212,8 +212,7 @@ class Parser:
         else:
             raise ValueError("File has been closed unexpectedly!")
         if len(byte_data) != n_bytes:
-            raise ValueError("Number of received bytes is less than expected")
-            # TODO: Create a specific exception for this case
+            raise ConnectionAbortedError("Number of received bytes is less than expected due to BT disconnection.")
         return byte_data
 
     def set_marker(self, marker_code):
