@@ -417,19 +417,23 @@ class DeviceInfo(Packet):
     def _convert(self, bin_data):
         fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
         self.firmware_version = '.'.join([char for char in str(fw_num)[1:-1]])
-        self.data_rate_info = 16000/(2**bin_data[2])
+        self.sampling_rate = 16000 / (2 ** bin_data[2])
         self.adc_mask = [int(bit) for bit in bin(bin_data[3])[2:]]
-        print(self)
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
+    def get_info(self):
+        return dict(firmware_version=self.firmware_version,
+                    adc_mask=self.adc_mask,
+                    sampling_rate=self.sampling_rate)
+
     def __str__(self):
-        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.data_rate_info)\
+        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.sampling_rate)\
                + " Hz" + " - ADC mask: " + str(self.adc_mask)
 
     def write_to_file(self, recorder):
-        recorder.write_data([self.timestamp, self.firmware_version, self.data_rate_info, self.adc_mask])
+        recorder.write_data([self.timestamp, self.firmware_version, self.sampling_rate, self.adc_mask])
 
     def push_to_dashboard(self, dashboard):
         data = {'firmware_version': [self.firmware_version]}

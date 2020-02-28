@@ -32,7 +32,7 @@ class Parser:
         self.stream_interface = FileHandler()
 
     def _stream(self):
-        thread = Thread(target=self._stream_loop())
+        thread = Thread(target=self._stream_loop)
         thread.setDaemon(True)
         thread.start()
 

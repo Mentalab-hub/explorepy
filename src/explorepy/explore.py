@@ -30,7 +30,7 @@ from explorepy._exceptions import DeviceNotFoundError
 from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder
 from explorepy.command import send_command, ZmeasurementEnable, ZmeasurementDisable
-from explorepy.stream_processor import StreamProcessor
+from explorepy.stream_processor import StreamProcessor, TOPICS
 
 
 class Explore:
@@ -56,7 +56,7 @@ class Explore:
         self.stream_processor.start(device_name=device_name, mac_address=mac_address)
         self.is_connected = True
 
-    def stream(self):
+    def convert_bin(self):
         pass
 
     def disconnect(self):
@@ -71,30 +71,34 @@ class Explore:
         Args:
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
+        def callback(packet):
+            print(packet)
 
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
-
-        is_acquiring = [True]
-
-        def stop_acquiring(flag):
-            flag[0] = False
-
-        if duration is not None:
-            Timer(duration, stop_acquiring, [is_acquiring]).start()
-            print("Start acquisition for ", duration, " seconds...")
-
-        while is_acquiring[0]:
-            try:
-                self.parser.parse_packet(mode="print")
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.bt_client.connect()
-                except DeviceNotFoundError as error:
-                    print(error)
-                    return 0
-
-        print("Data acquisition stopped after ", duration, " seconds.")
+        self.stream_processor.subscribe(callback=callback, topic=TOPICS.raw_ExG)
+        time.sleep(60)
+        # assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        #
+        # is_acquiring = [True]
+        #
+        # def stop_acquiring(flag):
+        #     flag[0] = False
+        #
+        # if duration is not None:
+        #     Timer(duration, stop_acquiring, [is_acquiring]).start()
+        #     print("Start acquisition for ", duration, " seconds...")
+        #
+        # while is_acquiring[0]:
+        #     try:
+        #         self.parser.parse_packet(mode="print")
+        #     except ConnectionAbortedError:
+        #         print("Device has been disconnected! Scanning for last connected device...")
+        #         try:
+        #             self.parser.socket = self.bt_client.connect()
+        #         except DeviceNotFoundError as error:
+        #             print(error)
+        #             return 0
+        #
+        # print("Data acquisition stopped after ", duration, " seconds.")
 
     def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv'):
         r"""Records the data in real-time
