@@ -40,7 +40,7 @@ class Parser:
         while True:
             try:
                 packet = self._generate_packet()
-                self.callback.process(packet=packet)
+                self.callback(packet=packet)
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for the last connected device...")
                 self.stream_interface.reconnect()
