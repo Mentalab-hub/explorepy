@@ -30,6 +30,7 @@ from explorepy._exceptions import DeviceNotFoundError
 from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder
 from explorepy.command import send_command, ZmeasurementEnable, ZmeasurementDisable
+from explorepy.stream_processor import StreamProcessor
 
 
 class Explore:
@@ -41,6 +42,7 @@ class Explore:
         self.m_dashboard = None
         self.is_connected = False
         self.is_acquiring = None
+        self.stream_processor = None
 
     def connect(self, device_name=None, mac_address=None):
         r"""
@@ -50,13 +52,12 @@ class Explore:
             device_name (str): Device name("Explore_XXXX"). Either mac address or name should be in the input
             mac_address (str): The MAC address in format "XX:XX:XX:XX:XX:XX"
         """
-
-        self.bt_client = BtClient(device_name=device_name, mac_address=mac_address)
-        if self.socket is None:
-            self.socket = self.bt_client.connect()
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
+        self.stream_processor = StreamProcessor()
+        self.stream_processor.start(device_name=device_name, mac_address=mac_address)
         self.is_connected = True
+
+    def stream(self):
+        pass
 
     def disconnect(self):
         r"""Disconnects from the device
