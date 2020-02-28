@@ -11,7 +11,7 @@ class StreamProcessor:
         self.orn_calibrator = None
 
     def start(self, device_name=None, mac_address=None):
-        self.parser = Parser(stream_processor=self, mode='device')
+        self.parser = Parser(callback=self.process, mode='device')
         self.parser.start_stream(device_name, mac_address)
 
     def process(self, packet):

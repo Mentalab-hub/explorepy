@@ -10,13 +10,13 @@ from explorepy.bt_client import BtClient
 
 class Parser:
     """Data parser class"""
-    def __init__(self, stream_processor, mode='device'):
+    def __init__(self, callback, mode='device'):
         """Parser class for explore device
         """
         self.mode = mode
         self.stream_interface = None
         self.device_configurator = None
-        self.stream_processor = stream_processor
+        self.callback = callback
 
         self._time_offset = None
         self._start_time = None
@@ -40,7 +40,7 @@ class Parser:
         while True:
             try:
                 packet = self._generate_packet()
-                self.stream_processor.process(packet=packet)
+                self.callback.process(packet=packet)
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for the last connected device...")
                 self.stream_interface.reconnect()
