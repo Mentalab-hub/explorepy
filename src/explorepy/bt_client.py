@@ -93,6 +93,23 @@ class BtClient:
         raise DeviceNotFoundError("SSP service for the device {}. Please restart the device and try "
                                   "again".format(self.device_name))
 
+    def read(self, n_bytes):
+        """Read n_bytes from the socket
+
+            Args:
+                n_bytes (int): number of bytes to be read
+
+            Returns:
+                list of bytes
+        """
+        if self.socket is None:
+            raise ConnectionAbortedError('No bluetooth connection!')
+        try:
+            byte_data = self.socket.recv(n_bytes)
+        except ValueError as e:
+            raise ConnectionAbortedError(e.__str__())
+        return byte_data
+
     @staticmethod
     def _check_mac_address(device_name, mac_address):
         return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])
