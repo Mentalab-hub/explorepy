@@ -30,7 +30,7 @@ class BtClient:
         """Connect to the device and return the socket
 
         Returns:
-            socket
+            socket (bluetooth.socket)
         """
         if self.mac_address is None:
             self._find_mac_address()
@@ -44,12 +44,15 @@ class BtClient:
                 self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
                 print("Connecting to {}".format(self.device_name))
                 self.socket.connect((self.host, self.port))
+                self.is_connected = True
                 return self.socket
             except bluetooth.BluetoothError as error:
                 self.socket.close()
+                self.is_connected = False
                 print(error, "\nCould not connect; Retrying in 2s...")
                 time.sleep(2)
 
+        self.is_connected = False
         raise DeviceNotFoundError("Could not find the device! Please make sure"
                                   " the device is on and in advertising mode.")
 
@@ -63,14 +66,23 @@ class BtClient:
             try:
                 self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
                 self.socket.connect((self.host, self.port))
+                self.is_connected = True
                 return self.socket
             except bluetooth.BluetoothError as error:
                 print("Bluetooth Error: {}, attempting to reconnect...".format(error))
+                self.socket.close()
+                self.is_connected = False
                 time.sleep(2)
 
         self.socket.close()
+        self.is_connected = False
         raise DeviceNotFoundError("Could not find the device! Please make sure the device is on and in"
                                   "advertising mode.")
+
+    def disconnect(self):
+        """Disconnect from the device"""
+        self.socket.close()
+        self.is_connected = False
 
     def _find_mac_address(self):
         for _ in range(5):
@@ -106,8 +118,8 @@ class BtClient:
             raise ConnectionAbortedError('No bluetooth connection!')
         try:
             byte_data = self.socket.recv(n_bytes)
-        except ValueError as e:
-            raise ConnectionAbortedError(e.__str__())
+        except ValueError as error:
+            raise ConnectionAbortedError(error.__str__())
         return byte_data
 
     @staticmethod

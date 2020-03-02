@@ -12,6 +12,10 @@ class Parser:
     """Data parser class"""
     def __init__(self, callback, mode='device'):
         """Parser class for explore device
+
+        Args:
+            callback (function): function to be called when new packet is received
+            mode (str): Parsing mode either from an Explore device or a binary file {'device', 'file'}
         """
         self.mode = mode
         self.stream_interface = None
@@ -20,24 +24,33 @@ class Parser:
 
         self._time_offset = None
         self._start_time = None
+        self._do_streaming = False
+        self._stream_thread = None
 
-    def start_stream(self, device_name, mac_address):
+    def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
         self.stream_interface = BtClient(device_name=device_name, mac_address=mac_address)
         self.stream_interface.connect()
         self._stream()
+
+    def stop_streaming(self):
+        """Stop streaming data"""
+        self._do_streaming = False
+        self._stream_thread.join(timeout=1)
+        self.stream_interface.disconnect()
 
     def open_file(self):
         """Open the binary file"""
         self.stream_interface = FileHandler()
 
     def _stream(self):
-        thread = Thread(target=self._stream_loop)
-        thread.setDaemon(True)
-        thread.start()
+        self._do_streaming = True
+        self._stream_thread = Thread(target=self._stream_loop)
+        self._stream_thread.setDaemon(True)
+        self._stream_thread.start()
 
     def _stream_loop(self):
-        while True:
+        while self._do_streaming:
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)

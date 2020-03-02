@@ -75,30 +75,10 @@ class Explore:
             print(packet)
 
         self.stream_processor.subscribe(callback=callback, topic=TOPICS.raw_ExG)
-        time.sleep(60)
-        # assert self.is_connected, "Explore device is not connected. Please connect the device first."
-        #
-        # is_acquiring = [True]
-        #
-        # def stop_acquiring(flag):
-        #     flag[0] = False
-        #
-        # if duration is not None:
-        #     Timer(duration, stop_acquiring, [is_acquiring]).start()
-        #     print("Start acquisition for ", duration, " seconds...")
-        #
-        # while is_acquiring[0]:
-        #     try:
-        #         self.parser.parse_packet(mode="print")
-        #     except ConnectionAbortedError:
-        #         print("Device has been disconnected! Scanning for last connected device...")
-        #         try:
-        #             self.parser.socket = self.bt_client.connect()
-        #         except DeviceNotFoundError as error:
-        #             print(error)
-        #             return 0
-        #
-        # print("Data acquisition stopped after ", duration, " seconds.")
+        time.sleep(duration)
+        self.stream_processor.stop()
+        print("streaming must be terminated soon!")
+        time.sleep(10)
 
     def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv'):
         r"""Records the data in real-time
