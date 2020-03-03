@@ -70,10 +70,6 @@ class Packet:
                                           byteorder='little',
                                           signed=True) for x in range(0, len(bin_data), 3)])
 
-    @abc.abstractmethod
-    def push_to_dashboard(self, dashboard):
-        pass
-
 
 class EEG(Packet):
     def apply_bp_filter(self, exg_filter):
@@ -122,14 +118,14 @@ class EEG(Packet):
         self.imp_data = np.round(
             (mag - imp_calib_info['noise_level']) * imp_calib_info['slope'] - imp_calib_info['offset'], decimals=0)
 
-    def push_to_dashboard(self, dashboard):
+    def get_data(self, exg_fs):
         n_sample = self.data.shape[1]
-        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / dashboard.exg_fs, n_sample)
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
+        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / exg_fs, n_sample)
+        return time_vector, self.data
 
     def push_to_imp_dashboard(self, dashboard, imp_calib_info):
         self.calculate_impedance(imp_calib_info)
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
+        dashboard.doc.add_next_tick_callback(partial(dashboard.impedance_callback, imp=self.imp_data))
 
     def write_to_file(self, recorder):
         tmpstmp = np.round(np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)/recorder.fs,
@@ -260,9 +256,8 @@ class Orientation(Packet):
     def push_to_lsl(self, outlet):
         outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
 
-    def push_to_dashboard(self, dashboard):
-        data = self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_orn, timestamp=self.timestamp, orn_data=data))
+    def get_data(self):
+        return self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
 
     def compute_angle(self, matrix=None):
         trace = matrix[0][0]+matrix[1][1]+matrix[2][2]
@@ -299,11 +294,10 @@ class Environment(Packet):
         return "Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(
             self.battery)
 
-    def push_to_dashboard(self, dashboard):
-        data = {'battery': [self.battery_percentage],
+    def get_data(self):
+        return {'battery': [self.battery_percentage],
                 'temperature': [self.temperature],
                 'light': [self.light]}
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_info, new=data))
 
     @staticmethod
     def _volt_to_percent(voltage):
@@ -362,7 +356,7 @@ class TimeStamp(Packet):
         outlet.push_sample([1])
 
 
-class MarkerEvent(Packet):
+class EventMarker(Packet):
     """Marker packet"""
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
@@ -384,10 +378,8 @@ class MarkerEvent(Packet):
     def push_to_lsl(self, outlet):
         outlet.push_sample([self.marker_code])
 
-    def push_to_dashboard(self, dashboard):
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_marker,
-                                                     timestamp=self.timestamp,
-                                                     code=self.marker_code))
+    def get_data(self):
+        return self.timestamp, self.marker_code
 
 
 class Disconnect(Packet):
@@ -435,9 +427,8 @@ class DeviceInfo(Packet):
     def write_to_file(self, recorder):
         recorder.write_data([self.timestamp, self.firmware_version, self.sampling_rate, self.adc_mask])
 
-    def push_to_dashboard(self, dashboard):
-        data = {'firmware_version': [self.firmware_version]}
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_info, new=data))
+    def get_data(self):
+        return {'firmware_version': [self.firmware_version]}
 
 
 class CommandRCV(Packet):
@@ -511,5 +502,5 @@ PACKET_CLASS_DICT = {
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
     PACKET_ID.CALIBINFO: CalibrationInfo,
-    PACKET_ID.MARKER: MarkerEvent
+    PACKET_ID.MARKER: EventMarker
 }
