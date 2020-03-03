@@ -50,6 +50,8 @@ class Parser:
         self._stream_thread.start()
 
     def _stream_loop(self):
+        import asyncio
+        asyncio.set_event_loop(asyncio.new_event_loop())
         while self._do_streaming:
             try:
                 packet = self._generate_packet()
