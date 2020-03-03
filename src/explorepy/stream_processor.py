@@ -5,7 +5,7 @@ This module is responsible for processing incoming stream from Explore device an
 from enum import Enum
 
 from explorepy.parser import Parser
-from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, Environment, MarkerEvent
+from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, Environment, EventMarker
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env')
 
@@ -72,7 +72,7 @@ class StreamProcessor:
                 self.calculate_phys_orn(packet=packet)
             elif isinstance(packet, Environment):
                 self.dispatch(topic=TOPICS.env, packet=packet)
-            elif isinstance(packet, MarkerEvent):
+            elif isinstance(packet, EventMarker):
                 self.dispatch(topic=TOPICS.marker, packet=packet)
 
     def dispatch(self, topic, packet):
