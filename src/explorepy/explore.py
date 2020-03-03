@@ -23,8 +23,6 @@ import csv
 import numpy as np
 from pylsl import StreamInfo, StreamOutlet
 
-from explorepy.bt_client import BtClient
-from explorepy.parser import Parser
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy._exceptions import DeviceNotFoundError
 from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo
@@ -71,6 +69,8 @@ class Explore:
         Args:
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
         def callback(packet):
             print(packet)
 
@@ -200,6 +200,7 @@ class Explore:
 
     def visualize(self, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
         r"""Visualization of the signal in the dashboard
+
         Args:
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
@@ -207,71 +208,14 @@ class Explore:
             calibre_file (str): Calibration data file name
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
-        if calibre_file is not None:
-            with open(calibre_file, "r") as f_calibre:
-                csv_reader_calibre = csv.reader(f_calibre, delimiter=",")
-                calibre_set = list(csv_reader_calibre)
-                self.parser.calibre_set = np.asarray(calibre_set[1], dtype=np.float64)
-        self.parser.notch_freq = notch_freq
-        if bp_freq is not None:
-            self.parser.apply_bp_filter = True
-            self.parser.bp_freq = bp_freq
 
-        self.m_dashboard = Dashboard(n_chan=self.parser.n_chan,
-                                     exg_fs=self.parser.fs,
-                                     firmware_version=self.parser.firmware_version)
-        self.m_dashboard.start_server()
-
-        thread = Thread(target=self._io_loop)
-        thread.setDaemon(True)
-        thread.start()
-        self.m_dashboard.start_loop()
-
-    def _io_loop(self, mode="visualize"):
-        self.is_acquiring = [True]
-        if self.parser.calibre_set is not None:
-            is_initialized = False
-        else:
-            is_initialized = True # flag as True since it doesn't matter and we skip orientation calculation process
-        # Wait until dashboard is initialized.
-        while not hasattr(self.m_dashboard, 'doc'):
-            print('wait...')
+        while not self.stream_processor.device_info:
+            print('Waiting for device info packet...')
             time.sleep(.5)
 
-        while self.is_acquiring[0]:
-            if is_initialized:
-                try:
-                    packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
-                except ConnectionAbortedError:
-                    print("Device has been disconnected! Scanning for last connected device...")
-                    try:
-                        self.parser.socket = self.bt_client.connect()
-                    except DeviceNotFoundError as error:
-                        print(error)
-                        self.is_acquiring[0] = False
-                        if mode == "visualize":
-                            os._exit(0)
-            else:
-                try:
-                    packet = self.parser.parse_packet(mode="initialize", dashboard=self.m_dashboard)
-                    if hasattr(packet, 'acc'):
-                        if self.parser.init_set is not None:
-                            is_initialized = True
-                except ConnectionAbortedError:
-                    print("Device has been disconnected! Scanning for last connected device...")
-                    try:
-                        self.parser.socket = self.bt_client.connect()
-                    except DeviceNotFoundError as error:
-                        print(error)
-                        self.is_acquiring[0] = False
-                        if mode == "visualize":
-                            os._exit(0)
-
-    def signal_handler(self, signal, frame):
-        """Safe handler of keyboardInterrupt"""
-        self.is_acquiring = [False]
-        print("Program is exiting...")
-        sys.exit(0)
+        self.m_dashboard = Dashboard(self.stream_processor)
+        self.m_dashboard.start_server()
+        self.m_dashboard.start_loop()
 
     def measure_imp(self, notch_freq=50):
         """
