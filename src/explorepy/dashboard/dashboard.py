@@ -137,9 +137,9 @@ class Dashboard:
         """
         if self.tabs.active != 1:
             return
-        timestamp, orn_data = packet.timestamp, packet.get_data()
+        timestamp, orn_data = packet.get_data()
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
-        new_data['t'] = [timestamp]
+        new_data['t'] = timestamp
         self.doc.add_next_tick_callback(partial(self._update_orn, new_data=new_data))
 
     def info_callback(self, packet):
@@ -179,7 +179,7 @@ class Dashboard:
             return
         timestamp, _ = packet.get_data()
         new_data = dict(zip(['marker', 't', 'code'], [np.array([0.01, self.n_chan + 0.99, None], dtype=np.double),
-                                                      np.array([timestamp, timestamp, None], dtype=np.double)]))
+                                                      np.array([timestamp[0], timestamp[0], None], dtype=np.double)]))
         self.doc.add_next_tick_callback(partial(self._update_marker, new_data=new_data))
 
     def impedance_callback(self, packet):

@@ -256,8 +256,8 @@ class Orientation(Packet):
     def push_to_lsl(self, outlet):
         outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
 
-    def get_data(self):
-        return self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
+    def get_data(self, fs=None):
+        return [self.timestamp], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
 
     def compute_angle(self, matrix=None):
         trace = matrix[0][0]+matrix[1][1]+matrix[2][2]
@@ -378,8 +378,8 @@ class EventMarker(Packet):
     def push_to_lsl(self, outlet):
         outlet.push_sample([self.marker_code])
 
-    def get_data(self):
-        return self.timestamp, self.marker_code
+    def get_data(self, fs=None):
+        return [self.timestamp], [self.marker_code]
 
 
 class Disconnect(Packet):

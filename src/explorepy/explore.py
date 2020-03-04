@@ -52,6 +52,9 @@ class Explore:
         """
         self.stream_processor = StreamProcessor()
         self.stream_processor.start(device_name=device_name, mac_address=mac_address)
+        while not self.stream_processor.device_info:
+            print('Waiting for device info packet...')
+            time.sleep(.3)
         self.is_connected = True
 
     def convert_bin(self):
@@ -69,7 +72,7 @@ class Explore:
         Args:
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        self._check_connection()
 
         def callback(packet):
             print(packet)
@@ -77,8 +80,7 @@ class Explore:
         self.stream_processor.subscribe(callback=callback, topic=TOPICS.raw_ExG)
         time.sleep(duration)
         self.stream_processor.stop()
-        print("streaming must be terminated soon!")
-        time.sleep(10)
+        time.sleep(1)
 
     def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv'):
         r"""Records the data in real-time
@@ -89,22 +91,27 @@ class Explore:
             duration (float): Duration of recording in seconds (if None records endlessly).
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
         """
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        self._check_connection()
 
         # Check invalid characters
         if set(r'<>{}[]~`*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
         if file_type not in ['edf', 'csv']:
             raise ValueError('{} is not a supported file extension!'.format(file_type))
-        time_offset = None
+        if duration:
+            if duration <= 0:
+                raise ValueError("Recording time must be a positive number!")
+        else:
+            duration = 60 * 60  # one hour
+
         exg_out_file = file_name + "_ExG"
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
 
         exg_recorder = create_exg_recorder(filename=exg_out_file,
                                            file_type=file_type,
-                                           fs=self.parser.fs,
-                                           adc_mask=self.parser.adc_mask,
+                                           fs=self.stream_processor.device_info['sampling_rate'],
+                                           adc_mask=self.stream_processor.device_info['adc_mask'],
                                            do_overwrite=do_overwrite)
         orn_recorder = create_orn_recorder(filename=orn_out_file,
                                            file_type=file_type,
@@ -114,43 +121,18 @@ class Explore:
             marker_recorder = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         elif file_type == 'edf':
             marker_recorder = exg_recorder
-
-        is_acquiring = [True]
-
-        def stop_acquiring(flag):
-            flag[0] = False
-
-        if duration is not None:
-            if duration <= 0:
-                raise ValueError("Recording time must be a positive number!")
-            rec_timer = Timer(duration, stop_acquiring, [is_acquiring])
-            rec_timer.start()
-            print("Start recording for ", duration, " seconds...")
-        else:
-            print("Recording...")
-
         is_disconnect_occurred = False
-        while is_acquiring[0]:
-            try:
-                packet = self.parser.parse_packet(mode="record",
-                                                  recorders=(exg_recorder, orn_recorder, marker_recorder))
-                if time_offset is not None:
-                    packet.timestamp = packet.timestamp-time_offset
-                else:
-                    time_offset = packet.timestamp
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.bt_client.connect()
-                except DeviceNotFoundError as error:
-                    print(error)
-                    if duration is not None:
-                        rec_timer.cancel()
-                    return
+        time_offset = 0
+        try:
+            self.stream_processor.subscribe(callback=exg_recorder.write_data, topic=TOPICS.raw_ExG)
+            self.stream_processor.subscribe(callback=orn_recorder.write_data, topic=TOPICS.raw_orn)
+            self.stream_processor.subscribe(callback=marker_recorder.set_marker, topic=TOPICS.marker)
+            time.sleep(duration)
+        except ConnectionAbortedError:
+            is_disconnect_occurred = True
 
         if is_disconnect_occurred:
             print("Error: Recording finished before ", duration, "seconds.")
-            rec_timer.cancel()
         else:
             print("Recording finished after ", duration, " seconds.")
         exg_recorder.stop()
@@ -208,10 +190,6 @@ class Explore:
             calibre_file (str): Calibration data file name
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
-
-        while not self.stream_processor.device_info:
-            print('Waiting for device info packet...')
-            time.sleep(.5)
 
         if notch_freq:
             self.stream_processor.add_filter(cutoff_freq=notch_freq, filter_type='notch')
@@ -377,6 +355,9 @@ class Explore:
         os.remove((file_name + "_ORN.csv"))
         os.remove((file_name + "_ExG.csv"))
         os.remove((file_name + "_Marker.csv"))
+
+    def _check_connection(self):
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
 
 if __name__ == '__main__':

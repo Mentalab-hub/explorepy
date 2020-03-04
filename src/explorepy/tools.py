@@ -466,7 +466,7 @@ class FileRecorder:
         for i, ch_info in enumerate(ch_info_list):
             self._file_obj.setSignalHeader(i, ch_info)
 
-    def write_data(self, data):
+    def write_data(self, packet):
         """writes data to the file
 
         Notes:
@@ -474,9 +474,15 @@ class FileRecorder:
             it will be buffered in the memory and it will be written in the file when enough data is in the buffer.
 
         Args:
-            data (np.array): Array of data to be written in the file with dimension of n_chan x n_sample
+            packet (explorepy.packet.Packet): ExG or Orientation packet
 
         """
+        time_vector, signal = packet.get_data(self._fs)
+        if len(time_vector) == 1:
+            data = np.array(time_vector + signal)[:, np.newaxis]
+        else:
+            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(signal)), axis=0)
+        data = np.round(data, 4)
         if self._file_type == 'edf':
             if data.shape[0] != self._n_chan:
                 raise ValueError('Input first dimension must be {}'.format(self._n_chan))
@@ -488,29 +494,16 @@ class FileRecorder:
         elif self._file_type == 'csv':
             self._csv_obj.writerows(data.T.tolist())
 
-    def set_marker(self, data):
+    def set_marker(self, packet):
         """Writes a marker event in the file
 
         Args:
-            data (np.array): Array of marker data with size 2x1 ([[timestamp],[code]])
+            packet (explorepy.packet.EventMarker): Event marker packet
 
         """
         if self._file_type == 'csv':
-            self.write_data(data)
+            self.write_data(packet=packet)
         elif self._file_type == 'edf':
-            self._file_obj.writeAnnotation(data[0, 0], 0.001, str(int(data[1, 0])))
+            timestamp, code = packet.get_data()
+            self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
-
-if __name__ == '__main__':
-    file_name = 'test_rec'
-    labels = ['timestamp', 'ch01', 'ch02', 'ch_03', 'ch04']
-    units = ['V', 'V', 'V', 'V', 's']
-    mins = [-1, -1, -1, -1, 0]
-    maxs = [1, 1, 1, 1, 86400]
-    recorder = FileRecorder(filename=file_name, fs=250, ch_label=labels, file_type='csv',
-                            ch_unit=units, ch_max=maxs, ch_min=mins, do_overwrite=True)
-
-    for i in range(1002):
-        chunk = np.random.normal(0, 1, (5, 33))
-        recorder.write_data(chunk)
-    recorder.stop()

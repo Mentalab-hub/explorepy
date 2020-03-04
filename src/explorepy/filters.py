@@ -22,12 +22,12 @@ class ExGFilter:
         self.filter_param = None
         if filter_type is 'lowpass':
             hc_freq = cutoff_freq / nyq_freq
-            b, a, _ = butter(order, hc_freq, btype='lowpass')
+            b, a = butter(order, hc_freq, btype='lowpass')
             zi = np.zeros((n_chan, order))
 
         elif filter_type is 'highpass':
             lc_freq = cutoff_freq / nyq_freq
-            b, a, _ = butter(order, lc_freq, btype='highpass')
+            b, a = butter(order, lc_freq, btype='highpass')
             zi = np.zeros((n_chan, order))
 
         elif filter_type is 'bandpass':
@@ -37,13 +37,13 @@ class ExGFilter:
             hc_freq = cutoff_freq[1] / nyq_freq
             if lc_freq <= 0.003:
                 raise ValueError('Transient band for Low Frequency of bandpass filter is too narrow')
-            b, a, _ = butter(order, [lc_freq, hc_freq], btype='band')
+            b, a = butter(order, [lc_freq, hc_freq], btype='band')
             zi = np.zeros((n_chan, order * 2))
 
         elif filter_type is 'notch':
             lc_freq = (cutoff_freq - 2) / nyq_freq
             hc_freq = (cutoff_freq + 2) / nyq_freq
-            b, a, _ = iirfilter(5, [lc_freq, hc_freq], btype='bandstop', ftype='butter')
+            b, a = iirfilter(5, [lc_freq, hc_freq], btype='bandstop', ftype='butter')
             zi = np.zeros((n_chan, 10))
         else:
             raise ValueError('Unknown filter type: {}'.format(filter_type))
