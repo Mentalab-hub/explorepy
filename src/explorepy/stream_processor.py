@@ -3,9 +3,11 @@
 This module is responsible for processing incoming stream from Explore device and publishing data to subscribers.
 """
 from enum import Enum
+import time
 
 from explorepy.parser import Parser
 from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, Environment, EventMarker
+from explorepy.filters import ExGFilter
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env')
 
@@ -85,9 +87,24 @@ class StreamProcessor:
         for callback in self.subscribers[topic]:
             callback(packet)
 
+    def add_filter(self, cutoff_freq, filter_type):
+        """Add filter to the stream
+        Args:
+            cutoff_freq (Union[float, tuple]): Cut-off frequency (frequencies) for the filter
+            filter_type (str): Filter type ['bandpass', 'lowpass', 'highpass', 'notch']
+        """
+        while not self.device_info:
+            print('Waiting for device info packet...')
+            time.sleep(.5)
+        self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
+                                      filter_type=filter_type,
+                                      s_rate=self.device_info['sampling_rate'],
+                                      n_chan=self.device_info['adc_mask'].count(1)))
+
     def apply_filters(self, packet):
-        """Apply temporal filter to a packet"""
-        pass
+        """Apply temporal filters to a packet"""
+        for filt in self.filters:
+            packet = filt.apply(packet)
 
     def calculate_phys_orn(self, packet):
         """Calculate physical orientation"""

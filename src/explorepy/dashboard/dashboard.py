@@ -291,12 +291,12 @@ class Dashboard:
             self.exg_plot.circle(x='t', y='r_peak', source=self._r_peak_source,
                                  fill_color="red", size=8)
 
-        ecg_data = (np.array(self._exg_source_ds.data['Ch1'])[-500:] - self.offsets[0]) * self.y_unit
-        time_vector = np.array(self._exg_source_ds.data['t'])[-500:]
+        ecg_data = (np.array(self._exg_source_ds.data['Ch1'])[-2*EXG_VIS_SRATE:] - self.offsets[0]) * self.y_unit
+        time_vector = np.array(self._exg_source_ds.data['t'])[-2*EXG_VIS_SRATE:]
 
         # Check if the peak2peak value is bigger than threshold
         if (np.ptp(ecg_data) < V_TH[0]) or (np.ptp(ecg_data) > V_TH[1]):
-            print("P2P value larger or less than threshold!")
+            print("WARNING: P2P value larger or less than threshold. Cannot compute heart rate!")
             return
 
         peaks_time, peaks_val = self.rr_estimator.estimate(ecg_data, time_vector)
@@ -357,7 +357,7 @@ class Dashboard:
         self.doc.add_periodic_callback(self._update_fft, 2000)
         self.doc.add_periodic_callback(self._update_heart_rate, 2000)
         if self.stream_processor:
-            self.stream_processor.subscribe(topic=TOPICS.raw_ExG, callback=self.exg_callback)
+            self.stream_processor.subscribe(topic=TOPICS.filtered_ExG, callback=self.exg_callback)
             self.stream_processor.subscribe(topic=TOPICS.raw_orn, callback=self.orn_callback)
             self.stream_processor.subscribe(topic=TOPICS.device_info, callback=self.info_callback)
             self.stream_processor.subscribe(topic=TOPICS.marker, callback=self.marker_callback)

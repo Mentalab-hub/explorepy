@@ -213,6 +213,17 @@ class Explore:
             print('Waiting for device info packet...')
             time.sleep(.5)
 
+        if notch_freq:
+            self.stream_processor.add_filter(cutoff_freq=notch_freq, filter_type='notch')
+
+        if bp_freq:
+            if bp_freq[0] and bp_freq[1]:
+                self.stream_processor.add_filter(cutoff_freq=bp_freq, filter_type='bandpass')
+            elif bp_freq[0]:
+                self.stream_processor.add_filter(cutoff_freq=bp_freq[0], filter_type='highpass')
+            elif bp_freq[1]:
+                self.stream_processor.add_filter(cutoff_freq=bp_freq[1], filter_type='lowpass')
+
         self.m_dashboard = Dashboard(self.stream_processor)
         self.m_dashboard.start_server()
         self.m_dashboard.start_loop()

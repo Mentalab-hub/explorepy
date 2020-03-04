@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from explorepy.parser import Parser
-from explorepy.filters import Filter
+from explorepy.filters import ExGFilter
 from explorepy.packet import DeviceInfo
 import os.path
 import csv
@@ -179,7 +179,7 @@ class HeartRateEstimator:
         self.prev_times = np.zeros(smoothing_win)
         self.prev_max_slope = 0
 
-        self.bp_filter = Filter(l_freq=1, h_freq=30, order=3, sampling_freq=fs)
+        self.bp_filter = ExGFilter(cutoff_freq=(1, 30), filter_type='bandpass', s_rate=fs, n_chan=1, order=3)
         self.hamming_window = signal.windows.hamming(smoothing_win, sym=True)
         self.hamming_window /= self.hamming_window.sum()
 
