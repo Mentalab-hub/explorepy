@@ -242,7 +242,7 @@ class HeartRateEstimator:
         assert len(ecg_sig.shape) == 1, "Signal must be a vector"
 
         # Preprocessing
-        ecg_filtered = self.bp_filter.apply_bp_filter(ecg_sig).squeeze()
+        ecg_filtered = self.bp_filter.apply(ecg_sig).squeeze()
         ecg_sig = np.concatenate((self.prev_samples, ecg_sig))
         sig_diff = np.diff(ecg_filtered, 1)
         sig_abs_diff = np.abs(sig_diff)
