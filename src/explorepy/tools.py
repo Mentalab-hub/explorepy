@@ -1,14 +1,22 @@
 # -*- coding: utf-8 -*-
-from explorepy.parser import Parser
-from explorepy.filters import ExGFilter
-from explorepy.packet import DeviceInfo
+import datetime
 import os.path
 import csv
 import bluetooth
+
 import numpy as np
 from scipy import signal
 import pyedflib
-import datetime
+from pylsl import StreamInfo, StreamOutlet
+
+from explorepy.parser import Parser
+from explorepy.filters import ExGFilter
+from explorepy.packet import DeviceInfo
+
+EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
+ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
+ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
 
 
 def bt_scan():
@@ -126,9 +134,9 @@ def bin2edf(bin_file, do_overwrite=False, out_dir=''):
 
 
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
-    exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+    exg_ch = ['TimeStamp'] + EXG_CHANNELS
     exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(adc_mask) if flag == 1]
-    exg_unit = ['s', 'uV', 'uV', 'uV', 'uV', 'uV', 'uV', 'uV', 'uV']
+    exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
     exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
@@ -139,8 +147,8 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
 
 
 def create_orn_recorder(filename, file_type, do_overwrite):
-    orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
-    orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+    orn_ch = ['TimeStamp'] + ORN_CHANNELS
+    orn_unit = ['s'] + ORN_UNITS
     orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
     orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
@@ -507,3 +515,64 @@ class FileRecorder:
             timestamp, code = packet.get_data()
             self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
+
+class LslServer:
+    """Class for LabStreamingLayer integration"""
+    def __init__(self, device_info):
+        n_chan = device_info['adc_mask'].count(1)
+        self.exg_fs = device_info['sampling_rate']
+        orn_fs = 20
+
+        info_exg = StreamInfo('Explore', 'ExG', n_chan, self.exg_fs, 'float32', 'ExG')
+
+        info_exg.desc().append_child_value("manufacturer", "Mentalab")
+        channels = info_exg.desc().append_child("channels")
+        for i, mask in enumerate(device_info['adc_mask']):
+            if mask == 1:
+                channels.append_child("channel")\
+                    .append_child_value("name", EXG_CHANNELS[i])\
+                    .append_child_value("unit", EXG_UNITS[i])\
+                    .append_child_value("type", "ExG")
+
+        info_orn = StreamInfo('Explore', 'Orientation', 9, orn_fs, 'float32', 'ORN')
+        info_orn.desc().append_child_value("manufacturer", "Mentalab")
+        channels = info_exg.desc().append_child("channels")
+        for chan, unit in zip(ORN_CHANNELS, ORN_UNITS):
+            channels.append_child("channel") \
+                .append_child_value("name", chan) \
+                .append_child_value("unit", unit) \
+                .append_child_value("type", "ORN")
+
+        info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
+
+        self.orn_outlet = StreamOutlet(info_orn)
+        self.exg_outlet = StreamOutlet(info_exg)
+        self.marker_outlet = StreamOutlet(info_marker)
+
+    def push_exg(self, packet):
+        """Push data to ExG outlet
+
+        Args:
+            packet (explorepy.packet.EEG): ExG packet
+        """
+        _, exg_data = packet.get_data(self.exg_fs)
+        for sample in exg_data.T:
+            self.exg_outlet.push_sample(sample.tolist())
+
+    def push_orn(self, packet):
+        """Push data to orientation outlet
+
+        Args:
+            packet (explorepy.packet.Orientation): Orientation packet
+        """
+        _, orn_data = packet.get_data()
+        self.orn_outlet.push_sample(orn_data)
+
+    def push_marker(self, packet):
+        """Push data to marker outlet
+
+        Args:
+            packet (explorepy.packet.EventMarker): Event marker packet
+        """
+        _, code = packet.get_data()
+        self.marker_outlet.push_sample(code)

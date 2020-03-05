@@ -21,12 +21,11 @@ from threading import Thread, Timer
 import csv
 
 import numpy as np
-from pylsl import StreamInfo, StreamOutlet
 
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy._exceptions import DeviceNotFoundError
 from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo
-from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder
+from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer
 from explorepy.command import send_command, ZmeasurementEnable, ZmeasurementDisable
 from explorepy.stream_processor import StreamProcessor, TOPICS
 
@@ -34,12 +33,7 @@ from explorepy.stream_processor import StreamProcessor, TOPICS
 class Explore:
     r"""Mentalab Explore device"""
     def __init__(self):
-        self.bt_client = None
-        self.socket = None
-        self.parser = None
-        self.m_dashboard = None
         self.is_connected = False
-        self.is_acquiring = None
         self.stream_processor = None
 
     def connect(self, device_name=None, mac_address=None):
@@ -55,6 +49,7 @@ class Explore:
         while not self.stream_processor.device_info:
             print('Waiting for device info packet...')
             time.sleep(.3)
+        print('Device info packet has been received. Connection has been established. Streaming...')
         self.is_connected = True
 
     def convert_bin(self):
@@ -98,11 +93,7 @@ class Explore:
             raise ValueError("Invalid character in file name")
         if file_type not in ['edf', 'csv']:
             raise ValueError('{} is not a supported file extension!'.format(file_type))
-        if duration:
-            if duration <= 0:
-                raise ValueError("Recording time must be a positive number!")
-        else:
-            duration = 60 * 60  # one hour
+        duration = self._check_duration(duration)
 
         exg_out_file = file_name + "_ExG"
         orn_out_file = file_name + "_ORN"
@@ -139,46 +130,27 @@ class Explore:
         orn_recorder.stop()
         if file_type == 'csv':
             marker_recorder.stop()
+        self.stream_processor.stop()
+        time.sleep(1)
 
     def push2lsl(self, duration=None):
         r"""Push samples to two lsl streams
 
         Args:
-            duration (float): duration of data acquiring (if None it streams endlessly).
+            duration (float): duration of data acquiring (if None it streams for one hour).
         """
+        self._check_connection()
+        duration = self._check_duration(duration)
 
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        lsl_server = LslServer(self.stream_processor.device_info)
+        self.stream_processor.subscribe(topic=TOPICS.raw_ExG, callback=lsl_server.push_exg)
+        self.stream_processor.subscribe(topic=TOPICS.raw_orn, callback=lsl_server.push_orn)
+        self.stream_processor.subscribe(topic=TOPICS.marker, callback=lsl_server.push_marker)
+        time.sleep(duration)
 
-        info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
-        info_exg = StreamInfo('Explore', 'ExG', self.parser.n_chan, self.parser.fs, 'float32', 'ExG')
-        info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
-
-        orn_outlet = StreamOutlet(info_orn)
-        exg_outlet = StreamOutlet(info_exg)
-        marker_outlet = StreamOutlet(info_marker)
-
-        is_acquiring = [True]
-
-        def stop_acquiring(flag):
-            flag[0] = False
-
-        if duration is not None:
-            Timer(duration, stop_acquiring, [is_acquiring]).start()
-            print("Start pushing to lsl for ", duration, " seconds...")
-        else:
-            print("Pushing to lsl...")
-
-        while is_acquiring[0]:
-            try:
-                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet, marker_outlet))
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.bt_client.connect()
-                except DeviceNotFoundError as error:
-                    print(error)
-                    return 0
         print("Data acquisition finished after ", duration, " seconds.")
+        self.stream_processor.stop()
+        time.sleep(1)
 
     def visualize(self, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
         r"""Visualization of the signal in the dashboard
@@ -202,9 +174,9 @@ class Explore:
             elif bp_freq[1]:
                 self.stream_processor.add_filter(cutoff_freq=bp_freq[1], filter_type='lowpass')
 
-        self.m_dashboard = Dashboard(self.stream_processor)
-        self.m_dashboard.start_server()
-        self.m_dashboard.start_loop()
+        dashboard = Dashboard(self.stream_processor)
+        dashboard.start_server()
+        dashboard.start_loop()
 
     def measure_imp(self, notch_freq=50):
         """
@@ -358,6 +330,15 @@ class Explore:
 
     def _check_connection(self):
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
+    @staticmethod
+    def _check_duration(duration):
+        if duration:
+            if duration <= 0:
+                raise ValueError("Recording time must be a positive number!")
+        else:
+            duration = 60 * 60  # one hour
+        return duration
 
 
 if __name__ == '__main__':
