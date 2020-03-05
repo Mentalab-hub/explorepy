@@ -4,6 +4,8 @@
 import numpy as np
 from scipy.signal import butter, lfilter, iirfilter
 
+from explorepy.packet import Packet
+
 
 class ExGFilter:
     """Filter class for ExG signals"""
@@ -49,21 +51,28 @@ class ExGFilter:
             raise ValueError('Unknown filter type: {}'.format(filter_type))
         self.filter_param = {'a': a, 'b': b, 'zi': zi}
 
-    def apply(self, packet):
+    def apply(self, input_data):
         """Apply filter in-place
 
         Args:
-            packet (explorepy.packet.EEG): ExG packet to be filtered
+            input_data (Union(explorepy.packet.EEG, np.ndarray)): ExG packet or raw data to be filtered
 
         Returns:
-            packet: filtered packet
+            filtered packet or data array
         """
-        _, raw_data = packet.get_data(self.s_rate)
+        if isinstance(input_data, Packet):
+            _, raw_data = input_data.get_data(self.s_rate)
+            filtered_data = self._apply_to_raw_data(raw_data=raw_data)
+            input_data.data = filtered_data
+            return input_data
+        else:
+            return self._apply_to_raw_data(raw_data=input_data)
+
+    def _apply_to_raw_data(self, raw_data):
         if len(raw_data.shape) < 2:
             raw_data = np.array(raw_data)[np.newaxis, :]
         filtered_data, self.filter_param['zi'] = lfilter(self.filter_param['b'],
                                                          self.filter_param['a'],
                                                          raw_data,
                                                          zi=self.filter_param['zi'])
-        packet.data = filtered_data
-        return packet
+        return filtered_data
