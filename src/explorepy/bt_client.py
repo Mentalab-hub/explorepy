@@ -122,6 +122,14 @@ class BtClient:
             raise ConnectionAbortedError(error.__str__())
         return byte_data
 
+    def send(self, data):
+        """Send data to the device
+
+        Args:
+            data (bytearray): Data to be sent
+        """
+        self.socket.send(data)
+
     @staticmethod
     def _check_mac_address(device_name, mac_address):
         return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])

@@ -1,14 +1,21 @@
+# -*- coding: utf-8 -*-
+"""
+A module providing classes for Explore device configuration
+"""
+import time
 from datetime import datetime
 import abc
 from enum import Enum
 
 
-class COMMAND_ID(Enum):
+class CommandID(Enum):
+    """Command ID enum class"""
     API2BCMD = b'\xA0'
     API4BCMD = b'\xB0'
 
 
 class OpcodeID(Enum):
+    """Op Code ID class"""
     CMD_SPS_SET = b'\xA1'
     CMD_CH_SET = b'\xA2'
     CMD_MEM_FORMAT = b'\xA3'
@@ -20,23 +27,90 @@ class OpcodeID(Enum):
     CMD_SOFT_RESET = b'\xA8'
 
 
-class DeliveryState(Enum):
-    NOT_SENT = 0
-    SENT_NO_ACK_RCVD = 1
-    SENT_ACK_RCVD = 2
-
-
 class Result(Enum):
+    """Results of the command execution"""
     API_CMD_SUCCESSFUL = b'\x01'
     API_CMD_ILLEGAL = b'\x02'
     API_CMD_FAILED = b'\x00'
     API_CMD_NA = b'\xFF'
 
 
+class DeviceConfiguration:
+    """Device Configuration Class"""
+    def __init__(self, bt_interface):
+        """
+        Args:
+            bt_interface (explorepy.bt_client.BtClient): Bluetooth interface
+        """
+        self._bt_interface = bt_interface
+        self._last_ack_message = None
+        self._last_status_message = None
+
+    def get_device_info(self):
+        """Get device information including adc mask, sampling rate and firmware version."""
+        raise NotImplementedError
+
+    def change_setting(self, command):
+        """Change the settings of the device based on the input command
+
+        Args:
+            command (explorepy.command.Command): Command to be executed
+
+        Returns:
+              bool: If the command has been successfully executed.
+        """
+        self._last_ack_message = None
+        self._last_status_message = None
+        self._send_command(command)
+        print("waiting for ack and status messages...")
+        cmd_received = False
+        for _ in range(10):
+            if not self._last_ack_message:
+                time.sleep(1)
+            elif int2bytearray(self._last_ack_message.opcode, 1) == command.opcode.value:
+                print("Command has been received by Explore")
+                cmd_received = True
+                self._last_ack_message = None
+                break
+        if cmd_received:
+            for _ in range(10):
+                if not self._last_status_message:
+                    time.sleep(1)
+                elif int2bytearray(self._last_status_message.opcode, 1) == command.opcode.value:
+                    print("Command has been successfully executed by the device.")
+                    return True
+
+        if cmd_received:
+            print("WARNING: Command has not been executed by the device. Try again.")
+        else:
+            print("WARNING: Command has not been received by the device. Try again.")
+        return False
+
+    def update_ack(self, packet):
+        """Update ack message"""
+        self._last_ack_message = packet
+
+    def update_cmd_status(self, packet):
+        """Update status message"""
+        self._last_status_message = packet
+
+    def _send_command(self, command):
+        """Send a command to the device
+
+        Args:
+            command (explorepy.command.Command): Command object
+            socket (socket): Bluetooth socket
+
+        """
+        print("Sending the command: ", command)
+        self._bt_interface.send(command.translate())
+        print("The command is sent.")
+
+
 class Command:
     """An abstract base class for Explore command packet"""
     def __init__(self):
-        self.ID = None
+        self.pid = None
         self.cnt = b'\x00'
         self.payload_length = None
         self.host_ts = None
@@ -50,8 +124,8 @@ class Command:
     def translate(self):
         """Translates the command to binary array understandable by Explore device. """
         self.get_time()
-        return self.ID.value + self.cnt + self.payload_length + self.host_ts + \
-               self.opcode.value + self.param + self.fletcher
+        return self.pid.value + self.cnt + self.payload_length + self.host_ts + self.opcode.value + \
+               self.param + self.fletcher
 
     def get_time(self):
         """Gets the current machine time based on unix format and fills the corresponding field.
@@ -61,54 +135,23 @@ class Command:
         """
         now = datetime.now()
         timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
-        self.host_ts = self.int2bytearray(timestamp, 4)
-
-    @abc.abstractmethod
-    def get_ack(self):
-        """Gets the acknowledge from the device. """
-        pass
-
-    @abc.abstractmethod
-    def get_status(self):
-        """Gets the status from the device. """
-        pass
-
-    def int2bytearray(self, x, n):
-        """Gets an integer and convert it to a byte array with specified number of bytes
-
-        Args:
-            x: integer
-            n: number of bytes
-
-        Returns:
-            bytearray
-        """
-        x_str = hex(x)
-        x_str = x_str[2:(2 * n+2)]
-        i = len(x_str)
-        if i < (n*2):
-            for j in range(0, 2*n-i):
-                x_str = '0' + x_str
-        out = bytes.fromhex(x_str)
-
-        # Change byte order for MCU
-        if n == 2:
-            out = bytes([out[1], out[0]])
-        return out
+        self.host_ts = int2bytearray(timestamp, 4)
 
     @abc.abstractmethod
     def __str__(self):
         """prints the appropriate info about the command. """
-        pass
 
 
 class Command2B(Command):
     """An abstract base class for Explore 2 Byte command data length packets"""
-
     def __init__(self):
         super().__init__()
-        self.ID = COMMAND_ID.API2BCMD
-        self.payload_length = self.int2bytearray(10, 2)
+        self.pid = CommandID.API2BCMD
+        self.payload_length = int2bytearray(10, 2)
+
+    @abc.abstractmethod
+    def __str__(self):
+        """prints the appropriate info about the command. """
 
 
 class Command4B(Command):
@@ -116,14 +159,18 @@ class Command4B(Command):
 
     def __init__(self):
         super().__init__()
-        self.ID = COMMAND_ID.API4BCMD
-        self.payload_length = self.int2bytearray(12, 2)
+        self.pid = CommandID.API4BCMD
+        self.payload_length = int2bytearray(12, 2)
+
+    @abc.abstractmethod
+    def __str__(self):
+        """prints the appropriate info about the command. """
 
 
 class SetSPS(Command2B):
+    """Set the sampling rate of ExG device"""
     def __init__(self, sps_rate):
-        """Gets the desired rate and initializes the packet
-
+        """
         Args:
             sps_rate (int): sampling rate per seconds. It should be one of these values: 250 or 500
         """
@@ -136,16 +183,13 @@ class SetSPS(Command2B):
         else:
             raise ValueError("Invalid input")
 
-        self.get_time()
-        self.delivery_state = DeliveryState.NOT_SENT
-
     def __str__(self):
         return "Set sampling rate command"
 
 
 class MemoryFormat(Command2B):
+    """Format device memory"""
     def __init__(self):
-        """Format device memory"""
         super().__init__()
         self.opcode = OpcodeID.CMD_MEM_FORMAT
         self.param = b'\x00'
@@ -155,8 +199,9 @@ class MemoryFormat(Command2B):
 
 
 class ModuleDisable(Command2B):
+    """Module disable command"""
     def __init__(self, module_name):
-        """Disable module class
+        """
 
         Args:
             module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
@@ -175,9 +220,9 @@ class ModuleDisable(Command2B):
 
 
 class ModuleEnable(Command2B):
+    """Module enable command"""
     def __init__(self, module_name):
-        """Enable module command class
-
+        """
         Args:
             module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
         """
@@ -194,9 +239,9 @@ class ModuleEnable(Command2B):
         return "Module enable command"
 
 
-class ZmeasurementDisable(Command2B):
+class ZMeasurementDisable(Command2B):
+    """Enables Z measurement mode"""
     def __init__(self):
-        """Enables Z measurement"""
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_DISABLE
         self.param = b'\x00'
@@ -205,9 +250,9 @@ class ZmeasurementDisable(Command2B):
         return "Impedance measurement disable command"
 
 
-class ZmeasurementEnable(Command2B):
+class ZMeasurementEnable(Command2B):
+    """Enables Z measurement"""
     def __init__(self):
-        """Enables Z measurement"""
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_ENABLE
         self.param = b'\x00'
@@ -217,8 +262,9 @@ class ZmeasurementEnable(Command2B):
 
 
 class SetCh(Command2B):
+    """Change channel mask command"""
     def __init__(self, ch_mask):
-        """Gets the desired rate and initializes the packet
+        """
 
         Args:
             ch_mask (int): ExG channel mask. It should be integers between 1 and 255.
@@ -229,16 +275,14 @@ class SetCh(Command2B):
             self.param = bytes([ch_mask])
         else:
             raise ValueError("Invalid input")
-        self.get_time()
-        self.delivery_state = DeliveryState.NOT_SENT
 
     def __str__(self):
         return "Channel set command"
 
 
 class SoftReset(Command2B):
+    """Reset the setting of the device."""
     def __init__(self):
-        """Reset the Device."""
         super().__init__()
         self.opcode = OpcodeID.CMD_SOFT_RESET
         self.param = b'\x00'
@@ -247,21 +291,31 @@ class SoftReset(Command2B):
         return "Reset command"
 
 
-def send_command(command, socket):
-    """Send a command to the device
+COMMAND_CLASS_DICT = {
+    CommandID.API2BCMD: Command2B,
+    CommandID.API4BCMD: Command4B
+}
+
+
+def int2bytearray(data, num_bytes):
+    """Gets an integer and convert it to a byte array with specified number of bytes
 
     Args:
-        command (explorepy.command.Command): Command object
-        socket (socket): Bluetooth socket
+        data: integer
+        num_bytes: number of bytes
 
+    Returns:
+        bytearray
     """
-    print("Sending the message...")
+    x_str = hex(data)
+    x_str = x_str[2:(2 * num_bytes + 2)]
+    i = len(x_str)
+    if i < (num_bytes * 2):
+        for j in range(0, 2 * num_bytes - i):
+            x_str = '0' + x_str
+    output = bytes.fromhex(x_str)
 
-    socket.send(command.translate())
-    print(" Message Sent.")
-
-
-COMMAND_CLASS_DICT = {
-    COMMAND_ID.API2BCMD: Command2B,
-    COMMAND_ID.API4BCMD: Command4B
-}
+    # Change byte order for MCU
+    if num_bytes == 2:
+        output = bytes([output[1], output[0]])
+    return output

@@ -17,16 +17,14 @@ import os
 import time
 import signal
 import sys
-from threading import Thread, Timer
+from threading import Thread
 import csv
 
 import numpy as np
 
 from explorepy.dashboard.dashboard import Dashboard
-from explorepy._exceptions import DeviceNotFoundError
-from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer
-from explorepy.command import send_command, ZmeasurementEnable, ZmeasurementDisable
+from explorepy.command import ZMeasurementEnable, ZMeasurementDisable, MemoryFormat
 from explorepy.stream_processor import StreamProcessor, TOPICS
 
 
@@ -53,7 +51,7 @@ class Explore:
         self.is_connected = True
 
     def convert_bin(self):
-        pass
+        raise NotImplementedError
 
     def disconnect(self):
         r"""Disconnects from the device
@@ -200,7 +198,7 @@ class Explore:
             thread.start()
 
             # Activate impedance measurement mode in the device
-            imp_activate_cmd = ZmeasurementEnable()
+            imp_activate_cmd = ZMeasurementEnable()
             if self.change_settings(imp_activate_cmd):
                 self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, mode="impedance", exg_fs=self.parser.fs,
                                              firmware_version=self.parser.firmware_version)
@@ -210,7 +208,7 @@ class Explore:
                 os._exit(0)
         finally:
             print("Disabling impedance mode...")
-            imp_deactivate_cmd = ZmeasurementDisable()
+            imp_deactivate_cmd = ZMeasurementDisable()
             self.change_settings(imp_deactivate_cmd)
             sys.exit(0)
 
@@ -225,70 +223,10 @@ class Explore:
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
         self.parser.set_marker(marker_code=code)
 
-    def change_settings(self, cmd):
-        """sends a message to the device
-
-        Args:
-            cmd (explorepy.command.Command): Command object
-        """
-
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
-
-        sending_attempt = 5
-        while sending_attempt:
-            try:
-                sending_attempt = sending_attempt-1
-                time.sleep(0.1)
-                send_command(cmd, self.socket)
-                sending_attempt = 0
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.bt_client.connect()
-                except DeviceNotFoundError as error:
-                    print(error)
-                    return 0
-
-        is_listening = [True]
-        command_processed = False
-
-        def stop_listening(flag):
-            flag[0] = False
-
-        waiting_time = 10
-        command_timer = Timer(waiting_time, stop_listening, [is_listening])
-        command_timer.start()
-        print("waiting for ack and status messages...")
-        while is_listening[0]:
-            try:
-                packet = self.parser.parse_packet(mode="listen")
-
-                if isinstance(packet, CommandRCV):
-                    if cmd.int2bytearray(packet.opcode, 1) == cmd.opcode.value:
-                        print("The opcode matches the sent command, Explore has received the command")
-                if isinstance(packet, CalibrationInfo):
-                    self.parser.imp_calib_info['slope'] = packet.slope
-                    self.parser.imp_calib_info['offset'] = packet.offset
-
-                if isinstance(packet, CommandStatus):
-                    if cmd.int2bytearray(packet.opcode, 1) == cmd.opcode.value:
-                        command_processed = True
-                        is_listening = [False]
-                        command_timer.cancel()
-                        print("The opcode matches the sent command, Explore has processed the command")
-                        return True
-
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.bt_client.connect()
-                except DeviceNotFoundError as error:
-                    print(error)
-                    return 0
-        if not command_processed:
-            print("No status message has been received after ", waiting_time, " seconds. Please restart the device and"
-                                                                              "send the command again.")
-            return False
+    def format_memory(self):
+        """Format memory of the device"""
+        cmd = MemoryFormat()
+        self.stream_processor.configure_device(cmd)
 
     def calibrate_orn(self, file_name, do_overwrite=False):
         r"""Calibrate the orientation module of the specified device
@@ -340,6 +278,3 @@ class Explore:
             duration = 60 * 60  # one hour
         return duration
 
-
-if __name__ == '__main__':
-    pass
