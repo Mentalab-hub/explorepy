@@ -3,6 +3,7 @@
 from threading import Thread
 import time
 import struct
+import asyncio
 
 from explorepy.packet import PACKET_CLASS_DICT
 from explorepy.bt_client import BtClient
@@ -11,8 +12,7 @@ from explorepy.bt_client import BtClient
 class Parser:
     """Data parser class"""
     def __init__(self, callback, mode='device'):
-        """Parser class for explore device
-
+        """
         Args:
             callback (function): function to be called when new packet is received
             mode (str): Parsing mode either from an Explore device or a binary file {'device', 'file'}
@@ -23,7 +23,7 @@ class Parser:
         self.callback = callback
 
         self._time_offset = None
-        self._start_time = None
+        self.start_time = None
         self._do_streaming = False
         self._stream_thread = None
 
@@ -50,7 +50,6 @@ class Parser:
         self._stream_thread.start()
 
     def _stream_loop(self):
-        import asyncio
         asyncio.set_event_loop(asyncio.new_event_loop())
         while self._do_streaming:
             try:
@@ -77,7 +76,7 @@ class Parser:
         if self._time_offset is None:
             self._time_offset = timestamp * .0001
             timestamp = 0
-            self._start_time = time.time()
+            self.start_time = time.time()
         else:
             timestamp = timestamp * .0001 - self._time_offset   # Timestamp unit is .1 ms
 
@@ -105,12 +104,6 @@ class Parser:
             print("Length of the binary data:", len(bin_data))
             packet = None
         return packet
-
-
-class DeviceConfigurator:
-    """Explore device configurator class"""
-    def __init__(self):
-        pass
 
 
 class FileHandler:

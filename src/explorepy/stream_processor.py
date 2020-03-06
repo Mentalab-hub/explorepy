@@ -4,6 +4,7 @@ This module is responsible for processing incoming stream from Explore device an
 """
 from enum import Enum
 import time
+import struct
 
 from explorepy.parser import Parser
 from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, Environment, EventMarker
@@ -128,3 +129,13 @@ class StreamProcessor:
     def calculate_phys_orn(self, packet):
         """Calculate physical orientation"""
         raise NotImplementedError
+
+    def set_marker(self, code):
+        """Set a marker in the stream"""
+        if type(code) is not int:
+            raise TypeError('Marker code must be an integer!')
+        if 0 <= code <= 7:
+            raise ValueError('Marker code value is not valid')
+
+        self.process(EventMarker(timestamp=time.time() - self.parser.start_time,
+                                 payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')))
