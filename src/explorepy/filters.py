@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Filter module"""
-
+import copy
 import numpy as np
 from scipy.signal import butter, lfilter, iirfilter
 
@@ -51,22 +51,26 @@ class ExGFilter:
             raise ValueError('Unknown filter type: {}'.format(filter_type))
         self.filter_param = {'a': a, 'b': b, 'zi': zi}
 
-    def apply(self, input_data):
-        """Apply filter in-place
+    def apply(self, input_data, in_place=True):
+        """Apply filter
 
         Args:
             input_data (Union(explorepy.packet.EEG, np.ndarray)): ExG packet or raw data to be filtered
-
+            in_place (bool): Whether apply filter in-place
         Returns:
             filtered packet or data array
         """
-        if isinstance(input_data, Packet):
-            _, raw_data = input_data.get_data(self.s_rate)
-            filtered_data = self._apply_to_raw_data(raw_data=raw_data)
-            input_data.data = filtered_data
-            return input_data
+        if not in_place:
+            temp_data = copy.deepcopy(input_data)
         else:
-            return self._apply_to_raw_data(raw_data=input_data)
+            temp_data = input_data
+        if isinstance(temp_data, Packet):
+            _, raw_data = temp_data.get_data(self.s_rate)
+            filtered_data = self._apply_to_raw_data(raw_data=raw_data)
+            temp_data.data = filtered_data
+            return temp_data
+        else:
+            return self._apply_to_raw_data(raw_data=temp_data)
 
     def _apply_to_raw_data(self, raw_data):
         if len(raw_data.shape) < 2:
