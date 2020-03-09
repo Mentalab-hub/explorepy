@@ -118,6 +118,8 @@ class BtClient:
             raise ConnectionAbortedError('No bluetooth connection!')
         try:
             byte_data = self.socket.recv(n_bytes)
+            if len(byte_data) < n_bytes:
+                raise ConnectionAbortedError('No data in bluetooth buffer.')
         except ValueError as error:
             raise ConnectionAbortedError(error.__str__())
         return byte_data
