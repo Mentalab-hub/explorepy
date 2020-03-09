@@ -576,3 +576,56 @@ class LslServer:
         """
         _, code = packet.get_data()
         self.marker_outlet.push_sample(code)
+
+
+class ImpedanceMeasurement:
+    """Impedance measurement class"""
+    def __init__(self, device_info, calib_param, notch_freq):
+        """
+        Args:
+            device_info (dict): Device information dictionary
+            calib_param (dict): Calibration parameters dictionary
+            notch_freq (int): Line frequency (for notch filter)
+        """
+        self._device_info = device_info
+        self._calib_param = calib_param
+        self._filters = {}
+        self._notch_freq = notch_freq
+        self._add_filters()
+
+    def _add_filters(self):
+        bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, \
+                  self._device_info['sampling_rate'] / 4 + 1.5
+        noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, \
+                     self._device_info['sampling_rate'] / 4 + 5.5
+
+        self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
+                                           filter_type='notch',
+                                           s_rate=self._device_info['sampling_rate'],
+                                           n_chan=self._device_info['adc_mask'].count(1))
+
+        self._filters['demodulation'] = ExGFilter(cutoff_freq=bp_freq,
+                                                  filter_type='bandpass',
+                                                  s_rate=self._device_info['sampling_rate'],
+                                                  n_chan=self._device_info['adc_mask'].count(1))
+
+        self._filters['base_noise'] = ExGFilter(cutoff_freq=noise_freq,
+                                                filter_type='bandpass',
+                                                s_rate=self._device_info['sampling_rate'],
+                                                n_chan=self._device_info['adc_mask'].count(1))
+
+    def measure_imp(self, packet):
+        """Compute electrode impedances
+
+        Args:
+            self:
+            packet:
+
+        Returns:
+            packet:
+        """
+        temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
+        self._calib_param['noise_level'] = self._filters['base_noise'].\
+            apply(input_data=temp_packet, in_place=False).get_ptp()
+        self._filters['demodulation'].apply(input_data=temp_packet, in_place=True).calculate_impedance(self._calib_param)
+        return temp_packet
