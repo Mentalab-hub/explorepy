@@ -7,23 +7,29 @@ import time
 import struct
 
 from explorepy.parser import Parser
-from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, Environment, EventMarker
+from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, \
+    Environment, EventMarker, CalibrationInfo
 from explorepy.filters import ExGFilter
-from explorepy.command import DeviceConfiguration
+from explorepy.command import DeviceConfiguration, ZMeasurementEnable
+from explorepy.tools import ImpedanceMeasurement
 
-TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status')
+TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 
 
 class StreamProcessor:
     """Stream processor class"""
+
     def __init__(self):
         self.parser = None
         self.filters = []
         self.orn_calibrator = None
         self.device_info = {}
+        self.imp_calib_info = {}
         self.subscribers = {key: set() for key in TOPICS}  # keys are topics and values are sets of callbacks
         self._device_configurator = None
+        self.imp_calculator = None
         self.is_connected = False
+        self._is_imp_mode = False
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -60,6 +66,7 @@ class StreamProcessor:
     def stop(self):
         """Stop streaming"""
         self.parser.stop_streaming()
+        self.is_connected = False
 
     def process(self, packet):
         """Process incoming packet
@@ -67,25 +74,29 @@ class StreamProcessor:
         Args:
             packet (explorepy.packet.Packet): Data packet
         """
-        if self.subscribers:
-            if isinstance(packet, DeviceInfo):
-                self.device_info = packet.get_info()
-                self.dispatch(topic=TOPICS.device_info, packet=packet)
-            elif isinstance(packet, CommandRCV):
-                self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
-            elif isinstance(packet, CommandStatus):
-                self.dispatch(topic=TOPICS.cmd_status, packet=packet)
-            elif isinstance(packet, EEG):
-                self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
-                self.apply_filters(packet=packet)
-                self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
-            elif isinstance(packet, Orientation):
-                self.dispatch(topic=TOPICS.raw_orn, packet=packet)
-                self.calculate_phys_orn(packet=packet)
-            elif isinstance(packet, Environment):
-                self.dispatch(topic=TOPICS.env, packet=packet)
-            elif isinstance(packet, EventMarker):
-                self.dispatch(topic=TOPICS.marker, packet=packet)
+        if isinstance(packet, Orientation):
+            self.dispatch(topic=TOPICS.raw_orn, packet=packet)
+            # self.calculate_phys_orn(packet=packet)
+        elif isinstance(packet, EEG):
+            self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
+            if self._is_imp_mode:
+                packet_imp = self.imp_calculator.measure_imp(packet=packet)
+                self.dispatch(topic=TOPICS.imp, packet=packet_imp)
+            self.apply_filters(packet=packet)
+            self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
+        elif isinstance(packet, DeviceInfo):
+            self.device_info = packet.get_info()
+            self.dispatch(topic=TOPICS.device_info, packet=packet)
+        elif isinstance(packet, CommandRCV):
+            self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
+        elif isinstance(packet, CommandStatus):
+            self.dispatch(topic=TOPICS.cmd_status, packet=packet)
+        elif isinstance(packet, Environment):
+            self.dispatch(topic=TOPICS.env, packet=packet)
+        elif isinstance(packet, EventMarker):
+            self.dispatch(topic=TOPICS.marker, packet=packet)
+        elif isinstance(packet, CalibrationInfo):
+            self.imp_calib_info = packet.get_info()
 
     def dispatch(self, topic, packet):
         """Dispatch a packet to subscribers
@@ -94,8 +105,9 @@ class StreamProcessor:
             topic (Enum 'Topics'): Topic enum which packet should be sent to
             packet (explorepy.packet.Packet): Data packet
         """
-        for callback in self.subscribers[topic]:
-            callback(packet)
+        if self.subscribers:
+            for callback in self.subscribers[topic]:
+                callback(packet)
 
     def add_filter(self, cutoff_freq, filter_type):
         """Add filter to the stream
@@ -124,7 +136,17 @@ class StreamProcessor:
         """
         if not self.is_connected:
             raise ConnectionError("No Explore device is connected!")
-        self._device_configurator.change_setting(cmd)
+        return self._device_configurator.change_setting(cmd)
+
+    def imp_initialize(self, notch_freq):
+        cmd = ZMeasurementEnable()
+        if self.configure_device(cmd):
+            self._is_imp_mode = True
+            self.imp_calculator = ImpedanceMeasurement(device_info=self.device_info,
+                                                       calib_param=self.imp_calib_info,
+                                                       notch_freq=notch_freq)
+        else:
+            raise ConnectionError('Device configuration process failed!')
 
     def calculate_phys_orn(self, packet):
         """Calculate physical orientation"""
@@ -139,3 +161,4 @@ class StreamProcessor:
 
         self.process(EventMarker(timestamp=time.time() - self.parser.start_time,
                                  payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')))
+
