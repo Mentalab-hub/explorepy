@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-import numpy as np
+"""This module contains all packet classes of Explore device"""
 import abc
-import struct
-from functools import partial
 from enum import IntEnum
 from datetime import datetime
+import numpy as np
 
 
 class PACKET_ID(IntEnum):
@@ -72,41 +71,7 @@ class Packet:
 
 
 class EEG(Packet):
-    def apply_bp_filter(self, exg_filter):
-        """Bandpass filtering of ExG data
-
-        Args:
-        exg_filter: Filter object
-        """
-        self.data = exg_filter.apply_bp_filter(self.data)
-
-    def apply_bp_filter_noise(self, exg_filter):
-        """Bandpass filtering of ExG data
-
-        Args:
-        exg_filter: Filter object
-        """
-        self.data = exg_filter.apply_bp_filter_noise(self.data)
-
-    def apply_notch_filter(self, exg_filter):
-        """Band_stop filtering of ExG data
-
-        Args:
-            exg_filter: Filter object
-
-        """
-        self.data = exg_filter.apply_notch_filter(self.data)
-
-    def push_to_lsl(self, outlet):
-        """Push data to lsl socket
-
-        Args:
-            outlet (lsl.StreamOutlet): lsl stream outlet
-        """
-
-        for sample in self.data.T:
-            outlet.push_sample(sample.tolist())
-
+    """EEG packet class"""
     def calculate_impedance(self, imp_calib_info):
         """calculate impedance with the help of impedance calibration info
 
@@ -114,23 +79,21 @@ class EEG(Packet):
             imp_calib_info (dict): dictionary of impedance calibration info including slope, offset and noise level
 
         """
-        mag = np.ptp(self.data, axis=1)
-        self.imp_data = np.round(
-            (mag - imp_calib_info['noise_level']) * imp_calib_info['slope'] - imp_calib_info['offset'], decimals=0)
+        self.imp_data = np.round((self.get_ptp() - imp_calib_info['noise_level']) * imp_calib_info['slope']/1.e6 -
+                                 imp_calib_info['offset'], decimals=0)
 
     def get_data(self, exg_fs):
+        """get time vector and data"""
         n_sample = self.data.shape[1]
         time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / exg_fs, n_sample)
         return time_vector, self.data
 
-    def push_to_imp_dashboard(self, dashboard, imp_calib_info):
-        self.calculate_impedance(imp_calib_info)
-        dashboard.doc.add_next_tick_callback(partial(dashboard.impedance_callback, imp=self.imp_data))
+    def get_impedances(self):
+        """get electrode impedances"""
+        return self.imp_data
 
-    def write_to_file(self, recorder):
-        tmpstmp = np.round(np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)/recorder.fs,
-                                       self.data.shape[1]), 4)
-        recorder.write_data(np.concatenate((tmpstmp[:, np.newaxis], self.data.T), axis=1).T)
+    def get_ptp(self):
+        return np.ptp(self.data, axis=1)
 
 
 class EEG94(EEG):
@@ -249,13 +212,6 @@ class Orientation(Packet):
     def __str__(self):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
-    def write_to_file(self, recorder):
-        recorder.write_data(np.array([round(self.timestamp, 4)] + np.round(self.acc, 4).tolist() +
-                                     np.round(self.gyro, 4).tolist() + np.round(self.mag, 4).tolist())[:, np.newaxis])
-
-    def push_to_lsl(self, outlet):
-        outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
-
     def get_data(self, fs=None):
         return [self.timestamp], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
 
@@ -352,9 +308,6 @@ class TimeStamp(Packet):
     def __str__(self):
         return "Host timestamp: " + str(self.hostTimeStamp)
 
-    def push_to_lsl(self, outlet):
-        outlet.push_sample([1])
-
 
 class EventMarker(Packet):
     """Marker packet"""
@@ -371,12 +324,6 @@ class EventMarker(Packet):
 
     def __str__(self):
         return "Event marker: " + str(self.marker_code)
-
-    def write_to_file(self, recorder):
-        recorder.set_marker(np.array([self.timestamp, self.marker_code])[:, np.newaxis])
-
-    def push_to_lsl(self, outlet):
-        outlet.push_sample([self.marker_code])
 
     def get_data(self, fs=None):
         return [self.timestamp], [self.marker_code]
@@ -423,9 +370,6 @@ class DeviceInfo(Packet):
     def __str__(self):
         return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.sampling_rate)\
                + " Hz" + " - ADC mask: " + str(self.adc_mask)
-
-    def write_to_file(self, recorder):
-        recorder.write_data([self.timestamp, self.firmware_version, self.sampling_rate, self.adc_mask])
 
     def get_data(self):
         return {'firmware_version': [self.firmware_version]}
@@ -479,6 +423,10 @@ class CalibrationInfo(Packet):
         self.slope = slope * 10.0
         offset = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=2)
         self.offset = offset * 0.001
+
+    def get_info(self):
+        return {'slope': self.slope,
+                'offset': self.offset}
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
