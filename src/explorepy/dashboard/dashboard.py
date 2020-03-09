@@ -36,7 +36,7 @@ FFT_COLORS = Colorblind[8]
 class Dashboard:
     """Explorepy dashboard class"""
 
-    def __init__(self, stream_processor=None):
+    def __init__(self, stream_processor=None, mode='signal'):
         """
         Args:
             stream_processor (explorepy.stream_processor.StreamProcessor): Stream processor object
@@ -50,7 +50,7 @@ class Dashboard:
         self.exg_mode = 'EEG'
         self.rr_estimator = None
         self.win_length = WIN_LENGTH
-        self.mode = 'signal'
+        self.mode = mode
         self.exg_fs = self.stream_processor.device_info['sampling_rate']
 
         # Init ExG data source
@@ -189,7 +189,7 @@ class Dashboard:
              packet (explorepy.packet.EEG): ExG packet
         """
         if self.mode == "impedance":
-            imp = packet.get_imp()
+            imp = packet.get_impedances()
             color = []
             imp_status = []
             for value in imp:
@@ -362,6 +362,7 @@ class Dashboard:
             self.stream_processor.subscribe(topic=TOPICS.device_info, callback=self.info_callback)
             self.stream_processor.subscribe(topic=TOPICS.marker, callback=self.marker_callback)
             self.stream_processor.subscribe(topic=TOPICS.env, callback=self.info_callback)
+            self.stream_processor.subscribe(topic=TOPICS.imp, callback=self.impedance_callback)
 
     def _init_plots(self):
         """Initialize all plots in the dashboard"""
