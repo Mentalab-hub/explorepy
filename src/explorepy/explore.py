@@ -184,33 +184,16 @@ class Explore:
             notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
-        assert self.parser.fs == 250, "Impedance mode only works in 250 Hz sampling rate!"
-        self.is_acquiring = [True]
+        assert self.stream_processor.device_info['sampling_rate'] == 250, \
+            "Impedance mode only works in 250 Hz sampling rate!"
+        if notch_freq not in [50, 60]:
+            raise ValueError('Notch frequency must be either 50 or 60 Hz.')
 
-        signal.signal(signal.SIGINT, self.signal_handler)
+        self.stream_processor.imp_initialize(notch_freq=notch_freq)
 
-        try:
-            thread = Thread(target=self._io_loop, args=("impedance",))
-            thread.setDaemon(True)
-            self.parser.apply_bp_filter = True
-            self.parser.bp_freq = (61, 64)
-            self.parser.notch_freq = notch_freq
-            thread.start()
-
-            # Activate impedance measurement mode in the device
-            imp_activate_cmd = ZMeasurementEnable()
-            if self.change_settings(imp_activate_cmd):
-                self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, mode="impedance", exg_fs=self.parser.fs,
-                                             firmware_version=self.parser.firmware_version)
-                self.m_dashboard.start_server()
-                self.m_dashboard.start_loop()
-            else:
-                os._exit(0)
-        finally:
-            print("Disabling impedance mode...")
-            imp_deactivate_cmd = ZMeasurementDisable()
-            self.change_settings(imp_deactivate_cmd)
-            sys.exit(0)
+        dashboard = Dashboard(self.stream_processor, mode='impedance')
+        dashboard.start_server()
+        dashboard.start_loop()
 
     def set_marker(self, code):
         """Sets a digital event marker while streaming
