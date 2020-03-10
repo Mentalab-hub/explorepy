@@ -65,6 +65,7 @@ class Explore:
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
         self._check_connection()
+        duration = self._check_duration(duration)
 
         def callback(packet):
             print(packet)
