@@ -67,7 +67,8 @@ def push2lsl(address, name, duration):
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
 def bin2csv(filename, overwrite):
     """Convert a binary file to CSV"""
-    explorepy.tools.bin2csv(bin_file=filename, do_overwrite=overwrite)
+    explore = explorepy.explore.Explore()
+    explore.convert_bin(bin_file=filename, do_overwrite=overwrite, file_type='csv')
 
 
 @cli.command()
@@ -76,7 +77,8 @@ def bin2csv(filename, overwrite):
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
 def bin2edf(filename, overwrite):
     """Convert a binary file to EDF (BDF+)"""
-    explorepy.tools.bin2edf(bin_file=filename, do_overwrite=overwrite)
+    explore = explorepy.explore.Explore()
+    explore.convert_bin(bin_file=filename, do_overwrite=overwrite, file_type='edf')
 
 
 @cli.command()
