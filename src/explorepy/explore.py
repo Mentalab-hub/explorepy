@@ -24,15 +24,17 @@ import numpy as np
 
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer
-from explorepy.command import ZMeasurementEnable, ZMeasurementDisable, MemoryFormat
+from explorepy.command import MemoryFormat
 from explorepy.stream_processor import StreamProcessor, TOPICS
 
 
 class Explore:
     r"""Mentalab Explore device"""
+
     def __init__(self):
         self.is_connected = False
         self.stream_processor = None
+        self.file_converter = None
 
     def connect(self, device_name=None, mac_address=None):
         r"""
@@ -49,9 +51,6 @@ class Explore:
             time.sleep(.3)
         print('Device info packet has been received. Connection has been established. Streaming...')
         self.is_connected = True
-
-    def convert_bin(self):
-        raise NotImplementedError
 
     def disconnect(self):
         r"""Disconnects from the device
@@ -111,7 +110,6 @@ class Explore:
         elif file_type == 'edf':
             marker_recorder = exg_recorder
         is_disconnect_occurred = False
-        time_offset = 0
         try:
             self.stream_processor.subscribe(callback=exg_recorder.write_data, topic=TOPICS.raw_ExG)
             self.stream_processor.subscribe(callback=orn_recorder.write_data, topic=TOPICS.raw_orn)
@@ -130,6 +128,71 @@ class Explore:
             marker_recorder.stop()
         self.stream_processor.stop()
         time.sleep(1)
+
+    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False):
+        """Convert a binary file to EDF or CSV file
+
+        Args:
+            bin_file (str): Path to the binary file recorded by Explore device
+            out_dir (str): Output directory path (must be relative path to the current working directory)
+            file_type (str): Output file type: 'edf' for EDF format and 'csv' for CSV format
+            do_overwrite (bool): Whether to overwrite an existing file
+
+        """
+        if file_type not in ['edf', 'csv']:
+            raise ValueError('Invalid file type is given!')
+        self.file_type = file_type
+        head_path, full_filename = os.path.split(bin_file)
+        filename, extension = os.path.splitext(full_filename)
+        assert os.path.isfile(bin_file), "Error: File does not exist!"
+        assert extension == '.BIN', "File type error! File extension must be BIN."
+        exg_out_file = os.getcwd() + out_dir + filename + '_exg'
+        orn_out_file = os.getcwd() + out_dir + filename + '_orn'
+        marker_out_file = os.getcwd() + out_dir + filename + '_marker'
+        self.stream_processor = StreamProcessor()
+        self.stream_processor.open_file(bin_file=bin_file)
+        self.exg_recorder = create_exg_recorder(filename=exg_out_file,
+                                                file_type=self.file_type,
+                                                fs=self.stream_processor.device_info['sampling_rate'],
+                                                adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                do_overwrite=do_overwrite)
+        self.orn_recorder = create_orn_recorder(filename=orn_out_file,
+                                                file_type=self.file_type,
+                                                do_overwrite=do_overwrite)
+
+        if self.file_type == 'csv':
+            self.marker_recorder = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
+        else:
+            self.marker_recorder = self.exg_recorder
+
+        self.stream_processor.subscribe(callback=self.exg_recorder.write_data, topic=TOPICS.raw_ExG)
+        self.stream_processor.subscribe(callback=self.orn_recorder.write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.subscribe(callback=self.marker_recorder.set_marker, topic=TOPICS.marker)
+
+        def device_info_callback(packet):
+            new_device_info = packet.get_info()
+            if not self.stream_processor.compare_device_info(new_device_info):
+                if self.file_type == 'edf':
+                    new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
+                    print("WARNING: Creating a new edf file:", new_file_name + '.edf')
+                    self.stream_processor.unsubscribe(callback=self.exg_recorder.write_data, topic=TOPICS.raw_ExG)
+                    self.stream_processor.unsubscribe(callback=self.marker_recorder.set_marker, topic=TOPICS.marker)
+                    self.exg_recorder.stop()
+                    self.exg_recorder = create_exg_recorder(filename=new_file_name,
+                                                            file_type=self.file_type,
+                                                            fs=self.stream_processor.device_info['sampling_rate'],
+                                                            adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                            do_overwrite=do_overwrite)
+                    self.marker_recorder = self.exg_recorder
+                    self.stream_processor.subscribe(callback=self.exg_recorder.write_data, topic=TOPICS.raw_ExG)
+                    self.stream_processor.subscribe(callback=self.marker_recorder.set_marker, topic=TOPICS.marker)
+
+        self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
+        self.stream_processor.read()
+        print("Converting...")
+        while self.stream_processor.is_connected:
+            time.sleep(.1)
+        print('Conversion finished.')
 
     def push2lsl(self, duration=None):
         r"""Push samples to two lsl streams
@@ -260,4 +323,3 @@ class Explore:
         else:
             duration = 60 * 60  # one hour
         return duration
-
