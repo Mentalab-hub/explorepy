@@ -53,11 +53,12 @@ def record_data(address, name, filename, overwrite, duration, file_type):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-def push2lsl(address, name):
+@click.option("-d", "--duration", type=int, help="Streaming duration in seconds", metavar="<integer>")
+def push2lsl(address, name, duration):
     """Push data to lsl"""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-    explore.push2lsl()
+    explore.push2lsl(duration)
 
 
 @cli.command()
