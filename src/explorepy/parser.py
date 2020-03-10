@@ -25,6 +25,7 @@ class Parser:
         self._time_offset = None
         self.start_time = None
         self._do_streaming = False
+        self.is_waiting = False
         self._stream_thread = None
 
     def start_streaming(self, device_name, mac_address):
@@ -35,13 +36,15 @@ class Parser:
 
     def stop_streaming(self):
         """Stop streaming data"""
-        self._do_streaming = False
-        self._stream_thread.join(timeout=1)
         self.stream_interface.disconnect()
+        self._do_streaming = False
+        self.callback(None)
 
-    def open_file(self):
+    def start_reading(self, filename):
         """Open the binary file"""
-        self.stream_interface = FileHandler()
+        self.stream_interface = FileHandler(filename)
+        print("Reading and converting binary file...")
+        self._stream()
 
     def _stream(self):
         self._do_streaming = True
@@ -52,12 +55,17 @@ class Parser:
     def _stream_loop(self):
         asyncio.set_event_loop(asyncio.new_event_loop())
         while self._do_streaming:
+            while self.is_waiting:
+                time.sleep(.05)
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for the last connected device...")
                 self.stream_interface.reconnect()
+            except (IOError, ValueError) as error:
+                print(error)
+                self.stop_streaming()
 
     def _generate_packet(self):
         """Reads and parses a package from a file or socket
@@ -79,7 +87,6 @@ class Parser:
             self.start_time = time.time()
         else:
             timestamp = timestamp * .0001 - self._time_offset   # Timestamp unit is .1 ms
-
         payload_data = self.stream_interface.read(payload - 4)
         packet = self._parse_packet(pid, timestamp, payload_data)
         return packet
@@ -108,5 +115,25 @@ class Parser:
 
 class FileHandler:
     """Binary file handler"""
-    def __init__(self):
-        pass
+    def __init__(self, filename):
+        """
+        Args:
+            filename (str): Binary file name
+        """
+        self.fid = open(filename, mode='rb')
+
+    def read(self, n_bytes):
+        """Read n bytes from file"""
+        if n_bytes <= 0:
+            raise ValueError('Read length must be a positive number')
+        if not self.fid.closed:
+            data = self.fid.read(n_bytes)
+            if len(data) < n_bytes:
+                raise IOError('End of file!')
+            return data
+        else:
+            raise IOError("File has not been opened or already closed!")
+
+    def disconnect(self):
+        self.fid.close()
+
