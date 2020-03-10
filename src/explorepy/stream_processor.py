@@ -24,6 +24,7 @@ class StreamProcessor:
         self.filters = []
         self.orn_calibrator = None
         self.device_info = {}
+        self.old_device_info = {}
         self.imp_calib_info = {}
         self.subscribers = {key: set() for key in TOPICS}  # keys are topics and values are sets of callbacks
         self._device_configurator = None
@@ -63,6 +64,22 @@ class StreamProcessor:
         self.subscribe(callback=self._device_configurator.update_ack, topic=TOPICS.cmd_ack)
         self.subscribe(callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
 
+    def open_file(self, bin_file):
+        """Open the binary file and read until it gets device info packet
+        Args:
+            bin_file (str): Path to binary file
+            """
+        self.parser = Parser(callback=self.process, mode='file')
+        self.is_connected = True
+        self.parser.start_reading(filename=bin_file)
+        while not self.device_info:
+            time.sleep(.001)
+        self.parser.is_waiting = True
+
+    def read(self):
+        """Start reading the binary file"""
+        self.parser.is_waiting = False
+
     def stop(self):
         """Stop streaming"""
         self.parser.stop_streaming()
@@ -85,6 +102,7 @@ class StreamProcessor:
             self.apply_filters(packet=packet)
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo):
+            self.old_device_info = self.device_info
             self.device_info = packet.get_info()
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
@@ -97,6 +115,8 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.marker, packet=packet)
         elif isinstance(packet, CalibrationInfo):
             self.imp_calib_info = packet.get_info()
+        elif not packet:
+            self.is_connected = False
 
     def dispatch(self, topic, packet):
         """Dispatch a packet to subscribers
@@ -162,3 +182,20 @@ class StreamProcessor:
         self.process(EventMarker(timestamp=time.time() - self.parser.start_time,
                                  payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')))
 
+    def compare_device_info(self, new_device_info):
+        """Compare a device info dict with the current version
+
+        Args:
+            new_device_info (dict): Device info dictionary to be compared with the internal one
+
+        Returns:
+            bool: whether they are equal
+        """
+        assert self.device_info, "The internal device info has not been set yet!"
+        if new_device_info['sampling_rate'] != self.old_device_info['sampling_rate']:
+            print("Sampling rate has been changed in the file.")
+            return False
+        if new_device_info['adc_mask'] != self.old_device_info['adc_mask']:
+            print("ADC mask has been changed in the file.")
+            return False
+        return True
