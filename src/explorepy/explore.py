@@ -15,16 +15,13 @@ Examples:
 
 import os
 import time
-import signal
-import sys
-from threading import Thread
 import csv
 
 import numpy as np
 
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer
-from explorepy.command import MemoryFormat, SetSPS, SoftReset
+from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh
 from explorepy.stream_processor import StreamProcessor, TOPICS
 
 
@@ -295,6 +292,28 @@ class Explore:
         """Reset the device to the default settings"""
         self._check_connection()
         cmd = SoftReset()
+        self.stream_processor.configure_device(cmd)
+
+    def set_channels(self, channel_mask):
+        """Set the channel mask of the device
+
+        The channels can be disabled/enabled by calling this function and passing an integer which represents the
+        binary form of the mask. For example in a 4 channel device, if you want to disable channel 4, the adc mask
+        should be b'0111' (LSB is channel 1). The integer value of 0111 which is 7 must be given to this function
+
+        Args:
+            channel_mask (int): Integer representation of the binary channel mask
+
+        Examples:
+            >>> from explorepy.explore import Explore
+            >>> explore = Explore()
+            >>> explore.connect(device_name='Explore_2FA2')
+            >>> explore.set_channels(channel_mask=7)  # disable channel 4 - mask:0111
+        """
+        if type(channel_mask) != int:
+            raise TypeError("Input must be an integer!")
+        self._check_connection()
+        cmd = SetCh(channel_mask)
         self.stream_processor.configure_device(cmd)
 
     def calibrate_orn(self, file_name, do_overwrite=False):
