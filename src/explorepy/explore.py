@@ -24,7 +24,7 @@ import numpy as np
 
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer
-from explorepy.command import MemoryFormat
+from explorepy.command import MemoryFormat, SetSPS, SoftReset
 from explorepy.stream_processor import StreamProcessor, TOPICS
 
 
@@ -288,6 +288,14 @@ class Explore:
         self._check_connection()
         if sampling_rate not in [250, 500, 1000]:
             raise ValueError("Sampling rate must be 250, 500 or 1000.")
+        cmd = SetSPS(sampling_rate)
+        self.stream_processor.configure_device(cmd)
+
+    def rest_soft(self):
+        """Reset the device to the default settings"""
+        self._check_connection()
+        cmd = SoftReset()
+        self.stream_processor.configure_device(cmd)
 
     def calibrate_orn(self, file_name, do_overwrite=False):
         r"""Calibrate the orientation module of the specified device
