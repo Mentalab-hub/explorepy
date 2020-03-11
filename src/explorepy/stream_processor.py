@@ -10,7 +10,7 @@ from explorepy.parser import Parser
 from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, \
     Environment, EventMarker, CalibrationInfo
 from explorepy.filters import ExGFilter
-from explorepy.command import DeviceConfiguration, ZMeasurementEnable
+from explorepy.command import DeviceConfiguration, ZMeasurementEnable, ZMeasurementDisable
 from explorepy.tools import ImpedanceMeasurement
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
@@ -167,6 +167,14 @@ class StreamProcessor:
                                                        notch_freq=notch_freq)
         else:
             raise ConnectionError('Device configuration process failed!')
+
+    def disable_imp(self):
+        cmd = ZMeasurementDisable()
+        if self.configure_device(cmd):
+            self._is_imp_mode = False
+            print("Impedance measurement mode has been disabled.")
+            return True
+        print("WARNING: Couldn't disable impedance measurement mode. Please restart your device manually.")
 
     def calculate_phys_orn(self, packet):
         """Calculate physical orientation"""
