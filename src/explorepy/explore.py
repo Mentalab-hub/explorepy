@@ -275,8 +275,19 @@ class Explore:
 
     def format_memory(self):
         """Format memory of the device"""
+        self._check_connection()
         cmd = MemoryFormat()
         self.stream_processor.configure_device(cmd)
+
+    def set_sampling_rate(self, sampling_rate):
+        """Set sampling rate
+
+        Args:
+            sampling_rate (int): Desired sampling rate. Options: 250, 500, 1000
+        """
+        self._check_connection()
+        if sampling_rate not in [250, 500, 1000]:
+            raise ValueError("Sampling rate must be 250, 500 or 1000.")
 
     def calibrate_orn(self, file_name, do_overwrite=False):
         r"""Calibrate the orientation module of the specified device
