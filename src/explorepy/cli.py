@@ -85,18 +85,14 @@ def bin2edf(filename, overwrite):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
-@click.option("-lf", "--lowfreq", type=float, help="Low cutoff frequency of bandpass filter.")
-@click.option("-hf", "--highfreq", type=float, help="High cutoff frequency of bandpass filter.")
+@click.option("-lf", "--lowfreq", type=float, help="Low cutoff frequency of bandpass/highpass filter.")
+@click.option("-hf", "--highfreq", type=float, help="High cutoff frequency of bandpass/lowpass filter.")
 @click.option("-cf", "--calib-file", help="Calibration file name", type=click.Path(exists=True))
 def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file):
     """Visualizing signal in a browser-based dashboard"""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-
-    if (lowfreq is not None) and (highfreq is not None):
-        explore.visualize(notch_freq=int(notchfreq), bp_freq=(lowfreq, highfreq), calibre_file=calib_file)
-    else:
-        explore.visualize(notch_freq=int(notchfreq), bp_freq=None, calibre_file=calib_file)
+    explore.visualize(notch_freq=int(notchfreq), bp_freq=(lowfreq, highfreq), calibre_file=calib_file)
 
 
 @cli.command()
@@ -107,7 +103,6 @@ def impedance(address, name, notchfreq):
     """Impedance measurement in a browser-based dashboard"""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-
     explore.measure_imp(notch_freq=int(notchfreq))
 
 
@@ -118,23 +113,19 @@ def format_memory(address, name):
     """format the memory of Explore device"""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-
-    from explorepy import command
-    memory_format_cmd = command.MemoryFormat()
-    explore.change_settings(memory_format_cmd)
+    explore.format_memory()
 
 
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-sr", "--sampling-rate", help="Sampling rate of ExG channels, it can be 250 or 500",
-              type=click.Choice(['250', '500']), required=True)
+              type=click.Choice(['250', '500', '1000']), required=True)
 def set_sampling_rate(address, name, sampling_rate):
     """Change sampling rate of the Explore device"""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-
-    explore.change_settings(explorepy.command.SetSPS(int(sampling_rate)))
+    explore.set_sampling_rate(sampling_rate)
 
 
 @cli.command()
@@ -144,9 +135,7 @@ def soft_reset(address, name):
     """Reset the selected explore device (current session will be terminated)."""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-
-    soft_reset_cmd = explorepy.command.SoftReset()
-    explore.change_settings(soft_reset_cmd)
+    explore.reset_soft()
 
 
 @cli.command()
@@ -156,10 +145,10 @@ def soft_reset(address, name):
               help="Channel mask, it should be an integer between 1 and 255, the binary representation will be "
                    "interpreted as mask.")
 def set_channels(address, name, channel_mask):
-    """Mask the channels of selected explore device (yet in alpha state)"""
+    """Mask the channels of selected explore device"""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-    explore.change_settings(explorepy.command.SetCh(channel_mask))
+    explore.set_channels(channel_mask)
 
 
 @cli.command()
