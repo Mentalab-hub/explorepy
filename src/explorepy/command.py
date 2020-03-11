@@ -172,7 +172,7 @@ class SetSPS(Command2B):
     def __init__(self, sps_rate):
         """
         Args:
-            sps_rate (int): sampling rate per seconds. It should be one of these values: 250 or 500
+            sps_rate (int): sampling rate per seconds. It should be one of these values: 250, 500 or 1000
         """
         super().__init__()
         self.opcode = OpcodeID.CMD_SPS_SET
@@ -180,6 +180,8 @@ class SetSPS(Command2B):
             self.param = b'\x01'
         elif sps_rate == 500:
             self.param = b'\x02'
+        elif sps_rate == 1000:
+            self.param == b'\x03'
         else:
             raise ValueError("Invalid input")
 
