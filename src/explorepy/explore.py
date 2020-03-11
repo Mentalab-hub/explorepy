@@ -291,7 +291,7 @@ class Explore:
         cmd = SetSPS(sampling_rate)
         self.stream_processor.configure_device(cmd)
 
-    def rest_soft(self):
+    def reset_soft(self):
         """Reset the device to the default settings"""
         self._check_connection()
         cmd = SoftReset()
