@@ -18,7 +18,7 @@ def my_exg_function(packet):
 def my_orn_function(packet):
     """A function that receives orientation packets and does some operations on the data"""
     timestamp, orn_data = packet.get_data()
-    print("Received an orientation packet with data shape: ", orn_data.shape)
+    print("Received an orientation packet: ", orn_data)
     #############
     # YOUR CODE #
     #############
