@@ -7,124 +7,180 @@ Command Line Interface
 **Command structure:**
 ``explorepy <command> [args]``
 
+You can get help for a specific command by ``explorepy <command> -h``, for example to get help about visualize command, ``explorepy visualize -h`` will result to::
+
+    Usage: explorepy visualize [OPTIONS]
+
+      Visualizing signal in a browser-based dashboard
+
+    Options:
+      -a, --address TEXT        Explore device's MAC address
+      -n, --name TEXT           Name of the device
+      -nf, --notchfreq [50|60]  Frequency of notch filter.
+      -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
+      -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
+      -cf, --calib-file PATH    Calibration file name
+      -h, --help                Show this message and exit.
+
+
 
 Available Commands
 """"""""""""""""""
 
-**find_device**
+**find-device**
 Scans for nearby explore-devices. Prints out Name and MAC address of the found devices.
 
 
-**acquire**
-Connects to device, needs either MAC or Name of the desired device as input.
+**acquire**::
 
-* ``-a`` or ``--address``    Device MAC address (form XX:XX:XX:XX:XX:XX).
-* ``-n`` or ``--name``       Device name (e.g. "Explore_12AB").
+    Connect to a device with selected name or address. Only one input is necessary.
+
+    Options:
+      -a, --address TEXT  Explore device's MAC address
+      -n, --name TEXT     Name of the device
+      -h, --help          Show this message and exit.
 
 
 
-**record_data**
-Connects to a device and records ExG and orientation data into 2 separate files. Note that in CSV mode there will be an extra file for the marker events. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution).
+**record-data**
 
-* ``-a`` or ``--address``    Device MAC address (form XX:XX:XX:XX:XX:XX).
-* ``-n`` or ``--name``       Device name (e.g. Explore_12AB). Note that either device name or MAC address is needed.
-* ``-f`` or ``--filename``   The prefix of the files.
-* ``-t`` or ``--type``       File type (edf and csv types are supported currently).
-* ``-ow`` or ``--overwrite`` Overwrite already existing files with the same name (optional - the default mode is False).
-* ``-d`` or ``--duration``   Recording duration in seconds
+Connects to a device and records ExG and orientation data into 2 separate files. Note that in CSV mode there will be an extra
+file for the marker events. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution).::
 
+    Options:
+      -a, --address TEXT        Explore device's MAC address
+      -n, --name TEXT           Name of the device
+      -f, --filename PATH       Name of the file.  [required]
+      -ow, --overwrite          Overwrite existing file
+      -d, --duration <integer>  Recording duration in seconds
+      --edf                     Write in EDF file (default type)
+      --csv                     Write in csv file
+      -h, --help                Show this message and exit.
 
 **push2lsl**
-Streams data to Lab Streaming Layer (LSL).
+Streams data to Lab Streaming Layer (LSL).::
 
-* ``-a`` or ``--address``    Device MAC address (form XX:XX:XX:XX:XX:XX).
-* ``-n`` or ``--name``       Device name (e.g. Explore_12AB). Note that either device name or MAC address is needed.
+    Options:
+      -a, --address TEXT        Explore device's MAC address
+      -n, --name TEXT           Name of the device
+      -d, --duration <integer>  Streaming duration in seconds
+      -h, --help                Show this message and exit.
+
+
 
 
 
 **bin2csv**
-Takes a Binary file and converts it to 3 CSV files (ExG, orientation and marker files)
+Takes a Binary file and converts it to 3 CSV files (ExG, orientation and marker files)::
 
-* ``-i`` or ``--inputfile``  Name of the input file
-* ``-ow`` or ``--overwrite`` Overwrite already existing files with the same name.
+    Options:
+      -f, --filename PATH  Name of (and path to) the binary file.  [required]
+      -ow, --overwrite     Overwrite existing file
+      -h, --help           Show this message and exit.
+
+
 
 .. note:: For devices with firmware version 2.1.1 and lower, explorepy v0.5.0 has to be used to convert binary files.
 
 **bin2edf**
-Takes a Binary file and converts it to 2 EDF files (ExG and orientation - markers will be written in ExG file). The data is actually recorded in BDF+ format (in 24-bit resolution).
+Takes a Binary file and converts it to 2 EDF files (ExG and orientation - markers will be written in ExG file).
+The data is actually recorded in BDF+ format (in 24-bit resolution).::
 
-* ``-i`` or ``--inputfile``  Name of the input file
-* ``-ow`` or ``--overwrite`` Overwrite already existing files with the same name.
+    Options:
+      -f, --filename PATH  Name of (and path to) the binary file.  [required]
+      -ow, --overwrite     Overwrite existing file
+      -h, --help           Show this message and exit.
 
 .. note:: For devices with firmware version 2.1.1 and lower, explorepy v0.5.0 has to be used to convert binary files.
 
 **visualize**
-Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow.
+Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow.::
 
-* ``-a`` or ``--address``    Device MAC address (form XX:XX:XX:XX:XX:XX).
-* ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
-* ``-nf`` or ``--notchfreq`` Frequency of applied notch filter (By default, no notch filter is applied)
-* ``-lf`` or ``--lowfreq``   Low cutoff frequency of bandpass filter (By default no bandpass filter is applied)
-* ``-hf`` or ``--highfreq``  High cutoff frequency of bandpass filter (Both ``-lf`` and ``-hf`` must be given if you want to apply a bandpass filter)
-* ``-cf`` or ``--calibration_file`` Calibration file name (e.g. "X_calibre_coef.csv"). If you pass this parameter, ORN module should be ACTIVE! To obtain this file refer to Explore.calibrate_orn module.
+    Options:
+      -a, --address TEXT        Explore device's MAC address
+      -n, --name TEXT           Name of the device
+      -nf, --notchfreq [50|60]  Frequency of notch filter.
+      -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
+      -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
+      -cf, --calib-file PATH    Calibration file name
+      -h, --help                Show this message and exit.
 
 
 **impedance**
-Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome is the supported browser.
+Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome is the supported browser.::
 
-* ``-a`` or ``--address``    Device MAC address (form XX:XX:XX:XX:XX:XX).
-* ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
-* ``-nf`` or ``--notchfreq`` Frequency of applied notch filter (By default, no notch filter is applied)
+    Options:
+      -a, --address TEXT        Explore device's MAC address
+      -n, --name TEXT           Name of the device
+      -nf, --notchfreq [50|60]  Frequency of notch filter.
+      -h, --help                Show this message and exit.
+
 
 
 **calibrate_orn**
-Calibrate the orientation module of the specified device. After running this module, a file containing calibration data will be generated. Using this file, an extra computation block can be activated in the visualize to compute the physical orientation of the device from raw sensor data.
+Calibrate the orientation module of the specified device. After running this module, a file containing
+calibration data will be generated. Using this file, an extra computation block can be activated in the visualize
+to compute the physical orientation of the device from raw sensor data.::
 
-* ``-a`` or ``--address``    Device MAC address (form XX:XX:XX:XX:XX:XX).
-* ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
-* ``-cf`` or ``--calibration_file`` Calibration file name. If you pass this parameter, ORN module should be ACTIVE!
-* ``-ow`` or ``--overwrite`` Overwrite already existing files with the same name.
-
-
-**format_memory**
-This command formats the memory of the specified Explore device.
-
-* ``-a`` or ``--address``    Device MAC address (form XX:XX:XX:XX:XX:XX).
-* ``-n`` or ``--name``       Device name (e.g. Explore_12AB).
+    Options:
+      -a, --address TEXT   Explore device's MAC address
+      -n, --name TEXT      Name of the device
+      -f, --filename PATH  Name of the file.  [required]
+      -ow, --overwrite     Overwrite existing file
+      -h, --help           Show this message and exit.
 
 
-**set_sampling_rate**
-This command sets the sampling rate of ExG on the specified Explore device. The only acceptable values for sampling rates are 250, 500 or 1000. Please note that this feature is in its alpha state. There might be some inconsistency with other modules in sampling rates except 250 Hz.
+**format-memory**
+This command formats the memory of the specified Explore device.::
 
-* ``-a`` or ``--address``        Device MAC address (form XX:XX:XX:XX:XX:XX).
-* ``-n`` or ``--name``           Device name (e.g. Explore_12AB).
-* ``-sr`` or ``--sampling_rate`` Sampling rate of ExG channels, it can be 250 or 500.
+    Options:
+      -a, --address TEXT  Explore device's MAC address
+      -n, --name TEXT     Name of the device
+      -h, --help          Show this message and exit.
 
 
-**soft_reset**
-This command does a soft reset of the device. All the settings (e.g. sampling rate, channel mask) return to the default values.
-* ``-a`` or ``--address``        Device MAC address (form XX:XX:XX:XX:XX:XX).
-* ``-n`` or ``--name``           Device name (e.g. Explore_12AB).
+**set-sampling-rate**
+This command sets the sampling rate of ExG on the specified Explore device. The only acceptable values for
+sampling rates are 250, 500 or 1000.::
+
+    Options:
+      -a, --address TEXT              Explore device's MAC address
+      -n, --name TEXT                 Name of the device
+      -sr, --sampling-rate [250|500|1000]
+                                      Sampling rate of ExG channels, it can be 250
+                                      or 500  [required]
+      -h, --help                      Show this message and exit.
+
+
+**soft-reset**
+This command does a soft reset of the device. All the settings (e.g. sampling rate, channel mask)
+return to the default values.::
+
+    Options:
+      -a, --address TEXT  Explore device's MAC address
+      -n, --name TEXT     Name of the device
+      -h, --help          Show this message and exit.
+
 
 Example commands:
 """""""""""""""""
 Data acquisition: ``explorepy acquire -n Explore_XXXX  # Put your device Bluetooth name``
 
-Record data: ``explorepy record_data -n Explore_XXXX -f test_file -t edf -ow``
+Record data: ``explorepy record-data -n Explore_XXXX -f test_file --edf -ow``
 
 Push data to lsl: ``explorepy push2lsl -n Explore_XXXX``
 
-Convert a binary file to csv: ``explorepy bin2csv -i input_file.BIN``
+Convert a binary file to csv: ``explorepy bin2csv -f input_file.BIN``
 
-Convert a binary file to EDF and overwrite if files exist already: ``explorepy bin2edf -i input_file.BIN -ow``
+Convert a binary file to EDF and overwrite if files exist already: ``explorepy bin2edf -f input_file.BIN -ow``
 
 Visualize in real-time: ``explorepy visualize -n Explore_XXXX``
 
 Impedance measurement: ``explorepy impedance -n Explore_XXXX``
 
-Format the memory: ``explorepy format_memory -n Explore_XXXX``
+Format the memory: ``explorepy format-memory -n Explore_XXXX``
 
-Set the sampling rate: ``explorepy set_sampling_rate -n Explore_XXXX -r 500``
+Set the sampling rate: ``explorepy set-sampling-rate -n Explore_XXXX -sr 500``
 
 To see the full list of commands ``explorepy -h``.
 
@@ -143,7 +199,7 @@ with the last 4 characters being the last 4 hex numbers of the devices MAC adres
 **Make sure to initialize the Bluetooth connection before streaming using the following lines**::
 
     explore = explorepy.Explore()
-    explore.connect(device_name="Explore_XXXX") #Put your device Bluetooth name
+    explore.connect(device_name="Explore_XXXX") # Put your device Bluetooth name
 
 Alternatively you can use the device's MAC address::
 
@@ -167,7 +223,7 @@ You can record data in realtime to EDF (BDF+) or CSV files::
 This will record data in three separate files "test_ExG.csv", "test_ORN.csv" and "test_marker.csv" which contain ExG, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. The duration of the recording can be specified (in seconds).
 If you want to overwrite already existing files, change the line above::
 
-    explore.record_data(file_name='test', do_overwrite=True,file_type='csv', duration=120)
+    explore.record_data(file_name='test', do_overwrite=True, file_type='csv', duration=120)
 
 
 Visualization
@@ -177,7 +233,7 @@ It is possible to visualize real-time signal in a browser-based dashboard by the
 
     explore.visualize(bp_freq=(1, 30), notch_freq=50)
 
-Where `bp_freq` and `notch_freq` determine cut-off frequencies of bandpass filter and frequency of notch filter (either 50 or 60) respectively.
+Where `bp_freq` and `notch_freq` determine cut-off frequencies of bandpass/lowpass/highpass filter and frequency of notch filter (either 50 or 60) respectively.
 
 
 In the dashboard, you can set signal mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heart beats are detected and heart rate is estimated from RR-intervals.
@@ -226,14 +282,12 @@ Converter
 It is also possible to extract BIN files from the device via USB. To convert these to CSV, you can use the function bin2csv, which takes your desired BIN file
 and converts it to 2 CSV files (one for orientation, the other one for ExG data). Bluetooth connection is not necessary for conversion. ::
 
-    from explorepy.tools import bin2csv
-    bin2csv(bin_file)
+    explore.convert_bin(bin_file='Data001.BIN', file_type='csv', do_overwrite=False)
 
 If you want to overwrite existing files, use::
 
     bin2csv(bin_file, do_overwrite=True)
 
-.. note:: Currently, the binary files which the sampling rate or ADC mask are changed during recording are not supported. You can use python script and `explorepy.Explore.record_data()` function as an alternative.
 
 Event markers
 ^^^^^^^^^^^^^

@@ -6,12 +6,7 @@ Installation
 Requirements
 ------------
 * Python 3.5 or newer version
-* `numpy <https://github.com/pybluez/pybluez>`_
-* `scipy <https://github.com/scipy/scipy>`_
-* `pybluez <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
-* `pylsl <https://github.com/labstreaminglayer/liblsl-Python>`_
-* `bokeh <https://github.com/bokeh/bokeh>`_
-* `pyEDFlib <https://github.com/holgern/pyedflib>`_
+* Bluetooth adapter on your device
 
 ``explorepy`` is using ``pybluez`` as the bluetooth backend. ``pybluez`` has different dependencies in different operating systems.
 
