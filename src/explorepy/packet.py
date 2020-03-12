@@ -82,11 +82,18 @@ class EEG(Packet):
         self.imp_data = np.round((self.get_ptp() - imp_calib_info['noise_level']) * imp_calib_info['slope']/1.e6 -
                                  imp_calib_info['offset'], decimals=0)
 
-    def get_data(self, exg_fs):
-        """get time vector and data"""
-        n_sample = self.data.shape[1]
-        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / exg_fs, n_sample)
-        return time_vector, self.data
+    def get_data(self, exg_fs=None):
+        """get time vector and data
+
+        If exg_fs is given, it returns time vector and data. If exg_fs is not given, it returns the timestamp of the
+        packet alongside with the data
+        """
+        if exg_fs:
+            n_sample = self.data.shape[1]
+            time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / exg_fs, n_sample)
+            return time_vector, self.data
+        else:
+            return self.timestamp, self.data
 
     def get_impedances(self):
         """get electrode impedances"""
