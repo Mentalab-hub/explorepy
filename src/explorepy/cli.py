@@ -87,7 +87,10 @@ def bin2edf(filename, overwrite):
 @click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
 @click.option("-lf", "--lowfreq", type=float, help="Low cutoff frequency of bandpass/highpass filter.")
 @click.option("-hf", "--highfreq", type=float, help="High cutoff frequency of bandpass/lowpass filter.")
-@click.option("-cf", "--calib-file", help="Calibration file name", type=click.Path(exists=True))
+@click.option("-cf", "--calib-file",
+              help="Calibration file name. If you pass this parameter, ORN module should be ACTIVE! "
+                   "To obtain this file refer to Explore.calibrate_orn module.",
+              type=click.Path(exists=True))
 def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file):
     """Visualizing signal in a browser-based dashboard"""
     explore = explorepy.explore.Explore()
