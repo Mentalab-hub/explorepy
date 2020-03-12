@@ -1,4 +1,8 @@
-"""Sample script for sending data to lsl"""
+"""Sample script for sending data to lsl
+
+Examples:
+    $ python lsl_example.py -n Explore_1438
+"""
 
 import explorepy
 import argparse
@@ -7,8 +11,6 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description="Example of sending data to lsl")
     parser.add_argument("-n", "--name", dest="name", type=str, help="Name of the device.")
-    parser.add_argument("-c", "--channels", dest="channels", type=int, default=None,
-                        help="the device's number of channels")
 
     args = parser.parse_args()
 
