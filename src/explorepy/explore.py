@@ -268,7 +268,7 @@ class Explore:
 
         """
         self._check_connection()
-        self.stream_processor.set_marker(marker_code=code)
+        self.stream_processor.set_marker(code=code)
 
     def format_memory(self):
         """Format memory of the device"""
