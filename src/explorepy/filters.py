@@ -69,8 +69,7 @@ class ExGFilter:
             filtered_data = self._apply_to_raw_data(raw_data=raw_data)
             temp_data.data = filtered_data
             return temp_data
-        else:
-            return self._apply_to_raw_data(raw_data=temp_data)
+        return self._apply_to_raw_data(raw_data=temp_data)
 
     def _apply_to_raw_data(self, raw_data):
         if len(raw_data.shape) < 2:

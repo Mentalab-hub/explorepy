@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-import explorepy
+"""Command Line Interface module for explorepy"""
 import click
+import explorepy
+
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -165,7 +167,3 @@ def calibrate_orn(address, name, filename, overwrite):
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.calibrate_orn(file_name=filename, do_overwrite=overwrite)
-
-
-if __name__ == "__main__":
-    cli()

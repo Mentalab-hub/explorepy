@@ -7,6 +7,7 @@ import numpy as np
 
 
 class PACKET_ID(IntEnum):
+    """Packet ID enum"""
     ORN = 13
     ENV = 19
     TS = 27
@@ -42,17 +43,14 @@ class Packet:
     @abc.abstractmethod
     def _convert(self, bin_data):
         """Read the binary data and convert it to real values"""
-        pass
 
     @abc.abstractmethod
     def _check_fletcher(self, fletcher):
         """Checks if the fletcher is valid"""
-        pass
 
     @abc.abstractmethod
     def __str__(self):
         """Print the data/info"""
-        pass
 
     @staticmethod
     def int24to32(bin_data):
@@ -72,6 +70,8 @@ class Packet:
 
 class EEG(Packet):
     """EEG packet class"""
+    __metadata__ = abc.ABCMeta
+
     def calculate_impedance(self, imp_calib_info):
         """calculate impedance with the help of impedance calibration info
 
@@ -92,14 +92,14 @@ class EEG(Packet):
             n_sample = self.data.shape[1]
             time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / exg_fs, n_sample)
             return time_vector, self.data
-        else:
-            return self.timestamp, self.data
+        return self.timestamp, self.data
 
     def get_impedances(self):
         """get electrode impedances"""
         return self.imp_data
 
     def get_ptp(self):
+        """Get peak to peak value"""
         return np.ptp(self.data, axis=1)
 
 
@@ -118,13 +118,13 @@ class EEG94(EEG):
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
-        self.dataStatus = data[0, :]
+        self.data_status = data[0, :]
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.dataStatus[-1])
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.data_status[-1])
 
 
 class EEG98(EEG):
@@ -219,10 +219,12 @@ class Orientation(Packet):
     def __str__(self):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
-    def get_data(self, fs=None):
+    def get_data(self, srate=None):
+        """Get orientation timestamp and data"""
         return [self.timestamp], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
 
     def compute_angle(self, matrix=None):
+        """Compute physical angle"""
         trace = matrix[0][0]+matrix[1][1]+matrix[2][2]
         theta = np.arccos((trace-1)/2)*57.2958
         nx = matrix[2][1] - matrix[1][2]
@@ -258,6 +260,7 @@ class Environment(Packet):
             self.battery)
 
     def get_data(self):
+        """Get environment data"""
         return {'battery': [self.battery_percentage],
                 'temperature': [self.temperature],
                 'light': [self.light]}
@@ -294,26 +297,27 @@ class TimeStamp(Packet):
         self.raw_data = None
 
     def _convert(self, bin_data):
-        self.hostTimeStamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
+        self.host_timestamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xff\xff\xff\xff', "Fletcher error!"
 
     def translate(self):
+        """Translate content to bytearray"""
         now = datetime.now()
         timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
         ts_str = hex(timestamp)
         ts_str = ts_str[2:18]
         host_ts = bytes.fromhex(ts_str)
-        ID = b'\x1B'
-        CNT = b'\x01'
+        pid = b'\x1B'
+        cnt = b'\x01'
         payload_len = b'\x10\x00'  # i.e. 0x0010
         device_ts = b'\x00\x00\x00\x00'
         fletcher = b'\xFF\xFF\xFF\xFF'
-        self.raw_data = ID + CNT + payload_len + device_ts + host_ts + fletcher
+        self.raw_data = pid + cnt + payload_len + device_ts + host_ts + fletcher
 
     def __str__(self):
-        return "Host timestamp: " + str(self.hostTimeStamp)
+        return "Host timestamp: " + str(self.host_timestamp)
 
 
 class EventMarker(Packet):
@@ -332,7 +336,10 @@ class EventMarker(Packet):
     def __str__(self):
         return "Event marker: " + str(self.marker_code)
 
-    def get_data(self, fs=None):
+    def get_data(self, srate=None):
+        """Get marker data
+        Args:
+            srate: NOT USED. Only for compatibility purpose"""
         return [self.timestamp], [self.marker_code]
 
 
@@ -344,7 +351,6 @@ class Disconnect(Packet):
 
     def _convert(self, bin_data):
         """Disconnect packet has no data"""
-        pass
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -370,6 +376,7 @@ class DeviceInfo(Packet):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def get_info(self):
+        """Get device information as a dictionary"""
         return dict(firmware_version=self.firmware_version,
                     adc_mask=self.adc_mask,
                     sampling_rate=self.sampling_rate)
@@ -379,6 +386,7 @@ class DeviceInfo(Packet):
                + " Hz" + " - ADC mask: " + str(self.adc_mask)
 
     def get_data(self):
+        """Get firmware version"""
         return {'firmware_version': [self.firmware_version]}
 
 
@@ -391,7 +399,6 @@ class CommandRCV(Packet):
 
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
-        pass
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -432,6 +439,7 @@ class CalibrationInfo(Packet):
         self.offset = offset * 0.001
 
     def get_info(self):
+        """Get calibration info"""
         return {'slope': self.slope,
                 'offset': self.offset}
 

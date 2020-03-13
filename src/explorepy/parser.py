@@ -41,7 +41,10 @@ class Parser:
         self.callback(None)
 
     def start_reading(self, filename):
-        """Open the binary file"""
+        """Open the binary file
+        Args:
+            filename (str): Binary file name
+        """
         self.stream_interface = FileHandler(filename)
         print("Reading and converting binary file...")
         self._stream()
@@ -70,13 +73,11 @@ class Parser:
     def _generate_packet(self):
         """Reads and parses a package from a file or socket
 
-        Args:
-
         Returns:
             packet object
         """
         pid = struct.unpack('B', self.stream_interface.read(1))[0]
-        cnt = self.stream_interface.read(1)[0]
+        self.stream_interface.read(1)[0]  # read cnt
         payload = struct.unpack('<H', self.stream_interface.read(2))[0]
         timestamp = struct.unpack('<I', self.stream_interface.read(4))[0]
 
@@ -123,7 +124,10 @@ class FileHandler:
         self.fid = open(filename, mode='rb')
 
     def read(self, n_bytes):
-        """Read n bytes from file"""
+        """Read n bytes from file
+        Args:
+            n_bytes (int): Number of bytes to be read
+        """
         if n_bytes <= 0:
             raise ValueError('Read length must be a positive number')
         if not self.fid.closed:
@@ -131,9 +135,8 @@ class FileHandler:
             if len(data) < n_bytes:
                 raise IOError('End of file!')
             return data
-        else:
-            raise IOError("File has not been opened or already closed!")
+        raise IOError("File has not been opened or already closed!")
 
     def disconnect(self):
+        """Close file"""
         self.fid.close()
-

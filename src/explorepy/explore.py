@@ -310,7 +310,7 @@ class Explore:
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.set_channels(channel_mask=7)  # disable channel 4 - mask:0111
         """
-        if isinstance(channel_mask, int):
+        if not isinstance(channel_mask, int):
             raise TypeError("Input must be an integer!")
         self._check_connection()
         cmd = SetCh(channel_mask)

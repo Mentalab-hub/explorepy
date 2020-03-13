@@ -159,6 +159,7 @@ class StreamProcessor:
         return self._device_configurator.change_setting(cmd)
 
     def imp_initialize(self, notch_freq):
+        """Activate impedance mode in the device"""
         cmd = ZMeasurementEnable()
         if self.configure_device(cmd):
             self._is_imp_mode = True
@@ -169,12 +170,15 @@ class StreamProcessor:
             raise ConnectionError('Device configuration process failed!')
 
     def disable_imp(self):
+        """Disable impedance mode in the device"""
         cmd = ZMeasurementDisable()
         if self.configure_device(cmd):
             self._is_imp_mode = False
             print("Impedance measurement mode has been disabled.")
             return True
-        print("WARNING: Couldn't disable impedance measurement mode. Please restart your device manually.")
+        print("WARNING: Couldn't disable impedance measurement mode. "
+              "Please restart your device manually.")
+        return False
 
     def calculate_phys_orn(self, packet):
         """Calculate physical orientation"""
@@ -182,7 +186,7 @@ class StreamProcessor:
 
     def set_marker(self, code):
         """Set a marker in the stream"""
-        if type(code) is not int:
+        if not isinstance(code, int):
             raise TypeError('Marker code must be an integer!')
         if 0 <= code <= 7:
             raise ValueError('Marker code value is not valid')

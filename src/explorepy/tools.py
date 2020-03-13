@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Some useful tools such as file recorder, heart rate estimation, etc. used in explorepy"""
 import datetime
 import os.path
 import csv
@@ -9,9 +10,7 @@ from scipy import signal
 import pyedflib
 from pylsl import StreamInfo, StreamOutlet
 
-from explorepy.parser import Parser
 from explorepy.filters import ExGFilter
-from explorepy.packet import DeviceInfo
 
 EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
@@ -137,12 +136,12 @@ class HeartRateEstimator:
                     estimated_heart_rate = 'NA'
                 return estimated_heart_rate
 
-    def push_r_peak(self, val, time):
+    def _push_r_peak(self, val, time):
         self.r_peaks_buffer.append((val, time))
         if len(self.r_peaks_buffer) > 8:
             self.r_peaks_buffer.pop(0)
 
-    def push_noise_peak(self, val, peak_idx, peak_time):
+    def _push_noise_peak(self, val, peak_idx, peak_time):
         self.noise_peaks_buffer.append((val, peak_idx, peak_time))
         if len(self.noise_peaks_buffer) > 8:
             self.noise_peaks_buffer.pop(0)
@@ -236,7 +235,7 @@ class HeartRateEstimator:
                 detected_peaks_idx.append(temp_idx)
                 detected_peaks_val.append(ecg_sig[st_idx:peak_idx + 1].max())
                 detected_peaks_time.append(temp_time)
-                self.push_r_peak(pval, temp_time)
+                self._push_r_peak(pval, temp_time)
 
                 if peak_idx < 25:
                     st_idx = 0
@@ -244,7 +243,7 @@ class HeartRateEstimator:
                     st_idx = peak_idx - 25
                 self.prev_max_slope = np.abs(np.diff(ecg_sig[st_idx:peak_idx + 25])).max()
             else:
-                self.push_noise_peak(pval, peak_idx, peak_time)
+                self._push_noise_peak(pval, peak_idx, peak_time)
 
             # TODO: Check lead inversion!
 
@@ -272,7 +271,7 @@ class HeartRateEstimator:
                         else:
                             st_idx = last_noise_idx - 20
                         detected_peaks_idx.append(st_idx + np.argmax(ecg_sig[st_idx:peak_idx]))
-                        self.push_r_peak(last_noise_val, time_vector[detected_peaks_idx[-1]])
+                        self._push_r_peak(last_noise_val, time_vector[detected_peaks_idx[-1]])
                         if peak_idx < 25:
                             st_idx = 0
                         else:
@@ -338,6 +337,7 @@ class FileRecorder:
 
     @property
     def fs(self):
+        """Sampling frequency"""
         return self._fs
 
     def _create_edf(self, do_overwrite):
