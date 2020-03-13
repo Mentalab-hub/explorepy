@@ -31,7 +31,7 @@ class Explore:
     def __init__(self):
         self.is_connected = False
         self.stream_processor = None
-        self.file_converter = None
+        self.recorders = {}
 
     def connect(self, device_name=None, mac_address=None):
         r"""
@@ -52,7 +52,7 @@ class Explore:
     def disconnect(self):
         r"""Disconnects from the device
         """
-        self.bt_client.socket.close()
+        self.stream_processor.stop()
         self.is_connected = False
 
     def acquire(self, duration=None):
@@ -94,24 +94,24 @@ class Explore:
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
 
-        exg_recorder = create_exg_recorder(filename=exg_out_file,
-                                           file_type=file_type,
-                                           fs=self.stream_processor.device_info['sampling_rate'],
-                                           adc_mask=self.stream_processor.device_info['adc_mask'],
-                                           do_overwrite=do_overwrite)
-        orn_recorder = create_orn_recorder(filename=orn_out_file,
-                                           file_type=file_type,
-                                           do_overwrite=do_overwrite)
+        self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
+                                                    file_type=file_type,
+                                                    fs=self.stream_processor.device_info['sampling_rate'],
+                                                    adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                    do_overwrite=do_overwrite)
+        self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
+                                                    file_type=file_type,
+                                                    do_overwrite=do_overwrite)
 
         if file_type == 'csv':
-            marker_recorder = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
+            self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         elif file_type == 'edf':
-            marker_recorder = exg_recorder
+            self.recorders['marker'] = self.recorders['exg']
         is_disconnect_occurred = False
         try:
-            self.stream_processor.subscribe(callback=exg_recorder.write_data, topic=TOPICS.raw_ExG)
-            self.stream_processor.subscribe(callback=orn_recorder.write_data, topic=TOPICS.raw_orn)
-            self.stream_processor.subscribe(callback=marker_recorder.set_marker, topic=TOPICS.marker)
+            self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+            self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+            self.stream_processor.subscribe(callback=self.recorders['exg'].set_marker, topic=TOPICS.marker)
             time.sleep(duration)
         except ConnectionAbortedError:
             is_disconnect_occurred = True
@@ -120,10 +120,10 @@ class Explore:
             print("Error: Recording finished before ", duration, "seconds.")
         else:
             print("Recording finished after ", duration, " seconds.")
-        exg_recorder.stop()
-        orn_recorder.stop()
+        self.recorders['exg'].stop()
+        self.recorders['orn'].stop()
         if file_type == 'csv':
-            marker_recorder.stop()
+            self.recorders['marker'].stop()
         self.stream_processor.stop()
         time.sleep(1)
 
@@ -139,7 +139,7 @@ class Explore:
         """
         if file_type not in ['edf', 'csv']:
             raise ValueError('Invalid file type is given!')
-        self.file_type = file_type
+        self.recorders['file_type'] = file_type
         head_path, full_filename = os.path.split(bin_file)
         filename, extension = os.path.splitext(full_filename)
         assert os.path.isfile(bin_file), "Error: File does not exist!"
@@ -149,41 +149,41 @@ class Explore:
         marker_out_file = os.getcwd() + out_dir + filename + '_marker'
         self.stream_processor = StreamProcessor()
         self.stream_processor.open_file(bin_file=bin_file)
-        self.exg_recorder = create_exg_recorder(filename=exg_out_file,
-                                                file_type=self.file_type,
-                                                fs=self.stream_processor.device_info['sampling_rate'],
-                                                adc_mask=self.stream_processor.device_info['adc_mask'],
-                                                do_overwrite=do_overwrite)
-        self.orn_recorder = create_orn_recorder(filename=orn_out_file,
-                                                file_type=self.file_type,
-                                                do_overwrite=do_overwrite)
+        self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
+                                                    file_type=self.recorders['file_type'],
+                                                    fs=self.stream_processor.device_info['sampling_rate'],
+                                                    adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                    do_overwrite=do_overwrite)
+        self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
+                                                    file_type=self.recorders['file_type'],
+                                                    do_overwrite=do_overwrite)
 
-        if self.file_type == 'csv':
-            self.marker_recorder = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
+        if self.recorders['file_type'] == 'csv':
+            self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         else:
-            self.marker_recorder = self.exg_recorder
+            self.recorders['marker'] = self.recorders['exg']
 
-        self.stream_processor.subscribe(callback=self.exg_recorder.write_data, topic=TOPICS.raw_ExG)
-        self.stream_processor.subscribe(callback=self.orn_recorder.write_data, topic=TOPICS.raw_orn)
-        self.stream_processor.subscribe(callback=self.marker_recorder.set_marker, topic=TOPICS.marker)
+        self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+        self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
 
         def device_info_callback(packet):
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
-                if self.file_type == 'edf':
+                if self.recorders['file_type'] == 'edf':
                     new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
                     print("WARNING: Creating a new edf file:", new_file_name + '.edf')
-                    self.stream_processor.unsubscribe(callback=self.exg_recorder.write_data, topic=TOPICS.raw_ExG)
-                    self.stream_processor.unsubscribe(callback=self.marker_recorder.set_marker, topic=TOPICS.marker)
-                    self.exg_recorder.stop()
-                    self.exg_recorder = create_exg_recorder(filename=new_file_name,
-                                                            file_type=self.file_type,
-                                                            fs=self.stream_processor.device_info['sampling_rate'],
-                                                            adc_mask=self.stream_processor.device_info['adc_mask'],
-                                                            do_overwrite=do_overwrite)
-                    self.marker_recorder = self.exg_recorder
-                    self.stream_processor.subscribe(callback=self.exg_recorder.write_data, topic=TOPICS.raw_ExG)
-                    self.stream_processor.subscribe(callback=self.marker_recorder.set_marker, topic=TOPICS.marker)
+                    self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                    self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                    self.recorders['exg'].stop()
+                    self.recorders['exg'] = create_exg_recorder(filename=new_file_name,
+                                                                file_type=self.recorders['file_type'],
+                                                                fs=self.stream_processor.device_info['sampling_rate'],
+                                                                adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                                do_overwrite=do_overwrite)
+                    self.recorders['marker'] = self.recorders['exg']
+                    self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                    self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
 
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
         self.stream_processor.read()
@@ -310,49 +310,49 @@ class Explore:
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.set_channels(channel_mask=7)  # disable channel 4 - mask:0111
         """
-        if type(channel_mask) != int:
+        if isinstance(channel_mask, int):
             raise TypeError("Input must be an integer!")
         self._check_connection()
         cmd = SetCh(channel_mask)
         self.stream_processor.configure_device(cmd)
 
-    def calibrate_orn(self, file_name, do_overwrite=False):
-        r"""Calibrate the orientation module of the specified device
-
-        Args:
-            file_name (str): filename for calibration. If you pass this parameter, ORN module should be ACTIVE!
-            do_overwrite (bool): Overwrite if files exist already
-        """
-        print("Start recording for 100 seconds, please move the device around during this time, in all directions")
-        self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
-        calibre_out_file = file_name + "_calibre_coef.csv"
-        assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
-        with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
-            f_coef.write("kx, ky, kz, mx_offset, my_offset, mz_offset\n")
-            csv_reader = csv.reader(f_set, delimiter=",")
-            csv_coef = csv.writer(f_coef, delimiter=",")
-            np_set = list(csv_reader)
-            np_set = np.array(np_set[1:], dtype=np.float)
-            mag_set_x = np.sort(np_set[:, -3])
-            mag_set_y = np.sort(np_set[:, -2])
-            mag_set_z = np.sort(np_set[:, -1])
-            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
-            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
-            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
-            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
-            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
-            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
-            k = np.sort(np.array([kx, ky, kz]))
-            kx = 1 / kx
-            ky = 1 / ky
-            kz = 1 / kz
-            calibre_set = np.array([kx, ky, kz, mx_offset, my_offset, mz_offset])
-            csv_coef.writerow(calibre_set)
-            f_set.close()
-            f_coef.close()
-        os.remove((file_name + "_ORN.csv"))
-        os.remove((file_name + "_ExG.csv"))
-        os.remove((file_name + "_Marker.csv"))
+    # def calibrate_orn(self, file_name, do_overwrite=False):
+    #     r"""Calibrate the orientation module of the specified device
+    #
+    #     Args:
+    #         file_name (str): filename for calibration. If you pass this parameter, ORN module should be ACTIVE!
+    #         do_overwrite (bool): Overwrite if files exist already
+    #     """
+    #     print("Start recording for 100 seconds, please move the device around during this time, in all directions")
+    #     self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
+    #     calibre_out_file = file_name + "_calibre_coef.csv"
+    #     assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
+    #     with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
+    #         f_coef.write("kx, ky, kz, mx_offset, my_offset, mz_offset\n")
+    #         csv_reader = csv.reader(f_set, delimiter=",")
+    #         csv_coef = csv.writer(f_coef, delimiter=",")
+    #         np_set = list(csv_reader)
+    #         np_set = np.array(np_set[1:], dtype=np.float)
+    #         mag_set_x = np.sort(np_set[:, -3])
+    #         mag_set_y = np.sort(np_set[:, -2])
+    #         mag_set_z = np.sort(np_set[:, -1])
+    #         mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
+    #         my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
+    #         mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
+    #         kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
+    #         ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
+    #         kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
+    #         k = np.sort(np.array([kx, ky, kz]))
+    #         kx = 1 / kx
+    #         ky = 1 / ky
+    #         kz = 1 / kz
+    #         calibre_set = np.array([kx, ky, kz, mx_offset, my_offset, mz_offset])
+    #         csv_coef.writerow(calibre_set)
+    #         f_set.close()
+    #         f_coef.close()
+    #     os.remove((file_name + "_ORN.csv"))
+    #     os.remove((file_name + "_ExG.csv"))
+    #     os.remove((file_name + "_Marker.csv"))
 
     def _check_connection(self):
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
