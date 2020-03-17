@@ -16,6 +16,8 @@ Examples:
 import os
 import time
 import csv
+from appdirs import user_cache_dir, user_config_dir
+import configparser
 
 import numpy as np
 
@@ -32,6 +34,7 @@ class Explore:
         self.is_connected = False
         self.stream_processor = None
         self.recorders = {}
+        self.device_name = None
 
     def connect(self, device_name=None, mac_address=None):
         r"""
@@ -41,6 +44,7 @@ class Explore:
             device_name (str): Device name("Explore_XXXX"). Either mac address or name should be in the input
             mac_address (str): The MAC address in format "XX:XX:XX:XX:XX:XX"
         """
+        self.device_name = device_name
         self.stream_processor = StreamProcessor()
         self.stream_processor.start(device_name=device_name, mac_address=mac_address)
         while not self.stream_processor.device_info:
@@ -316,43 +320,51 @@ class Explore:
         cmd = SetCh(channel_mask)
         self.stream_processor.configure_device(cmd)
 
-    # def calibrate_orn(self, file_name, do_overwrite=False):
-    #     r"""Calibrate the orientation module of the specified device
-    #
-    #     Args:
-    #         file_name (str): filename for calibration. If you pass this parameter, ORN module should be ACTIVE!
-    #         do_overwrite (bool): Overwrite if files exist already
-    #     """
-    #     print("Start recording for 100 seconds, please move the device around during this time, in all directions")
-    #     self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
-    #     calibre_out_file = file_name + "_calibre_coef.csv"
-    #     assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
-    #     with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
-    #         f_coef.write("kx, ky, kz, mx_offset, my_offset, mz_offset\n")
-    #         csv_reader = csv.reader(f_set, delimiter=",")
-    #         csv_coef = csv.writer(f_coef, delimiter=",")
-    #         np_set = list(csv_reader)
-    #         np_set = np.array(np_set[1:], dtype=np.float)
-    #         mag_set_x = np.sort(np_set[:, -3])
-    #         mag_set_y = np.sort(np_set[:, -2])
-    #         mag_set_z = np.sort(np_set[:, -1])
-    #         mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
-    #         my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
-    #         mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
-    #         kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
-    #         ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
-    #         kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
-    #         k = np.sort(np.array([kx, ky, kz]))
-    #         kx = 1 / kx
-    #         ky = 1 / ky
-    #         kz = 1 / kz
-    #         calibre_set = np.array([kx, ky, kz, mx_offset, my_offset, mz_offset])
-    #         csv_coef.writerow(calibre_set)
-    #         f_set.close()
-    #         f_coef.close()
-    #     os.remove((file_name + "_ORN.csv"))
-    #     os.remove((file_name + "_ExG.csv"))
-    #     os.remove((file_name + "_Marker.csv"))
+    def calibrate_orn(self, do_overwrite=False):
+        # TODO overwrite problem with device_name
+        calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab")+ "/conf.ini"
+        assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
+        print("Start recording for 100 seconds, please move the device around during this time, in all directions")
+        file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '/temp_' + self.device_name
+        self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
+        import numpy as np
+        with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
+            csv_reader = csv.reader(f_set, delimiter=",")
+            np_set = list(csv_reader)
+            np_set = np.array(np_set[1:], dtype=np.float)
+            mag_set_x = np.sort(np_set[:, -3])
+            mag_set_y = np.sort(np_set[:, -2])
+            mag_set_z = np.sort(np_set[:, -1])
+            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
+            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
+            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
+            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
+            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
+            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
+            k = np.sort(np.array([kx, ky, kz]))
+            kx = 1 / kx
+            ky = 1 / ky
+            kz = 1 / kz
+
+            config = configparser.ConfigParser()
+            config['DEFAULT'] = {'kx': '1',
+                                 'ky': '1',
+                                 'kz': '1',
+                                 'mx': '0',
+                                 'my': '0',
+                                 'mz': '0'}
+            config[self.device_name] = {'kx': str(kx),
+                                        'ky': str(ky),
+                                        'kz': str(kz),
+                                        'mx': str(mx_offset),
+                                        'my': str(my_offset),
+                                        'mz': str(mz_offset)}
+            config.write(f_coef)
+            f_set.close()
+            f_coef.close()
+        os.remove((file_name + "_ORN.csv"))
+        os.remove((file_name + "_ExG.csv"))
+        os.remove((file_name + "_Marker.csv"))
 
     def _check_connection(self):
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
