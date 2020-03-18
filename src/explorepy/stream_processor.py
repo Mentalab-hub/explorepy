@@ -31,7 +31,7 @@ class StreamProcessor:
         self.imp_calculator = None
         self.is_connected = False
         self._is_imp_mode = False
-        self.physical_orn = PhysicalOrientation()  # TODO better naming!
+        self.physical_orn = PhysicalOrientation()
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic

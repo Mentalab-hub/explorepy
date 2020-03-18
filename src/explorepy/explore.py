@@ -22,7 +22,7 @@ import configparser
 import numpy as np
 
 from explorepy.dashboard.dashboard import Dashboard
-from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer
+from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer, PhysicalOrientation
 from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh
 from explorepy.stream_processor import StreamProcessor, TOPICS
 
@@ -44,7 +44,10 @@ class Explore:
             device_name (str): Device name("Explore_XXXX"). Either mac address or name should be in the input
             mac_address (str): The MAC address in format "XX:XX:XX:XX:XX:XX"
         """
-        self.device_name = device_name
+        if device_name:
+            self.device_name = device_name
+        else:
+            self.device_name = 'Explore_' + mac_address[-5:-3] + mac_address[-2:]
         self.stream_processor = StreamProcessor()
         self.stream_processor.start(device_name=device_name, mac_address=mac_address)
         while not self.stream_processor.device_info:
@@ -321,50 +324,21 @@ class Explore:
         self.stream_processor.configure_device(cmd)
 
     def calibrate_orn(self, do_overwrite=False):
-        # TODO overwrite problem with device_name
-        calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab")+ "/conf.ini"
-        assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
+        """
+
+        Args:
+            do_overwrite: to overwrite the calibration data if already exists or not
+
+        Returns: None
+
+        """
+        # phy_orn = PhysicalOrientation()
+        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not(do_overwrite)), " Calibration data already exists!"
+        PhysicalOrientation.init_dir()
         print("Start recording for 100 seconds, please move the device around during this time, in all directions")
         file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '/temp_' + self.device_name
-        self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
-        import numpy as np
-        with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
-            csv_reader = csv.reader(f_set, delimiter=",")
-            np_set = list(csv_reader)
-            np_set = np.array(np_set[1:], dtype=np.float)
-            mag_set_x = np.sort(np_set[:, -3])
-            mag_set_y = np.sort(np_set[:, -2])
-            mag_set_z = np.sort(np_set[:, -1])
-            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
-            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
-            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
-            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
-            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
-            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
-            k = np.sort(np.array([kx, ky, kz]))
-            kx = 1 / kx
-            ky = 1 / ky
-            kz = 1 / kz
-
-            config = configparser.ConfigParser()
-            config['DEFAULT'] = {'kx': '1',
-                                 'ky': '1',
-                                 'kz': '1',
-                                 'mx': '0',
-                                 'my': '0',
-                                 'mz': '0'}
-            config[self.device_name] = {'kx': str(kx),
-                                        'ky': str(ky),
-                                        'kz': str(kz),
-                                        'mx': str(mx_offset),
-                                        'my': str(my_offset),
-                                        'mz': str(mz_offset)}
-            config.write(f_coef)
-            f_set.close()
-            f_coef.close()
-        os.remove((file_name + "_ORN.csv"))
-        os.remove((file_name + "_ExG.csv"))
-        os.remove((file_name + "_Marker.csv"))
+        self.record_data(file_name, do_overwrite=True, duration=10, file_type='csv')
+        PhysicalOrientation.calibrate(cache_dir=file_name, device_name=self.device_name)
 
     def _check_connection(self):
         assert self.is_connected, "Explore device is not connected. Please connect the device first."

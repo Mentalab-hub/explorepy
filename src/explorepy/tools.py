@@ -11,6 +11,7 @@ import pyedflib
 from pylsl import StreamInfo, StreamOutlet
 from appdirs import user_config_dir
 import configparser
+from appdirs import user_cache_dir, user_config_dir
 
 from explorepy.filters import ExGFilter
 
@@ -557,7 +558,6 @@ class PhysicalOrientation:
         self.status = "NOT READY"
 
     def calculate(self, packet):
-        #TODO check deep copy
         packet = copy.deepcopy(packet)
         if self.init_set:
             self._map(packet)
@@ -595,13 +595,10 @@ class PhysicalOrientation:
                                                float(calibre_coef['kz']), float(calibre_coef['mx']),
                                                float(calibre_coef['my']), float(calibre_coef['mz'])])
                 return True
-            except ValueError:
+            except KeyError:
                 return False
         else:
             return False
-
-    # def calibrate(self, packet):
-    #     return
 
     def _map(self, packet):
         acc = packet.acc
@@ -655,4 +652,81 @@ class PhysicalOrientation:
         packet.theta = self.theta
         self.axis = self.axis * 0.9 + 0.1 * rot_axis
         packet.rot_axis = self.axis
+
+    @staticmethod
+    def init_dir():
+        if not (os.path.isfile(user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini")):
+            os.makedirs(user_config_dir(appname="explorepy", appauthor="mentalab"), exist_ok=True) #create parent directory
+            calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+            with open (calibre_out_file, "w") as f_coef:
+                config = configparser.ConfigParser()
+                config['DEFAULT'] = {'description': 'configuration data for Explore devices'}
+                config.write(f_coef)
+                f_coef.close()
+
+        if not (os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab"))):
+            os.makedirs(user_cache_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True) #create parent directory
+
+    @staticmethod
+    def calibrate(cache_dir, device_name):
+        calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+        parser = configparser.SafeConfigParser()
+        parser.read(calibre_out_file)
+        with open((cache_dir + "_ORN.csv"), "r") as f_set:
+            csv_reader = csv.reader(f_set, delimiter=",")
+            np_set = list(csv_reader)
+            np_set = np.array(np_set[1:], dtype=np.float)
+            mag_set_x = np.sort(np_set[:, -3])
+            mag_set_y = np.sort(np_set[:, -2])
+            mag_set_z = np.sort(np_set[:, -1])
+            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
+            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
+            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
+            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
+            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
+            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
+            k = np.sort(np.array([kx, ky, kz]))
+            kx = 1 / kx
+            ky = 1 / ky
+            kz = 1 / kz
+            f_set.close()
+        os.remove((cache_dir + "_ORN.csv"))
+        os.remove((cache_dir + "_ExG.csv"))
+        os.remove((cache_dir + "_Marker.csv"))
+        if parser.has_section(device_name):
+            parser = configparser.SafeConfigParser()
+            parser.read(calibre_out_file)
+            with open(calibre_out_file, "w") as f_coef:
+                parser.set(device_name, 'kx', str(kx))
+                parser.set(device_name, 'ky', str(ky))
+                parser.set(device_name, 'kz', str(kz))
+                parser.set(device_name, 'mx', str(mx_offset))
+                parser.set(device_name, 'my', str(my_offset))
+                parser.set(device_name, 'mz', str(mz_offset))
+                parser.write(f_coef)
+                f_coef.close()
+        else:
+            with open(calibre_out_file, "w") as f_coef:
+                parser[device_name] = {'kx': str(kx),
+                                       'ky': str(ky),
+                                       'kz': str(kz),
+                                       'mx': str(mx_offset),
+                                       'my': str(mx_offset),
+                                       'mz': str(mx_offset)}
+                parser.write(f_coef)
+                f_coef.close()
+
+    @staticmethod
+    def check_calibre_data(device_name):
+        config = configparser.ConfigParser()
+        calibre_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+        if os.path.isfile(calibre_file):
+            config.read(calibre_file)
+            if config.has_section(device_name):
+                return True
+            else:
+                return False
+        else:
+            return False
+
 
