@@ -4,11 +4,14 @@ import datetime
 import os.path
 import csv
 import bluetooth
-
+import copy
 import numpy as np
 from scipy import signal
 import pyedflib
 from pylsl import StreamInfo, StreamOutlet
+from appdirs import user_config_dir
+import configparser
+from appdirs import user_cache_dir, user_config_dir
 
 from explorepy.filters import ExGFilter
 
@@ -539,3 +542,191 @@ class ImpedanceMeasurement:
             apply(input_data=temp_packet, in_place=False).get_ptp()
         self._filters['demodulation'].apply(input_data=temp_packet, in_place=True).calculate_impedance(self._calib_param)
         return temp_packet
+
+
+class PhysicalOrientation:
+    """
+    Movement sensors modules
+    """
+    def __init__(self):
+        self.ED_prv = None
+        self.theta = 0.
+        self.axis = np.array([0, 0, -1])
+        self.matrix = np.identity(3)
+        self.init_set = None
+        self.calibre_set = None
+        self.status = "NOT READY"
+
+    def calculate(self, packet):
+        packet = copy.deepcopy(packet)
+        if self.init_set:
+            self._map(packet)
+        else:
+            self._get_rest_orn(packet)
+        return packet
+
+    def _get_rest_orn(self, packet):
+        D = packet.acc / (np.dot(packet.acc, packet.acc) ** 0.5)
+        # [kx, ky, kz, mx_offset, my_offset, mz_offset] = self.calibre_set
+        packet.mag[0] = self.calibre_set[0] * (packet.mag[0] - self.calibre_set[3])
+        packet.mag[1] = self.calibre_set[1] * (packet.mag[1] - self.calibre_set[4])
+        packet.mag[2] = self.calibre_set[2] * (packet.mag[2] - self.calibre_set[5])
+        E = -1 * np.cross(D, packet.mag)
+        E = E / (np.dot(E, E) ** 0.5)
+        # here you can find an estimation of actual north from packet.mag, it is perpendicular to D and still
+        # co-planar with D and mag, somehow reducing error
+        N = -1 * np.cross(E, D)
+        N = N / (np.dot(N, N) ** 0.5)
+        T_init = np.column_stack((E, N, D))
+        N_init = np.matmul(np.transpose(T_init), N)
+        E_init = np.matmul(np.transpose(T_init), E)
+        D_init = np.matmul(np.transpose(T_init), D)
+        self.init_set = [T_init, N_init, E_init, D_init]
+        self.ED_prv = [E, D]
+
+    def read_calibre_data(self, device_name):
+        config = configparser.ConfigParser()
+        calibre_file = user_config_dir(appname="explorepy", appauthor="mentalab")+ "/conf.ini"
+        if os.path.isfile(calibre_file) :
+            config.read(calibre_file)
+            try:
+                calibre_coef = config[device_name]
+                self.calibre_set = np.asarray([float(calibre_coef['kx']), float(calibre_coef['ky']),
+                                               float(calibre_coef['kz']), float(calibre_coef['mx']),
+                                               float(calibre_coef['my']), float(calibre_coef['mz'])])
+                return True
+            except KeyError:
+                return False
+        else:
+            return False
+
+    def _map(self, packet):
+        acc = packet.acc
+        acc = acc / (np.dot(acc, acc) ** 0.5)
+        gyro = packet.gyro * 1.745329e-5  # radian per second
+        packet.mag[0] = self.calibre_set[0] * (packet.mag[0] - self.calibre_set[3])
+        packet.mag[1] = self.calibre_set[1] * (packet.mag[1] - self.calibre_set[4])
+        packet.mag[2] = self.calibre_set[2] * (packet.mag[2] - self.calibre_set[5])
+        mag = packet.mag
+        D = acc
+        dD = D - self.ED_prv[1]
+        da = np.cross(self.ED_prv[1], dD)
+        E = -1 * np.cross(D, mag)
+        E = E / (np.dot(E, E) ** 0.5)
+        dE = E - self.ED_prv[0]
+        dm = np.cross(self.ED_prv[0], dE)
+        dg = 0.05 * gyro
+        dth = -0.95 * dg + 0.025 * da + 0.025 * dm
+        D = self.ED_prv[1] + np.cross(dth, self.ED_prv[1])
+        D = D / (np.dot(D, D) ** 0.5)
+        Err = np.dot(D, E)
+        D_tmp = D - 0.5 * Err * E
+        E_tmp = E - 0.5 * Err * D
+        D = D_tmp / (np.dot(D_tmp, D_tmp) ** 0.5)
+        E = E_tmp / (np.dot(E_tmp, E_tmp) ** 0.5)
+        N = -1 * np.cross(E, D)
+        N = N / (np.dot(N, N) ** 0.5)
+        '''
+        If you comment this block it will give you the absolute orientation based on {East,North,Up} coordinate system.
+        If you keep this block of code it will give you the relative orientation based on itial state of the device. so
+        It is important to keep the device steady, so that the device can capture the initial direction properly.
+        '''
+        ##########################
+        T = np.zeros((3, 3))
+        [T_init, N_init, E_init, D_init] = self.init_set
+        T = np.column_stack((E, N, D))
+        T_test = np.matmul(T, T_init.transpose())
+        N = np.matmul(T_test.transpose(), N_init)
+        E = np.matmul(T_test.transpose(), E_init)
+        D = np.matmul(T_test.transpose(), D_init)
+        ##########################
+        matrix = np.identity(3)
+        matrix = np.column_stack((E, N, D))
+        N = N / (np.dot(N, N) ** 0.5)
+        E = E / (np.dot(E, E) ** 0.5)
+        D = D / (np.dot(D, D) ** 0.5)
+        self.ED_prv = [E, D]
+        self.matrix = self.matrix * 0.9 + 0.1 * matrix
+        [theta, rot_axis] = packet.compute_angle(matrix=self.matrix)
+        self.theta = self.theta * 0.9 + 0.1 * theta
+        packet.theta = self.theta
+        self.axis = self.axis * 0.9 + 0.1 * rot_axis
+        packet.rot_axis = self.axis
+
+    @staticmethod
+    def init_dir():
+        if not (os.path.isfile(user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini")):
+            os.makedirs(user_config_dir(appname="explorepy", appauthor="mentalab"), exist_ok=True) #create parent directory
+            calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+            with open (calibre_out_file, "w") as f_coef:
+                config = configparser.ConfigParser()
+                config['DEFAULT'] = {'description': 'configuration data for Explore devices'}
+                config.write(f_coef)
+                f_coef.close()
+
+        if not (os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab"))):
+            os.makedirs(user_cache_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True) #create parent directory
+
+    @staticmethod
+    def calibrate(cache_dir, device_name):
+        calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+        parser = configparser.SafeConfigParser()
+        parser.read(calibre_out_file)
+        with open((cache_dir + "_ORN.csv"), "r") as f_set:
+            csv_reader = csv.reader(f_set, delimiter=",")
+            np_set = list(csv_reader)
+            np_set = np.array(np_set[1:], dtype=np.float)
+            mag_set_x = np.sort(np_set[:, -3])
+            mag_set_y = np.sort(np_set[:, -2])
+            mag_set_z = np.sort(np_set[:, -1])
+            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
+            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
+            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
+            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
+            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
+            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
+            k = np.sort(np.array([kx, ky, kz]))
+            kx = 1 / kx
+            ky = 1 / ky
+            kz = 1 / kz
+            f_set.close()
+        os.remove((cache_dir + "_ORN.csv"))
+        os.remove((cache_dir + "_ExG.csv"))
+        os.remove((cache_dir + "_Marker.csv"))
+        if parser.has_section(device_name):
+            parser = configparser.SafeConfigParser()
+            parser.read(calibre_out_file)
+            with open(calibre_out_file, "w") as f_coef:
+                parser.set(device_name, 'kx', str(kx))
+                parser.set(device_name, 'ky', str(ky))
+                parser.set(device_name, 'kz', str(kz))
+                parser.set(device_name, 'mx', str(mx_offset))
+                parser.set(device_name, 'my', str(my_offset))
+                parser.set(device_name, 'mz', str(mz_offset))
+                parser.write(f_coef)
+                f_coef.close()
+        else:
+            with open(calibre_out_file, "w") as f_coef:
+                parser[device_name] = {'kx': str(kx),
+                                       'ky': str(ky),
+                                       'kz': str(kz),
+                                       'mx': str(mx_offset),
+                                       'my': str(mx_offset),
+                                       'mz': str(mx_offset)}
+                parser.write(f_coef)
+                f_coef.close()
+
+    @staticmethod
+    def check_calibre_data(device_name):
+        config = configparser.ConfigParser()
+        calibre_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+        if os.path.isfile(calibre_file):
+            config.read(calibre_file)
+            if config.has_section(device_name):
+                return True
+            else:
+                return False
+        else:
+            return False
+
+

@@ -11,7 +11,7 @@ from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orienta
     Environment, EventMarker, CalibrationInfo
 from explorepy.filters import ExGFilter
 from explorepy.command import DeviceConfiguration, ZMeasurementEnable, ZMeasurementDisable
-from explorepy.tools import ImpedanceMeasurement
+from explorepy.tools import ImpedanceMeasurement, PhysicalOrientation
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 
@@ -31,6 +31,7 @@ class StreamProcessor:
         self.imp_calculator = None
         self.is_connected = False
         self._is_imp_mode = False
+        self.physical_orn = PhysicalOrientation()
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -93,7 +94,9 @@ class StreamProcessor:
         """
         if isinstance(packet, Orientation):
             self.dispatch(topic=TOPICS.raw_orn, packet=packet)
-            # self.calculate_phys_orn(packet=packet)
+            if self.physical_orn.status == "READY":
+                packet = self.physical_orn.calculate(packet=packet)
+                self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode:
@@ -180,9 +183,13 @@ class StreamProcessor:
               "Please restart your device manually.")
         return False
 
-    def calculate_phys_orn(self, packet):
-        """Calculate physical orientation"""
-        raise NotImplementedError
+    def orn_initialize(self, device_name):
+        res = self.physical_orn.read_calibre_data(device_name)
+        if res:
+            self.physical_orn.status = "READY"
+        else:
+            self.physical_orn.status = "NOT READY"
+            raise ValueError('calibration data does not exists, please first calibrate your device!')
 
     def set_marker(self, code):
         """Set a marker in the stream"""
