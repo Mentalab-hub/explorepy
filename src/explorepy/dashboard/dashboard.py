@@ -110,7 +110,7 @@ class Dashboard:
         self.server.io_loop.start()
 
     def exg_callback(self, packet):
-        """update_exg()
+        """
         Update ExG data in the visualization
 
         Args:
@@ -224,7 +224,7 @@ class Dashboard:
     @gen.coroutine
     @without_property_validation
     def _update_exg(self, new_data):
-        self._exg_source_ds.stream(new_data, rollover=EXG_VIS_SRATE * self.win_length)
+        self._exg_source_ds.stream(new_data, rollover=int(2 * EXG_VIS_SRATE * WIN_LENGTH))
 
     @gen.coroutine
     @without_property_validation
