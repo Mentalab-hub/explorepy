@@ -401,7 +401,7 @@ class Dashboard:
         self.imp_plot = self._init_imp_plot()
 
         # Set yaxis properties
-        self.exg_plot.yaxis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=10)
+        self.exg_plot.yaxis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=0)
 
         # Initial plot line
         for i in range(self.n_chan):
