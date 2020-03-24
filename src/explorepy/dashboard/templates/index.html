@@ -4,13 +4,106 @@
 
 {% block preamble %}
 <style>
-  @import url(https://fonts.googleapis.com/css?family=Noto+Sans);
-  body {
-    font-family: 'Noto Sans', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    color: #fff;
-    background: #2F2F2F;
-  }
+    body {
+        font-family: "Open Sans", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        color: #f3f5f4;
+        background: #1E2130;
+    }
+
+    .slick-header-column {
+        background-color: #0F1328 !important;
+        background-image: none !important;
+        border: 0px;
+        border-color: #0F1328:
+    }
+    .slick-row {
+        background-color: #262a3d !important;
+        background-image: none !important;
+        color:white !important;
+        border: 0px !important;
+        border-color: #0F1328 !important;
+    }
+    .bk-root .slick-cell {
+        background-color: #262a3d !important;
+        color:white !important;
+        border: 0px !important;
+        border-color: #0F1328 !important;
+    }
+    .bk-root .slick-cell.selected {
+        background-color: #262a3d !important;
+        color:white !important;
+        border: 0px !important;
+        border-color: #0F1328 !important;
+    }
+
+    .bk-root .bk-tab {
+        background-color: #1E2130;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #f3f5f4;
+        width: 200px;
+        height: 30px;
+        font-style: italic;
+    }
+    .bk-root .bk-tabs-header .bk-tab.bk-active{
+        background-color: #0F1328;
+        color: #f3f5f4;
+        border: 0;
+        border-bottom: #91dfd2 solid 3px !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        height: 30px;
+        font-style: normal;
+        font-weight: bold;
+        border-radius: 0px;
+    }
+    .bk-root .bk-tabs-header .bk-tab:hover{
+        background-color: #0F1328;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-style: normal;
+        height: 30px;
+        border-radius: 0px;
+    }
+    .bk-root .bk-input {
+        display: inline-block;
+        width: 100%;
+        flex-grow: 1;
+        -webkit-flex-grow: 1;
+        background-color: #242633;
+        border: 1px solid darkgray !important;
+        border-radius: 0px;
+        color: white;
+        cursor: pointer;
+    }
+
+    .bk-root .bk-btn-default {
+        color: white;
+        background-color: #161A28;
+        border-color: #ccc;
+        border-radius: 0px;
+    }
+<!--    .bk-root .bk-bs-btn-success:focus {-->
+<!--        color: white;-->
+<!--        background-color: #161A28;-->
+<!--        border-color: #ccc;-->
+<!--    }-->
+<!--    .bk-root .bk-bs-btn-success:active {-->
+<!--        color: #FDFEFE;-->
+<!--        background-color: #161A28;-->
+<!--        border-color: #ccc;-->
+<!--    }-->
+    .bk-root .bk-bs-btn-success:hover {
+        border-color: whitesmoke;
+    }
 </style>
 {% endblock %}

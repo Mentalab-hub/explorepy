@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Dashboard module"""
+import os
 from functools import partial
 
 import numpy as np
@@ -7,10 +8,12 @@ from bokeh.layouts import widgetbox, row, column
 from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets
 from bokeh.plotting import figure
 from bokeh.server.server import Server
-from bokeh.palettes import Colorblind
+from bokeh.palettes import PRGn
 from bokeh.core.property.validation import validate, without_property_validation
 from bokeh.transform import dodge
+from bokeh.themes import Theme
 from tornado import gen
+from jinja2 import Template
 
 from explorepy.tools import HeartRateEstimator
 from explorepy.stream_processor import TOPICS
@@ -30,7 +33,7 @@ SCALE_MENU = {"1 uV": 0, "5 uV": -0.66667, "10 uV": -1, "100 uV": -2, "200 uV": 
 TIME_RANGE_MENU = {"10 s": 10., "5 s": 5., "20 s": 20.}
 
 LINE_COLORS = ['green', '#42C4F7', 'red']
-FFT_COLORS = Colorblind[8]
+FFT_COLORS = PRGn[8]
 
 
 class Dashboard:
@@ -332,13 +335,17 @@ class Dashboard:
         self._set_t_range(TIME_RANGE_MENU[new])
 
     @gen.coroutine
-    def _change_mode(self, new):
+    def _change_mode(self, attr, old, new):
         """Set EEG or ECG mode"""
-        self.exg_mode = MODE_LIST[new]
+        self.exg_mode = new
 
     def _init_doc(self, doc):
         self.doc = doc
         self.doc.title = "Explore Dashboard"
+        with open(os.path.join(os.path.dirname(__file__), 'templates', 'index.html')) as f:
+            index_template = Template(f.read())
+        doc.template = index_template
+        self.doc.theme = Theme(os.path.join(os.path.dirname(__file__), 'theme.yaml'))
         self._init_plots()
         m_widgetbox = self._init_controls()
 
@@ -348,10 +355,10 @@ class Dashboard:
             orn_tab = Panel(child=column([self.acc_plot, self.gyro_plot, self.mag_plot], sizing_mode='fixed'),
                             title="Orientation")
             fft_tab = Panel(child=self.fft_plot, title="Spectral analysis")
-            self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=1200)
+            self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=600)
         elif self.mode == "impedance":
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
-            self.tabs = Tabs(tabs=[imp_tab], width=1200)
+            self.tabs = Tabs(tabs=[imp_tab], width=600)
 
         self.doc.add_root(row([m_widgetbox, self.tabs]))
         self.doc.add_periodic_callback(self._update_fft, 2000)
@@ -399,10 +406,10 @@ class Dashboard:
         # Initial plot line
         for i in range(self.n_chan):
             self.exg_plot.line(x='t', y=CHAN_LIST[i], source=self._exg_source_ds,
-                               line_width=1.5, alpha=.9, line_color="#42C4F7")
+                               line_width=1.0, alpha=.9, line_color="#42C4F7")
             self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend_label=CHAN_LIST[i] + " ",
-                               line_width=2, alpha=.9, line_color=FFT_COLORS[i])
-
+                               line_width=1.0, alpha=.9, line_color=FFT_COLORS[i])
+        self.fft_plot.yaxis.axis_label_text_font_style = 'normal'
         self.exg_plot.line(x='t', y='marker', source=self._marker_source,
                            line_width=1, alpha=.8, line_color='#7AB904', line_dash="4 4")
 
@@ -418,20 +425,17 @@ class Dashboard:
         self.plot_list = [self.exg_plot, self.acc_plot, self.gyro_plot, self.mag_plot]
         self._set_t_range(WIN_LENGTH)
 
-        self.exg_plot.ygrid.minor_grid_line_color = 'navy'
-        self.exg_plot.ygrid.minor_grid_line_alpha = 0.05
-
         # Set the formatting of yaxis ticks' labels
         self.exg_plot.yaxis[0].formatter = PrintfTickFormatter(format="Ch %i")
 
-        # Autohide toolbar/ Legend location
         for plot in self.plot_list:
             plot.toolbar.autohide = True
-            plot.background_fill_color = "#fafafa"
+            plot.yaxis.axis_label_text_font_style = 'normal'
             if len(plot.legend) != 0:
                 plot.legend.location = "bottom_left"
                 plot.legend.orientation = "horizontal"
                 plot.legend.padding = 2
+
 
     def _init_imp_plot(self):
         plot = figure(plot_width=600, plot_height=200, x_range=CHAN_LIST[0:self.n_chan],
@@ -462,8 +466,8 @@ class Dashboard:
     def _init_controls(self):
         """Initialize all controls in the dashboard"""
         # EEG/ECG Radio button
-        self.mode_control = widgets.RadioButtonGroup(labels=MODE_LIST, active=0)
-        self.mode_control.on_click(self._change_mode)
+        self.mode_control = widgets.Select(title="Signal", value='EEG', options=MODE_LIST, width=210)
+        self.mode_control.on_change('value', self._change_mode)
 
         self.t_range = widgets.Select(title="Time window", value="10 s", options=list(TIME_RANGE_MENU.keys()),
                                       width=210)
@@ -475,25 +479,25 @@ class Dashboard:
         columns = [widgets.TableColumn(field='heart_rate', title="Heart Rate (bpm)")]
         self.heart_rate = widgets.DataTable(source=self._heart_rate_source, index_position=None, sortable=False,
                                             reorderable=False,
-                                            columns=columns, width=200, height=50)
+                                            columns=columns, width=210, height=50)
 
         columns = [widgets.TableColumn(field='firmware_version', title="Firmware Version")]
         self.firmware = widgets.DataTable(source=self._firmware_source, index_position=None, sortable=False,
                                           reorderable=False,
-                                          columns=columns, width=200, height=50)
+                                          columns=columns, width=210, height=50)
 
         columns = [widgets.TableColumn(field='battery', title="Battery (%)")]
         self.battery = widgets.DataTable(source=self._battery_source, index_position=None, sortable=False,
                                          reorderable=False,
-                                         columns=columns, width=200, height=50)
+                                         columns=columns, width=210, height=50)
 
         columns = [widgets.TableColumn(field='temperature', title="Temperature (C)")]
         self.temperature = widgets.DataTable(source=self.temperature_source, index_position=None, sortable=False,
-                                             reorderable=False, columns=columns, width=200, height=50)
+                                             reorderable=False, columns=columns, width=210, height=50)
 
         columns = [widgets.TableColumn(field='light', title="Light (Lux)")]
         self.light = widgets.DataTable(source=self.light_source, index_position=None, sortable=False, reorderable=False,
-                                       columns=columns, width=200, height=50)
+                                       columns=columns, width=210, height=50)
 
         # Add widgets to the doc
         widget_box = widgetbox([self.mode_control, self.y_scale, self.t_range, self.heart_rate,
@@ -517,3 +521,15 @@ def get_fft(exg, s_rate):
     fft_content = np.fft.fft(exg, n=n_point) / n_point
     fft_content = np.abs(fft_content[:, range(int(n_point / 2))])
     return fft_content[:, 1:], freq[1:]
+
+
+if __name__ == '__main__':
+    from explorepy.stream_processor import StreamProcessor
+    stream_processor = StreamProcessor()
+    stream_processor.device_info = {'firmware_version': '0.0.0',
+                                    'adc_mask': [1 for i in range(8)],
+                                    'sampling_rate': 250}
+
+    dashboard = Dashboard(stream_processor=stream_processor)
+    dashboard.start_server()
+    dashboard.start_loop()
