@@ -4,7 +4,7 @@ import os
 from functools import partial
 
 import numpy as np
-from bokeh.layouts import widgetbox, row, column
+from bokeh.layouts import widgetbox, row, column, Spacer
 from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets
 from bokeh.plotting import figure
 from bokeh.server.server import Server
@@ -360,7 +360,10 @@ class Dashboard:
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
             self.tabs = Tabs(tabs=[imp_tab], width=600)
 
-        self.doc.add_root(row([m_widgetbox, self.tabs]))
+        self.doc.add_root(column(Spacer(width=600, height=30),
+                                 row([m_widgetbox, Spacer(width=25, height=500), self.tabs])
+                                 )
+                          )
         self.doc.add_periodic_callback(self._update_fft, 2000)
         self.doc.add_periodic_callback(self._update_heart_rate, 2000)
         if self.stream_processor:
@@ -436,7 +439,6 @@ class Dashboard:
                 plot.legend.orientation = "horizontal"
                 plot.legend.padding = 2
 
-
     def _init_imp_plot(self):
         plot = figure(plot_width=600, plot_height=200, x_range=CHAN_LIST[0:self.n_chan],
                       y_range=[str(1)], toolbar_location=None)
@@ -500,7 +502,7 @@ class Dashboard:
                                        columns=columns, width=210, height=50)
 
         # Add widgets to the doc
-        widget_box = widgetbox([self.mode_control, self.y_scale, self.t_range, self.heart_rate,
+        widget_box = widgetbox([Spacer(width=210, height=10), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
                                 self.battery, self.temperature, self.light, self.firmware], width=220)
         return widget_box
 
