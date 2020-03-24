@@ -1,6 +1,6 @@
 {% extends base %}
 
-{% block title %}Bokeh Crossfilter Example{% endblock %}
+{% block title %}Explorepy dashboard style{% endblock %}
 
 {% block preamble %}
 <style>
@@ -12,6 +12,22 @@
         background: #1E2130;
     }
 
+    banner {
+        height: fit-content;
+        background-color: #1e2130;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #4B5460;
+        padding: 1rem 10rem;
+        width: 100%;
+        height: 100%;
+        background-image: url("logo.png");
+        background-repeat: no-repeat;
+        background-position: center;
+        padding-top:15px;
+    }
     .slick-header-column {
         background-color: #0F1328 !important;
         background-image: none !important;
@@ -106,4 +122,14 @@
         border-color: whitesmoke;
     }
 </style>
+{% endblock %}
+
+{% block contents %}
+    <div class="content">
+        <banner>ExplorePy Dashboard
+        </banner>
+    </div>
+    <div class="content">
+        {{ super() }}
+     </div>
 {% endblock %}
