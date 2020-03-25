@@ -23,10 +23,18 @@
         padding: 1rem 10rem;
         width: 100%;
         height: 100%;
-        background-image: url("logo.png");
+        background-image: static_url(logo.png);
         background-repeat: no-repeat;
         background-position: center;
         padding-top:15px;
+    }
+    .timer_widget {
+        text-align: center !important;
+    }
+    .rec_button{
+        text-align: right !important;
+        color: red !important;
+        font-style: italic;
     }
     .slick-header-column {
         background-color: #0F1328 !important;
@@ -103,23 +111,15 @@
     }
 
     .bk-root .bk-btn-default {
-        color: white;
-        background-color: #161A28;
+        color: white !important;
+        background-color: #161A28 !important;
         border-color: #ccc;
+        font-size: 16px;
         border-radius: 0px;
     }
-<!--    .bk-root .bk-bs-btn-success:focus {-->
-<!--        color: white;-->
-<!--        background-color: #161A28;-->
-<!--        border-color: #ccc;-->
-<!--    }-->
-<!--    .bk-root .bk-bs-btn-success:active {-->
-<!--        color: #FDFEFE;-->
-<!--        background-color: #161A28;-->
-<!--        border-color: #ccc;-->
-<!--    }-->
-    .bk-root .bk-bs-btn-success:hover {
-        border-color: whitesmoke;
+    .bk-root .bk-btn-default:hover {
+        border-size: 3px;
+        border-color: whitesmoke !important;
     }
 </style>
 {% endblock %}
