@@ -362,7 +362,7 @@ class Dashboard:
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
             self.tabs = Tabs(tabs=[imp_tab], width=600)
 
-        self.doc.add_root(column(Spacer(width=600, height=30),
+        self.doc.add_root(column(Spacer(width=600, height=20),
                                  row([m_widgetbox, Spacer(width=25, height=500), self.tabs,
                                       Spacer(width=700, height=600), self.recorder_widget])
                                  )
@@ -505,7 +505,7 @@ class Dashboard:
                                        columns=columns, width=210, height=50)
 
         # Add widgets to the doc
-        widget_box = widgetbox([Spacer(width=210, height=10), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
+        widget_box = widgetbox([Spacer(width=210, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
                                 self.battery, self.temperature, self.light, self.firmware], width=220)
         return widget_box
 
@@ -544,7 +544,7 @@ class Dashboard:
             """)
         self.rec_button.js_on_click(callback)
         self.rec_button.on_click(self._toggle_rec)
-        return column(Spacer(width=210, height=30), self.file_name_widget, self.file_type_widget, self.rec_button, self.timer)
+        return column(Spacer(width=210, height=35), self.file_name_widget, self.file_type_widget, self.rec_button, self.timer)
 
     def _toggle_rec(self, active):
         if active:
