@@ -5,7 +5,7 @@ from functools import partial
 
 import numpy as np
 from bokeh.layouts import widgetbox, row, column, Spacer
-from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets
+from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets, Toggle, TextInput, RadioGroup, Div, CustomJS
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.palettes import PRGn
@@ -39,12 +39,13 @@ FFT_COLORS = PRGn[8]
 class Dashboard:
     """Explorepy dashboard class"""
 
-    def __init__(self, stream_processor=None, mode='signal'):
+    def __init__(self, explore=None, mode='signal'):
         """
         Args:
             stream_processor (explorepy.stream_processor.StreamProcessor): Stream processor object
         """
-        self.stream_processor = stream_processor
+        self.explore = explore
+        self.stream_processor = self.explore.stream_processor
         self.n_chan = self.stream_processor.device_info['adc_mask'].count(1)
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
@@ -356,12 +357,14 @@ class Dashboard:
                             title="Orientation")
             fft_tab = Panel(child=self.fft_plot, title="Spectral analysis")
             self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=600)
+            self.recorder_widget = self._init_recorder()
         elif self.mode == "impedance":
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
             self.tabs = Tabs(tabs=[imp_tab], width=600)
 
         self.doc.add_root(column(Spacer(width=600, height=30),
-                                 row([m_widgetbox, Spacer(width=25, height=500), self.tabs])
+                                 row([m_widgetbox, Spacer(width=25, height=500), self.tabs,
+                                      Spacer(width=700, height=600), self.recorder_widget])
                                  )
                           )
         self.doc.add_periodic_callback(self._update_fft, 2000)
@@ -506,6 +509,56 @@ class Dashboard:
                                 self.battery, self.temperature, self.light, self.firmware], width=220)
         return widget_box
 
+    def _init_recorder(self):
+        self.rec_button = Toggle(label=u"\u25CF  Record", button_type="default", active=False,
+                                 width=210)
+        self.file_name_widget = TextInput(value="test_file", title="File name:", width=210)
+        self.file_type_widget = RadioGroup(labels=["EDF (BDF+)", "CSV"], active=0)
+        self.timer = Div(text="00:00:00", width=210, height=30, css_classes=["timer_widget"])
+        callback = CustomJS(args=dict(timer_widget=self.timer, button=self.rec_button), code="""
+                var t;
+                function startTime(offset_d) {
+                    var elapsed_sec = Math.floor((new Date() - offset_d)/1000);
+                    var h = Math.floor(elapsed_sec/60/60);
+                    var m = Math.floor(elapsed_sec/60) % 60;
+                    var s = elapsed_sec % 60;
+                    m = checkTime(m);
+                    s = checkTime(s);
+                    h = checkTime(h);
+                    timer_widget.text =  h + ":" + m + ":" + s;
+                    if (button.active){
+                        t = setTimeout(startTime, 1000, offset_date);
+                    }
+                    else{
+                    timer_widget.text = "00:00:00"
+                    }
+                }
+                function checkTime(i) {
+                    if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
+                    return i;
+                }
+                if (button.active) {
+                    var offset_date = new Date();
+                    startTime(offset_date);
+                }else{clearTimeout(t);}
+            """)
+        self.rec_button.js_on_click(callback)
+        self.rec_button.on_click(self._toggle_rec)
+        return column(Spacer(width=210, height=30), self.file_name_widget, self.file_type_widget, self.rec_button, self.timer)
+
+    def _toggle_rec(self, active):
+        if active:
+            if self.explore.is_connected:
+                self.explore.record_data(file_name=self.file_name_widget.value,
+                                         file_type=['edf', 'csv'][self.file_type_widget.active],
+                                         do_overwrite=True)
+                self.rec_button.label = u"\u25A0  Stop"
+            else:
+                self.rec_button.active = False
+        else:
+            self.explore.stop_recording()
+            self.rec_button.label = u"\u25CF  Record"
+
     def _set_t_range(self, t_length):
         """Change time range of ExG and orientation plots"""
         for plot in self.plot_list:
@@ -526,12 +579,14 @@ def get_fft(exg, s_rate):
 
 
 if __name__ == '__main__':
+    from explorepy import Explore
     from explorepy.stream_processor import StreamProcessor
-    stream_processor = StreamProcessor()
-    stream_processor.device_info = {'firmware_version': '0.0.0',
+    explore = Explore()
+    explore.stream_processor = StreamProcessor()
+    explore.stream_processor.device_info = {'firmware_version': '0.0.0',
                                     'adc_mask': [1 for i in range(8)],
                                     'sampling_rate': 250}
 
-    dashboard = Dashboard(stream_processor=stream_processor)
+    dashboard = Dashboard(explore=explore)
     dashboard.start_server()
     dashboard.start_loop()
