@@ -50,9 +50,9 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
     exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(adc_mask) if flag == 1]
     exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
-    exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4]
+    exg_max = [86400.] + [4e5 for i in range(8)]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
-    exg_min = [0, -.4, -.4, -.4, -.4, -.4, -.4, -.4, -.4]
+    exg_min = [0.] +  [-4e5 for i in range(8)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
                         file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
@@ -318,7 +318,7 @@ class FileRecorder:
             raise ValueError("Invalid character in file name")
 
         self._file_obj = None
-        self._file_type = file_type
+        self.file_type = file_type
         self._ch_label = ch_label
         self._ch_unit = ch_unit
         self._ch_max = ch_max
@@ -360,12 +360,12 @@ class FileRecorder:
     def stop(self):
         """Stop recording"""
         assert self._file_obj is not None, "Usage Error: File object has not been created yet."
-        if self._file_type == 'edf':
+        if self.file_type == 'edf':
             if self._data.shape[1] > 0:
                 self._file_obj.writeSamples(list(self._data))
             self._file_obj.close()
             self._file_obj = None
-        elif self._file_type == 'csv':
+        elif self.file_type == 'csv':
             self._file_obj.close()
 
     def _init_edf_channels(self):
@@ -404,7 +404,8 @@ class FileRecorder:
         else:
             data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(signal)), axis=0)
         data = np.round(data, 4)
-        if self._file_type == 'edf':
+
+        if self.file_type == 'edf':
             if data.shape[0] != self._n_chan:
                 raise ValueError('Input first dimension must be {}'.format(self._n_chan))
             self._data = np.concatenate((self._data, data), axis=1)
@@ -412,7 +413,7 @@ class FileRecorder:
             if self._data.shape[1] > self._fs:
                 self._file_obj.writeSamples(list(self._data[:, :self._fs]))
                 self._data = self._data[:, self._fs:]
-        elif self._file_type == 'csv':
+        elif self.file_type == 'csv':
             self._csv_obj.writerows(data.T.tolist())
 
     def set_marker(self, packet):
@@ -422,9 +423,9 @@ class FileRecorder:
             packet (explorepy.packet.EventMarker): Event marker packet
 
         """
-        if self._file_type == 'csv':
+        if self.file_type == 'csv':
             self.write_data(packet=packet)
-        elif self._file_type == 'edf':
+        elif self.file_type == 'edf':
             timestamp, code = packet.get_data()
             self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 

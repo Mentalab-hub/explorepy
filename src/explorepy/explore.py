@@ -15,9 +15,8 @@ Examples:
 
 import os
 import time
-import csv
-from appdirs import user_cache_dir, user_config_dir
-import configparser
+from appdirs import user_cache_dir
+from threading import Timer
 
 import numpy as np
 
@@ -114,25 +113,24 @@ class Explore:
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         elif file_type == 'edf':
             self.recorders['marker'] = self.recorders['exg']
-        is_disconnect_occurred = False
-        try:
-            self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-            self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-            self.stream_processor.subscribe(callback=self.recorders['exg'].set_marker, topic=TOPICS.marker)
-            time.sleep(duration)
-        except ConnectionAbortedError:
-            is_disconnect_occurred = True
 
-        if is_disconnect_occurred:
-            print("Error: Recording finished before ", duration, "seconds.")
-        else:
-            print("Recording finished after ", duration, " seconds.")
+        self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+        self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.subscribe(callback=self.recorders['exg'].set_marker, topic=TOPICS.marker)
+        print("Recording...")
+        rec_timer = Timer(duration, self.stop_recording)
+        rec_timer.start()
+
+    def stop_recording(self):
+        """Stop recording"""
+        self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+        self.stream_processor.unsubscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.unsubscribe(callback=self.recorders['exg'].set_marker, topic=TOPICS.marker)
         self.recorders['exg'].stop()
         self.recorders['orn'].stop()
-        if file_type == 'csv':
+        if self.recorders['exg'].file_type == 'csv':
             self.recorders['marker'].stop()
-        self.stream_processor.stop()
-        time.sleep(1)
+        print('Recording stopped.')
 
     def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False):
         """Convert a binary file to EDF or CSV file
@@ -240,7 +238,7 @@ class Explore:
             elif bp_freq[1]:
                 self.stream_processor.add_filter(cutoff_freq=bp_freq[1], filter_type='lowpass')
 
-        dashboard = Dashboard(self.stream_processor)
+        dashboard = Dashboard(explore=self)
         dashboard.start_server()
         dashboard.start_loop()
 
@@ -338,6 +336,7 @@ class Explore:
         print("Start recording for 100 seconds, please move the device around during this time, in all directions")
         file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '/temp_' + self.device_name
         self.record_data(file_name, do_overwrite=True, duration=10, file_type='csv')
+        time.sleep(11)
         PhysicalOrientation.calibrate(cache_dir=file_name, device_name=self.device_name)
 
     def _check_connection(self):
