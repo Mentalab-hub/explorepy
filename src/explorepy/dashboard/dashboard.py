@@ -354,7 +354,7 @@ class Dashboard:
         # Create tabs
         if self.mode == "signal":
             exg_tab = Panel(child=self.exg_plot, title="ExG Signal")
-            orn_tab = Panel(child=column([self.acc_plot, self.gyro_plot, self.mag_plot], sizing_mode='fixed'),
+            orn_tab = Panel(child=column([self.acc_plot, self.gyro_plot, self.mag_plot]),
                             title="Orientation")
             fft_tab = Panel(child=self.fft_plot, title="Spectral analysis")
             self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=600)
