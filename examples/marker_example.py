@@ -19,7 +19,6 @@ def main():
     exp_device.connect(device_name=args.name)
     marker_gen()
     exp_device.record_data(file_name='test_event_gen', duration=25, file_type='edf', do_overwrite=True)
-    os._exit(0)
 
 
 if __name__ == "__main__":

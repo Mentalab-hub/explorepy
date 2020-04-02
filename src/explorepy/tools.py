@@ -326,6 +326,7 @@ class FileRecorder:
         self._n_chan = len(ch_label)
         self._device_name = device_name
         self._fs = int(fs)
+        self._rectime_offset = None
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
@@ -399,9 +400,14 @@ class FileRecorder:
 
         """
         time_vector, signal = packet.get_data(self._fs)
+
         if len(time_vector) == 1:
             data = np.array(time_vector + signal)[:, np.newaxis]
+            if self._rectime_offset is None:
+                self._rectime_offset = time_vector
         else:
+            if self._rectime_offset is None:
+                self._rectime_offset = time_vector[0]
             data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(signal)), axis=0)
         data = np.round(data, 4)
 
@@ -427,6 +433,9 @@ class FileRecorder:
             self.write_data(packet=packet)
         elif self.file_type == 'edf':
             timestamp, code = packet.get_data()
+            if self._rectime_offset is None:
+                self._rectime_offset = timestamp
+            timestamp = timestamp-self._rectime_offset
             self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
 
