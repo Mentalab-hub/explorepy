@@ -5,7 +5,8 @@ from functools import partial
 
 import numpy as np
 from bokeh.layouts import widgetbox, row, column, Spacer
-from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets, Toggle, TextInput, RadioGroup, Div, CustomJS
+from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets, \
+    Toggle, TextInput, RadioGroup, Div, CustomJS
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.palettes import PRGn
@@ -295,8 +296,8 @@ class Dashboard:
             self.exg_plot.circle(x='t', y='r_peak', source=self._r_peak_source,
                                  fill_color="red", size=8)
 
-        ecg_data = (np.array(self._exg_source_ds.data['Ch1'])[-2*EXG_VIS_SRATE:] - self.offsets[0]) * self.y_unit
-        time_vector = np.array(self._exg_source_ds.data['t'])[-2*EXG_VIS_SRATE:]
+        ecg_data = (np.array(self._exg_source_ds.data['Ch1'])[-2 * EXG_VIS_SRATE:] - self.offsets[0]) * self.y_unit
+        time_vector = np.array(self._exg_source_ds.data['t'])[-2 * EXG_VIS_SRATE:]
 
         # Check if the peak2peak value is bigger than threshold
         if (np.ptp(ecg_data) < V_TH[0]) or (np.ptp(ecg_data) > V_TH[1]):
@@ -361,8 +362,13 @@ class Dashboard:
         elif self.mode == "impedance":
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
             self.tabs = Tabs(tabs=[imp_tab], width=600)
+        banner = Div(text="""<font size="5.5">Explorepy Dashboard</font> <a href="https://www.mentalab.co"><img src=
+        "https://images.squarespace-cdn.com/content/5428308ae4b0701411ea8aaf/1505653866447-R24N86G5X1HFZCD7KBWS/
+        Mentalab%2C+Name+copy.png?format=1500w&content-type=image%2Fpng" alt="Mentalab"  width="225" height="39">""",
+                     width=1900, height=50, css_classes=["banner"], align='center')
 
-        self.doc.add_root(column(Spacer(width=600, height=20),
+        self.doc.add_root(column(banner,
+                                 Spacer(width=600, height=20),
                                  row([m_widgetbox, Spacer(width=25, height=500), self.tabs,
                                       Spacer(width=700, height=600), self.recorder_widget])
                                  )
@@ -505,8 +511,9 @@ class Dashboard:
                                        columns=columns, width=210, height=50)
 
         # Add widgets to the doc
-        widget_box = widgetbox([Spacer(width=210, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
-                                self.battery, self.temperature, self.light, self.firmware], width=220)
+        widget_box = widgetbox(
+            [Spacer(width=210, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
+             self.battery, self.temperature, self.light, self.firmware], width=220)
         return widget_box
 
     def _init_recorder(self):
@@ -544,7 +551,8 @@ class Dashboard:
             """)
         self.rec_button.js_on_click(callback)
         self.rec_button.on_click(self._toggle_rec)
-        return column(Spacer(width=210, height=35), self.file_name_widget, self.file_type_widget, self.rec_button, self.timer)
+        return column(Spacer(width=210, height=35), self.file_name_widget, self.file_type_widget, self.rec_button,
+                      self.timer)
 
     def _toggle_rec(self, active):
         if active:
@@ -581,11 +589,12 @@ def get_fft(exg, s_rate):
 if __name__ == '__main__':
     from explorepy import Explore
     from explorepy.stream_processor import StreamProcessor
+
     explore = Explore()
     explore.stream_processor = StreamProcessor()
     explore.stream_processor.device_info = {'firmware_version': '0.0.0',
-                                    'adc_mask': [1 for i in range(8)],
-                                    'sampling_rate': 250}
+                                            'adc_mask':         [1 for i in range(8)],
+                                            'sampling_rate':    250}
 
     dashboard = Dashboard(explore=explore)
     dashboard.start_server()
