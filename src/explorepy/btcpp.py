@@ -2,7 +2,7 @@
 """A module for bluetooth connection"""
 import time
 import os
-import exploresdk
+from explorepy import exploresdk
 
 from explorepy._exceptions import DeviceNotFoundError, InputError
 
