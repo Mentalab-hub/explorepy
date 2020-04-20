@@ -7,6 +7,8 @@ import asyncio
 
 from explorepy.packet import PACKET_CLASS_DICT
 from explorepy.bt_client import BtClient
+from explorepy.btcpp import SDKBtClient
+from explorepy import _bt_interface
 
 
 class Parser:
@@ -30,7 +32,10 @@ class Parser:
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
-        self.stream_interface = BtClient(device_name=device_name, mac_address=mac_address)
+        if _bt_interface == 'sdk':
+            self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
+        else:
+            self.stream_interface = BtClient(device_name=device_name, mac_address=mac_address)
         self.stream_interface.connect()
         self._stream()
 

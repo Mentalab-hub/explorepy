@@ -7,8 +7,7 @@ import logging
 from explorepy._exceptions import DeviceNotFoundError, InputError
 
 
-
-class BtClient:
+class SDKBtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
     def __init__(self, device_name=None, mac_address=None):
         """Initialize Bluetooth connection
@@ -121,7 +120,7 @@ class BtClient:
             Returns:
                 list of bytes
         """
-        
+
         time.sleep(.002)
         read_return_code = -100
 
