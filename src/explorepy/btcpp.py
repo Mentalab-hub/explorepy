@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 """A module for bluetooth connection"""
 import time
+import os
 import exploresdk
-import logging
 
 from explorepy._exceptions import DeviceNotFoundError, InputError
-
-
 
 class BtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
@@ -35,13 +33,11 @@ class BtClient:
         else:
             self.device_name = "Explore_" + str(self.mac_address[-5:-3]) + str(self.mac_address[-2:])
 
-      #  self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
-       # self.bt_serial_port_manager.Connect()
-
         for _ in range(5):
             try:
                 self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
                 return_code = self.bt_serial_port_manager.Connect()
+
                 if return_code == 0:
                     self.is_connected = True
                     return
@@ -55,24 +51,6 @@ class BtClient:
                 print(return_code, "\nCould not connect; Retrying in 2s...")
                 time.sleep(2)
 
-
-##        for _ in range(5):
-#
- #           return_code = self.bt_serial_port_manager.Connect()
-#
-       #     if return_code == 0:
-      #          self.is_connected = True
-     #           return
-    #        else:
-   #             self.is_connected = False
-  #              print(return_code, "\nCould not connect; Retrying in 2s...")
- #               time.sleep(2)
-#
-    #    self.is_connected = False
-   #     raise DeviceNotFoundError("Could not find the device! Please make sure"
-  #                                " the device is on and in advertising mode.")
-##
-
     def reconnect(self):
         """Reconnect to the last used bluetooth socket.
 
@@ -80,7 +58,7 @@ class BtClient:
         program will end.
         """
         connection_error_code = self.bt_serial_port_manager.Connect()
-        if(connection_error_code != 0):
+        if connection_error_code != 0:
             print("Connection failed")
         else:
             print("connection success")
@@ -102,15 +80,16 @@ class BtClient:
 
             available_list = self.device_manager.PerformDeviceSearch()
 
-            for bluetooth_device in available_list:
-                if bluetooth_device.name == self.device_name:
-                    self.mac_address = bluetooth_device.address
+            for bt_device in available_list:
+                print('device name is ' + bt_device.name)
+
+                if bt_device.name == self.device_name:
+                    self.mac_address = bt_device.address
                     return
 
             print("No device found with the name: {}, searching again...".format(self.device_name))
             time.sleep(0.1)
         raise DeviceNotFoundError("No device found with the name: {}".format(self.device_name))
-
 
     def read(self, n_bytes):
         """Read n_bytes from the socket
@@ -121,8 +100,11 @@ class BtClient:
             Returns:
                 list of bytes
         """
-        
-        time.sleep(.002)
+        print("+++++ Python reading ")
+        windows_system = 'nt'
+        if os.name != windows_system:
+            print("---------------you are dumb lol")
+            time.sleep(.002)
         read_return_code = -100
 
         try:
@@ -138,14 +120,14 @@ class BtClient:
             return actual_byte_data
 
         except RuntimeError as error:
-            print('Runtime Error occured while reading device data, please make sure that the device is on and in advertising mode')
+            print('Runtime Error occured while reading device data, please make sure that the device is on and in '
+                  'advertising mode')
         except OverflowError as error:
-            print('Error Reading data from Bluetooth buffer, please make sure that the device is on and in advertising mode')
+            print('Error Reading data from Bluetooth buffer, please make sure that the device is on and in '
+                  'advertising mode')
         except AssertionError as error:
-            print('Error Reading data from Bluetooth buffer, please make sure that the device is on and in advertising mode')
-
-
-
+            print('Error Reading data from Bluetooth buffer, please make sure that the device is on and in '
+                  'advertising mode')
 
     def send(self, data):
         """Send data to the device
@@ -153,13 +135,10 @@ class BtClient:
         Args:
             data (bytearray): Data to be sent
         """
-        print('-------------------------------------------------')
-        print(type(data))
+
         string_data = data.decode('utf-8', errors='surrogateescape')
 
         self.bt_serial_port_manager.Write(data)
-
-
 
     @staticmethod
     def _check_mac_address(device_name, mac_address):
