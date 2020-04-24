@@ -2,11 +2,12 @@
 """A module for bluetooth connection"""
 import time
 import os
-import exploresdk
+from explorepy import exploresdk
 
 from explorepy._exceptions import DeviceNotFoundError, InputError
 
-class BtClient:
+
+class SDKBtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
     def __init__(self, device_name=None, mac_address=None):
         """Initialize Bluetooth connection
