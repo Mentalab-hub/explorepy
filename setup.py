@@ -14,7 +14,7 @@ import os
 
 from setuptools import find_packages
 from setuptools import setup
-
+from setuptools import Extension
 
 def read(*names, **kwargs):
     with io.open(
@@ -29,6 +29,14 @@ if not os.environ.get('READTHEDOCS'):
     my_req.append('pybluez==0.22')  # Add pybluez if the environment is other than READTHEDOCS
     my_req.append('pylsl')
     my_req.append('bokeh==1.4.0')
+
+libPath = "lib"
+moduleExploresdk = Extension(
+      name = '_exploresdk',
+      sources = [os.path.join(libPath, 'swig_interface_wrap.cxx'),  os.path.join(libPath, 'BluetoothHelpers.cpp'),os.path.join(libPath, 'DeviceINQ.cpp'),
+            os.path.join(libPath, 'BTSerialPortBinding.cpp')],
+	swig_opts = ['-c++']
+)
 
 setup(
     name='explorepy',
@@ -46,6 +54,7 @@ setup(
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+     ext_modules=[moduleExploresdk],
     include_package_data=True,
     zip_safe=False,
     classifiers=[
