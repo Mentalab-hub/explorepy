@@ -1,0 +1,22 @@
+swig -python -c++ -py3 -extranative -debug-classes swig_interface.i
+
+devenv build:
+
+devenv exploresdk.sln /build "Release"
+
+
+
+Look for devenv.exe, it should be at:
+
+Visual Studio Community 2015
+
+C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE
+
+Visual Studio Community 2017
+
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE
+
+Visual Studio Professional 2017
+
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE
+
