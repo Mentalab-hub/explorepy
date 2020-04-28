@@ -82,7 +82,7 @@ class SDKBtClient:
             available_list = self.device_manager.PerformDeviceSearch()
 
             for bt_device in available_list:
-                print('device name is ' + bt_device.name)
+                # print('device name is ' + bt_device.name)
 
                 if bt_device.name == self.device_name:
                     self.mac_address = bt_device.address
@@ -101,34 +101,20 @@ class SDKBtClient:
             Returns:
                 list of bytes
         """
-        print("+++++ Python reading ")
         windows_system = 'nt'
         if os.name != windows_system:
-            print("---------------you are dumb lol")
             time.sleep(.002)
-        read_return_code = -100
 
         try:
             size, read_output = self.bt_serial_port_manager.Read(n_bytes)
-
             if size < n_bytes:
                 raise ConnectionAbortedError('No data in bluetooth buffer.')
-
-            current_length = len(read_output)
-
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
-
             return actual_byte_data
 
-        except RuntimeError as error:
+        except (RuntimeError, OverflowError, AssertionError) as error:
             print('Runtime Error occured while reading device data, please make sure that the device is on and in '
-                  'advertising mode')
-        except OverflowError as error:
-            print('Error Reading data from Bluetooth buffer, please make sure that the device is on and in '
-                  'advertising mode')
-        except AssertionError as error:
-            print('Error Reading data from Bluetooth buffer, please make sure that the device is on and in '
-                  'advertising mode')
+                  'advertising mode. ERROR: ', error)
 
     def send(self, data):
         """Send data to the device
