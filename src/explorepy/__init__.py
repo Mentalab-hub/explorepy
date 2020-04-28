@@ -13,5 +13,6 @@ def set_bt_interface(bt_interface):
     """
     if bt_interface not in ['sdk', 'pybluez']:
         raise ValueError
-    _bt_interface = bt_interface
+    import explorepy
+    explorepy._bt_interface = bt_interface
 
