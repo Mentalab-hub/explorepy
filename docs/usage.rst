@@ -20,6 +20,7 @@ You can get help for a specific command by ``explorepy <command> -h``, for examp
       -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
       -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
       -cf, --calib-file PATH    Calibration file name
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help                Show this message and exit.
 
 
@@ -38,6 +39,7 @@ Scans for nearby explore-devices. Prints out Name and MAC address of the found d
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help          Show this message and exit.
 
 
@@ -55,6 +57,7 @@ file for the marker events. In EDF mode, the data is actually recorded in BDF+ f
       -d, --duration <integer>  Recording duration in seconds
       --edf                     Write in EDF file (default type)
       --csv                     Write in csv file
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help                Show this message and exit.
 
 **push2lsl**
@@ -64,6 +67,7 @@ Streams data to Lab Streaming Layer (LSL).::
       -a, --address TEXT        Explore device's MAC address
       -n, --name TEXT           Name of the device
       -d, --duration <integer>  Streaming duration in seconds
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help                Show this message and exit.
 
 
@@ -103,6 +107,7 @@ Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the
       -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
       -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
       -cf, --calib-file PATH    Calibration file name
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help                Show this message and exit.
 
 
@@ -113,6 +118,7 @@ Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome
       -a, --address TEXT        Explore device's MAC address
       -n, --name TEXT           Name of the device
       -nf, --notchfreq [50|60]  Frequency of notch filter.
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help                Show this message and exit.
 
 
@@ -127,6 +133,7 @@ to compute the physical orientation of the device from raw sensor data.::
       -n, --name TEXT      Name of the device
       -f, --filename PATH  Name of the file.  [required]
       -ow, --overwrite     Overwrite existing file
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help           Show this message and exit.
 
 
@@ -136,6 +143,7 @@ This command formats the memory of the specified Explore device.::
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help          Show this message and exit.
 
 
@@ -149,6 +157,7 @@ sampling rates are 250, 500 or 1000.::
       -sr, --sampling-rate [250|500|1000]
                                       Sampling rate of ExG channels, it can be 250
                                       or 500  [required]
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help                      Show this message and exit.
 
 
@@ -159,6 +168,7 @@ return to the default values.::
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
+      --pybluez                 Use pybluez as the bluetooth interface
       -h, --help          Show this message and exit.
 
 
@@ -206,6 +216,16 @@ Alternatively you can use the device's MAC address::
     explore.connect(mac_address="XX:XX:XX:XX:XX:XX")
 
 If the device is not found it will raise an error.
+
+By defalut, Explorepy uses its own SDK for bluetooth interface. However, you can use Pybluez as the BT interface. To change the
+BT interface, use the following code. ::
+
+    explorepy.set_bt_interface('pybluez')
+
+To return it to the SDK: ::
+
+    explorepy.set_bt_interface('sdk')
+
 
 Streaming
 ^^^^^^^^^
