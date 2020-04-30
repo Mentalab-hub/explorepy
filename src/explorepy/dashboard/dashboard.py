@@ -367,12 +367,19 @@ class Dashboard:
         Mentalab%2C+Name+copy.png?format=1500w&content-type=image%2Fpng" alt="Mentalab"  width="225" height="39">""",
                      width=1900, height=50, css_classes=["banner"], align='center')
 
-        self.doc.add_root(column(banner,
-                                 Spacer(width=600, height=20),
-                                 row([m_widgetbox, Spacer(width=25, height=500), self.tabs,
-                                      Spacer(width=700, height=600), self.recorder_widget])
-                                 )
-                          )
+        if self.mode == 'signal':
+            self.doc.add_root(column(banner,
+                                     Spacer(width=600, height=20),
+                                     row([m_widgetbox, Spacer(width=25, height=500), self.tabs,
+                                          Spacer(width=700, height=600), self.recorder_widget])
+                                     )
+                              )
+        elif self.mode == 'impedance':
+            self.doc.add_root(column(banner,
+                                     Spacer(width=600, height=20),
+                                     row([m_widgetbox, Spacer(width=25, height=500), self.tabs])
+                                     )
+                              )
         self.doc.add_periodic_callback(self._update_fft, 2000)
         self.doc.add_periodic_callback(self._update_heart_rate, 2000)
         if self.stream_processor:
@@ -456,7 +463,7 @@ class Dashboard:
                     line_color='color', line_width=2)
 
         text_props = {"source":          self.imp_source, "text_align": "center",
-                      "text_color":      "black", "text_baseline": "middle", "text_font": "helvetica",
+                      "text_color":      "white", "text_baseline": "middle", "text_font": "helvetica",
                       "text_font_style": "bold"}
 
         x = dodge("channel", -0.1, range=plot.x_range)
