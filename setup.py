@@ -5,16 +5,20 @@ from __future__ import print_function
 
 import io
 import re
+import os
+import sys
 from glob import glob
 from os.path import basename
 from os.path import dirname
 from os.path import join
 from os.path import splitext
-import os
+
 
 from setuptools import find_packages
 from setuptools import setup
 from setuptools import Extension
+from setuptools.command.develop import develop
+from setuptools.command.install import install
 
 def read(*names, **kwargs):
     with io.open(
@@ -31,12 +35,34 @@ if not os.environ.get('READTHEDOCS'):
     my_req.append('bokeh==1.4.0')
 
 libPath = "lib"
-moduleExploresdk = Extension(
-      name = '_exploresdk',
-      sources = [os.path.join(libPath, 'swig_interface_wrap.cxx'),  os.path.join(libPath, 'BluetoothHelpers.cpp'),os.path.join(libPath, 'DeviceINQ.cpp'),
-            os.path.join(libPath, 'BTSerialPortBinding.cpp')],
-	swig_opts = ['-c++']
-)
+current_platform = sys.platform
+if current_platform == 'win32' or current_platform == 'win64':
+    windows_lib_path = os.path.join(libPath, 'windows')
+    
+    moduleExploresdk = Extension(
+        name='_exploresdk',
+        sources=[os.path.join(windows_lib_path, 'swig_interface_wrap.cxx'),
+                os.path.join(windows_lib_path, 'BluetoothHelpers.cpp'),
+                os.path.join(windows_lib_path, 'DeviceINQ.cpp'),
+                os.path.join(windows_lib_path, 'BTSerialPortBinding.cpp')],
+        swig_opts=['-c++']
+    )
+
+elif current_platform.startswith('linux'):
+    windows_lib_path = os.path.join(libPath, 'linux')
+
+    moduleExploresdk = Extension(
+        name='_exploresdk',
+        sources=[os.path.join(libPath, 'linux/swig_interface_wrap.cxx'),
+                os.path.join(libPath, 'linux/DeviceINQ.cpp'),
+                os.path.join(libPath, 'linux//BTSerialPortBinding.cpp')],
+        swig_opts=['-c++']
+    )
+else:
+    ##Mac implementation
+    source_files = []
+
+
 
 setup(
     name='explorepy',
@@ -54,7 +80,7 @@ setup(
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
-     ext_modules=[moduleExploresdk],
+    ext_modules=[moduleExploresdk],
     include_package_data=True,
     zip_safe=False,
     classifiers=[
