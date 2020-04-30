@@ -28,8 +28,11 @@ def find_device():
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-def acquire(name, address):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def acquire(name, address, pybluez):
     """Connect to a device with selected name or address. Only one input is necessary"""
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.acquire()
@@ -44,8 +47,11 @@ def acquire(name, address):
 @click.option("-d", "--duration", type=int, help="Recording duration in seconds", metavar="<integer>")
 @click.option("--edf", 'file_type', flag_value='edf', help="Write in EDF file (default type)", default=True)
 @click.option("--csv", 'file_type', flag_value='csv', help="Write in csv file")
-def record_data(address, name, filename, overwrite, duration, file_type):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def record_data(address, name, filename, overwrite, duration, file_type, pybluez):
     """Record data from Explore to a file """
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.record_data(file_name=filename, file_type=file_type,
@@ -56,8 +62,11 @@ def record_data(address, name, filename, overwrite, duration, file_type):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-d", "--duration", type=int, help="Streaming duration in seconds", metavar="<integer>")
-def push2lsl(address, name, duration):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def push2lsl(address, name, duration, pybluez):
     """Push data to lsl"""
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.push2lsl(duration)
@@ -93,8 +102,11 @@ def bin2edf(filename, overwrite):
               help="Calibration file name. If you pass this parameter, ORN module should be ACTIVE! "
                    "To obtain this file refer to Explore.calibrate_orn module.",
               type=click.Path(exists=True))
-def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file, pybluez):
     """Visualizing signal in a browser-based dashboard"""
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.visualize(notch_freq=int(notchfreq), bp_freq=(lowfreq, highfreq), calibre_file=calib_file)
@@ -104,8 +116,11 @@ def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
-def impedance(address, name, notchfreq):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def impedance(address, name, notchfreq, pybluez):
     """Impedance measurement in a browser-based dashboard"""
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.measure_imp(notch_freq=int(notchfreq))
@@ -114,8 +129,11 @@ def impedance(address, name, notchfreq):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-def format_memory(address, name):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def format_memory(address, name, pybluez):
     """format the memory of Explore device"""
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.format_memory()
@@ -126,8 +144,11 @@ def format_memory(address, name):
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-sr", "--sampling-rate", help="Sampling rate of ExG channels, it can be 250 or 500",
               type=click.Choice(['250', '500', '1000']), required=True)
-def set_sampling_rate(address, name, sampling_rate):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def set_sampling_rate(address, name, sampling_rate, pybluez):
     """Change sampling rate of the Explore device"""
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.set_sampling_rate(sampling_rate)
@@ -136,7 +157,10 @@ def set_sampling_rate(address, name, sampling_rate):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-def soft_reset(address, name):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def soft_reset(address, name, pybluez):
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     """Reset the selected explore device (current session will be terminated)."""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
@@ -149,8 +173,11 @@ def soft_reset(address, name):
 @click.option("-m", "--channel-mask", type=click.IntRange(min=1, max=255), required=True,
               help="Channel mask, it should be an integer between 1 and 255, the binary representation will be "
                    "interpreted as mask.")
-def set_channels(address, name, channel_mask):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def set_channels(address, name, channel_mask, pybluez):
     """Mask the channels of selected explore device"""
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.set_channels(channel_mask)
@@ -162,8 +189,11 @@ def set_channels(address, name, channel_mask):
 @click.option("-f", "--filename", help="Name of the file.", required=True,
               type=click.Path(file_okay=True, dir_okay=True, resolve_path=True))
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
-def calibrate_orn(address, name, filename, overwrite):
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def calibrate_orn(address, name, filename, overwrite, pybluez):
     """Calibrate the orientation module of the specified device"""
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.calibrate_orn(file_name=filename, do_overwrite=overwrite)
