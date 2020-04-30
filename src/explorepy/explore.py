@@ -258,7 +258,7 @@ class Explore:
         self.stream_processor.imp_initialize(notch_freq=notch_freq)
 
         try:
-            dashboard = Dashboard(self.stream_processor, mode='impedance')
+            dashboard = Dashboard(explore=self, mode='impedance')
             dashboard.start_server()
             dashboard.start_loop()
         except KeyboardInterrupt:
