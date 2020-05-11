@@ -1,15 +1,26 @@
 import os
 import shutil
+from sys import platform as _platform
 
 parent_directory = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
 
 files = (file for file in os.listdir(parent_directory)
          if os.path.isfile(os.path.join(parent_directory, file)))
 
-for file in files:
-    if '.pyd' in file:
-        full_path = os.path.join(parent_directory, file)
-        shutil.copy(full_path, os.getcwd())
+##decide on library type by platform
+if _platform == "linux" or _platform == "linux2":
+    for file in files:
+        if '.so' in file:
+            full_path = os.path.join(parent_directory, file)
+            shutil.copy(full_path, os.getcwd())
+
+elif _platform == "win32" or _platform == "win64":
+    for file in files:
+        if '.pyd' in file:
+            full_path = os.path.join(parent_directory, file)
+            shutil.copy(full_path, os.getcwd())
+
+
 
 from .explore import Explore
 from . import tools, command

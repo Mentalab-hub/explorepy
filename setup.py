@@ -49,13 +49,14 @@ if current_platform == 'win32' or current_platform == 'win64':
     )
 
 elif current_platform.startswith('linux'):
-    windows_lib_path = os.path.join(libPath, 'linux')
+    linux_lib_path = os.path.join(libPath, 'linux')
 
     moduleExploresdk = Extension(
         name='_exploresdk',
-        sources=[os.path.join(libPath, 'linux/swig_interface_wrap.cxx'),
-                os.path.join(libPath, 'linux/DeviceINQ.cpp'),
-                os.path.join(libPath, 'linux//BTSerialPortBinding.cpp')],
+        sources=[os.path.join(linux_lib_path, 'swig_interface_wrap.cxx'),
+                os.path.join(linux_lib_path, 'DeviceINQ.cpp'),
+                os.path.join(linux_lib_path, 'BTSerialPortBinding.cpp')],
+	extra_link_args=["-lbluetooth"],
         swig_opts=['-c++']
     )
 else:

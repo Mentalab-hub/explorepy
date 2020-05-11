@@ -2,6 +2,7 @@
 """A module for bluetooth connection"""
 import time
 import os
+import sys
 from explorepy import exploresdk
 
 from explorepy._exceptions import DeviceNotFoundError, InputError
@@ -102,19 +103,21 @@ class SDKBtClient:
                 list of bytes
         """
         windows_system = 'nt'
-        if os.name != windows_system:
+        if os.name == windows_system:
             time.sleep(.002)
 
+        self.implicit_delay()
         try:
-            size, read_output = self.bt_serial_port_manager.Read(n_bytes)
-            if size < n_bytes:
-                raise ConnectionAbortedError('No data in bluetooth buffer.')
+            read_output = self.bt_serial_port_manager.Read(n_bytes)
+
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
 
         except (RuntimeError, OverflowError, AssertionError) as error:
             print('Runtime Error occured while reading device data, please make sure that the device is on and in '
                   'advertising mode. ERROR: ', error)
+
+
 
     def send(self, data):
         """Send data to the device
@@ -126,6 +129,16 @@ class SDKBtClient:
         string_data = data.decode('utf-8', errors='surrogateescape')
 
         self.bt_serial_port_manager.Write(data)
+
+
+    def implicit_delay(self):
+        """Delay function for bluetooth data
+        
+        """
+        sys.stdout = open(os.devnull, 'w')
+        print(" ")
+        sys.stdout = sys.__stdout__
+
 
     @staticmethod
     def _check_mac_address(device_name, mac_address):

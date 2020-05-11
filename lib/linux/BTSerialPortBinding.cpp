@@ -85,7 +85,7 @@ int BTSerialPortBinding::Connect()
 
 	// connect to server
 	int status = connect(data->s, (struct sockaddr *)&addr, sizeof(addr));
-	fprintf(stdout, " the status code of connect method is %d\n", status);
+	//fprintf(stdout, " the status code of connect method is %d\n", status);
 	
 	int sock_flags = fcntl(data->s, F_GETFL, 0);
 	fcntl(data->s, F_SETFL, sock_flags | O_NONBLOCK);
@@ -108,7 +108,7 @@ void BTSerialPortBinding::Close()
 }
 
 void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
-{	fprintf(stdout, "++++++++++++++++++ reading from C++ and the byte to read is %d",*bt_length);
+{	
 	if (data->s == 0)
 		//throw ExploreException("connection has been closed");
 		fprintf(stdout, "connection has been closed");
@@ -127,7 +127,7 @@ void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
 		if (FD_ISSET(data->s, &set)){
  
 			size = recv(data->s, bt_buffer, *bt_length, MSG_WAITALL);
-			fprintf(stdout, "length is %d and size is %d \n", *bt_length, size);
+			//fprintf(stdout, "length is %d and size is %d \n", *bt_length, size);
 
 		}
 		else // when no data is read from rfcomm the connection has been closed.
