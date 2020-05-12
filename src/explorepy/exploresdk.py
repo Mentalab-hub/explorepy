@@ -141,7 +141,7 @@ class BTSerialPortBinding(object):
     def Close(self) -> "void":
         return _exploresdk.BTSerialPortBinding_Close(self)
 
-    def Read(self, bt_buffer: "char *") -> "int":
+    def Read(self, bt_buffer: "char *") -> "void":
         return _exploresdk.BTSerialPortBinding_Read(self, bt_buffer)
 
     def Write(self, write_buffer: "char const *") -> "void":
