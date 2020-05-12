@@ -68,7 +68,7 @@ public:
     @return size of the buffer that has been filled with the received data
     @throw ExploreSDK Exception, please refer to ExploreSDK Constants fie for exceptions
 */
-	int Read(char *bt_buffer, int* bt_length);
+	void Read(char *bt_buffer, int* bt_length);
 
 /**
     Sends data to the device

@@ -5845,7 +5845,6 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Read(PyObject *SWIGUNUSEDPARM(sel
   char *buff2 = 0 ;
   int size2 ;
   PyObject *swig_obj[2] ;
-  int result;
   
   if (!SWIG_Python_UnpackTuple(args, "BTSerialPortBinding_Read", 2, 2, swig_obj)) SWIG_fail;
   res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_BTSerialPortBinding, 0 |  0 );
@@ -5861,8 +5860,8 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Read(PyObject *SWIGUNUSEDPARM(sel
   arg2 = static_cast< char * >(buff2);
   size2 = static_cast< int >(n2);
   arg3 = &size2;
-  result = (int)(arg1)->Read(arg2,arg3);
-  resultobj = SWIG_From_int(static_cast< int >(result));
+  (arg1)->Read(arg2,arg3);
+  resultobj = SWIG_Py_Void();
   resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_FromCharPtrAndSize(arg2,*arg3));
   if (buff2) delete[] buff2;
   return resultobj;

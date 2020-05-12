@@ -108,7 +108,7 @@ void BTSerialPortBinding::Close()
 	}
 }
 
-int BTSerialPortBinding::Read(char *buffer, int* length)
+void BTSerialPortBinding::Read(char *buffer, int* length)
 {
 	if (data->s == INVALID_SOCKET)
 		throw ExploreException("connection has been closed");
@@ -138,7 +138,6 @@ int BTSerialPortBinding::Read(char *buffer, int* length)
 	if (size < 0)
 		throw ExploreException("Error reading from connection");
 
-	return size;
 }
 
 void BTSerialPortBinding::Write(const char *buffer, int length)
