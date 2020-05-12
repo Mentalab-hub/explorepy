@@ -102,9 +102,6 @@ class SDKBtClient:
             Returns:
                 list of bytes
         """
-        windows_system = 'nt'
-        if os.name == windows_system:
-            time.sleep(.002)
 
         self.implicit_delay()
         try:
@@ -133,7 +130,7 @@ class SDKBtClient:
 
     def implicit_delay(self):
         """Delay function for bluetooth data
-        
+
         """
         sys.stdout = open(os.devnull, 'w')
         print(" ")
