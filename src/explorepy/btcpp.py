@@ -3,6 +3,7 @@
 import time
 import os
 import sys
+from sys import platform
 from explorepy import exploresdk
 
 from explorepy._exceptions import DeviceNotFoundError, InputError
@@ -102,8 +103,10 @@ class SDKBtClient:
             Returns:
                 list of bytes
         """
-
-        self.implicit_delay()
+        if platform == "win32" or platform == "win64":
+            time.sleep(.0005)
+        else:
+            self.implicit_delay()
         try:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
 
