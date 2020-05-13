@@ -144,8 +144,8 @@ class BTSerialPortBinding(object):
     def Read(self, bt_buffer: "char *") -> "void":
         return _exploresdk.BTSerialPortBinding_Read(self, bt_buffer)
 
-    def Write(self, write_buffer: "char const *", length: "int") -> "void":
-        return _exploresdk.BTSerialPortBinding_Write(self, write_buffer, length)
+    def Write(self, write_buffer: "char const *") -> "void":
+        return _exploresdk.BTSerialPortBinding_Write(self, write_buffer)
 
     def IsDataAvailable(self) -> "bool":
         return _exploresdk.BTSerialPortBinding_IsDataAvailable(self)
