@@ -29,7 +29,7 @@ BATTERY_N_MOVING_AVERAGE = 60
 V_TH = [10, 5 * 10 ** 3]  # Noise threshold for ECG (microVolt)
 ORN_LIST = ['accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'magX', 'magY', 'magZ']
 
-SCALE_MENU = {"1 uV": 0, "5 uV": -0.66667, "10 uV": -1, "100 uV": -2, "200 uV": -2.33333, "500 uV": -3.33333,
+SCALE_MENU = {"1 uV": 0, "5 uV": -0.66667, "10 uV": -1, "100 uV": -2, "200 uV": -2.33333, "500 uV": -2.66667,
               "1 mV": -3, "5 mV": -3.66667, "10 mV": -4, "100 mV": -5}
 TIME_RANGE_MENU = {"10 s": 10., "5 s": 5., "20 s": 20.}
 
