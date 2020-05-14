@@ -151,7 +151,7 @@ def set_sampling_rate(address, name, sampling_rate, pybluez):
         explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-    explore.set_sampling_rate(sampling_rate)
+    explore.set_sampling_rate(int(sampling_rate))
 
 
 @cli.command()
