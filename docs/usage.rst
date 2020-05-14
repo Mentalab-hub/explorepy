@@ -206,6 +206,8 @@ Format the memory: ``explorepy format-memory -n Explore_XXXX``
 
 Set the sampling rate: ``explorepy set-sampling-rate -n Explore_XXXX -sr 500``
 
+Set the channel mask: ``explorepy set-channels -n Explore_XXXX -m 15``
+
 To see the full list of commands ``explorepy -h``.
 
 Python project
