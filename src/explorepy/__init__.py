@@ -8,12 +8,10 @@ files = (file for file in os.listdir(parent_directory)
          if os.path.isfile(os.path.join(parent_directory, file)))
 
 grandparent_directory = os.path.abspath(os.path.join(parent_directory, os.pardir))
-print(grandparent_directory)
 
 grandparent_files = (file for file in os.listdir(grandparent_directory)
          if os.path.isfile(os.path.join(grandparent_directory, file)))
 
-print(grandparent_files)
 
 if _platform == "linux" or _platform == "linux2":
     for file in files:
@@ -37,16 +35,6 @@ elif _platform == "win32" or _platform == "win64":
             full_path = os.path.join(parent_directory, file)
             shutil.copy(full_path, os.path.dirname(__file__))
 
-    win_lib_path = os.path.join(grandparent_directory, 'lib/windows')
-    grandparent_files = (file for file in os.listdir(win_lib_path)
-     if os.path.isfile(os.path.join(win_lib_path, file)))
-    
-    for file in grandparent_files:
-        print(file)
-        if 'exploresdk.py' in file:
-            full_path = os.path.join(win_lib_path, file)
-            print(full_path)
-            shutil.copy(full_path, os.path.dirname(__file__))
 
 from .explore import Explore
 from . import tools, command
