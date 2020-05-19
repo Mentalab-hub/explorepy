@@ -67,7 +67,7 @@ else:
 
 setup(
     name='explorepy',
-    version='0.6.0',
+    version='1.0.0',
 
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
