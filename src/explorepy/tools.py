@@ -1,14 +1,24 @@
 # -*- coding: utf-8 -*-
-from explorepy.parser import Parser
-from explorepy.filters import Filter
-from explorepy.packet import DeviceInfo
+"""Some useful tools such as file recorder, heart rate estimation, etc. used in explorepy"""
+import datetime
 import os.path
 import csv
 import bluetooth
+import copy
 import numpy as np
 from scipy import signal
 import pyedflib
-import datetime
+from pylsl import StreamInfo, StreamOutlet
+from appdirs import user_config_dir
+import configparser
+from appdirs import user_cache_dir, user_config_dir
+
+from explorepy.filters import ExGFilter
+
+EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
+ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
+ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
 
 
 def bt_scan():
@@ -35,112 +45,22 @@ def bt_scan():
     return explore_devices
 
 
-def bin2csv(bin_file, do_overwrite=False, out_dir=''):
-    """Binary to CSV file converter.
-    This function converts the given binary file to ExG and ORN csv files.
-
-    Args:
-        bin_file (str): Binary file full address
-        out_dir (str): Relative output directory (if not given, it uses the current working directory.)
-        do_overwrite (bool): Overwrite if files exist already
-
-    """
-    head_path, full_filename = os.path.split(bin_file)
-    filename, extension = os.path.splitext(full_filename)
-    assert os.path.isfile(bin_file), "Error: File does not exist!"
-    assert extension == '.BIN', "File type error! File extension must be BIN."
-    out_dir = os.getcwd() + out_dir + '/'
-
-    exg_file_name = out_dir + filename + '_exg'
-    orn_file_name = out_dir + filename + '_orn'
-    marker_file_name = out_dir + filename + '_marker'
-
-    with open(bin_file, "rb") as f_bin:
-        parser = Parser(fid=f_bin)
-        exg_recorder = create_exg_recorder(filename=exg_file_name,
-                                           file_type='csv',
-                                           adc_mask=parser.adc_mask,
-                                           do_overwrite=do_overwrite)
-        orn_recorder = create_orn_recorder(filename=orn_file_name,
-                                           file_type='csv',
-                                           do_overwrite=do_overwrite)
-        marker_recorder = create_marker_recorder(filename=marker_file_name,
-                                                 do_overwrite=do_overwrite)
-        print("Converting...")
-        while True:
-            try:
-                parser.parse_packet(mode='record', recorders=(exg_recorder, orn_recorder, marker_recorder))
-            except ValueError:
-                print("Binary file ended! Conversion finished!")
-                break
-
-
-def bin2edf(bin_file, do_overwrite=False, out_dir=''):
-    """Binary to EDF file converter.
-    This function converts the given binary file to ExG and ORN csv files.
-
-    Args:
-        bin_file (str): Binary file full address
-        out_dir (str): Output directory (if None, uses the same directory as binary file)
-        do_overwrite (bool): Overwrite if files exist already
-    """
-    head_path, full_filename = os.path.split(bin_file)
-    filename, extension = os.path.splitext(full_filename)
-    assert os.path.isfile(bin_file), "Error: File does not exist!"
-    assert extension == '.BIN', "File type error! File extension must be BIN."
-    out_dir = os.getcwd() + out_dir + '/'
-
-    exg_file_name = out_dir + filename + '_exg'
-    orn_file_name = out_dir + filename + '_orn'
-
-    with open(bin_file, "rb") as f_bin:
-        parser = Parser(fid=f_bin)
-        old_adc_mask = parser.adc_mask
-        exg_recorder = create_exg_recorder(filename=exg_file_name,
-                                           file_type='edf',
-                                           adc_mask=parser.adc_mask,
-                                           fs=parser.fs,
-                                           do_overwrite=do_overwrite)
-        orn_recorder = create_orn_recorder(filename=orn_file_name,
-                                           file_type='edf',
-                                           do_overwrite=do_overwrite)
-        print("Converting...")
-        while True:
-            try:
-                packet = parser.parse_packet(mode='record', recorders=(exg_recorder, orn_recorder, exg_recorder))
-                if isinstance(packet, DeviceInfo):
-                    if (parser.fs != exg_recorder.fs) or (parser.adc_mask != old_adc_mask):
-                        new_filename = exg_file_name + "_" + "{0:.2f}".format(packet.timestamp)
-                        print("Sampling rate or channel mask of ExG has been changed! The remaining ExG data will be"
-                              "written in the following file:\n", new_filename+'.edf')
-                        exg_recorder.stop()
-                        exg_recorder = create_exg_recorder(filename=new_filename,
-                                                           file_type='edf',
-                                                           adc_mask=parser.adc_mask,
-                                                           fs=parser.fs,
-                                                           do_overwrite=do_overwrite)
-                        old_adc_mask = parser.adc_mask
-            except ValueError:
-                print("Binary file ended! Conversion finished!")
-                break
-
-
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
-    exg_ch = ['TimeStamp', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+    exg_ch = ['TimeStamp'] + EXG_CHANNELS
     exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(adc_mask) if flag == 1]
-    exg_unit = ['s', 'uV', 'uV', 'uV', 'uV', 'uV', 'uV', 'uV', 'uV']
+    exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
-    exg_max = [86400, .4, .4, .4, .4, .4, .4, .4, .4]
+    exg_max = [86400.] + [4e5 for i in range(8)]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
-    exg_min = [0, -.4, -.4, -.4, -.4, -.4, -.4, -.4, -.4]
+    exg_min = [0.] +  [-4e5 for i in range(8)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
                         file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
 
 
 def create_orn_recorder(filename, file_type, do_overwrite):
-    orn_ch = ['TimeStamp', 'ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
-    orn_unit = ['s', 'mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+    orn_ch = ['TimeStamp'] + ORN_CHANNELS
+    orn_unit = ['s'] + ORN_UNITS
     orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
     orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
@@ -179,7 +99,7 @@ class HeartRateEstimator:
         self.prev_times = np.zeros(smoothing_win)
         self.prev_max_slope = 0
 
-        self.bp_filter = Filter(l_freq=1, h_freq=30, order=3, sampling_freq=fs)
+        self.bp_filter = ExGFilter(cutoff_freq=(1, 30), filter_type='bandpass', s_rate=fs, n_chan=1, order=3)
         self.hamming_window = signal.windows.hamming(smoothing_win, sym=True)
         self.hamming_window /= self.hamming_window.sum()
 
@@ -219,12 +139,12 @@ class HeartRateEstimator:
                     estimated_heart_rate = 'NA'
                 return estimated_heart_rate
 
-    def push_r_peak(self, val, time):
+    def _push_r_peak(self, val, time):
         self.r_peaks_buffer.append((val, time))
         if len(self.r_peaks_buffer) > 8:
             self.r_peaks_buffer.pop(0)
 
-    def push_noise_peak(self, val, peak_idx, peak_time):
+    def _push_noise_peak(self, val, peak_idx, peak_time):
         self.noise_peaks_buffer.append((val, peak_idx, peak_time))
         if len(self.noise_peaks_buffer) > 8:
             self.noise_peaks_buffer.pop(0)
@@ -242,7 +162,7 @@ class HeartRateEstimator:
         assert len(ecg_sig.shape) == 1, "Signal must be a vector"
 
         # Preprocessing
-        ecg_filtered = self.bp_filter.apply_bp_filter(ecg_sig).squeeze()
+        ecg_filtered = self.bp_filter.apply(ecg_sig).squeeze()
         ecg_sig = np.concatenate((self.prev_samples, ecg_sig))
         sig_diff = np.diff(ecg_filtered, 1)
         sig_abs_diff = np.abs(sig_diff)
@@ -318,7 +238,7 @@ class HeartRateEstimator:
                 detected_peaks_idx.append(temp_idx)
                 detected_peaks_val.append(ecg_sig[st_idx:peak_idx + 1].max())
                 detected_peaks_time.append(temp_time)
-                self.push_r_peak(pval, temp_time)
+                self._push_r_peak(pval, temp_time)
 
                 if peak_idx < 25:
                     st_idx = 0
@@ -326,7 +246,7 @@ class HeartRateEstimator:
                     st_idx = peak_idx - 25
                 self.prev_max_slope = np.abs(np.diff(ecg_sig[st_idx:peak_idx + 25])).max()
             else:
-                self.push_noise_peak(pval, peak_idx, peak_time)
+                self._push_noise_peak(pval, peak_idx, peak_time)
 
             # TODO: Check lead inversion!
 
@@ -354,7 +274,7 @@ class HeartRateEstimator:
                         else:
                             st_idx = last_noise_idx - 20
                         detected_peaks_idx.append(st_idx + np.argmax(ecg_sig[st_idx:peak_idx]))
-                        self.push_r_peak(last_noise_val, time_vector[detected_peaks_idx[-1]])
+                        self._push_r_peak(last_noise_val, time_vector[detected_peaks_idx[-1]])
                         if peak_idx < 25:
                             st_idx = 0
                         else:
@@ -398,7 +318,7 @@ class FileRecorder:
             raise ValueError("Invalid character in file name")
 
         self._file_obj = None
-        self._file_type = file_type
+        self.file_type = file_type
         self._ch_label = ch_label
         self._ch_unit = ch_unit
         self._ch_max = ch_max
@@ -406,6 +326,7 @@ class FileRecorder:
         self._n_chan = len(ch_label)
         self._device_name = device_name
         self._fs = int(fs)
+        self._rectime_offset = None
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
@@ -420,6 +341,7 @@ class FileRecorder:
 
     @property
     def fs(self):
+        """Sampling frequency"""
         return self._fs
 
     def _create_edf(self, do_overwrite):
@@ -439,12 +361,12 @@ class FileRecorder:
     def stop(self):
         """Stop recording"""
         assert self._file_obj is not None, "Usage Error: File object has not been created yet."
-        if self._file_type == 'edf':
+        if self.file_type == 'edf':
             if self._data.shape[1] > 0:
                 self._file_obj.writeSamples(list(self._data))
             self._file_obj.close()
             self._file_obj = None
-        elif self._file_type == 'csv':
+        elif self.file_type == 'csv':
             self._file_obj.close()
 
     def _init_edf_channels(self):
@@ -466,7 +388,7 @@ class FileRecorder:
         for i, ch_info in enumerate(ch_info_list):
             self._file_obj.setSignalHeader(i, ch_info)
 
-    def write_data(self, data):
+    def write_data(self, packet):
         """writes data to the file
 
         Notes:
@@ -474,10 +396,22 @@ class FileRecorder:
             it will be buffered in the memory and it will be written in the file when enough data is in the buffer.
 
         Args:
-            data (np.array): Array of data to be written in the file with dimension of n_chan x n_sample
+            packet (explorepy.packet.Packet): ExG or Orientation packet
 
         """
-        if self._file_type == 'edf':
+        time_vector, signal = packet.get_data(self._fs)
+
+        if len(time_vector) == 1:
+            data = np.array(time_vector + signal)[:, np.newaxis]
+            if self._rectime_offset is None:
+                self._rectime_offset = time_vector
+        else:
+            if self._rectime_offset is None:
+                self._rectime_offset = time_vector[0]
+            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(signal)), axis=0)
+        data = np.round(data, 4)
+
+        if self.file_type == 'edf':
             if data.shape[0] != self._n_chan:
                 raise ValueError('Input first dimension must be {}'.format(self._n_chan))
             self._data = np.concatenate((self._data, data), axis=1)
@@ -485,32 +419,324 @@ class FileRecorder:
             if self._data.shape[1] > self._fs:
                 self._file_obj.writeSamples(list(self._data[:, :self._fs]))
                 self._data = self._data[:, self._fs:]
-        elif self._file_type == 'csv':
+        elif self.file_type == 'csv':
             self._csv_obj.writerows(data.T.tolist())
 
-    def set_marker(self, data):
+    def set_marker(self, packet):
         """Writes a marker event in the file
 
         Args:
-            data (np.array): Array of marker data with size 2x1 ([[timestamp],[code]])
+            packet (explorepy.packet.EventMarker): Event marker packet
 
         """
-        if self._file_type == 'csv':
-            self.write_data(data)
-        elif self._file_type == 'edf':
-            self._file_obj.writeAnnotation(data[0, 0], 0.001, str(int(data[1, 0])))
+        if self.file_type == 'csv':
+            self.write_data(packet=packet)
+        elif self.file_type == 'edf':
+            timestamp, code = packet.get_data()
+            if self._rectime_offset is None:
+                self._rectime_offset = timestamp
+            timestamp = timestamp-self._rectime_offset
+            self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
 
-if __name__ == '__main__':
-    file_name = 'test_rec'
-    labels = ['timestamp', 'ch01', 'ch02', 'ch_03', 'ch04']
-    units = ['V', 'V', 'V', 'V', 's']
-    mins = [-1, -1, -1, -1, 0]
-    maxs = [1, 1, 1, 1, 86400]
-    recorder = FileRecorder(filename=file_name, fs=250, ch_label=labels, file_type='csv',
-                            ch_unit=units, ch_max=maxs, ch_min=mins, do_overwrite=True)
+class LslServer:
+    """Class for LabStreamingLayer integration"""
+    def __init__(self, device_info):
+        n_chan = device_info['adc_mask'].count(1)
+        self.exg_fs = device_info['sampling_rate']
+        orn_fs = 20
 
-    for i in range(1002):
-        chunk = np.random.normal(0, 1, (5, 33))
-        recorder.write_data(chunk)
-    recorder.stop()
+        info_exg = StreamInfo('Explore', 'ExG', n_chan, self.exg_fs, 'float32', 'ExG')
+
+        info_exg.desc().append_child_value("manufacturer", "Mentalab")
+        channels = info_exg.desc().append_child("channels")
+        for i, mask in enumerate(device_info['adc_mask']):
+            if mask == 1:
+                channels.append_child("channel")\
+                    .append_child_value("name", EXG_CHANNELS[i])\
+                    .append_child_value("unit", EXG_UNITS[i])\
+                    .append_child_value("type", "ExG")
+
+        info_orn = StreamInfo('Explore', 'Orientation', 9, orn_fs, 'float32', 'ORN')
+        info_orn.desc().append_child_value("manufacturer", "Mentalab")
+        channels = info_exg.desc().append_child("channels")
+        for chan, unit in zip(ORN_CHANNELS, ORN_UNITS):
+            channels.append_child("channel") \
+                .append_child_value("name", chan) \
+                .append_child_value("unit", unit) \
+                .append_child_value("type", "ORN")
+
+        info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
+
+        self.orn_outlet = StreamOutlet(info_orn)
+        self.exg_outlet = StreamOutlet(info_exg)
+        self.marker_outlet = StreamOutlet(info_marker)
+
+    def push_exg(self, packet):
+        """Push data to ExG outlet
+
+        Args:
+            packet (explorepy.packet.EEG): ExG packet
+        """
+        _, exg_data = packet.get_data(self.exg_fs)
+        for sample in exg_data.T:
+            self.exg_outlet.push_sample(sample.tolist())
+
+    def push_orn(self, packet):
+        """Push data to orientation outlet
+
+        Args:
+            packet (explorepy.packet.Orientation): Orientation packet
+        """
+        _, orn_data = packet.get_data()
+        self.orn_outlet.push_sample(orn_data)
+
+    def push_marker(self, packet):
+        """Push data to marker outlet
+
+        Args:
+            packet (explorepy.packet.EventMarker): Event marker packet
+        """
+        _, code = packet.get_data()
+        self.marker_outlet.push_sample(code)
+
+
+class ImpedanceMeasurement:
+    """Impedance measurement class"""
+    def __init__(self, device_info, calib_param, notch_freq):
+        """
+        Args:
+            device_info (dict): Device information dictionary
+            calib_param (dict): Calibration parameters dictionary
+            notch_freq (int): Line frequency (for notch filter)
+        """
+        self._device_info = device_info
+        self._calib_param = calib_param
+        self._filters = {}
+        self._notch_freq = notch_freq
+        self._add_filters()
+
+    def _add_filters(self):
+        bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, \
+                  self._device_info['sampling_rate'] / 4 + 1.5
+        noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, \
+                     self._device_info['sampling_rate'] / 4 + 5.5
+
+        self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
+                                           filter_type='notch',
+                                           s_rate=self._device_info['sampling_rate'],
+                                           n_chan=self._device_info['adc_mask'].count(1))
+
+        self._filters['demodulation'] = ExGFilter(cutoff_freq=bp_freq,
+                                                  filter_type='bandpass',
+                                                  s_rate=self._device_info['sampling_rate'],
+                                                  n_chan=self._device_info['adc_mask'].count(1))
+
+        self._filters['base_noise'] = ExGFilter(cutoff_freq=noise_freq,
+                                                filter_type='bandpass',
+                                                s_rate=self._device_info['sampling_rate'],
+                                                n_chan=self._device_info['adc_mask'].count(1))
+
+    def measure_imp(self, packet):
+        """Compute electrode impedances
+
+        Args:
+            self:
+            packet:
+
+        Returns:
+            packet:
+        """
+        temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
+        self._calib_param['noise_level'] = self._filters['base_noise'].\
+            apply(input_data=temp_packet, in_place=False).get_ptp()
+        self._filters['demodulation'].apply(input_data=temp_packet, in_place=True).calculate_impedance(self._calib_param)
+        return temp_packet
+
+
+class PhysicalOrientation:
+    """
+    Movement sensors modules
+    """
+    def __init__(self):
+        self.ED_prv = None
+        self.theta = 0.
+        self.axis = np.array([0, 0, -1])
+        self.matrix = np.identity(3)
+        self.init_set = None
+        self.calibre_set = None
+        self.status = "NOT READY"
+
+    def calculate(self, packet):
+        packet = copy.deepcopy(packet)
+        if self.init_set:
+            self._map(packet)
+        else:
+            self._get_rest_orn(packet)
+        return packet
+
+    def _get_rest_orn(self, packet):
+        D = packet.acc / (np.dot(packet.acc, packet.acc) ** 0.5)
+        # [kx, ky, kz, mx_offset, my_offset, mz_offset] = self.calibre_set
+        packet.mag[0] = self.calibre_set[0] * (packet.mag[0] - self.calibre_set[3])
+        packet.mag[1] = self.calibre_set[1] * (packet.mag[1] - self.calibre_set[4])
+        packet.mag[2] = self.calibre_set[2] * (packet.mag[2] - self.calibre_set[5])
+        E = -1 * np.cross(D, packet.mag)
+        E = E / (np.dot(E, E) ** 0.5)
+        # here you can find an estimation of actual north from packet.mag, it is perpendicular to D and still
+        # co-planar with D and mag, somehow reducing error
+        N = -1 * np.cross(E, D)
+        N = N / (np.dot(N, N) ** 0.5)
+        T_init = np.column_stack((E, N, D))
+        N_init = np.matmul(np.transpose(T_init), N)
+        E_init = np.matmul(np.transpose(T_init), E)
+        D_init = np.matmul(np.transpose(T_init), D)
+        self.init_set = [T_init, N_init, E_init, D_init]
+        self.ED_prv = [E, D]
+
+    def read_calibre_data(self, device_name):
+        config = configparser.ConfigParser()
+        calibre_file = user_config_dir(appname="explorepy", appauthor="mentalab")+ "/conf.ini"
+        if os.path.isfile(calibre_file) :
+            config.read(calibre_file)
+            try:
+                calibre_coef = config[device_name]
+                self.calibre_set = np.asarray([float(calibre_coef['kx']), float(calibre_coef['ky']),
+                                               float(calibre_coef['kz']), float(calibre_coef['mx']),
+                                               float(calibre_coef['my']), float(calibre_coef['mz'])])
+                return True
+            except KeyError:
+                return False
+        else:
+            return False
+
+    def _map(self, packet):
+        acc = packet.acc
+        acc = acc / (np.dot(acc, acc) ** 0.5)
+        gyro = packet.gyro * 1.745329e-5  # radian per second
+        packet.mag[0] = self.calibre_set[0] * (packet.mag[0] - self.calibre_set[3])
+        packet.mag[1] = self.calibre_set[1] * (packet.mag[1] - self.calibre_set[4])
+        packet.mag[2] = self.calibre_set[2] * (packet.mag[2] - self.calibre_set[5])
+        mag = packet.mag
+        D = acc
+        dD = D - self.ED_prv[1]
+        da = np.cross(self.ED_prv[1], dD)
+        E = -1 * np.cross(D, mag)
+        E = E / (np.dot(E, E) ** 0.5)
+        dE = E - self.ED_prv[0]
+        dm = np.cross(self.ED_prv[0], dE)
+        dg = 0.05 * gyro
+        dth = -0.95 * dg + 0.025 * da + 0.025 * dm
+        D = self.ED_prv[1] + np.cross(dth, self.ED_prv[1])
+        D = D / (np.dot(D, D) ** 0.5)
+        Err = np.dot(D, E)
+        D_tmp = D - 0.5 * Err * E
+        E_tmp = E - 0.5 * Err * D
+        D = D_tmp / (np.dot(D_tmp, D_tmp) ** 0.5)
+        E = E_tmp / (np.dot(E_tmp, E_tmp) ** 0.5)
+        N = -1 * np.cross(E, D)
+        N = N / (np.dot(N, N) ** 0.5)
+        '''
+        If you comment this block it will give you the absolute orientation based on {East,North,Up} coordinate system.
+        If you keep this block of code it will give you the relative orientation based on itial state of the device. so
+        It is important to keep the device steady, so that the device can capture the initial direction properly.
+        '''
+        ##########################
+        T = np.zeros((3, 3))
+        [T_init, N_init, E_init, D_init] = self.init_set
+        T = np.column_stack((E, N, D))
+        T_test = np.matmul(T, T_init.transpose())
+        N = np.matmul(T_test.transpose(), N_init)
+        E = np.matmul(T_test.transpose(), E_init)
+        D = np.matmul(T_test.transpose(), D_init)
+        ##########################
+        matrix = np.identity(3)
+        matrix = np.column_stack((E, N, D))
+        N = N / (np.dot(N, N) ** 0.5)
+        E = E / (np.dot(E, E) ** 0.5)
+        D = D / (np.dot(D, D) ** 0.5)
+        self.ED_prv = [E, D]
+        self.matrix = self.matrix * 0.9 + 0.1 * matrix
+        [theta, rot_axis] = packet.compute_angle(matrix=self.matrix)
+        self.theta = self.theta * 0.9 + 0.1 * theta
+        packet.theta = self.theta
+        self.axis = self.axis * 0.9 + 0.1 * rot_axis
+        packet.rot_axis = self.axis
+
+    @staticmethod
+    def init_dir():
+        if not (os.path.isfile(user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini")):
+            os.makedirs(user_config_dir(appname="explorepy", appauthor="mentalab"), exist_ok=True) #create parent directory
+            calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+            with open (calibre_out_file, "w") as f_coef:
+                config = configparser.ConfigParser()
+                config['DEFAULT'] = {'description': 'configuration data for Explore devices'}
+                config.write(f_coef)
+                f_coef.close()
+
+        if not (os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab"))):
+            os.makedirs(user_cache_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True) #create parent directory
+
+    @staticmethod
+    def calibrate(cache_dir, device_name):
+        calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+        parser = configparser.SafeConfigParser()
+        parser.read(calibre_out_file)
+        with open((cache_dir + "_ORN.csv"), "r") as f_set:
+            csv_reader = csv.reader(f_set, delimiter=",")
+            np_set = list(csv_reader)
+            np_set = np.array(np_set[1:], dtype=np.float)
+            mag_set_x = np.sort(np_set[:, -3])
+            mag_set_y = np.sort(np_set[:, -2])
+            mag_set_z = np.sort(np_set[:, -1])
+            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
+            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
+            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
+            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
+            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
+            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
+            k = np.sort(np.array([kx, ky, kz]))
+            kx = 1 / kx
+            ky = 1 / ky
+            kz = 1 / kz
+            f_set.close()
+        os.remove((cache_dir + "_ORN.csv"))
+        os.remove((cache_dir + "_ExG.csv"))
+        os.remove((cache_dir + "_Marker.csv"))
+        if parser.has_section(device_name):
+            parser = configparser.SafeConfigParser()
+            parser.read(calibre_out_file)
+            with open(calibre_out_file, "w") as f_coef:
+                parser.set(device_name, 'kx', str(kx))
+                parser.set(device_name, 'ky', str(ky))
+                parser.set(device_name, 'kz', str(kz))
+                parser.set(device_name, 'mx', str(mx_offset))
+                parser.set(device_name, 'my', str(my_offset))
+                parser.set(device_name, 'mz', str(mz_offset))
+                parser.write(f_coef)
+                f_coef.close()
+        else:
+            with open(calibre_out_file, "w") as f_coef:
+                parser[device_name] = {'kx': str(kx),
+                                       'ky': str(ky),
+                                       'kz': str(kz),
+                                       'mx': str(mx_offset),
+                                       'my': str(mx_offset),
+                                       'mz': str(mx_offset)}
+                parser.write(f_coef)
+                f_coef.close()
+
+    @staticmethod
+    def check_calibre_data(device_name):
+        config = configparser.ConfigParser()
+        calibre_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+        if os.path.isfile(calibre_file):
+            config.read(calibre_file)
+            if config.has_section(device_name):
+                return True
+            else:
+                return False
+        else:
+            return False
+
+

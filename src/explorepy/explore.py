@@ -1,452 +1,352 @@
 # -*- coding: utf-8 -*-
-from explorepy.bt_client import BtClient
-from explorepy.parser import Parser
-from explorepy.dashboard.dashboard import Dashboard
-from explorepy._exceptions import *
-from explorepy.packet import CommandRCV, CommandStatus, CalibrationInfo, DeviceInfo
-from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder
-import csv
+"""Explorepy main module
+
+This module provides the main class for interacting with Explore devices.
+
+Examples:
+    Before starting a session, make sure your device is paired to your computer. The device will be shown under the
+    following name: Explore_XXXX, with the last 4 characters being the last 4 hex numbers of the devices MAC address
+
+    >>> import explorepy
+    >>> explore = explorepy.Explore()
+    >>> explore.connect(device_name='Explore_1432')  # Put your device Bluetooth name
+    >>> explore.visualize(bp_freq=(1, 40), notch_freq=50)
+"""
+
 import os
 import time
-import signal
-import sys
-from pylsl import StreamInfo, StreamOutlet
-from threading import Thread, Timer
+from appdirs import user_cache_dir
+from threading import Timer
+
+import numpy as np
+
+from explorepy.dashboard.dashboard import Dashboard
+from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer, PhysicalOrientation
+from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh
+from explorepy.stream_processor import StreamProcessor, TOPICS
 
 
 class Explore:
     r"""Mentalab Explore device"""
-    def __init__(self, n_device=1):
-        r"""
-        Args:
-            n_device (int): Number of devices to be connected
-        """
-        self.device = []
-        self.socket = None
-        self.parser = None
-        self.m_dashboard = None
-        for i in range(n_device):
-            self.device.append(BtClient())
-        self.is_connected = False
-        self.is_acquiring = None
 
-    def connect(self, device_name=None, device_addr=None, device_id=0):
+    def __init__(self):
+        self.is_connected = False
+        self.stream_processor = None
+        self.recorders = {}
+        self.device_name = None
+
+    def connect(self, device_name=None, mac_address=None):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
         Args:
-            device_name (str): Device name in the format of "Explore_XXXX"
-            device_addr (str): The MAC address in format "XX:XX:XX:XX:XX:XX" Either Address or name should be in the input
-            device_id (int): device id (not needed in the current version)
-
+            device_name (str): Device name("Explore_XXXX"). Either mac address or name should be in the input
+            mac_address (str): The MAC address in format "XX:XX:XX:XX:XX:XX"
         """
-
-        self.device[device_id].init_bt(device_name=device_name, device_addr=device_addr)
-        if self.socket is None:
-            self.socket = self.device[device_id].bt_connect()
-        if self.parser is None:
-            self.parser = Parser(socket=self.socket)
+        if device_name:
+            self.device_name = device_name
+        else:
+            self.device_name = 'Explore_' + mac_address[-5:-3] + mac_address[-2:]
+        self.stream_processor = StreamProcessor()
+        self.stream_processor.start(device_name=device_name, mac_address=mac_address)
+        while not self.stream_processor.device_info:
+            print('Waiting for device info packet...')
+            time.sleep(.3)
+        print('Device info packet has been received. Connection has been established. Streaming...')
         self.is_connected = True
-        packet = None
 
-    def disconnect(self, device_id=None):
+    def disconnect(self):
         r"""Disconnects from the device
-
-        Args:
-            device_id (int): device id (not needed in the current version)
         """
-        self.device[device_id].socket.close()
+        self.stream_processor.stop()
         self.is_connected = False
 
-    def acquire(self, device_id=0, duration=None):
+    def acquire(self, duration=None):
         r"""Start getting data from the device
 
         Args:
-            device_id (int): device id (not needed in the current version)
             duration (float): duration of acquiring data (if None it streams data endlessly)
         """
+        self._check_connection()
+        duration = self._check_duration(duration)
 
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        def callback(packet):
+            print(packet)
 
-        is_acquiring = [True]
+        self.stream_processor.subscribe(callback=callback, topic=TOPICS.raw_ExG)
+        time.sleep(duration)
+        self.stream_processor.stop()
+        time.sleep(1)
 
-        def stop_acquiring(flag):
-            flag[0] = False
-
-        if duration is not None:
-            Timer(duration, stop_acquiring, [is_acquiring]).start()
-            print("Start acquisition for ", duration, " seconds...")
-
-        while is_acquiring[0]:
-            try:
-                self.parser.parse_packet(mode="print")
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.device[device_id].bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
-                    return 0
-
-        print("Data acquisition stopped after ", duration, " seconds.")
-
-    def record_data(self, file_name, do_overwrite=False, device_id=0, duration=None, file_type='csv'):
+    def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv'):
         r"""Records the data in real-time
 
         Args:
             file_name (str): Output file name
-            device_id (int): Device id (not needed in the current version)
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
         """
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        self._check_connection()
 
         # Check invalid characters
         if set(r'<>{}[]~`*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
-        n_chan = self.parser.n_chan
         if file_type not in ['edf', 'csv']:
             raise ValueError('{} is not a supported file extension!'.format(file_type))
-        time_offset = None
+        duration = self._check_duration(duration)
+
         exg_out_file = file_name + "_ExG"
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
 
-        exg_recorder = create_exg_recorder(filename=exg_out_file,
-                                           file_type=file_type,
-                                           fs=self.parser.fs,
-                                           adc_mask=self.parser.adc_mask,
-                                           do_overwrite=do_overwrite)
-        orn_recorder = create_orn_recorder(filename=orn_out_file,
-                                           file_type=file_type,
-                                           do_overwrite=do_overwrite)
+        self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
+                                                    file_type=file_type,
+                                                    fs=self.stream_processor.device_info['sampling_rate'],
+                                                    adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                    do_overwrite=do_overwrite)
+        self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
+                                                    file_type=file_type,
+                                                    do_overwrite=do_overwrite)
 
         if file_type == 'csv':
-            marker_ch = ['TimeStamp', 'Code']
-            marker_unit = ['s', '-']
-            marker_recorder = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
+            self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         elif file_type == 'edf':
-            marker_recorder = exg_recorder
+            self.recorders['marker'] = self.recorders['exg']
 
-        is_acquiring = [True]
+        self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+        self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.subscribe(callback=self.recorders['exg'].set_marker, topic=TOPICS.marker)
+        print("Recording...")
+        rec_timer = Timer(duration, self.stop_recording)
+        rec_timer.start()
 
-        def stop_acquiring(flag):
-            flag[0] = False
+    def stop_recording(self):
+        """Stop recording"""
+        self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+        self.stream_processor.unsubscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.unsubscribe(callback=self.recorders['exg'].set_marker, topic=TOPICS.marker)
+        self.recorders['exg'].stop()
+        self.recorders['orn'].stop()
+        if self.recorders['exg'].file_type == 'csv':
+            self.recorders['marker'].stop()
+        print('Recording stopped.')
 
-        if duration is not None:
-            if duration <= 0:
-                raise ValueError("Recording time must be a positive number!")
-            rec_timer = Timer(duration, stop_acquiring, [is_acquiring])
-            rec_timer.start()
-            print("Start recording for ", duration, " seconds...")
+    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False):
+        """Convert a binary file to EDF or CSV file
+
+        Args:
+            bin_file (str): Path to the binary file recorded by Explore device
+            out_dir (str): Output directory path (must be relative path to the current working directory)
+            file_type (str): Output file type: 'edf' for EDF format and 'csv' for CSV format
+            do_overwrite (bool): Whether to overwrite an existing file
+
+        """
+        if file_type not in ['edf', 'csv']:
+            raise ValueError('Invalid file type is given!')
+        self.recorders['file_type'] = file_type
+        head_path, full_filename = os.path.split(bin_file)
+        filename, extension = os.path.splitext(full_filename)
+        assert os.path.isfile(bin_file), "Error: File does not exist!"
+        assert extension == '.BIN', "File type error! File extension must be BIN."
+        exg_out_file = os.getcwd() + out_dir + filename + '_exg'
+        orn_out_file = os.getcwd() + out_dir + filename + '_orn'
+        marker_out_file = os.getcwd() + out_dir + filename + '_marker'
+        self.stream_processor = StreamProcessor()
+        self.stream_processor.open_file(bin_file=bin_file)
+        self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
+                                                    file_type=self.recorders['file_type'],
+                                                    fs=self.stream_processor.device_info['sampling_rate'],
+                                                    adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                    do_overwrite=do_overwrite)
+        self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
+                                                    file_type=self.recorders['file_type'],
+                                                    do_overwrite=do_overwrite)
+
+        if self.recorders['file_type'] == 'csv':
+            self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         else:
-            print("Recording...")
-        is_disconnect_occurred = False
-        while is_acquiring[0]:
-            try:
-                packet = self.parser.parse_packet(mode="record", recorders=(exg_recorder, orn_recorder, marker_recorder))
-                if time_offset is not None:
-                    packet.timestamp = packet.timestamp-time_offset
-                else:
-                    time_offset = packet.timestamp
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.device[device_id].bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
-                    rec_timer.cancel()
-                    return 0
+            self.recorders['marker'] = self.recorders['exg']
 
-        if is_disconnect_occurred:
-            print("Error: Recording finished before ", duration, "seconds.")
-            rec_timer.cancel()
-        else:
-            print("Recording finished after ", duration, " seconds.")
-        exg_recorder.stop()
-        orn_recorder.stop()
-        if file_type == 'csv':
-            marker_recorder.stop()
+        self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+        self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
 
-    def push2lsl(self, device_id=0, duration=None):
+        def device_info_callback(packet):
+            new_device_info = packet.get_info()
+            if not self.stream_processor.compare_device_info(new_device_info):
+                if self.recorders['file_type'] == 'edf':
+                    new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
+                    print("WARNING: Creating a new edf file:", new_file_name + '.edf')
+                    self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                    self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                    self.recorders['exg'].stop()
+                    self.recorders['exg'] = create_exg_recorder(filename=new_file_name,
+                                                                file_type=self.recorders['file_type'],
+                                                                fs=self.stream_processor.device_info['sampling_rate'],
+                                                                adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                                do_overwrite=do_overwrite)
+                    self.recorders['marker'] = self.recorders['exg']
+                    self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                    self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+
+        self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
+        self.stream_processor.read()
+        print("Converting...")
+        while self.stream_processor.is_connected:
+            time.sleep(.1)
+        print('Conversion finished.')
+
+    def push2lsl(self, duration=None):
         r"""Push samples to two lsl streams
 
         Args:
-            device_id (int): device id (not needed in the current version)
-            duration (float): duration of data acquiring (if None it streams endlessly).
+            duration (float): duration of data acquiring (if None it streams for one hour).
         """
+        self._check_connection()
+        duration = self._check_duration(duration)
 
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        lsl_server = LslServer(self.stream_processor.device_info)
+        self.stream_processor.subscribe(topic=TOPICS.raw_ExG, callback=lsl_server.push_exg)
+        self.stream_processor.subscribe(topic=TOPICS.raw_orn, callback=lsl_server.push_orn)
+        self.stream_processor.subscribe(topic=TOPICS.marker, callback=lsl_server.push_marker)
+        time.sleep(duration)
 
-        info_orn = StreamInfo('Explore', 'Orientation', 9, 20, 'float32', 'ORN')
-        info_exg = StreamInfo('Explore', 'ExG', self.parser.n_chan, self.parser.fs, 'float32', 'ExG')
-        info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
-
-        orn_outlet = StreamOutlet(info_orn)
-        exg_outlet = StreamOutlet(info_exg)
-        marker_outlet = StreamOutlet(info_marker)
-
-        is_acquiring = [True]
-
-        def stop_acquiring(flag):
-            flag[0] = False
-
-        if duration is not None:
-            Timer(duration, stop_acquiring, [is_acquiring]).start()
-            print("Start pushing to lsl for ", duration, " seconds...")
-        else:
-            print("Pushing to lsl...")
-
-        while is_acquiring[0]:
-            try:
-                self.parser.parse_packet(mode="lsl", outlets=(orn_outlet, exg_outlet, marker_outlet))
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.device[device_id].bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
-                    return 0
         print("Data acquisition finished after ", duration, " seconds.")
+        self.stream_processor.stop()
+        time.sleep(1)
 
-    def visualize(self, device_id=0, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
+    def visualize(self, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
         r"""Visualization of the signal in the dashboard
+
         Args:
-            device_id (int): Device ID (not needed in the current version)
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
             calibre_file (str): Calibration data file name
         """
-        import numpy as np
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
-        if calibre_file is not None:
-            with open(calibre_file, "r") as f_calibre:
-                csv_reader_calibre = csv.reader(f_calibre, delimiter=",")
-                calibre_set = list(csv_reader_calibre)
-                self.parser.calibre_set = np.asarray(calibre_set[1], dtype=np.float64)
-        self.parser.notch_freq = notch_freq
-        if bp_freq is not None:
-            self.parser.apply_bp_filter = True
-            self.parser.bp_freq = bp_freq
 
-        self.m_dashboard = Dashboard(n_chan=self.parser.n_chan,
-                                     exg_fs=self.parser.fs,
-                                     firmware_version=self.parser.firmware_version)
-        self.m_dashboard.start_server()
+        if notch_freq:
+            self.stream_processor.add_filter(cutoff_freq=notch_freq, filter_type='notch')
 
-        thread = Thread(target=self._io_loop)
-        thread.setDaemon(True)
-        thread.start()
-        self.m_dashboard.start_loop()
+        if bp_freq:
+            if bp_freq[0] and bp_freq[1]:
+                self.stream_processor.add_filter(cutoff_freq=bp_freq, filter_type='bandpass')
+            elif bp_freq[0]:
+                self.stream_processor.add_filter(cutoff_freq=bp_freq[0], filter_type='highpass')
+            elif bp_freq[1]:
+                self.stream_processor.add_filter(cutoff_freq=bp_freq[1], filter_type='lowpass')
 
-    def _io_loop(self, device_id=0, mode="visualize"):
-        self.is_acquiring = [True]
-        if self.parser.calibre_set is not None:
-            is_initialized = False
-        else:
-            is_initialized = True # flag as True since it doesn't matter and we skip orientation calculation process
-        # Wait until dashboard is initialized.
-        while not hasattr(self.m_dashboard, 'doc'):
-            print('wait...')
-            time.sleep(.5)
+        dashboard = Dashboard(explore=self)
+        dashboard.start_server()
+        dashboard.start_loop()
 
-        while self.is_acquiring[0]:
-            if is_initialized:
-                try:
-                    packet = self.parser.parse_packet(mode=mode, dashboard=self.m_dashboard)
-                except ConnectionAbortedError:
-                    print("Device has been disconnected! Scanning for last connected device...")
-                    try:
-                        self.parser.socket = self.device[device_id].bt_connect()
-                    except DeviceNotFoundError as e:
-                        print(e)
-                        self.is_acquiring[0] = False
-                        if mode == "visualize":
-                            os._exit(0)
-            else:
-                try:
-                    packet = self.parser.parse_packet(mode="initialize", dashboard=self.m_dashboard)
-                    if hasattr(packet, 'acc'):
-                        if self.parser.init_set is not None:
-                            is_initialized = True
-                except ConnectionAbortedError:
-                    print("Device has been disconnected! Scanning for last connected device...")
-                    try:
-                        self.parser.socket = self.device[device_id].bt_connect()
-                    except DeviceNotFoundError as e:
-                        print(e)
-                        self.is_acquiring[0] = False
-                        if mode == "visualize":
-                            os._exit(0)
-
-    def signal_handler(self, signal, frame):
-        # Safe handler of keyboardInterrupt
-        self.is_acquiring = [False]
-        print("Program is exiting...")
-        sys.exit(0)
-
-    def measure_imp(self, device_id=0, notch_freq=50):
+    def measure_imp(self, notch_freq=50):
         """
         Visualization of the electrode impedances
 
         Args:
-            device_id (int): Device ID
             notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
         """
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
-        assert self.parser.fs == 250, "Impedance mode only works in 250 Hz sampling rate!"
-        self.is_acquiring = [True]
+        self._check_connection()
+        assert self.stream_processor.device_info['sampling_rate'] == 250, \
+            "Impedance mode only works in 250 Hz sampling rate!"
+        if notch_freq not in [50, 60]:
+            raise ValueError('Notch frequency must be either 50 or 60 Hz.')
 
-        signal.signal(signal.SIGINT, self.signal_handler)
+        self.stream_processor.imp_initialize(notch_freq=notch_freq)
 
         try:
-            thread = Thread(target=self._io_loop, args=(device_id, "impedance",))
-            thread.setDaemon(True)
-            self.parser.apply_bp_filter = True
-            self.parser.bp_freq = (61, 64)
-            self.parser.notch_freq = notch_freq
-            thread.start()
-
-            # Activate impedance measurement mode in the device
-            from explorepy import command
-            imp_activate_cmd = command.ZmeasurementEnable()
-            if self.change_settings(imp_activate_cmd):
-                self.m_dashboard = Dashboard(n_chan=self.parser.n_chan, mode="impedance", exg_fs=self.parser.fs,
-                                             firmware_version=self.parser.firmware_version)
-                self.m_dashboard.start_server()
-                self.m_dashboard.start_loop()
-            else:
-                os._exit(0)
-        finally:
-            print("Disabling impedance mode...")
-            from explorepy import command
-            imp_deactivate_cmd = command.ZmeasurementDisable()
-            self.change_settings(imp_deactivate_cmd)
-            sys.exit(0)
+            dashboard = Dashboard(explore=self, mode='impedance')
+            dashboard.start_server()
+            dashboard.start_loop()
+        except KeyboardInterrupt:
+            self.stream_processor.disable_imp()
 
     def set_marker(self, code):
-        """Sets an event marker during the recording
+        """Sets a digital event marker while streaming
 
         Args:
-            code (int): Marker code. It must be an integer larger than 7 (codes from 0 to 7 are reserved for hardware markers).
+            code (int): Marker code. It must be an integer larger than 7
+                        (codes from 0 to 7 are reserved for hardware markers).
 
         """
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
-        self.parser.set_marker(marker_code=code)
+        self._check_connection()
+        self.stream_processor.set_marker(code=code)
 
-    def change_settings(self, command, device_id=0):
-        """
-        sends a message to the device
-        Args:
-            device_id (int): Device ID
-            command (explorepy.command.Command): Command object
+    def format_memory(self):
+        """Format memory of the device"""
+        self._check_connection()
+        cmd = MemoryFormat()
+        self.stream_processor.configure_device(cmd)
 
-        Returns:
-
-        """
-        from explorepy.command import send_command
-
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
-
-        sending_attempt = 5
-        while sending_attempt:
-            try:
-                sending_attempt = sending_attempt-1
-                time.sleep(0.1)
-                send_command(command, self.socket)
-                sending_attempt = 0
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.device[device_id].bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
-                    return 0
-
-        is_listening = [True]
-        command_processed = False
-
-        def stop_listening(flag):
-            flag[0] = False
-
-        waiting_time = 10
-        command_timer = Timer(waiting_time, stop_listening, [is_listening])
-        command_timer.start()
-        print("waiting for ack and status messages...")
-        while is_listening[0]:
-            try:
-                packet = self.parser.parse_packet(mode="listen")
-
-                if isinstance(packet, CommandRCV):
-                    temp = command.int2bytearray(packet.opcode, 1)
-                    if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
-                        print("The opcode matches the sent command, Explore has received the command")
-                if isinstance(packet, CalibrationInfo):
-                    self.parser.imp_calib_info['slope'] = packet.slope
-                    self.parser.imp_calib_info['offset'] = packet.offset
-
-                if isinstance(packet, CommandStatus):
-                    if command.int2bytearray(packet.opcode, 1) == command.opcode.value:
-                        command_processed = True
-                        is_listening = [False]
-                        command_timer.cancel()
-                        print("The opcode matches the sent command, Explore has processed the command")
-                        return True
-
-            except ConnectionAbortedError:
-                print("Device has been disconnected! Scanning for last connected device...")
-                try:
-                    self.parser.socket = self.device[device_id].bt_connect()
-                except DeviceNotFoundError as e:
-                    print(e)
-                    return 0
-        if not command_processed:
-            print("No status message has been received after ", waiting_time, " seconds. Please restart the device and "
-                                                                              "send the command again.")
-            return False
-
-    def calibrate_orn(self, file_name, device_id=0, do_overwrite=False):
-        r"""Calibrate the orientation module of the specified device
+    def set_sampling_rate(self, sampling_rate):
+        """Set sampling rate
 
         Args:
-            device_id (int): device id
-            file_name (str): filename to be used for calibration. If you pass this parameter, ORN module should be ACTIVE!
-            do_overwrite (bool): Overwrite if files exist already
+            sampling_rate (int): Desired sampling rate. Options: 250, 500, 1000
         """
+        self._check_connection()
+        if sampling_rate not in [250, 500, 1000]:
+            raise ValueError("Sampling rate must be 250, 500 or 1000.")
+        cmd = SetSPS(sampling_rate)
+        self.stream_processor.configure_device(cmd)
+
+    def reset_soft(self):
+        """Reset the device to the default settings"""
+        self._check_connection()
+        cmd = SoftReset()
+        self.stream_processor.configure_device(cmd)
+
+    def set_channels(self, channel_mask):
+        """Set the channel mask of the device
+
+        The channels can be disabled/enabled by calling this function and passing an integer which represents the
+        binary form of the mask. For example in a 4 channel device, if you want to disable channel 4, the adc mask
+        should be b'0111' (LSB is channel 1). The integer value of 0111 which is 7 must be given to this function
+
+        Args:
+            channel_mask (int): Integer representation of the binary channel mask
+
+        Examples:
+            >>> from explorepy.explore import Explore
+            >>> explore = Explore()
+            >>> explore.connect(device_name='Explore_2FA2')
+            >>> explore.set_channels(channel_mask=7)  # disable channel 4 - mask:0111
+        """
+        if not isinstance(channel_mask, int):
+            raise TypeError("Input must be an integer!")
+        self._check_connection()
+        cmd = SetCh(channel_mask)
+        self.stream_processor.configure_device(cmd)
+
+    def calibrate_orn(self, do_overwrite=False):
+        """
+
+        Args:
+            do_overwrite: to overwrite the calibration data if already exists or not
+
+        Returns: None
+
+        """
+        # phy_orn = PhysicalOrientation()
+        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not(do_overwrite)), " Calibration data already exists!"
+        PhysicalOrientation.init_dir()
         print("Start recording for 100 seconds, please move the device around during this time, in all directions")
-        self.record_data(file_name, do_overwrite=do_overwrite, device_id=device_id, duration=100, file_type='csv')
-        calibre_out_file = file_name + "_calibre_coef.csv"
-        assert not (os.path.isfile(calibre_out_file) and do_overwrite), calibre_out_file + " already exists!"
-        import numpy as np
-        with open((file_name + "_ORN.csv"), "r") as f_set, open(calibre_out_file, "w") as f_coef:
-            f_coef.write("kx, ky, kz, mx_offset, my_offset, mz_offset\n")
-            csv_reader = csv.reader(f_set, delimiter=",")
-            csv_coef = csv.writer(f_coef, delimiter=",")
-            np_set = list(csv_reader)
-            np_set = np.array(np_set[1:], dtype=np.float)
-            mag_set_x = np.sort(np_set[:, -3])
-            mag_set_y = np.sort(np_set[:, -2])
-            mag_set_z = np.sort(np_set[:, -1])
-            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
-            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
-            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
-            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
-            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
-            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
-            k = np.sort(np.array([kx, ky, kz]))
-            kx = 1 / kx
-            ky = 1 / ky
-            kz = 1 / kz
-            calibre_set = np.array([kx, ky, kz, mx_offset, my_offset, mz_offset])
-            csv_coef.writerow(calibre_set)
-            f_set.close()
-            f_coef.close()
-        os.remove((file_name + "_ORN.csv"))
-        os.remove((file_name + "_ExG.csv"))
-        os.remove((file_name + "_Marker.csv"))
+        file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '/temp_' + self.device_name
+        self.record_data(file_name, do_overwrite=True, duration=10, file_type='csv')
+        time.sleep(11)
+        PhysicalOrientation.calibrate(cache_dir=file_name, device_name=self.device_name)
 
+    def _check_connection(self):
+        assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
-if __name__ == '__main__':
-    pass
+    @staticmethod
+    def _check_duration(duration):
+        if duration:
+            if duration <= 0:
+                raise ValueError("Recording time must be a positive number!")
+        else:
+            duration = 60 * 60  # one hour
+        return duration

@@ -3,15 +3,10 @@ Installation
 ============
 
 
-Requirements
-------------
+Requirements for pybluez
+-------------------------
 * Python 3.5 or newer version
-* `numpy <https://github.com/pybluez/pybluez>`_
-* `scipy <https://github.com/scipy/scipy>`_
-* `pybluez <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
-* `pylsl <https://github.com/labstreaminglayer/liblsl-Python>`_
-* `bokeh <https://github.com/bokeh/bokeh>`_
-* `pyEDFlib <https://github.com/holgern/pyedflib>`_
+* Bluetooth adapter on your device
 
 ``explorepy`` is using ``pybluez`` as the bluetooth backend. ``pybluez`` has different dependencies in different operating systems.
 
@@ -28,6 +23,22 @@ Mac OS
 ^^^^^^
 * Xcode
 * PyObjc 3.1b or later
+
+
+Requirements for exploresdk
+---------------------------
+* Python 3.5 or newer version
+* Bluetooth adapter on your device
+
+Windows
+^^^^^^^
+* Visual C++ build tools from "https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16"
+  then select from Individual Workloads: C++ build tools
+
+
+Ubuntu 16.04 or 18.04
+^^^^^^^^^^^^^^^^^^^^^
+* ``sudo apt-get install libbluetooth-dev``
 
 
 For more details on pybluez dependencies please see `pybluez docs <https://github.com/pybluez/pybluez>`_.
