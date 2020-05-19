@@ -17,7 +17,6 @@ sdist
 wheelhouse
 develop-eggs
 .installed.cfg
-lib
 lib64
 venv*/
 pyvenv*/
