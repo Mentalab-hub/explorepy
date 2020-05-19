@@ -140,7 +140,7 @@ class StreamProcessor:
         """
         while not self.device_info:
             print('Waiting for device info packet...')
-            time.sleep(.5)
+            time.sleep(.2)
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
