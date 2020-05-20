@@ -20,9 +20,9 @@
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/explorepy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v0.6.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v1.0.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v0.6.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v1.0.0...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
     :alt: PyPI Wheel
@@ -47,7 +47,7 @@ Explorepy is an open-source Python-based biosignal acquisition API for Mentalab'
 
 * Real-time streaming of ExG, orientation and environmental data
 * Real-time visualization
-* Data recording
+* Data recording in CSV and BDF+ formats
 * LSL integration
 * Impedance measurement
 * Explore device configuration
@@ -64,7 +64,7 @@ Requirements
 * `pybluez 0.22 <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
 * `pylsl <https://github.com/labstreaminglayer/liblsl-Python>`_
 * `scipy <https://github.com/scipy/scipy>`_
-* `bokeh 1.0.4 <https://github.com/bokeh/bokeh>`_
+* `bokeh 1.4.0 <https://github.com/bokeh/bokeh>`_
 
 
 Please check `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_ for more detailed instruction.
@@ -104,14 +104,14 @@ The following code connects to the Explore device and prints the data.
     explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
     explorer.acquire()
 
-You can also visualize signal in real-time.
+You can also visualize signals in real-time.
 
 ::
 
     import explorepy
     explorer = explorepy.Explore()
     explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
-    explorer.visualize(n_chan=4, bp_freq=(1, 30), notch_freq=50)  # Give the number of channels, frequencies of bandpass and notch filter
+    explorer.visualize(bp_freq=(.5, 30), notch_freq=50)
 
 EEG:
 

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-import numpy as np
+"""This module contains all packet classes of Explore device"""
 import abc
-import struct
-from functools import partial
 from enum import IntEnum
 from datetime import datetime
+import numpy as np
 
 
 class PACKET_ID(IntEnum):
+    """Packet ID enum"""
     ORN = 13
     ENV = 19
     TS = 27
@@ -25,13 +25,15 @@ class PACKET_ID(IntEnum):
     CALIBINFO = 195
 
 
+EXG_UNIT = 1e-6
+
+
 class Packet:
     """An abstract base class for Explore packet"""
     __metadata__ = abc.ABCMeta
 
     def __init__(self, timestamp, payload):
-        """
-        Gets the timestamp and payload and initializes the packet object
+        """Gets the timestamp and payload and initializes the packet object
 
         Args:
             payload (bytearray): a byte array including binary data and fletcher
@@ -41,22 +43,18 @@ class Packet:
     @abc.abstractmethod
     def _convert(self, bin_data):
         """Read the binary data and convert it to real values"""
-        pass
 
     @abc.abstractmethod
     def _check_fletcher(self, fletcher):
         """Checks if the fletcher is valid"""
-        pass
 
     @abc.abstractmethod
     def __str__(self):
         """Print the data/info"""
-        pass
 
     @staticmethod
     def int24to32(bin_data):
-        """
-        converts binary data to int32
+        """Converts binary data to int32
 
         Args:
             bin_data (list): list of bytes with the structure of int24
@@ -69,89 +67,44 @@ class Packet:
                                           byteorder='little',
                                           signed=True) for x in range(0, len(bin_data), 3)])
 
-    @abc.abstractmethod
-    def push_to_dashboard(self, dashboard):
-        pass
-
 
 class EEG(Packet):
-
-    @abc.abstractmethod
-    def write_to_file(self, recorder):
-        """
-        Write EEG data to csv file
-
-        Args:
-            recorder(explorepy.tools.FileRecorder): File recorder object
-
-        """
-        pass
-
-    def apply_bp_filter(self, exg_filter):
-        """Bandpass filtering of ExG data
-
-        Args:
-        exg_filter: Filter object
-        """
-        self.data = exg_filter.apply_bp_filter(self.data)
-
-    def apply_bp_filter_noise(self, exg_filter):
-        """Bandpass filtering of ExG data
-
-        Args:
-        exg_filter: Filter object
-        """
-        self.data = exg_filter.apply_bp_filter_noise(self.data)
-
-    def apply_notch_filter(self, exg_filter):
-        """Band_stop filtering of ExG data
-
-        Args:
-            exg_filter: Filter object
-
-        """
-        self.data = exg_filter.apply_notch_filter(self.data)
-
-    def push_to_lsl(self, outlet):
-        """Push data to lsl socket
-
-        Args:
-            outlet (lsl.StreamOutlet): lsl stream outlet
-        """
-
-        for sample in self.data.T:
-            outlet.push_sample(sample.tolist())
+    """EEG packet class"""
+    __metadata__ = abc.ABCMeta
 
     def calculate_impedance(self, imp_calib_info):
-        """
-        calculate impedance with the help of impedance calibration info
+        """calculate impedance with the help of impedance calibration info
 
         Args:
             imp_calib_info (dict): dictionary of impedance calibration info including slope, offset and noise level
 
         """
-        mag = np.ptp(self.data, axis=1)
-        self.imp_data = np.round(
-            (mag - imp_calib_info['noise_level']) * imp_calib_info['slope'] - imp_calib_info['offset'], decimals=0)
+        self.imp_data = np.round((self.get_ptp() - imp_calib_info['noise_level']) * imp_calib_info['slope']/1.e6 -
+                                 imp_calib_info['offset'], decimals=0)
 
-    def push_to_dashboard(self, dashboard):
-        n_sample = self.data.shape[1]
-        time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / dashboard.exg_fs, n_sample)
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_exg, time_vector=time_vector, ExG=self.data))
+    def get_data(self, exg_fs=None):
+        """get time vector and data
 
-    def push_to_imp_dashboard(self, dashboard, imp_calib_info):
-        self.calculate_impedance(imp_calib_info)
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_imp, imp=self.imp_data))
+        If exg_fs is given, it returns time vector and data. If exg_fs is not given, it returns the timestamp of the
+        packet alongside with the data
+        """
+        if exg_fs:
+            n_sample = self.data.shape[1]
+            time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / exg_fs, n_sample)
+            return time_vector, self.data
+        return self.timestamp, self.data
 
-    def write_to_file(self, recorder):
-        tmpstmp = np.linspace(self.timestamp, self.timestamp + (self.data.shape[1]-1)/recorder.fs,
-                              self.data.shape[1])
-        recorder.write_data(np.concatenate((tmpstmp[:, np.newaxis], self.data.T), axis=1).T)
+    def get_impedances(self):
+        """get electrode impedances"""
+        return self.imp_data
+
+    def get_ptp(self):
+        """Get peak to peak value"""
+        return np.ptp(self.data, axis=1)
 
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -163,19 +116,19 @@ class EEG94(EEG):
         v_ref = 2.4
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
-        self.dataStatus = data[0, :]
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = np.round(data[1:, :] * v_ref / gain, 2)
+        self.data_status = data[0, :]
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.dataStatus[-1])
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.data_status[-1])
 
 
 class EEG98(EEG):
     """EEG packet for 8 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -187,7 +140,8 @@ class EEG98(EEG):
         v_ref = 2.4
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
     def _check_fletcher(self, fletcher):
@@ -199,7 +153,6 @@ class EEG98(EEG):
 
 class EEG99s(EEG):
     """EEG packet for 8 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -211,7 +164,8 @@ class EEG99s(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data[1:, :] * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = np.round(data * v_ref / gain, 2)
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
@@ -223,7 +177,6 @@ class EEG99s(EEG):
 
 class EEG99(EEG):
     """EEG packet for 8 channel device"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -235,7 +188,8 @@ class EEG99(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        self.data = data * v_ref / ((2 ** 23) - 1) / 6.
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = np.round(data * v_ref / gain, 2)
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -246,7 +200,6 @@ class EEG99(EEG):
 
 class Orientation(Packet):
     """Orientation data packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -256,7 +209,7 @@ class Orientation(Packet):
         data = np.copy(np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder('<'))).astype(np.float)
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
-        self.mag = 1.52 *  np.multiply (data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
+        self.mag = 1.52 * np.multiply(data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
         self.theta = None
         self.rot_axis = None
 
@@ -266,18 +219,12 @@ class Orientation(Packet):
     def __str__(self):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
-    def write_to_file(self, recorder):
-        recorder.write_data(np.array([self.timestamp] + self.acc.tolist() +
-                                     self.gyro.tolist() + self.mag.tolist())[:, np.newaxis])
-
-    def push_to_lsl(self, outlet):
-        outlet.push_sample(self.acc.tolist() + self.gyro.tolist() + self.mag.tolist())
-
-    def push_to_dashboard(self, dashboard):
-        data = self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_orn, timestamp=self.timestamp, orn_data=data))
+    def get_data(self, srate=None):
+        """Get orientation timestamp and data"""
+        return [self.timestamp], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
 
     def compute_angle(self, matrix=None):
+        """Compute physical angle"""
         trace = matrix[0][0]+matrix[1][1]+matrix[2][2]
         theta = np.arccos((trace-1)/2)*57.2958
         nx = matrix[2][1] - matrix[1][2]
@@ -291,7 +238,6 @@ class Orientation(Packet):
 
 class Environment(Packet):
     """Environment data packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -313,11 +259,11 @@ class Environment(Packet):
         return "Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(
             self.battery)
 
-    def push_to_dashboard(self, dashboard):
-        data = {'battery': [self.battery_percentage],
+    def get_data(self):
+        """Get environment data"""
+        return {'battery': [self.battery_percentage],
                 'temperature': [self.temperature],
                 'light': [self.light]}
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_info, new=data))
 
     @staticmethod
     def _volt_to_percent(voltage):
@@ -344,7 +290,6 @@ class Environment(Packet):
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -352,34 +297,31 @@ class TimeStamp(Packet):
         self.raw_data = None
 
     def _convert(self, bin_data):
-        self.hostTimeStamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
+        self.host_timestamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xff\xff\xff\xff', "Fletcher error!"
 
     def translate(self):
+        """Translate content to bytearray"""
         now = datetime.now()
         timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
         ts_str = hex(timestamp)
         ts_str = ts_str[2:18]
         host_ts = bytes.fromhex(ts_str)
-        ID = b'\x1B'
-        CNT = b'\x01'
+        pid = b'\x1B'
+        cnt = b'\x01'
         payload_len = b'\x10\x00'  # i.e. 0x0010
         device_ts = b'\x00\x00\x00\x00'
         fletcher = b'\xFF\xFF\xFF\xFF'
-        self.raw_data = ID + CNT + payload_len + device_ts + host_ts + fletcher
+        self.raw_data = pid + cnt + payload_len + device_ts + host_ts + fletcher
 
     def __str__(self):
-        return "Host timestamp: " + str(self.hostTimeStamp)
-
-    def push_to_lsl(self, outlet):
-        outlet.push_sample([1])
+        return "Host timestamp: " + str(self.host_timestamp)
 
 
-class MarkerEvent(Packet):
+class EventMarker(Packet):
     """Marker packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -394,28 +336,21 @@ class MarkerEvent(Packet):
     def __str__(self):
         return "Event marker: " + str(self.marker_code)
 
-    def write_to_file(self, recorder):
-        recorder.set_marker(np.array([self.timestamp, self.marker_code])[:, np.newaxis])
-
-    def push_to_lsl(self, outlet):
-        outlet.push_sample([self.marker_code])
-
-    def push_to_dashboard(self, dashboard):
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_marker,
-                                                     timestamp=self.timestamp,
-                                                     code=self.marker_code))
+    def get_data(self, srate=None):
+        """Get marker data
+        Args:
+            srate: NOT USED. Only for compatibility purpose"""
+        return [self.timestamp], [self.marker_code]
 
 
 class Disconnect(Packet):
     """Disconnect packet"""
-
     def __init__(self, timestamp, payload):
         super().__init__(timestamp, payload)
         self._check_fletcher(payload)
 
     def _convert(self, bin_data):
         """Disconnect packet has no data"""
-        pass
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -426,7 +361,6 @@ class Disconnect(Packet):
 
 class DeviceInfo(Packet):
     """Device information packet"""
-
     def __init__(self, timestamp, payload):
         super(DeviceInfo, self).__init__(timestamp, payload)
         self._convert(payload[:-4])
@@ -435,23 +369,25 @@ class DeviceInfo(Packet):
     def _convert(self, bin_data):
         fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
         self.firmware_version = '.'.join([char for char in str(fw_num)[1:-1]])
-        self.data_rate_info = 16000/(2**bin_data[2])
-        self.adc_mask = bin(bin_data[3])
-        print(self)
+        self.sampling_rate = 16000 / (2 ** bin_data[2])
+        self.adc_mask = [int(bit) for bit in bin(bin_data[3])[2:]]
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
+    def get_info(self):
+        """Get device information as a dictionary"""
+        return dict(firmware_version=self.firmware_version,
+                    adc_mask=self.adc_mask,
+                    sampling_rate=self.sampling_rate)
+
     def __str__(self):
-        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.data_rate_info)\
+        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.sampling_rate)\
                + " Hz" + " - ADC mask: " + str(self.adc_mask)
 
-    def write_to_file(self, recorder):
-        recorder.write_data([self.timestamp, self.firmware_version, self.data_rate_info, self.adc_mask])
-
-    def push_to_dashboard(self, dashboard):
-        data = {'firmware_version': [self.firmware_version]}
-        dashboard.doc.add_next_tick_callback(partial(dashboard.update_info, new=data))
+    def get_data(self):
+        """Get firmware version"""
+        return {'firmware_version': [self.firmware_version]}
 
 
 class CommandRCV(Packet):
@@ -463,7 +399,6 @@ class CommandRCV(Packet):
 
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
-        pass
 
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
@@ -503,6 +438,11 @@ class CalibrationInfo(Packet):
         offset = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=2)
         self.offset = offset * 0.001
 
+    def get_info(self):
+        """Get calibration info"""
+        return {'slope': self.slope,
+                'offset': self.offset}
+
     def _check_fletcher(self, fletcher):
         assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
 
@@ -525,5 +465,5 @@ PACKET_CLASS_DICT = {
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
     PACKET_ID.CALIBINFO: CalibrationInfo,
-    PACKET_ID.MARKER: MarkerEvent
+    PACKET_ID.MARKER: EventMarker
 }
