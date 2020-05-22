@@ -1,6 +1,15 @@
 
 Changelog
 =========
+1.0.0 (22-05-2020)
+------------------
+* Add ExploreSDK as the Bluetooth interface
+* New dark theme
+* Record module in dashboard
+* Improvement in visualization perfrmance
+* CLI migration to Click
+
+
 0.6.0 (17-02-2020)
 ------------------
 * EDF (BDF+) file writer
