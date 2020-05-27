@@ -181,7 +181,7 @@ class SetSPS(Command2B):
         elif sps_rate == 500:
             self.param = b'\x02'
         elif sps_rate == 1000:
-            self.param == b'\x03'
+            self.param = b'\x03'
         else:
             raise ValueError("Invalid input")
 
