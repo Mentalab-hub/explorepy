@@ -15,6 +15,7 @@ from bokeh.transform import dodge
 from bokeh.themes import Theme
 from tornado import gen
 from jinja2 import Template
+from datetime import datetime
 
 from explorepy.tools import HeartRateEstimator
 from explorepy.stream_processor import TOPICS
@@ -102,6 +103,9 @@ class Dashboard:
                      'row':       ['1' for i in range(self.n_chan)],
                      'color':     ['black' for i in range(self.n_chan)]}
         self.imp_source = ColumnDataSource(data=init_data)
+
+        # Init timer source
+        self._timer_source = ColumnDataSource(data={'timer': ['00:00:00']})
 
     def start_server(self):
         """Start bokeh server"""
@@ -528,35 +532,12 @@ class Dashboard:
                                  width=210)
         self.file_name_widget = TextInput(value="test_file", title="File name:", width=210)
         self.file_type_widget = RadioGroup(labels=["EDF (BDF+)", "CSV"], active=0)
-        self.timer = Div(text="00:00:00", width=210, height=30, css_classes=["timer_widget"])
-        callback = CustomJS(args=dict(timer_widget=self.timer, button=self.rec_button), code="""
-                var t;
-                function startTime(offset_d) {
-                    var elapsed_sec = Math.floor((new Date() - offset_d)/1000);
-                    var h = Math.floor(elapsed_sec/60/60);
-                    var m = Math.floor(elapsed_sec/60) % 60;
-                    var s = elapsed_sec % 60;
-                    m = checkTime(m);
-                    s = checkTime(s);
-                    h = checkTime(h);
-                    timer_widget.text =  h + ":" + m + ":" + s;
-                    if (button.active){
-                        t = setTimeout(startTime, 1000, offset_date);
-                    }
-                    else{
-                    timer_widget.text = "00:00:00"
-                    }
-                }
-                function checkTime(i) {
-                    if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
-                    return i;
-                }
-                if (button.active) {
-                    var offset_date = new Date();
-                    startTime(offset_date);
-                }else{clearTimeout(t);}
-            """)
-        self.rec_button.js_on_click(callback)
+        columns = [widgets.TableColumn(field='timer', title="Record time",
+                                       formatter=widgets.StringFormatter(text_align='center'))]
+        self.timer = widgets.DataTable(source=self._timer_source, index_position=None, sortable=False, reorderable=False,
+                                       header_row=False, columns=columns,
+                                       width=210, height=50, css_classes=["timer_widget"])
+
         self.rec_button.on_click(self._toggle_rec)
         return column(Spacer(width=210, height=35), self.file_name_widget, self.file_type_widget, self.rec_button,
                       self.timer)
@@ -568,11 +549,29 @@ class Dashboard:
                                          file_type=['edf', 'csv'][self.file_type_widget.active],
                                          do_overwrite=True)
                 self.rec_button.label = u"\u25A0  Stop"
+                self.rec_start_time = datetime.now()
+                self.rec_timer_id = self.doc.add_periodic_callback(self._timer_callback, 1000)
             else:
                 self.rec_button.active = False
+                self.doc.remove_periodic_callback(self.rec_timer_id)
+                self.doc.add_next_tick_callback(partial(self._update_rec_timer, new_data={'timer': '00:00:00'}))
         else:
             self.explore.stop_recording()
             self.rec_button.label = u"\u25CF  Record"
+            self.doc.add_next_tick_callback(partial(self._update_rec_timer, new_data={'timer': '00:00:00'}))
+            self.doc.remove_periodic_callback(self.rec_timer_id)
+
+    def _timer_callback(self):
+        t_delta = (datetime.now() - self.rec_start_time).seconds
+        timer_text = ':'.join([str(int(t_delta / 3600)).zfill(2), str(int(t_delta / 60) % 60).zfill(2),
+                               str(int(t_delta % 60)).zfill(2)])
+        data = {'timer': timer_text}
+        self.doc.add_next_tick_callback(partial(self._update_rec_timer, new_data=data))
+
+    @gen.coroutine
+    @without_property_validation
+    def _update_rec_timer(self, new_data):
+        self._timer_source.stream(new_data, rollover=1)
 
     def _set_t_range(self, t_length):
         """Change time range of ExG and orientation plots"""
