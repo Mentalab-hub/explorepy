@@ -22,7 +22,7 @@ import numpy as np
 
 from explorepy.dashboard.dashboard import Dashboard
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer, PhysicalOrientation
-from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh
+from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh, ModuleDisable, ModuleEnable
 from explorepy.stream_processor import StreamProcessor, TOPICS
 
 
@@ -319,6 +319,42 @@ class Explore:
             raise TypeError("Input must be an integer!")
         self._check_connection()
         cmd = SetCh(channel_mask)
+        self.stream_processor.configure_device(cmd)
+
+    def disable_module(self, module_name):
+        """Disable module
+
+        Args:
+            module_name (str): Module to be disabled (options: 'ENV', 'ORN', 'EXG')
+
+        Examples:
+            >>> from explorepy.explore import Explore
+            >>> explore = Explore()
+            >>> explore.connect(device_name='Explore_2FA2')
+            >>> explore.disable_module('ORN')
+        """
+        if module_name not in ['ORN', 'ENV', 'EXG']:
+            raise ValueError('Module name must be one of ORN, ENV or EXG.')
+        self._check_connection()
+        cmd = ModuleDisable(module_name)
+        self.stream_processor.configure_device(cmd)
+
+    def enable_module(self, module_name):
+        """Enable module
+
+        Args:
+            module_name (str): Module to be disabled (options: 'ENV', 'ORN', 'EXG')
+
+        Examples:
+            >>> from explorepy.explore import Explore
+            >>> explore = Explore()
+            >>> explore.connect(device_name='Explore_2FA2')
+            >>> explore.enable_module('ORN')
+        """
+        if module_name not in ['ORN', 'ENV', 'EXG']:
+            raise ValueError('Module name must be one of ORN, ENV or EXG.')
+        self._check_connection()
+        cmd = ModuleEnable(module_name)
         self.stream_processor.configure_device(cmd)
 
     def calibrate_orn(self, do_overwrite=False):
