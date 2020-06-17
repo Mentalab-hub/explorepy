@@ -206,7 +206,7 @@ class ModuleDisable(Command2B):
         """
 
         Args:
-            module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
+            module_name (str): Module name to be disabled. Options: "EXG", "ORN", "ENV"
         """
         super().__init__()
         self.opcode = OpcodeID.CMD_MODULE_DISABLE
@@ -214,7 +214,7 @@ class ModuleDisable(Command2B):
             self.param = b'\x01'
         elif module_name == "ORN":
             self.param = b'\x02'
-        elif module_name == "EEG":
+        elif module_name == "EXG":
             self.param = b'\x03'
 
     def __str__(self):
@@ -226,7 +226,7 @@ class ModuleEnable(Command2B):
     def __init__(self, module_name):
         """
         Args:
-            module_name (str): Module name to be disabled. Options: "EEG", "ORN", "ENV"
+            module_name (str): Module name to be disabled. Options: "EXG", "ORN", "ENV"
         """
         super().__init__()
         self.opcode = OpcodeID.CMD_MODULE_ENABLE
@@ -234,7 +234,7 @@ class ModuleEnable(Command2B):
             self.param = b'\x01'
         elif module_name == "ORN":
             self.param = b'\x02'
-        elif module_name == "EEG":
+        elif module_name == "EXG":
             self.param = b'\x03'
 
     def __str__(self):
