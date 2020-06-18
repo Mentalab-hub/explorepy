@@ -6,51 +6,19 @@ Installation
 Requirements for pybluez
 -------------------------
 * Python 3.5 or newer version
-* Bluetooth adapter on your device
+* Visual Studio 2015 community edition (on Windows)
+* Bluetooth header files (on Linux, use this command: ``sudo apt-get install libbluetooth-dev``)
 
 ``explorepy`` is using ``pybluez`` as the bluetooth backend. ``pybluez`` has different dependencies in different operating systems.
 
-Windows
-^^^^^^^
-* Visual C++ build tools
-* Visual Studio 2015 community edition (In order to build 64-bit debug and release executables)
-
-Ubuntu 16.04 or 18.04
-^^^^^^^^^^^^^^^^^^^^^
-* ``sudo apt-get install libbluetooth-dev``
-
-Mac OS
-^^^^^^
-* Xcode
-* PyObjc 3.1b or later
-
-
-Requirements for exploresdk
----------------------------
-* Python 3.5 or newer version
-* Bluetooth adapter on your device
-
-Windows
-^^^^^^^
-* Visual C++ build tools from "https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16"
-  then select from Individual Workloads: C++ build tools
-
-
-Ubuntu 16.04 or 18.04
-^^^^^^^^^^^^^^^^^^^^^
-* ``sudo apt-get install libbluetooth-dev``
-
-
-For more details on pybluez dependencies please see `pybluez docs <https://github.com/pybluez/pybluez>`_.
-
 
 How to install (Windows)
---------------
+------------------------
 
 This instructions guides you to install Explorepy API with all its dependencies on Windows.
 
 1. Install Python 3 on your computer. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Windows installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
-2. Download and install MS Visual Studio Community Edition 2015 from this `link <https://visualstudio.microsoft.com/vs/older-downloads/>`_. Make sure you install Build Tools for Visual Studio 2017 (version 15.9) from this `link <https://my.visualstudio.com/Downloads?q=visual%20studio%202017&wt.mc_id=o~msft~vscom~older-downloads>`_.
+2. Download and install MS Visual Studio Community Edition 2015 from this `link <https://visualstudio.microsoft.com/vs/older-downloads/>`_. You may need to sign in to your Microsoft account to be able to download it. During the installation, select custom installation and in the features list make sure you check **Common tools for Visual C++ 2015** under Visual C++ section and  **Python tools for Visual Studio (January 2017)**.
 3. We recommend using a virtual environment.
 
   * In Conda command prompt: ``conda create -n myenv python=3.6``
