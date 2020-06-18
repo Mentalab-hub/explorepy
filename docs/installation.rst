@@ -3,11 +3,11 @@ Installation
 ============
 
 
-Requirements for pybluez
--------------------------
+Requirements
+------------
 * Python 3.5 or newer version
-* Visual Studio 2015 community edition (on Windows)
-* Bluetooth header files (on Linux, use this command: ``sudo apt-get install libbluetooth-dev``)
+* Visual Studio 2015 community edition (only Windows)
+* Bluetooth header files (only Linux -> use this command: ``sudo apt-get install libbluetooth-dev``)
 
 ``explorepy`` is using ``pybluez`` as the bluetooth backend. ``pybluez`` has different dependencies in different operating systems.
 
