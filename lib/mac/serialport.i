@@ -1,8 +1,11 @@
 %module  serialport
 
 %{
-#include <string>
-
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "ExploreException.h"
+#include "BluetoothWorker.h"
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -16,12 +19,10 @@
 #include <sys/types.h>
 #include <assert.h>
 
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/hci.h>
-#include <bluetooth/hci_lib.h>
-#include <bluetooth/sdp.h>
-#include <bluetooth/sdp_lib.h>
-#include <bluetooth/rfcomm.h>
+#import <Foundation/NSObject.h>
+#import <IOBluetooth/objc/IOBluetoothDevice.h>
+#import <IOBluetooth/objc/IOBluetoothDeviceInquiry.h>
+#import "pipe.h"
 
 #include "BTSerialPortBinding.h"
 %}
