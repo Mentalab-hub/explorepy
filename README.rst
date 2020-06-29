@@ -132,13 +132,16 @@ Authors
 =======
 - `Sebastian Herberger`_
 - `Mohamad Atayi`_
+- `Masooma Fazelian`_
+- `Salman Rahman`_
 - `Philipp Jakovleski`_
 - `Andreas Gutsche`_
-- `Masooma Fazelian`_
+
 
 .. _Sebastian Herberger: https://github.com/SHerberger
 .. _Mohamad Atayi: https://github.com/bmeatayi
 .. _Masooma Fazelian: https://github.com/fazelian
+.. _Salman Rahman: https://github.com/salman2135
 .. _Philipp Jakovleski: https://github.com/philippjak
 .. _Andreas Gutsche: https://github.com/andyman410
 
