@@ -60,11 +60,8 @@ Requirements
 ------------
 
 * Python 3.5 or newer version
-* `numpy <https://github.com/pybluez/pybluez>`_
-* `pybluez 0.22 <https://github.com/pybluez/pybluez>`_ (check their repo for the requirements of pybluez)
-* `pylsl <https://github.com/labstreaminglayer/liblsl-Python>`_
-* `scipy <https://github.com/scipy/scipy>`_
-* `bokeh 1.4.0 <https://github.com/bokeh/bokeh>`_
+* Visual Studio 2015 community edition (only Windows)
+* Bluetooth header files (only Linux -> use this command: ``sudo apt-get install libbluetooth-dev``)
 
 
 Please check `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_ for more detailed instruction.
@@ -135,13 +132,16 @@ Authors
 =======
 - `Sebastian Herberger`_
 - `Mohamad Atayi`_
+- `Masooma Fazelian`_
+- `Salman Rahman`_
 - `Philipp Jakovleski`_
 - `Andreas Gutsche`_
-- `Masooma Fazelian`_
+
 
 .. _Sebastian Herberger: https://github.com/SHerberger
 .. _Mohamad Atayi: https://github.com/bmeatayi
 .. _Masooma Fazelian: https://github.com/fazelian
+.. _Salman Rahman: https://github.com/salman2135
 .. _Philipp Jakovleski: https://github.com/philippjak
 .. _Andreas Gutsche: https://github.com/andyman410
 

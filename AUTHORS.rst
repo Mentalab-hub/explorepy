@@ -2,5 +2,6 @@
 Authors
 =======
 
-* Mohamad Atayi - mentalab.co
-* Philipp Jakovleski - mentalab.co
+* Mohamad Atayi - mentalab.com
+* Masooma Fazelian - mentalab.com
+* Salman Rahman - mentalab.com

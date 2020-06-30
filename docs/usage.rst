@@ -163,7 +163,7 @@ sampling rates are 250, 500 or 1000.::
 
 **set-channel**
 Using this command, you can enable/disable a set of ExG channels of the device. An integer number is required for the
-channel mask, where the binary representation of it shows the mask (eg. 15 for 00001111, to enable 4 channels of an 8-ch device)::
+channel mask, where the binary representation of it shows the mask (eg. 15 for 00001111, to enable 4 channels of an 8-ch device).::
 
     Options:
       -a, --address TEXT              Explore device's MAC address
@@ -174,6 +174,31 @@ channel mask, where the binary representation of it shows the mask (eg. 15 for 0
                                       will be interpreted as mask.  [required]
       --pybluez                       Use pybluez as the bluetooth interface
       -h, --help                      Show this message and exit.
+
+**disable-module**
+Using this command, you can disable a module of Explore device. Orientation, environment and ExG modules can be disabled
+with this command.::
+
+    Options:
+      -a, --address TEXT  Explore device's MAC address
+      -n, --name TEXT     Name of the device
+      -m, --module TEXT   Module name to be disabled, options: ORN, ENV, EXG
+                          [required]
+      --pybluez           Use pybluez as the bluetooth interface
+      -h, --help          Show this message and exit.
+
+
+**enable-module**
+If you have already disabled a module of Explore device, you can enable it with this command.::
+
+    Options:
+      -a, --address TEXT  Explore device's MAC address
+      -n, --name TEXT     Name of the device
+      -m, --module TEXT   Module name to be enabled, options: ORN, ENV, EXG
+                          [required]
+      --pybluez           Use pybluez as the bluetooth interface
+      -h, --help          Show this message and exit.
+
 
 **soft-reset**
 This command does a soft reset of the device. All the settings (e.g. sampling rate, channel mask)

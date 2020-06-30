@@ -186,6 +186,32 @@ def set_channels(address, name, channel_mask, pybluez):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
+@click.option("-m", "--module", required=True, type=str, help="Module name to be disabled, options: ORN, ENV, EXG")
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def disable_module(address, name, module, pybluez):
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
+    explore = explorepy.explore.Explore()
+    explore.connect(mac_address=address, device_name=name)
+    explore.disable_module(module)
+
+
+@cli.command()
+@click.option("--address", "-a", type=str, help="Explore device's MAC address")
+@click.option("--name", "-n", type=str, help="Name of the device")
+@click.option("-m", "--module", required=True, type=str, help="Module name to be enabled, options: ORN, ENV, EXG")
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def enable_module(address, name, module, pybluez):
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
+    explore = explorepy.explore.Explore()
+    explore.connect(mac_address=address, device_name=name)
+    explore.enable_module(module)
+
+
+@cli.command()
+@click.option("--address", "-a", type=str, help="Explore device's MAC address")
+@click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-f", "--filename", help="Name of the file.", required=True,
               type=click.Path(file_okay=True, dir_okay=True, resolve_path=True))
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
