@@ -67,18 +67,19 @@ if not os.environ.get('READTHEDOCS'):
         else:
             my_req.append('pyobjc-core>=3.1,<6')
             my_req.append('pyobjc-framework-Cocoa>=3.1,<6')
-
-        ext_modules_list.append(Extension(
-            name='_exploresdk',
-            sources=[os.path.join(mac_lib_path, 'swig_interface_wrap.cxx'),
-                     os.path.join(mac_lib_path, 'BluetoothDeviceResources.m'),
-                     os.path.join(mac_lib_path, 'BluetoothWorker.m'),
-                     os.path.join(mac_lib_path, 'BTSerialPortBinding.m'),
-                     os.path.join(mac_lib_path, 'DeviceINQ.m'),
-                     os.path.join(mac_lib_path, 'pipe.c')],
-            #extra_compile_args=['-x objective-c++'],
-            swig_opts=['-c++']
-        ))
+        # ext_modules_list.append(Extension(
+        #     name='_exploresdk',
+        #     sources=[os.path.join(mac_lib_path, 'swig_interface_wrap.cxx'),
+        #              os.path.join(mac_lib_path, 'BluetoothDeviceResources.m'),
+        #              os.path.join(mac_lib_path, 'BluetoothWorker.m'),
+        #              os.path.join(mac_lib_path, 'BTSerialPortBinding.m'),
+        #              os.path.join(mac_lib_path, 'DeviceINQ.m'),
+        #              os.path.join(mac_lib_path, 'pipe.c')],
+        #     extra_compile_args=['-x objective-c++'],
+        #     swig_opts=['-c++']
+        # ))
+        #ext_modules_list.append(Extension('_exploresdk', [os.path.join(mac_lib_path, 'swig_interface.i')],
+        #                     swig_opts=['-modern', '-c++']))
 
 setup(
     name='explorepy',
