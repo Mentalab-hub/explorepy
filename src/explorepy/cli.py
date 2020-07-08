@@ -212,14 +212,12 @@ def enable_module(address, name, module, pybluez):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("-f", "--filename", help="Name of the file.", required=True,
-              type=click.Path(file_okay=True, dir_okay=True, resolve_path=True))
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
 @click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
-def calibrate_orn(address, name, filename, overwrite, pybluez):
+def calibrate_orn(address, name, overwrite, pybluez):
     """Calibrate the orientation module of the specified device"""
     if pybluez:
         explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-    explore.calibrate_orn(file_name=filename, do_overwrite=overwrite)
+    explore.calibrate_orn(do_overwrite=overwrite)
