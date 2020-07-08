@@ -216,14 +216,13 @@ class Explore:
         self.stream_processor.stop()
         time.sleep(1)
 
-    def visualize(self, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
+    def visualize(self, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
 
         Args:
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
-            calibre_file (str): Calibration data file name
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
@@ -358,21 +357,24 @@ class Explore:
         self.stream_processor.configure_device(cmd)
 
     def calibrate_orn(self, do_overwrite=False):
-        """
+        """Calibrate orientation module
+
+        This method calibrates orientation sensors in order to get the real physical orientation in addition to raw sensor
+        data. While running this function you would need to move and rotate the device. This function will store
+        calibration info in the configuration file which will be used later during streaming to calculate physical
+        orientation from raw sensor data.
 
         Args:
             do_overwrite: to overwrite the calibration data if already exists or not
 
-        Returns: None
-
         """
-        # phy_orn = PhysicalOrientation()
-        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not(do_overwrite)), " Calibration data already exists!"
+        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not(do_overwrite)), \
+            "Calibration data already exists!"
         PhysicalOrientation.init_dir()
         print("Start recording for 100 seconds, please move the device around during this time, in all directions")
-        file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '/temp_' + self.device_name
-        self.record_data(file_name, do_overwrite=True, duration=10, file_type='csv')
-        time.sleep(11)
+        file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '//temp_' + self.device_name
+        self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
+        time.sleep(105)
         PhysicalOrientation.calibrate(cache_dir=file_name, device_name=self.device_name)
 
     def _check_connection(self):
