@@ -64,6 +64,7 @@ class StreamProcessor:
         self._device_configurator = DeviceConfiguration(bt_interface=self.parser.stream_interface)
         self.subscribe(callback=self._device_configurator.update_ack, topic=TOPICS.cmd_ack)
         self.subscribe(callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
+        self.orn_initialize(device_name)
 
     def open_file(self, bin_file):
         """Open the binary file and read until it gets device info packet
@@ -189,7 +190,7 @@ class StreamProcessor:
             self.physical_orn.status = "READY"
         else:
             self.physical_orn.status = "NOT READY"
-            raise ValueError('calibration data does not exists, please first calibrate your device!')
+            print('Calibration data does not exist. If you need physical orientation, calibrate your device first.')
 
     def set_marker(self, code):
         """Set a marker in the stream"""
