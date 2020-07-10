@@ -9,8 +9,6 @@ Requirements
 * Visual Studio 2015 community edition (only Windows)
 * Bluetooth header files (only Linux -> use this command: ``sudo apt-get install libbluetooth-dev``)
 
-``explorepy`` is using ``pybluez`` as the bluetooth backend. ``pybluez`` has different dependencies in different operating systems.
-
 
 How to install (Windows)
 ------------------------
