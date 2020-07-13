@@ -239,10 +239,13 @@ To use explorepy in a python project::
 	import explorepy
 
 
+.. note:: Since explorepy is using multithreading for data streaming, running python scripts in some consoles such
+as Ipython's or Spyder's consoles may lead to strange behaviours.
+
 Initialization
 ^^^^^^^^^^^^^^
 Before starting a session, make sure your device is paired to your computer. The device will be shown under the following name: Explore_XXXX,
-with the last 4 characters being the last 4 hex numbers of the devices MAC adress
+with the last 4 characters being the last 4 hex numbers of the devices MAC address.
 
 **Make sure to initialize the Bluetooth connection before streaming using the following lines**::
 
