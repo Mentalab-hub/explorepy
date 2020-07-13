@@ -8,9 +8,8 @@ explorepy
 Main API
 ********
 
-.. automodule:: explore
+.. autoclass:: explore.Explore
     :members:
-    :undoc-members:
 
 Bluetooth API
 *************
