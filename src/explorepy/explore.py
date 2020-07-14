@@ -20,7 +20,7 @@ from threading import Timer
 
 import numpy as np
 
-from explorepy.dashboard.dashboard import Dashboard
+from explorepy import Dashboard
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer, PhysicalOrientation
 from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh, ModuleDisable, ModuleEnable
 from explorepy.stream_processor import StreamProcessor, TOPICS
