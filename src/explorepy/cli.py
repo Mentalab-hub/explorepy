@@ -98,18 +98,14 @@ def bin2edf(filename, overwrite):
 @click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
 @click.option("-lf", "--lowfreq", type=float, help="Low cutoff frequency of bandpass/highpass filter.")
 @click.option("-hf", "--highfreq", type=float, help="High cutoff frequency of bandpass/lowpass filter.")
-@click.option("-cf", "--calib-file",
-              help="Calibration file name. If you pass this parameter, ORN module should be ACTIVE! "
-                   "To obtain this file refer to Explore.calibrate_orn module.",
-              type=click.Path(exists=True))
 @click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
-def visualize(address, name, notchfreq, lowfreq, highfreq, calib_file, pybluez):
+def visualize(address, name, notchfreq, lowfreq, highfreq, pybluez):
     """Visualizing signal in a browser-based dashboard"""
     if pybluez:
         explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-    explore.visualize(notch_freq=int(notchfreq), bp_freq=(lowfreq, highfreq), calibre_file=calib_file)
+    explore.visualize(notch_freq=int(notchfreq), bp_freq=(lowfreq, highfreq))
 
 
 @cli.command()
