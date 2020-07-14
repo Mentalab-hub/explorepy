@@ -20,7 +20,7 @@ from threading import Timer
 
 import numpy as np
 
-from explorepy import Dashboard
+import explorepy
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer, PhysicalOrientation
 from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh, ModuleDisable, ModuleEnable
 from explorepy.stream_processor import StreamProcessor, TOPICS
@@ -237,7 +237,7 @@ class Explore:
             elif bp_freq[1]:
                 self.stream_processor.add_filter(cutoff_freq=bp_freq[1], filter_type='lowpass')
 
-        dashboard = Dashboard(explore=self)
+        dashboard = explorepy.Dashboard(explore=self)
         dashboard.start_server()
         dashboard.start_loop()
 
