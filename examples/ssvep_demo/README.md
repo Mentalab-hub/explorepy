@@ -4,10 +4,10 @@ Steady State Visual Evoked Potential (SSVEP) demo
 
 In this example project, we have implemented a simple SSVEP experiment using Mentalab's Explore device.
 Four flickering stimuli are shown on the screen with the following frequencies (assuming a screen with 60 Hz refresh rate).
-* Buttom left: 12 Hz
+* Bottom left: 12 Hz
 * Up left: 10 Hz
 * Up right: 8.6 Hz
-* Buttom right: 7.5 Hz
+* Bottom right: 7.5 Hz
 
 The predicted target based on subject's EEG is shown in the center.
 
