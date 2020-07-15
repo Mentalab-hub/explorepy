@@ -149,9 +149,9 @@ class Explore:
         filename, extension = os.path.splitext(full_filename)
         assert os.path.isfile(bin_file), "Error: File does not exist!"
         assert extension == '.BIN', "File type error! File extension must be BIN."
-        exg_out_file = os.getcwd() + out_dir + filename + '_exg'
-        orn_out_file = os.getcwd() + out_dir + filename + '_orn'
-        marker_out_file = os.getcwd() + out_dir + filename + '_marker'
+        exg_out_file = os.getcwd() + '//' + out_dir + filename + '_exg'
+        orn_out_file = os.getcwd() + '//' + out_dir + filename + '_orn'
+        marker_out_file = os.getcwd() + '//' + out_dir + filename + '_marker'
         self.stream_processor = StreamProcessor()
         self.stream_processor.open_file(bin_file=bin_file)
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
