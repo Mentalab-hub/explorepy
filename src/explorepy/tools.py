@@ -421,6 +421,7 @@ class FileRecorder:
                 self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
             self._csv_obj.writerows(data.T.tolist())
+            self._file_obj.flush()
 
     def set_marker(self, packet):
         """Writes a marker event in the file
