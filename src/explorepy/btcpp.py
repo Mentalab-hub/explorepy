@@ -104,7 +104,8 @@ class SDKBtClient:
             Returns:
                 list of bytes
         """
-        if platform == "win32" or platform == "win64":
+        # platform specific delays are set so that data visualization can happen smoothly
+        if platform == "win32" or platform == "win64" or platform == "darwin":
             time.sleep(.0005)
         else:
             self.implicit_delay()

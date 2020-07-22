@@ -98,6 +98,7 @@ setup(
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
     ext_modules=ext_modules_list,
+    package_data={'': ['exploresdk.so']},
     include_package_data=True,
     zip_safe=False,
     classifiers=[
