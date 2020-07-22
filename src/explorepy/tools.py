@@ -3,7 +3,7 @@
 import datetime
 import os.path
 import csv
-import bluetooth
+#import bluetooth
 import copy
 import numpy as np
 from scipy import signal

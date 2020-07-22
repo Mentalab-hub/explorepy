@@ -6,7 +6,7 @@ import struct
 import asyncio
 
 from explorepy.packet import PACKET_CLASS_DICT
-from explorepy.bt_client import BtClient
+#from explorepy.bt_client import BtClient
 from explorepy.btcpp import SDKBtClient
 import explorepy
 

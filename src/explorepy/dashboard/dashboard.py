@@ -17,7 +17,7 @@ from tornado import gen
 from jinja2 import Template
 from datetime import datetime
 
-from explorepy.tools import HeartRateEstimator
+#from explorepy.tools import HeartRateEstimator
 from explorepy.stream_processor import TOPICS
 
 ORN_SRATE = 20  # Hz

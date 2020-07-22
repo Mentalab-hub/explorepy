@@ -4,20 +4,23 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "ExploreException.h"
+//#include "ExploreException.h"
 #include "BluetoothWorker.h"
-#include <stdio.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <termios.h>
-#include <sys/poll.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <assert.h>
+
+extern "C"{
+    #include <stdio.h>
+    #include <errno.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <stdlib.h>
+    #include <signal.h>
+    #include <termios.h>
+    #include <sys/poll.h>
+    #include <sys/ioctl.h>
+    #include <sys/socket.h>
+    #include <sys/types.h>
+    #include <assert.h>
+}
 
 #import <Foundation/NSObject.h>
 #import <IOBluetooth/objc/IOBluetoothDevice.h>

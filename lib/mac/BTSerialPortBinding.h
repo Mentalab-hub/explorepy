@@ -10,6 +10,7 @@
 #include <memory>
 #include "ExploreExceptionConstants.h"
 
+using namespace std;
 struct bluetooth_data;
 
 class BTSerialPortBinding

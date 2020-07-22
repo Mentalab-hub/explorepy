@@ -1,8 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "BluetoothException.h"
-#include "DeviceINQ.h"
+//include "ExploreException.h"
+#include "ExploreSDK.h"
 
 extern "C"{
     #include <stdio.h>
@@ -47,20 +47,20 @@ namespace {
     }
 }
 
-DeviceINQ *DeviceINQ::Create()
+ExploreSDK *ExploreSDK::Create()
 {
-	return new DeviceINQ();
+	return new ExploreSDK();
 }
 
-DeviceINQ::DeviceINQ()
-{
-}
-
-DeviceINQ::~DeviceINQ()
+ExploreSDK::ExploreSDK()
 {
 }
 
-std::vector<device> DeviceINQ::Inquire(int)
+ExploreSDK::~ExploreSDK()
+{
+}
+
+std::vector<device> ExploreSDK::PerformDeviceSearch(int)
 {
     // The helper executable should be in the same directory as this shared object.
     NSURL* myPath = urlForThisFile();
@@ -95,15 +95,15 @@ std::vector<device> DeviceINQ::Inquire(int)
 		dev.lastUsed = 0;
 
         int cod = j["classOfDevice"];
-		dev.deviceClass = (DeviceClass)(cod & 0x1ffc);
-		dev.majorDeviceClass = (DeviceClass)(cod & DC_Uncategorized);
-	    dev.serviceClass = (ServiceClass)(cod >> 13);
+		//dev.deviceClass = (DeviceClass)(cod & 0x1ffc);
+		//dev.majorDeviceClass = (DeviceClass)(cod & DC_Uncategorized);
+	    //dev.serviceClass = (ServiceClass)(cod >> 13);
 		devices.push_back(dev);
     }
     return devices;
 }
 
-int DeviceINQ::SdpSearch(std::string address)
+int ExploreSDK::SdpSearch(std::string address)
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     NSString *addr = [NSString stringWithCString: address.c_str() encoding: NSASCIIStringEncoding];

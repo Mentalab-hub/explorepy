@@ -160,7 +160,7 @@ static void cond_broadcast(cond_t* c)
 
         // Release all the threads in this generation.
         c->release_count = c->waiters_count;
-        
+
         // Start a new generation.
         c->wait_generation_count++;
     }
@@ -406,18 +406,14 @@ static inline size_t bytes_in_use(snapshot_t s)
         - s.elem_size;
 }
 
-static inline char* wrap_ptr_if_necessary(char* buffer,
-                                          char* p,
-                                          char* bufend)
+static inline char* wrap_ptr_if_necessary(char* buffer,char* p, char* bufend)
 {
     return p == bufend ? buffer : p;
 }
 
 // Runs a memcpy, then returns the end of the range copied.
 // Has identical functionality as mempcpy, but is portable.
-static inline void* offset_memcpy(void* restrict dest,
-                                  const void* restrict src,
-                                  size_t n)
+static inline void* offset_memcpy(void* __restrict dest,const void* __restrict src,size_t n)
 {
     memcpy(dest, src, n);
     return (char*)dest + n;
@@ -999,7 +995,7 @@ void pipe_push_clobber(pipe_producer_t* pp,
 
         // PHASE 2 - Overwrite the beginning of the buffer with new data, until
         //           we hit bufend.
-        
+
         data_left   += pushed;
         amount_left -= pushed;
 
@@ -1018,7 +1014,7 @@ void pipe_push_clobber(pipe_producer_t* pp,
         // call) that we were only copying, at most, max_cap bytes and that the
         // remaining buffer is appropriately sized. Therefore, we just copy any
         // remaining data.
-        
+
         data_left   += pushed;
         amount_left -= pushed;
 
@@ -1193,7 +1189,7 @@ static inline size_t __pipe_pop(pipe_t* p,
 size_t pipe_pop(pipe_consumer_t* p, void* target, size_t count)
 {
     size_t elem_size = __pipe_elem_size(PIPIFY(p));
-    
+
     size_t bytes_left  = count*elem_size;
     size_t bytes_popped = 0;
     size_t ret = -1;

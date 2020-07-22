@@ -1,7 +1,11 @@
+//iostream for debug
+
+#include<iostream>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "ExploreException.h"
+
+//#include "ExploreException.h"
 #include "BTSerialPortBinding.h"
 #include "BluetoothWorker.h"
 
@@ -30,12 +34,11 @@ struct bluetooth_data
 	pipe_consumer_t *consumer;
 };
 
-using namespace std;
+size_t size_buffer;
 
 BTSerialPortBinding *BTSerialPortBinding::Create(string address, int channelID)
 {
-	if (channelID <= 0)
-		throw BluetoothException("ChannelID should be a positive int value");
+		//throw ExploreException("ChannelID should be a positive int value");
 
 	return new BTSerialPortBinding(address, channelID);
 }
@@ -44,20 +47,23 @@ BTSerialPortBinding::BTSerialPortBinding(string address, int channelID)
 	: address(address), channelID(channelID), data(new bluetooth_data())
 {
 	data->consumer = NULL;
+	cout << "address in constructor is  " <<endl;
+	cout << address <<endl;
 }
 
 BTSerialPortBinding::~BTSerialPortBinding()
 {
 }
 
-void BTSerialPortBinding::Connect()
+int BTSerialPortBinding::Connect()
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    cout << address <<endl;
     NSString *addressString = [NSString stringWithCString:address.c_str() encoding:NSASCIIStringEncoding];
     BluetoothWorker *worker = [BluetoothWorker getInstance];
     // create pipe to communicate with delegate
-    pipe_t *pipe = pipe_new(sizeof(unsigned char), 0);
 
+    pipe_t *pipe = pipe_new(sizeof(unsigned char), 0);
 	int status;
 
     IOReturn result = [worker connectDevice: addressString onChannel:channelID withPipe:pipe];
@@ -75,8 +81,12 @@ void BTSerialPortBinding::Connect()
     pipe_free(pipe);
     [pool release];
 
-	if (status != 0)
-		throw BluetoothException("Cannot connect");
+
+	if (status != 0)return -1;
+		//throw ExploreException("Cannot connect");
+	return status;
+
+
 }
 
 void BTSerialPortBinding::Close()
@@ -89,14 +99,18 @@ void BTSerialPortBinding::Close()
 void BTSerialPortBinding::Read(char *buffer, int *length)
 {
     if (data->consumer == NULL)
-        throw BluetoothException("connection has been closed");
+    return;
+        //throw ExploreException("connection has been closed");
 
 	if (buffer == nullptr)
-		throw BluetoothException("buffer cannot be null");
+	return;
+		//throw ExploreException("buffer cannot be null");
 
-    size_t size = pipe_pop_eager(data->consumer, buffer, *length);
+    size_buffer = -1;
 
-    if (size == 0) {
+    size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
+
+    if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
     }
@@ -108,7 +122,9 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 void BTSerialPortBinding::Write(const char *buffer, int length)
 {
 	if (buffer == nullptr)
-		throw BluetoothException("buffer cannot be null");
+	//throw ExploreException("buffer cannot be null");
+	return;
+
 
 	if (length == 0)
 		return;
@@ -118,7 +134,8 @@ void BTSerialPortBinding::Write(const char *buffer, int length)
     NSString *addressString = [NSString stringWithCString:address.c_str() encoding:NSASCIIStringEncoding];
 
     if ([worker writeAsync: const_cast<char*>(buffer) length: length toDevice: addressString] != kIOReturnSuccess)
-        throw BluetoothException("Write was unsuccessful");
+    return;
+        //throw ExploreException("Write was unsuccessful");
 
     [pool release];
 }

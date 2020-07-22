@@ -84,7 +84,8 @@ class SDKBtClient:
             available_list = self.device_manager.PerformDeviceSearch()
 
             for bt_device in available_list:
-                # print('device name is ' + bt_device.name)
+                print('device name is ' + bt_device.name)
+                print('device mac address is '+ bt_device.address)
 
                 if bt_device.name == self.device_name:
                     self.mac_address = bt_device.address
@@ -128,6 +129,7 @@ class SDKBtClient:
 
         string_data = data.decode('utf-8', errors='surrogateescape')
 
+        print('sending write command')
         self.bt_serial_port_manager.Write(data)
 
 
