@@ -20,8 +20,11 @@ def cli(ctx, version, args=None):
 
 
 @cli.command()
-def find_device():
+@click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
+def find_device(pybluez):
     """List available Explore devices."""
+    if pybluez:
+        explorepy.set_bt_interface('pybluez')
     explorepy.tools.bt_scan()
 
 
