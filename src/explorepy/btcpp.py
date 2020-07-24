@@ -111,11 +111,21 @@ class SDKBtClient:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
 
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
+
+            # print("inside python: checking length and type of data")
+            # print('inside python: actual byte data length is ' + str(type(actual_byte_data)))
+            # print('inside python: actual byte data length is ', len(actual_byte_data))
             return actual_byte_data
 
-        except (RuntimeError, OverflowError, AssertionError) as error:
-            print('Runtime Error occured while reading device data, please make sure that the device is on and in '
-                  'advertising mode. ERROR: ', error)
+        # except (OverflowError, AssertionError) as error:
+        #     print('Runtime Error occured while reading device data, please make sure that the device is on and in '
+        #           'advertising mode. ERROR: ', error)
+        # except RuntimeError as error:
+        #     print("inside python: runtime error")
+        #     print("error in reading, the error is " + error)
+        except OSError as error:
+            print("inside python exception###################################")
+            return []
 
 
 
