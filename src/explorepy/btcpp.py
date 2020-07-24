@@ -60,14 +60,18 @@ class SDKBtClient:
         This function reconnects to the the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
-        connection_error_code = self.bt_serial_port_manager.Connect()
-        if connection_error_code != 0:
-            print("Connection failed")
-        else:
-            print("connection success")
 
-        self.bt_serial_port_manager.Close()
         self.is_connected = False
+        for _ in range(5):
+                self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
+                connection_error_code = self.bt_serial_port_manager.Connect()
+                if(connection_error_code == 0):
+                    self.is_connected = True
+                    return
+                else:
+                    self.is_connected = False
+                time.sleep(2)
+
         raise DeviceNotFoundError("Could not find the device! Please make sure the device is on and in"
                                   "advertising mode.")
 
@@ -111,21 +115,15 @@ class SDKBtClient:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
 
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
-
-            # print("inside python: checking length and type of data")
-            # print('inside python: actual byte data length is ' + str(type(actual_byte_data)))
-            # print('inside python: actual byte data length is ', len(actual_byte_data))
             return actual_byte_data
 
-        # except (OverflowError, AssertionError) as error:
-        #     print('Runtime Error occured while reading device data, please make sure that the device is on and in '
-        #           'advertising mode. ERROR: ', error)
-        # except RuntimeError as error:
-        #     print("inside python: runtime error")
-        #     print("error in reading, the error is " + error)
-        except OSError as error:
+        except Exception as error:
             print("inside python exception###################################")
-            return []
+            print(type(error))
+            print(error.args)
+            print(error)
+
+            raise ConnectionAbortedError(error)
 
 
 
