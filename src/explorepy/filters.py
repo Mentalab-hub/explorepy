@@ -38,7 +38,7 @@ class ExGFilter:
             lc_freq = cutoff_freq[0] / nyq_freq
             hc_freq = cutoff_freq[1] / nyq_freq
             if lc_freq <= 0.003:
-                raise ValueError('Transient band for Low Frequency of bandpass filter is too narrow')
+                raise ValueError('Transient band for low cutoff frequency is too narrow. Please try with larger values.')
             b, a = butter(order, [lc_freq, hc_freq], btype='band')
             zi = np.zeros((n_chan, order * 2))
 
