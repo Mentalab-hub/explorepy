@@ -60,14 +60,17 @@ class SDKBtClient:
         This function reconnects to the the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
-        connection_error_code = self.bt_serial_port_manager.Connect()
-        if connection_error_code != 0:
-            print("Connection failed")
-        else:
-            print("connection success")
-
-        self.bt_serial_port_manager.Close()
         self.is_connected = False
+        for _ in range(5):
+                self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
+                connection_error_code = self.bt_serial_port_manager.Connect()
+                if(connection_error_code == 0):
+                    self.is_connected = True
+                    return
+                else:
+                    self.is_connected = False
+                time.sleep(2)
+
         raise DeviceNotFoundError("Could not find the device! Please make sure the device is on and in"
                                   "advertising mode.")
 
@@ -84,7 +87,8 @@ class SDKBtClient:
             available_list = self.device_manager.PerformDeviceSearch()
 
             for bt_device in available_list:
-                # print('device name is ' + bt_device.name)
+                print('device name is ' + bt_device.name)
+                print('device mac address is ' + bt_device.address)
 
                 if bt_device.name == self.device_name:
                     self.mac_address = bt_device.address
@@ -103,6 +107,7 @@ class SDKBtClient:
             Returns:
                 list of bytes
         """
+        # platform specific delays are set so that data visualization can happen smoothly
         if platform == "win32" or platform == "win64":
             time.sleep(.0005)
         else:
@@ -113,9 +118,13 @@ class SDKBtClient:
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
 
-        except (RuntimeError, OverflowError, AssertionError) as error:
-            print('Runtime Error occured while reading device data, please make sure that the device is on and in '
-                  'advertising mode. ERROR: ', error)
+        except Exception as error:
+            print("inside python exception###################################")
+            print(type(error))
+            print(error.args)
+            print(error)
+
+            raise ConnectionAbortedError(error)
 
 
 
@@ -128,6 +137,7 @@ class SDKBtClient:
 
         string_data = data.decode('utf-8', errors='surrogateescape')
 
+        print('sending write command')
         self.bt_serial_port_manager.Write(data)
 
 
