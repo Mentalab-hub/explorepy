@@ -8,6 +8,7 @@ import asyncio
 from explorepy.packet import PACKET_CLASS_DICT
 #from explorepy.bt_client import BtClient
 from explorepy.btcpp import SDKBtClient
+from explorepy._exceptions import FletcherError
 import explorepy
 
 
@@ -71,8 +72,8 @@ class Parser:
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for the last connected device...")
                 self.stream_interface.reconnect()
-            except (IOError, ValueError) as error:
-                print(error)
+            except (IOError, ValueError, FletcherError) as error:
+                print('Conversion ended incomplete. The binary file is corrupted.')
                 self.stop_streaming()
 
     def _generate_packet(self):
@@ -93,6 +94,7 @@ class Parser:
             self.start_time = time.time()
         else:
             timestamp = timestamp * .0001 - self._time_offset   # Timestamp unit is .1 ms
+
         payload_data = self.stream_interface.read(payload - 4)
         packet = self._parse_packet(pid, timestamp, payload_data)
         return packet
@@ -111,11 +113,10 @@ class Parser:
         """
 
         if pid in PACKET_CLASS_DICT:
-            packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
+                packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
         else:
             print("Unknown Packet ID:" + str(pid))
-            print("Length of the binary data:", len(bin_data))
-            packet = None
+            raise ValueError("Unknown Packet ID:" + str(pid))
         return packet
 
 
@@ -134,7 +135,7 @@ class FileHandler:
             n_bytes (int): Number of bytes to be read
         """
         if n_bytes <= 0:
-            raise ValueError('Read length must be a positive number')
+            raise ValueError('Read length must be a positive number!')
         if not self.fid.closed:
             data = self.fid.read(n_bytes)
             if len(data) < n_bytes:
