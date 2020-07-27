@@ -3324,7 +3324,7 @@ SWIG_AsVal_ptrdiff_t (PyObject * obj, ptrdiff_t *val)
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-//#include "ExploreException.h"
+#include "ExploreException.h"
 #include "BluetoothWorker.h"
 
 extern "C"{
@@ -3554,7 +3554,7 @@ SWIG_FromCharPtrAndSize(const char* carray, size_t size)
 }
 
 
-//#include "ExploreException.h"
+#include "ExploreException.h"
 #include "ExploreSDK.h"
 
 
@@ -5769,7 +5769,21 @@ SWIGINTERN PyObject *_wrap_delete_BTSerialPortBinding(PyObject *SWIGUNUSEDPARM(s
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_BTSerialPortBinding" "', argument " "1"" of type '" "BTSerialPortBinding *""'"); 
   }
   arg1 = reinterpret_cast< BTSerialPortBinding * >(argp1);
-  delete arg1;
+  {
+    try {
+      delete arg1;
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -5801,7 +5815,21 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Create(PyObject *SWIGUNUSEDPARM(s
     SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "BTSerialPortBinding_Create" "', argument " "2"" of type '" "int""'");
   } 
   arg2 = static_cast< int >(val2);
-  result = (BTSerialPortBinding *)BTSerialPortBinding::Create(arg1,arg2);
+  {
+    try {
+      result = (BTSerialPortBinding *)BTSerialPortBinding::Create(arg1,arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_BTSerialPortBinding, 0 |  0 );
   return resultobj;
 fail:
@@ -5824,7 +5852,21 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Connect(PyObject *SWIGUNUSEDPARM(
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "BTSerialPortBinding_Connect" "', argument " "1"" of type '" "BTSerialPortBinding *""'"); 
   }
   arg1 = reinterpret_cast< BTSerialPortBinding * >(argp1);
-  result = (int)(arg1)->Connect();
+  {
+    try {
+      result = (int)(arg1)->Connect();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_From_int(static_cast< int >(result));
   return resultobj;
 fail:
@@ -5846,7 +5888,21 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Close(PyObject *SWIGUNUSEDPARM(se
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "BTSerialPortBinding_Close" "', argument " "1"" of type '" "BTSerialPortBinding *""'"); 
   }
   arg1 = reinterpret_cast< BTSerialPortBinding * >(argp1);
-  (arg1)->Close();
+  {
+    try {
+      (arg1)->Close();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -5881,7 +5937,21 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Read(PyObject *SWIGUNUSEDPARM(sel
   arg2 = static_cast< char * >(buff2);
   size2 = static_cast< int >(n2);
   arg3 = &size2;
-  (arg1)->Read(arg2,arg3);
+  {
+    try {
+      (arg1)->Read(arg2,arg3);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_FromCharPtrAndSize(arg2,*arg3));
   if (buff2) delete[] buff2;
@@ -5912,7 +5982,21 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Write(PyObject *SWIGUNUSEDPARM(se
     PyBytes_AsStringAndSize(swig_obj[1], &arg2, &len);
     arg3 = (int)len;
   }
-  (arg1)->Write((char const *)arg2,arg3);
+  {
+    try {
+      (arg1)->Write((char const *)arg2,arg3);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -5935,7 +6019,21 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_IsDataAvailable(PyObject *SWIGUNU
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "BTSerialPortBinding_IsDataAvailable" "', argument " "1"" of type '" "BTSerialPortBinding *""'"); 
   }
   arg1 = reinterpret_cast< BTSerialPortBinding * >(argp1);
-  result = (bool)(arg1)->IsDataAvailable();
+  {
+    try {
+      result = (bool)(arg1)->IsDataAvailable();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_From_bool(static_cast< bool >(result));
   return resultobj;
 fail:
@@ -5967,7 +6065,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_iterator(PyObject *SWIGUNUSEDPARM(self),
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_iterator" "', argument " "1"" of type '" "std::vector< device > *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (swig::SwigPyIterator *)std_vector_Sl_device_Sg__iterator(arg1,arg2);
+  {
+    try {
+      result = (swig::SwigPyIterator *)std_vector_Sl_device_Sg__iterator(arg1,arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_swig__SwigPyIterator, SWIG_POINTER_OWN |  0 );
   return resultobj;
 fail:
@@ -5990,7 +6102,21 @@ SWIGINTERN PyObject *_wrap_vectordevice___nonzero__(PyObject *SWIGUNUSEDPARM(sel
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice___nonzero__" "', argument " "1"" of type '" "std::vector< device > const *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (bool)std_vector_Sl_device_Sg____nonzero__((std::vector< device > const *)arg1);
+  {
+    try {
+      result = (bool)std_vector_Sl_device_Sg____nonzero__((std::vector< device > const *)arg1);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_From_bool(static_cast< bool >(result));
   return resultobj;
 fail:
@@ -6013,7 +6139,21 @@ SWIGINTERN PyObject *_wrap_vectordevice___bool__(PyObject *SWIGUNUSEDPARM(self),
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice___bool__" "', argument " "1"" of type '" "std::vector< device > const *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (bool)std_vector_Sl_device_Sg____bool__((std::vector< device > const *)arg1);
+  {
+    try {
+      result = (bool)std_vector_Sl_device_Sg____bool__((std::vector< device > const *)arg1);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_From_bool(static_cast< bool >(result));
   return resultobj;
 fail:
@@ -6036,7 +6176,21 @@ SWIGINTERN PyObject *_wrap_vectordevice___len__(PyObject *SWIGUNUSEDPARM(self), 
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice___len__" "', argument " "1"" of type '" "std::vector< device > const *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = std_vector_Sl_device_Sg____len__((std::vector< device > const *)arg1);
+  {
+    try {
+      result = std_vector_Sl_device_Sg____len__((std::vector< device > const *)arg1);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_From_size_t(static_cast< size_t >(result));
   return resultobj;
 fail:
@@ -6074,12 +6228,26 @@ SWIGINTERN PyObject *_wrap_vectordevice___getslice__(PyObject *SWIGUNUSEDPARM(se
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "vectordevice___getslice__" "', argument " "3"" of type '" "std::vector< device >::difference_type""'");
   } 
   arg3 = static_cast< std::vector< device >::difference_type >(val3);
-  try {
-    result = (std::vector< device,std::allocator< device > > *)std_vector_Sl_device_Sg____getslice__(arg1,arg2,arg3);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
-  } catch(std::invalid_argument &_e) {
-    SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+  {
+    try {
+      try {
+        result = (std::vector< device,std::allocator< device > > *)std_vector_Sl_device_Sg____getslice__(arg1,arg2,arg3);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      } catch(std::invalid_argument &_e) {
+        SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_std__vectorT_device_std__allocatorT_device_t_t, SWIG_POINTER_OWN |  0 );
   return resultobj;
@@ -6116,12 +6284,26 @@ SWIGINTERN PyObject *_wrap_vectordevice___setslice____SWIG_0(PyObject *SWIGUNUSE
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "vectordevice___setslice__" "', argument " "3"" of type '" "std::vector< device >::difference_type""'");
   } 
   arg3 = static_cast< std::vector< device >::difference_type >(val3);
-  try {
-    std_vector_Sl_device_Sg____setslice____SWIG_0(arg1,arg2,arg3);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
-  } catch(std::invalid_argument &_e) {
-    SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+  {
+    try {
+      try {
+        std_vector_Sl_device_Sg____setslice____SWIG_0(arg1,arg2,arg3);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      } catch(std::invalid_argument &_e) {
+        SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -6171,12 +6353,26 @@ SWIGINTERN PyObject *_wrap_vectordevice___setslice____SWIG_1(PyObject *SWIGUNUSE
     }
     arg4 = ptr;
   }
-  try {
-    std_vector_Sl_device_Sg____setslice____SWIG_1(arg1,arg2,arg3,(std::vector< device,std::allocator< device > > const &)*arg4);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
-  } catch(std::invalid_argument &_e) {
-    SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+  {
+    try {
+      try {
+        std_vector_Sl_device_Sg____setslice____SWIG_1(arg1,arg2,arg3,(std::vector< device,std::allocator< device > > const &)*arg4);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      } catch(std::invalid_argument &_e) {
+        SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_Py_Void();
   if (SWIG_IsNewObj(res4)) delete arg4;
@@ -6278,12 +6474,26 @@ SWIGINTERN PyObject *_wrap_vectordevice___delslice__(PyObject *SWIGUNUSEDPARM(se
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "vectordevice___delslice__" "', argument " "3"" of type '" "std::vector< device >::difference_type""'");
   } 
   arg3 = static_cast< std::vector< device >::difference_type >(val3);
-  try {
-    std_vector_Sl_device_Sg____delslice__(arg1,arg2,arg3);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
-  } catch(std::invalid_argument &_e) {
-    SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+  {
+    try {
+      try {
+        std_vector_Sl_device_Sg____delslice__(arg1,arg2,arg3);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      } catch(std::invalid_argument &_e) {
+        SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -6312,12 +6522,26 @@ SWIGINTERN PyObject *_wrap_vectordevice___delitem____SWIG_0(PyObject *SWIGUNUSED
     SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "vectordevice___delitem__" "', argument " "2"" of type '" "std::vector< device >::difference_type""'");
   } 
   arg2 = static_cast< std::vector< device >::difference_type >(val2);
-  try {
-    std_vector_Sl_device_Sg____delitem____SWIG_0(arg1,arg2);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
-  } catch(std::invalid_argument &_e) {
-    SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+  {
+    try {
+      try {
+        std_vector_Sl_device_Sg____delitem____SWIG_0(arg1,arg2);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      } catch(std::invalid_argument &_e) {
+        SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -6346,12 +6570,26 @@ SWIGINTERN PyObject *_wrap_vectordevice___getitem____SWIG_0(PyObject *SWIGUNUSED
     }
     arg2 = (PySliceObject *) swig_obj[1];
   }
-  try {
-    result = (std::vector< device,std::allocator< device > > *)std_vector_Sl_device_Sg____getitem____SWIG_0(arg1,arg2);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
-  } catch(std::invalid_argument &_e) {
-    SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+  {
+    try {
+      try {
+        result = (std::vector< device,std::allocator< device > > *)std_vector_Sl_device_Sg____getitem____SWIG_0(arg1,arg2);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      } catch(std::invalid_argument &_e) {
+        SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_std__vectorT_device_std__allocatorT_device_t_t, SWIG_POINTER_OWN |  0 );
   return resultobj;
@@ -6392,12 +6630,26 @@ SWIGINTERN PyObject *_wrap_vectordevice___setitem____SWIG_0(PyObject *SWIGUNUSED
     }
     arg3 = ptr;
   }
-  try {
-    std_vector_Sl_device_Sg____setitem____SWIG_0(arg1,arg2,(std::vector< device,std::allocator< device > > const &)*arg3);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
-  } catch(std::invalid_argument &_e) {
-    SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+  {
+    try {
+      try {
+        std_vector_Sl_device_Sg____setitem____SWIG_0(arg1,arg2,(std::vector< device,std::allocator< device > > const &)*arg3);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      } catch(std::invalid_argument &_e) {
+        SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_Py_Void();
   if (SWIG_IsNewObj(res3)) delete arg3;
@@ -6427,12 +6679,26 @@ SWIGINTERN PyObject *_wrap_vectordevice___setitem____SWIG_1(PyObject *SWIGUNUSED
     }
     arg2 = (PySliceObject *) swig_obj[1];
   }
-  try {
-    std_vector_Sl_device_Sg____setitem____SWIG_1(arg1,arg2);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
-  } catch(std::invalid_argument &_e) {
-    SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+  {
+    try {
+      try {
+        std_vector_Sl_device_Sg____setitem____SWIG_1(arg1,arg2);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      } catch(std::invalid_argument &_e) {
+        SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -6460,12 +6726,26 @@ SWIGINTERN PyObject *_wrap_vectordevice___delitem____SWIG_1(PyObject *SWIGUNUSED
     }
     arg2 = (PySliceObject *) swig_obj[1];
   }
-  try {
-    std_vector_Sl_device_Sg____delitem____SWIG_1(arg1,arg2);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
-  } catch(std::invalid_argument &_e) {
-    SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+  {
+    try {
+      try {
+        std_vector_Sl_device_Sg____delitem____SWIG_1(arg1,arg2);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      } catch(std::invalid_argument &_e) {
+        SWIG_exception_fail(SWIG_ValueError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -6540,10 +6820,24 @@ SWIGINTERN PyObject *_wrap_vectordevice___getitem____SWIG_1(PyObject *SWIGUNUSED
     SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "vectordevice___getitem__" "', argument " "2"" of type '" "std::vector< device >::difference_type""'");
   } 
   arg2 = static_cast< std::vector< device >::difference_type >(val2);
-  try {
-    result = (std::vector< device >::value_type *) &std_vector_Sl_device_Sg____getitem____SWIG_1((std::vector< device > const *)arg1,arg2);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+  {
+    try {
+      try {
+        result = (std::vector< device >::value_type *) &std_vector_Sl_device_Sg____getitem____SWIG_1((std::vector< device > const *)arg1,arg2);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_device, 0 |  0 );
   (void)swig::container_owner<swig::traits<std::vector< device >::value_type>::category>::back_reference(resultobj, swig_obj[0]);
@@ -6629,10 +6923,24 @@ SWIGINTERN PyObject *_wrap_vectordevice___setitem____SWIG_2(PyObject *SWIGUNUSED
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "vectordevice___setitem__" "', argument " "3"" of type '" "std::vector< device >::value_type const &""'"); 
   }
   arg3 = reinterpret_cast< std::vector< device >::value_type * >(argp3);
-  try {
-    std_vector_Sl_device_Sg____setitem____SWIG_2(arg1,arg2,(device const &)*arg3);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+  {
+    try {
+      try {
+        std_vector_Sl_device_Sg____setitem____SWIG_2(arg1,arg2,(device const &)*arg3);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -6723,10 +7031,24 @@ SWIGINTERN PyObject *_wrap_vectordevice_pop(PyObject *SWIGUNUSEDPARM(self), PyOb
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_pop" "', argument " "1"" of type '" "std::vector< device > *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  try {
-    result = std_vector_Sl_device_Sg__pop(arg1);
-  } catch(std::out_of_range &_e) {
-    SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+  {
+    try {
+      try {
+        result = std_vector_Sl_device_Sg__pop(arg1);
+      } catch(std::out_of_range &_e) {
+        SWIG_exception_fail(SWIG_IndexError, (&_e)->what());
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
   }
   resultobj = SWIG_NewPointerObj((new std::vector< device >::value_type(static_cast< const std::vector< device >::value_type& >(result))), SWIGTYPE_p_device, SWIG_POINTER_OWN |  0 );
   return resultobj;
@@ -6759,7 +7081,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_append(PyObject *SWIGUNUSEDPARM(self), P
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "vectordevice_append" "', argument " "2"" of type '" "std::vector< device >::value_type const &""'"); 
   }
   arg2 = reinterpret_cast< std::vector< device >::value_type * >(argp2);
-  std_vector_Sl_device_Sg__append(arg1,(device const &)*arg2);
+  {
+    try {
+      std_vector_Sl_device_Sg__append(arg1,(device const &)*arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -6772,7 +7108,21 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_0(PyObject *SWIGUNUSEDPARM(sel
   std::vector< device > *result = 0 ;
   
   if ((nobjs < 0) || (nobjs > 0)) SWIG_fail;
-  result = (std::vector< device > *)new std::vector< device >();
+  {
+    try {
+      result = (std::vector< device > *)new std::vector< device >();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_std__vectorT_device_std__allocatorT_device_t_t, SWIG_POINTER_NEW |  0 );
   return resultobj;
 fail:
@@ -6798,7 +7148,21 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_1(PyObject *SWIGUNUSEDPARM(sel
     }
     arg1 = ptr;
   }
-  result = (std::vector< device > *)new std::vector< device >((std::vector< device > const &)*arg1);
+  {
+    try {
+      result = (std::vector< device > *)new std::vector< device >((std::vector< device > const &)*arg1);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_std__vectorT_device_std__allocatorT_device_t_t, SWIG_POINTER_NEW |  0 );
   if (SWIG_IsNewObj(res1)) delete arg1;
   return resultobj;
@@ -6823,7 +7187,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_empty(PyObject *SWIGUNUSEDPARM(self), Py
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_empty" "', argument " "1"" of type '" "std::vector< device > const *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (bool)((std::vector< device > const *)arg1)->empty();
+  {
+    try {
+      result = (bool)((std::vector< device > const *)arg1)->empty();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_From_bool(static_cast< bool >(result));
   return resultobj;
 fail:
@@ -6846,7 +7224,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_size(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_size" "', argument " "1"" of type '" "std::vector< device > const *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = ((std::vector< device > const *)arg1)->size();
+  {
+    try {
+      result = ((std::vector< device > const *)arg1)->size();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_From_size_t(static_cast< size_t >(result));
   return resultobj;
 fail:
@@ -6878,7 +7270,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_swap(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "vectordevice_swap" "', argument " "2"" of type '" "std::vector< device > &""'"); 
   }
   arg2 = reinterpret_cast< std::vector< device > * >(argp2);
-  (arg1)->swap(*arg2);
+  {
+    try {
+      (arg1)->swap(*arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -6901,7 +7307,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_begin(PyObject *SWIGUNUSEDPARM(self), Py
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_begin" "', argument " "1"" of type '" "std::vector< device > *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (arg1)->begin();
+  {
+    try {
+      result = (arg1)->begin();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(swig::make_output_iterator(static_cast< const std::vector< device >::iterator & >(result)),
     swig::SwigPyIterator::descriptor(),SWIG_POINTER_OWN);
   return resultobj;
@@ -6925,7 +7345,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_end(PyObject *SWIGUNUSEDPARM(self), PyOb
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_end" "', argument " "1"" of type '" "std::vector< device > *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (arg1)->end();
+  {
+    try {
+      result = (arg1)->end();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(swig::make_output_iterator(static_cast< const std::vector< device >::iterator & >(result)),
     swig::SwigPyIterator::descriptor(),SWIG_POINTER_OWN);
   return resultobj;
@@ -6949,7 +7383,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_rbegin(PyObject *SWIGUNUSEDPARM(self), P
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_rbegin" "', argument " "1"" of type '" "std::vector< device > *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (arg1)->rbegin();
+  {
+    try {
+      result = (arg1)->rbegin();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(swig::make_output_iterator(static_cast< const std::vector< device >::reverse_iterator & >(result)),
     swig::SwigPyIterator::descriptor(),SWIG_POINTER_OWN);
   return resultobj;
@@ -6973,7 +7421,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_rend(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_rend" "', argument " "1"" of type '" "std::vector< device > *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (arg1)->rend();
+  {
+    try {
+      result = (arg1)->rend();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(swig::make_output_iterator(static_cast< const std::vector< device >::reverse_iterator & >(result)),
     swig::SwigPyIterator::descriptor(),SWIG_POINTER_OWN);
   return resultobj;
@@ -6996,7 +7458,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_clear(PyObject *SWIGUNUSEDPARM(self), Py
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_clear" "', argument " "1"" of type '" "std::vector< device > *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  (arg1)->clear();
+  {
+    try {
+      (arg1)->clear();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7019,7 +7495,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_get_allocator(PyObject *SWIGUNUSEDPARM(s
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_get_allocator" "', argument " "1"" of type '" "std::vector< device > const *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = ((std::vector< device > const *)arg1)->get_allocator();
+  {
+    try {
+      result = ((std::vector< device > const *)arg1)->get_allocator();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj((new std::vector< device >::allocator_type(static_cast< const std::vector< device >::allocator_type& >(result))), SWIGTYPE_p_std__allocatorT_device_t, SWIG_POINTER_OWN |  0 );
   return resultobj;
 fail:
@@ -7040,7 +7530,21 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_2(PyObject *SWIGUNUSEDPARM(sel
     SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "new_vectordevice" "', argument " "1"" of type '" "std::vector< device >::size_type""'");
   } 
   arg1 = static_cast< std::vector< device >::size_type >(val1);
-  result = (std::vector< device > *)new std::vector< device >(arg1);
+  {
+    try {
+      result = (std::vector< device > *)new std::vector< device >(arg1);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_std__vectorT_device_std__allocatorT_device_t_t, SWIG_POINTER_NEW |  0 );
   return resultobj;
 fail:
@@ -7062,7 +7566,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_pop_back(PyObject *SWIGUNUSEDPARM(self),
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_pop_back" "', argument " "1"" of type '" "std::vector< device > *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  (arg1)->pop_back();
+  {
+    try {
+      (arg1)->pop_back();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7090,7 +7608,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_resize__SWIG_0(PyObject *SWIGUNUSEDPARM(
     SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "vectordevice_resize" "', argument " "2"" of type '" "std::vector< device >::size_type""'");
   } 
   arg2 = static_cast< std::vector< device >::size_type >(val2);
-  (arg1)->resize(arg2);
+  {
+    try {
+      (arg1)->resize(arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7125,7 +7657,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_erase__SWIG_0(PyObject *SWIGUNUSEDPARM(s
       SWIG_exception_fail(SWIG_ArgError(SWIG_TypeError), "in method '" "vectordevice_erase" "', argument " "2"" of type '" "std::vector< device >::iterator""'");
     }
   }
-  result = std_vector_Sl_device_Sg__erase__SWIG_0(arg1,arg2);
+  {
+    try {
+      result = std_vector_Sl_device_Sg__erase__SWIG_0(arg1,arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(swig::make_output_iterator(static_cast< const std::vector< device >::iterator & >(result)),
     swig::SwigPyIterator::descriptor(),SWIG_POINTER_OWN);
   return resultobj;
@@ -7175,7 +7721,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_erase__SWIG_1(PyObject *SWIGUNUSEDPARM(s
       SWIG_exception_fail(SWIG_ArgError(SWIG_TypeError), "in method '" "vectordevice_erase" "', argument " "3"" of type '" "std::vector< device >::iterator""'");
     }
   }
-  result = std_vector_Sl_device_Sg__erase__SWIG_1(arg1,arg2,arg3);
+  {
+    try {
+      result = std_vector_Sl_device_Sg__erase__SWIG_1(arg1,arg2,arg3);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(swig::make_output_iterator(static_cast< const std::vector< device >::iterator & >(result)),
     swig::SwigPyIterator::descriptor(),SWIG_POINTER_OWN);
   return resultobj;
@@ -7257,7 +7817,21 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_3(PyObject *SWIGUNUSEDPARM(sel
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "new_vectordevice" "', argument " "2"" of type '" "std::vector< device >::value_type const &""'"); 
   }
   arg2 = reinterpret_cast< std::vector< device >::value_type * >(argp2);
-  result = (std::vector< device > *)new std::vector< device >(arg1,(std::vector< device >::value_type const &)*arg2);
+  {
+    try {
+      result = (std::vector< device > *)new std::vector< device >(arg1,(std::vector< device >::value_type const &)*arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_std__vectorT_device_std__allocatorT_device_t_t, SWIG_POINTER_NEW |  0 );
   return resultobj;
 fail:
@@ -7344,7 +7918,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_push_back(PyObject *SWIGUNUSEDPARM(self)
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "vectordevice_push_back" "', argument " "2"" of type '" "std::vector< device >::value_type const &""'"); 
   }
   arg2 = reinterpret_cast< std::vector< device >::value_type * >(argp2);
-  (arg1)->push_back((std::vector< device >::value_type const &)*arg2);
+  {
+    try {
+      (arg1)->push_back((std::vector< device >::value_type const &)*arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7367,7 +7955,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_front(PyObject *SWIGUNUSEDPARM(self), Py
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_front" "', argument " "1"" of type '" "std::vector< device > const *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (std::vector< device >::value_type *) &((std::vector< device > const *)arg1)->front();
+  {
+    try {
+      result = (std::vector< device >::value_type *) &((std::vector< device > const *)arg1)->front();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_device, 0 |  0 );
   (void)swig::container_owner<swig::traits<std::vector< device >::value_type>::category>::back_reference(resultobj, swig_obj[0]);
   return resultobj;
@@ -7391,7 +7993,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_back(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_back" "', argument " "1"" of type '" "std::vector< device > const *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = (std::vector< device >::value_type *) &((std::vector< device > const *)arg1)->back();
+  {
+    try {
+      result = (std::vector< device >::value_type *) &((std::vector< device > const *)arg1)->back();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_device, 0 |  0 );
   (void)swig::container_owner<swig::traits<std::vector< device >::value_type>::category>::back_reference(resultobj, swig_obj[0]);
   return resultobj;
@@ -7432,7 +8048,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_assign(PyObject *SWIGUNUSEDPARM(self), P
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "vectordevice_assign" "', argument " "3"" of type '" "std::vector< device >::value_type const &""'"); 
   }
   arg3 = reinterpret_cast< std::vector< device >::value_type * >(argp3);
-  (arg1)->assign(arg2,(std::vector< device >::value_type const &)*arg3);
+  {
+    try {
+      (arg1)->assign(arg2,(std::vector< device >::value_type const &)*arg3);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7471,7 +8101,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_resize__SWIG_1(PyObject *SWIGUNUSEDPARM(
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "vectordevice_resize" "', argument " "3"" of type '" "std::vector< device >::value_type const &""'"); 
   }
   arg3 = reinterpret_cast< std::vector< device >::value_type * >(argp3);
-  (arg1)->resize(arg2,(std::vector< device >::value_type const &)*arg3);
+  {
+    try {
+      (arg1)->resize(arg2,(std::vector< device >::value_type const &)*arg3);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7567,7 +8211,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_insert__SWIG_0(PyObject *SWIGUNUSEDPARM(
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "vectordevice_insert" "', argument " "3"" of type '" "std::vector< device >::value_type const &""'"); 
   }
   arg3 = reinterpret_cast< std::vector< device >::value_type * >(argp3);
-  result = std_vector_Sl_device_Sg__insert__SWIG_0(arg1,arg2,(device const &)*arg3);
+  {
+    try {
+      result = std_vector_Sl_device_Sg__insert__SWIG_0(arg1,arg2,(device const &)*arg3);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(swig::make_output_iterator(static_cast< const std::vector< device >::iterator & >(result)),
     swig::SwigPyIterator::descriptor(),SWIG_POINTER_OWN);
   return resultobj;
@@ -7621,7 +8279,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_insert__SWIG_1(PyObject *SWIGUNUSEDPARM(
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "vectordevice_insert" "', argument " "4"" of type '" "std::vector< device >::value_type const &""'"); 
   }
   arg4 = reinterpret_cast< std::vector< device >::value_type * >(argp4);
-  std_vector_Sl_device_Sg__insert__SWIG_1(arg1,arg2,arg3,(device const &)*arg4);
+  {
+    try {
+      std_vector_Sl_device_Sg__insert__SWIG_1(arg1,arg2,arg3,(device const &)*arg4);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7708,7 +8380,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_reserve(PyObject *SWIGUNUSEDPARM(self), 
     SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "vectordevice_reserve" "', argument " "2"" of type '" "std::vector< device >::size_type""'");
   } 
   arg2 = static_cast< std::vector< device >::size_type >(val2);
-  (arg1)->reserve(arg2);
+  {
+    try {
+      (arg1)->reserve(arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -7731,7 +8417,21 @@ SWIGINTERN PyObject *_wrap_vectordevice_capacity(PyObject *SWIGUNUSEDPARM(self),
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "vectordevice_capacity" "', argument " "1"" of type '" "std::vector< device > const *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  result = ((std::vector< device > const *)arg1)->capacity();
+  {
+    try {
+      result = ((std::vector< device > const *)arg1)->capacity();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_From_size_t(static_cast< size_t >(result));
   return resultobj;
 fail:
@@ -7753,7 +8453,21 @@ SWIGINTERN PyObject *_wrap_delete_vectordevice(PyObject *SWIGUNUSEDPARM(self), P
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_vectordevice" "', argument " "1"" of type '" "std::vector< device > *""'"); 
   }
   arg1 = reinterpret_cast< std::vector< device > * >(argp1);
-  delete arg1;
+  {
+    try {
+      delete arg1;
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -8171,7 +8885,21 @@ SWIGINTERN PyObject *_wrap_new_device(PyObject *SWIGUNUSEDPARM(self), PyObject *
   device *result = 0 ;
   
   if (!SWIG_Python_UnpackTuple(args, "new_device", 0, 0, 0)) SWIG_fail;
-  result = (device *)new device();
+  {
+    try {
+      result = (device *)new device();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_device, SWIG_POINTER_NEW |  0 );
   return resultobj;
 fail:
@@ -8193,7 +8921,21 @@ SWIGINTERN PyObject *_wrap_delete_device(PyObject *SWIGUNUSEDPARM(self), PyObjec
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_device" "', argument " "1"" of type '" "device *""'"); 
   }
   arg1 = reinterpret_cast< device * >(argp1);
-  delete arg1;
+  {
+    try {
+      delete arg1;
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -8226,7 +8968,21 @@ SWIGINTERN PyObject *_wrap_delete_ExploreSDK(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_ExploreSDK" "', argument " "1"" of type '" "ExploreSDK *""'"); 
   }
   arg1 = reinterpret_cast< ExploreSDK * >(argp1);
-  delete arg1;
+  {
+    try {
+      delete arg1;
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -8239,7 +8995,21 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_Create(PyObject *SWIGUNUSEDPARM(self), PyO
   ExploreSDK *result = 0 ;
   
   if (!SWIG_Python_UnpackTuple(args, "ExploreSDK_Create", 0, 0, 0)) SWIG_fail;
-  result = (ExploreSDK *)ExploreSDK::Create();
+  {
+    try {
+      result = (ExploreSDK *)ExploreSDK::Create();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_ExploreSDK, 0 |  0 );
   return resultobj;
 fail:
@@ -8268,7 +9038,21 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_PerformDeviceSearch__SWIG_0(PyObject *SWIG
     SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "ExploreSDK_PerformDeviceSearch" "', argument " "2"" of type '" "int""'");
   } 
   arg2 = static_cast< int >(val2);
-  result = (arg1)->PerformDeviceSearch(arg2);
+  {
+    try {
+      result = (arg1)->PerformDeviceSearch(arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = swig::from(static_cast< std::vector< device,std::allocator< device > > >(result));
   return resultobj;
 fail:
@@ -8289,7 +9073,21 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_PerformDeviceSearch__SWIG_1(PyObject *SWIG
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ExploreSDK_PerformDeviceSearch" "', argument " "1"" of type '" "ExploreSDK *""'"); 
   }
   arg1 = reinterpret_cast< ExploreSDK * >(argp1);
-  result = (arg1)->PerformDeviceSearch();
+  {
+    try {
+      result = (arg1)->PerformDeviceSearch();
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = swig::from(static_cast< std::vector< device,std::allocator< device > > >(result));
   return resultobj;
 fail:
@@ -8363,7 +9161,21 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_SdpSearch(PyObject *SWIGUNUSEDPARM(self), 
     arg2 = *ptr;
     if (SWIG_IsNewObj(res)) delete ptr;
   }
-  result = (int)(arg1)->SdpSearch(arg2);
+  {
+    try {
+      result = (int)(arg1)->SdpSearch(arg2);
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
   resultobj = SWIG_From_int(static_cast< int >(result));
   return resultobj;
 fail:

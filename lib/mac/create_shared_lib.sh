@@ -29,16 +29,18 @@
 #/Library/Frameworks/Python.framework/Versions/3.7/
 
 swig -python -c++ -py3 -extranative -debug-classes swig_interface.i
-c++ -c -fpic swig_interface_wrap.cxx -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++
+c++ -c -fpic swig_interface_wrap.cxx -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++ -std=c++11
 
-c++ -c -fpic BluetoothDeviceResources.mm -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++
+c++ -c -fpic BluetoothDeviceResources.mm -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++ -std=c++11
 
-c++ -c -fpic BluetoothWorker.mm -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++
+c++ -c -fpic BluetoothWorker.mm -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++ -std=c++11
 
-c++ -c -fpic BTSerialPortBinding.mm -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++
+c++ -c -fpic BTSerialPortBinding.mm -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++ -std=c++11
 
-c++ -c -fpic -std=c++11 DeviceINQ.mm -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++
+c++ -c -fpic -std=c++11 DeviceINQ.mm -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++ -std=c++11
 
 gcc  -c -fpic pipe.c -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m
 
 c++ -shared -flat_namespace -undefined suppress BTSerialPortBinding.o DeviceINQ.o BluetoothDeviceResources.o BluetoothWorker.o pipe.o  swig_interface_wrap.o -std=c++11  -framework foundation -framework IOBluetooth -o _exploresdk.so
+
+rm -rf *.o

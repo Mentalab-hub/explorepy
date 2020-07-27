@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-//#include "ExploreException.h"
+#include "ExploreException.h"
 #include "BTSerialPortBinding.h"
 #include "BluetoothWorker.h"
 
@@ -100,11 +100,11 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 {
     if (data->consumer == NULL)
     return;
-        //throw ExploreException("connection has been closed");
+        throw ExploreException("connection has been closed");
 
 	if (buffer == nullptr)
 	return;
-		//throw ExploreException("buffer cannot be null");
+		throw ExploreException("buffer cannot be null");
 
     size_buffer = -1;
 
@@ -113,6 +113,7 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
+        throw ExploreReadBufferException("error in reading from bluetooth buffer");
     }
 
     // when no data is read from rfcomm the connection has been closed.
@@ -135,7 +136,7 @@ void BTSerialPortBinding::Write(const char *buffer, int length)
 
     if ([worker writeAsync: const_cast<char*>(buffer) length: length toDevice: addressString] != kIOReturnSuccess)
     return;
-        //throw ExploreException("Write was unsuccessful");
+        throw ExploreException("Write was unsuccessful");
 
     [pool release];
 }

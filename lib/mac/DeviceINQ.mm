@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-//include "ExploreException.h"
+#include "ExploreException.h"
 #include "ExploreSDK.h"
 
 extern "C"{

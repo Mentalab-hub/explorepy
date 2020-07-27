@@ -1,7 +1,7 @@
 %module exploresearch
 
 %{
-//#include "ExploreException.h"
+#include "ExploreException.h"
 #include "ExploreSDK.h"
 
 %}

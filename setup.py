@@ -19,7 +19,7 @@ from setuptools import Extension
 from setuptools.command.develop import develop
 from setuptools.command.install import install
 
-
+data_files = dict()
 def read(*names, **kwargs):
     with io.open(
         join(dirname(__file__), *names),
@@ -31,7 +31,6 @@ def read(*names, **kwargs):
 my_req = ['numpy', 'scipy', 'pyedflib==0.1.15', 'click==7.0', 'appdirs==1.4.3']
 ext_modules_list = []
 if not os.environ.get('READTHEDOCS'):
-    # my_req.append('pybluez==0.22')  # Add pybluez if the environment is other than READTHEDOCS
     my_req.append('pylsl')
     my_req.append('bokeh==1.4.0')
 
@@ -60,27 +59,14 @@ if not os.environ.get('READTHEDOCS'):
             swig_opts=['-c++']
         ))
     else:
-        mac_lib_path = os.path.join(libPath, 'mac_new')
         if sys.version_info >= (3, 6):
             my_req.append('pyobjc-core>=6')
             my_req.append('pyobjc-framework-Cocoa>=6')
         else:
             my_req.append('pyobjc-core>=3.1,<6')
             my_req.append('pyobjc-framework-Cocoa>=3.1,<6')
-        # os.environ["CC"] = "clang++"
-        # ext_modules_list.append(Extension(name='_exploresdk',
-        #                                      sources=[os.path.join(mac_lib_path, 'swig_interface_wrap.cxx'),
-        #                                               os.path.join(mac_lib_path, 'BluetoothDeviceResources.m'),
-        #                                               os.path.join(mac_lib_path, 'BluetoothWorker.m'),
-        #                                               os.path.join(mac_lib_path, 'BTSerialPortBinding.m'),
-        #                                               os.path.join(mac_lib_path, 'DeviceINQ.m'),
-        #                                              os.path.join(mac_lib_path, 'pipe.c')],
-        #                                     extra_compile_args=['-ObjC++'],
-        #                                     #extra_link_args=['-FOUNDATION -lbluetooth -fobjc-arc'],
-        #                                     swig_opts=['-modern', '-py3', '-c++']
-        #                                     ))
-        #ext_modules_list.append(Extension('_exploresdk', [os.path.join(mac_lib_path, 'swig_interface.i')], swig_opts=['-modern', '-py3', '-c++']))
-
+            data_files['lib'] = 'lib/mac/_exploresdk.so'
+            data_files['exe'] = 'lib/mac/btscan'
 setup(
     name='explorepy',
     version='1.0.0',
@@ -97,7 +83,7 @@ setup(
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
-    data_files=[('lib', ['lib/_exploresdk.so'])],
+    data_files = data_files,
     ext_modules=ext_modules_list,
     include_package_data=True,
     zip_safe=False,
