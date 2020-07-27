@@ -5,6 +5,8 @@ from enum import IntEnum
 from datetime import datetime
 import numpy as np
 
+from explorepy._exceptions import FletcherError
+
 
 class PACKET_ID(IntEnum):
     """Packet ID enum"""
@@ -121,7 +123,8 @@ class EEG94(EEG):
         self.data_status = data[0, :]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.data_status[-1])
@@ -145,7 +148,8 @@ class EEG98(EEG):
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
@@ -169,7 +173,8 @@ class EEG99s(EEG):
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
@@ -192,7 +197,8 @@ class EEG99(EEG):
         self.data = np.round(data * v_ref / gain, 2)
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1])
@@ -214,7 +220,8 @@ class Orientation(Packet):
         self.rot_axis = None
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
@@ -253,7 +260,8 @@ class Environment(Packet):
         self.battery_percentage = self._volt_to_percent(self.battery)
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(
@@ -300,7 +308,8 @@ class TimeStamp(Packet):
         self.host_timestamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xff\xff\xff\xff', "Fletcher error!"
+        if not fletcher == b'\xff\xff\xff\xff':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def translate(self):
         """Translate content to bytearray"""
@@ -331,7 +340,8 @@ class EventMarker(Packet):
         self.marker_code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "Event marker: " + str(self.marker_code)
@@ -353,7 +363,8 @@ class Disconnect(Packet):
         """Disconnect packet has no data"""
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "Device has been disconnected!"
@@ -373,7 +384,8 @@ class DeviceInfo(Packet):
         self.adc_mask = [int(bit) for bit in bin(bin_data[3])[2:]]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def get_info(self):
         """Get device information as a dictionary"""
@@ -401,7 +413,8 @@ class CommandRCV(Packet):
         self.opcode = bin_data[0]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "an acknowledge message for command with this opcode has been received: " + str(self.opcode)
@@ -419,7 +432,8 @@ class CommandStatus(Packet):
         self.status = bin_data[5]
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode)
@@ -444,7 +458,8 @@ class CalibrationInfo(Packet):
                 'offset': self.offset}
 
     def _check_fletcher(self, fletcher):
-        assert fletcher == b'\xaf\xbe\xad\xde', "Fletcher error!"
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
 
     def __str__(self):
         return "calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset)
