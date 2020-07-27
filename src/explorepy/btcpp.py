@@ -60,6 +60,7 @@ class SDKBtClient:
         This function reconnects to the the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
+        
         self.is_connected = False
         for _ in range(5):
                 self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
@@ -119,11 +120,6 @@ class SDKBtClient:
             return actual_byte_data
 
         except Exception as error:
-            print("inside python exception###################################")
-            print(type(error))
-            print(error.args)
-            print(error)
-
             raise ConnectionAbortedError(error)
 
 
