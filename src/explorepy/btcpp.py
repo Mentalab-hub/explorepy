@@ -60,7 +60,7 @@ class SDKBtClient:
         This function reconnects to the the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
-
+        
         self.is_connected = False
         for _ in range(5):
                 self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
@@ -88,7 +88,8 @@ class SDKBtClient:
             available_list = self.device_manager.PerformDeviceSearch()
 
             for bt_device in available_list:
-                # print('device name is ' + bt_device.name)
+                print('device name is ' + bt_device.name)
+                print('device mac address is ' + bt_device.address)
 
                 if bt_device.name == self.device_name:
                     self.mac_address = bt_device.address
@@ -107,6 +108,7 @@ class SDKBtClient:
             Returns:
                 list of bytes
         """
+        # platform specific delays are set so that data visualization can happen smoothly
         if platform == "win32" or platform == "win64":
             time.sleep(.0005)
         else:
@@ -118,11 +120,6 @@ class SDKBtClient:
             return actual_byte_data
 
         except Exception as error:
-            print("inside python exception###################################")
-            print(type(error))
-            print(error.args)
-            print(error)
-
             raise ConnectionAbortedError(error)
 
 
@@ -136,6 +133,7 @@ class SDKBtClient:
 
         string_data = data.decode('utf-8', errors='surrogateescape')
 
+        print('sending write command')
         self.bt_serial_port_manager.Write(data)
 
 

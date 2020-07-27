@@ -86,7 +86,6 @@ int BTSerialPortBinding::Connect()
 
 	// connect to server
 	int status = connect(data->s, (struct sockaddr *)&addr, sizeof(addr));
-	//fprintf(stdout, " the status code of connect method is %d\n", status);
 
 	int sock_flags = fcntl(data->s, F_GETFL, 0);
 	fcntl(data->s, F_SETFL, sock_flags | O_NONBLOCK);
