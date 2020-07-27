@@ -19,3 +19,9 @@ class DeviceNotFoundError(IOError):
     pass
 
 
+class FletcherError(Exception):
+    """
+    Fletcher value error
+    """
+    pass
+
