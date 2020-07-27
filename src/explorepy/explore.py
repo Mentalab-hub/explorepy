@@ -20,7 +20,7 @@ from threading import Timer
 
 import numpy as np
 
-from explorepy.dashboard.dashboard import Dashboard
+import explorepy
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer, PhysicalOrientation
 from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh, ModuleDisable, ModuleEnable
 from explorepy.stream_processor import StreamProcessor, TOPICS
@@ -116,10 +116,10 @@ class Explore:
 
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-        self.stream_processor.subscribe(callback=self.recorders['exg'].set_marker, topic=TOPICS.marker)
+        self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
         print("Recording...")
-        rec_timer = Timer(duration, self.stop_recording)
-        rec_timer.start()
+        self.recorders['timer'] = Timer(duration, self.stop_recording)
+        self.recorders['timer'].start()
 
     def stop_recording(self):
         """Stop recording"""
@@ -130,6 +130,8 @@ class Explore:
         self.recorders['orn'].stop()
         if self.recorders['exg'].file_type == 'csv':
             self.recorders['marker'].stop()
+        if self.recorders['timer'].is_alive():
+            self.recorders['timer'].cancel()
         print('Recording stopped.')
 
     def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False):
@@ -149,9 +151,9 @@ class Explore:
         filename, extension = os.path.splitext(full_filename)
         assert os.path.isfile(bin_file), "Error: File does not exist!"
         assert extension == '.BIN', "File type error! File extension must be BIN."
-        exg_out_file = os.getcwd() + out_dir + filename + '_exg'
-        orn_out_file = os.getcwd() + out_dir + filename + '_orn'
-        marker_out_file = os.getcwd() + out_dir + filename + '_marker'
+        exg_out_file = os.getcwd() + '//' + out_dir + filename + '_exg'
+        orn_out_file = os.getcwd() + '//' + out_dir + filename + '_orn'
+        marker_out_file = os.getcwd() + '//' + out_dir + filename + '_marker'
         self.stream_processor = StreamProcessor()
         self.stream_processor.open_file(bin_file=bin_file)
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
@@ -216,14 +218,13 @@ class Explore:
         self.stream_processor.stop()
         time.sleep(1)
 
-    def visualize(self, bp_freq=(1, 30), notch_freq=50, calibre_file=None):
+    def visualize(self, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
 
         Args:
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
-            calibre_file (str): Calibration data file name
         """
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
 
@@ -238,7 +239,7 @@ class Explore:
             elif bp_freq[1]:
                 self.stream_processor.add_filter(cutoff_freq=bp_freq[1], filter_type='lowpass')
 
-        dashboard = Dashboard(explore=self)
+        dashboard = explorepy.Dashboard(explore=self)
         dashboard.start_server()
         dashboard.start_loop()
 
@@ -258,7 +259,7 @@ class Explore:
         self.stream_processor.imp_initialize(notch_freq=notch_freq)
 
         try:
-            dashboard = Dashboard(explore=self, mode='impedance')
+            dashboard = explorepy.Dashboard(explore=self, mode='impedance')
             dashboard.start_server()
             dashboard.start_loop()
         except KeyboardInterrupt:
@@ -358,21 +359,24 @@ class Explore:
         self.stream_processor.configure_device(cmd)
 
     def calibrate_orn(self, do_overwrite=False):
-        """
+        """Calibrate orientation module
+
+        This method calibrates orientation sensors in order to get the real physical orientation in addition to raw sensor
+        data. While running this function you would need to move and rotate the device. This function will store
+        calibration info in the configuration file which will be used later during streaming to calculate physical
+        orientation from raw sensor data.
 
         Args:
             do_overwrite: to overwrite the calibration data if already exists or not
 
-        Returns: None
-
         """
-        # phy_orn = PhysicalOrientation()
-        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not(do_overwrite)), " Calibration data already exists!"
+        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not(do_overwrite)), \
+            "Calibration data already exists!"
         PhysicalOrientation.init_dir()
         print("Start recording for 100 seconds, please move the device around during this time, in all directions")
-        file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '/temp_' + self.device_name
-        self.record_data(file_name, do_overwrite=True, duration=10, file_type='csv')
-        time.sleep(11)
+        file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '//temp_' + self.device_name
+        self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
+        time.sleep(105)
         PhysicalOrientation.calibrate(cache_dir=file_name, device_name=self.device_name)
 
     def _check_connection(self):

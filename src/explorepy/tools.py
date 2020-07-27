@@ -3,16 +3,15 @@
 import datetime
 import os.path
 import csv
-#import bluetooth
 import copy
 import numpy as np
 from scipy import signal
 import pyedflib
 from pylsl import StreamInfo, StreamOutlet
-from appdirs import user_config_dir
 import configparser
 from appdirs import user_cache_dir, user_config_dir
 
+import explorepy
 from explorepy.filters import ExGFilter
 
 EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
@@ -32,12 +31,21 @@ def bt_scan():
 
     """
     print("Searching for nearby devices...")
-    nearby_devices = bluetooth.discover_devices(lookup_names=True)
     explore_devices = []
-    for address, name in nearby_devices:
-        if "Explore" in name:
-            print("Device found: %s - %s" % (name, address))
-            explore_devices.append((address, name))
+    if explorepy._bt_interface == 'sdk':
+        device_manager = explorepy.exploresdk.ExploreSDK_Create()
+        nearby_devices = device_manager.PerformDeviceSearch()
+        for bt_device in nearby_devices:
+            if "Explore" in bt_device.name:
+                print("Device found: %s - %s" % (bt_device.name, bt_device.address))
+                explore_devices.append((bt_device.name, bt_device.address))
+    else:
+        import bluetooth
+        nearby_devices = bluetooth.discover_devices(lookup_names=True)
+        for address, name in nearby_devices:
+            if "Explore" in name:
+                print("Device found: %s - %s" % (name, address))
+                explore_devices.append((address, name))
 
     if not nearby_devices:
         print("No Devices found")
@@ -421,6 +429,7 @@ class FileRecorder:
                 self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
             self._csv_obj.writerows(data.T.tolist())
+            self._file_obj.flush()
 
     def set_marker(self, packet):
         """Writes a marker event in the file

@@ -77,8 +77,8 @@ setup(
         re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
         re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
     ),
-    author='Mohamad Atayi',
-    author_email='bmeatayi@gmail.com',
+    author='Mentalab GmbH.',
+    author_email='mohamad.atayi@mentalab.com',
     url='https://github.com/Mentalab-hub/explorepy',
     packages=find_packages('src'),
     package_dir={'': 'src'},

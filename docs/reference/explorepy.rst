@@ -8,9 +8,8 @@ explorepy
 Main API
 ********
 
-.. automodule:: explore
+.. autoclass:: explore.Explore
     :members:
-    :undoc-members:
 
 Bluetooth API
 *************
@@ -32,8 +31,6 @@ Dashboard
 *********
 .. autoclass:: dashboard.dashboard.Dashboard
     :members:
-
-    .. automethod:: update_exg(self, time_vector, ExG)
 
 
 Additional tools

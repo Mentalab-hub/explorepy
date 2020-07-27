@@ -4,7 +4,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath('../src/explorepy/'))
-autodoc_mock_imports = ['pybluez', 'bluetooth', 'pylsl', 'bokeh', 'tornado']
+autodoc_mock_imports = ['pybluez', 'bluetooth', 'pylsl', 'bokeh', 'tornado',
+                        'explorepy.exploresdk', 'explorepy._exploresdk']
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -25,8 +26,8 @@ if os.getenv('SPELLCHECK'):
 source_suffix = '.rst'
 master_doc = 'index'
 project = 'explorepy'
-year = '2018-2019'
-author = 'Mohamad Atayi'
+year = '2018-2020'
+author = 'Mentalab GmbH.'
 copyright = '{0}, {1}'.format(year, author)
 version = release = '1.0.0'
 
