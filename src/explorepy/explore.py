@@ -155,7 +155,7 @@ class Explore:
         orn_out_file = os.getcwd() + '//' + out_dir + filename + '_orn'
         marker_out_file = os.getcwd() + '//' + out_dir + filename + '_marker'
         self.stream_processor = StreamProcessor()
-        self.stream_processor.open_file(bin_file=bin_file)
+        self.stream_processor.read_device_info(bin_file=bin_file)
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],
                                                     fs=self.stream_processor.device_info['sampling_rate'],
@@ -193,7 +193,7 @@ class Explore:
                     self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
 
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
-        self.stream_processor.read()
+        self.stream_processor.open_file(bin_file=bin_file)
         print("Converting...")
         while self.stream_processor.is_connected:
             time.sleep(.1)

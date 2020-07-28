@@ -74,13 +74,10 @@ class StreamProcessor:
         self.parser = Parser(callback=self.process, mode='file')
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
-        while not self.device_info:
-            time.sleep(.001)
-        self.parser.is_waiting = True
 
-    def read(self):
-        """Start reading the binary file"""
-        self.parser.is_waiting = False
+    def read_device_info(self, bin_file):
+        self.parser = Parser(callback=self.process, mode='file')
+        self.parser.read_device_info(bin_file)
 
     def stop(self):
         """Stop streaming"""
