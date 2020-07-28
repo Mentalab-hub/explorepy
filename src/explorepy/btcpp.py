@@ -46,11 +46,11 @@ class SDKBtClient:
                     return
                 else:
                     self.is_connected = False
-                    print(return_code, "\nCould not connect; Retrying in 2s...")
+                    print("\nCould not connect; Retrying in 2s...")
                     time.sleep(2)
             except:
                 self.is_connected = False
-                print(return_code, "\nCould not connect; Retrying in 2s...")
+                print("\nCould not connect; Retrying in 2s...")
                 time.sleep(2)
 
     def reconnect(self):
@@ -116,7 +116,8 @@ class SDKBtClient:
             return actual_byte_data
 
         except Exception as error:
-            raise ConnectionAbortedError(error)
+            if error.args[0] == "EMPTY_BUFFER_ERROR":
+                raise ConnectionAbortedError(error)
 
     def send(self, data):
         """Send data to the device

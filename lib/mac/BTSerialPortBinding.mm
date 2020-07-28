@@ -113,7 +113,7 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
-        throw ExploreReadBufferException("error in reading from bluetooth buffer");
+        throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
     }
 
     // when no data is read from rfcomm the connection has been closed.

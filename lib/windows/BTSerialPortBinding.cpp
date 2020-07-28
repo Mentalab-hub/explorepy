@@ -139,7 +139,7 @@ void BTSerialPortBinding::Read(char *buffer, int* length)
         if(size == 0){
         memset( buffer, '\0', sizeof(char)* *length );
         //cout << "inside C++: throwing exception from C++" << endl;
-        throw ExploreReadBufferException(" Could not read bluetooth buffer data");
+        throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
         }
 		}
 
