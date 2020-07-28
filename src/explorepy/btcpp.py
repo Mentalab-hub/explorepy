@@ -48,7 +48,6 @@ class SDKBtClient:
                     self.is_connected = False
                     print(return_code, "\nCould not connect; Retrying in 2s...")
                     time.sleep(2)
-
             except:
                 self.is_connected = False
                 print(return_code, "\nCould not connect; Retrying in 2s...")
@@ -60,7 +59,7 @@ class SDKBtClient:
         This function reconnects to the the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
-        
+
         self.is_connected = False
         for _ in range(5):
                 self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
@@ -88,9 +87,6 @@ class SDKBtClient:
             available_list = self.device_manager.PerformDeviceSearch()
 
             for bt_device in available_list:
-                print('device name is ' + bt_device.name)
-                print('device mac address is ' + bt_device.address)
-
                 if bt_device.name == self.device_name:
                     self.mac_address = bt_device.address
                     return
@@ -122,8 +118,6 @@ class SDKBtClient:
         except Exception as error:
             raise ConnectionAbortedError(error)
 
-
-
     def send(self, data):
         """Send data to the device
 
@@ -132,19 +126,14 @@ class SDKBtClient:
         """
 
         string_data = data.decode('utf-8', errors='surrogateescape')
-
-        print('sending write command')
         self.bt_serial_port_manager.Write(data)
-
 
     def implicit_delay(self):
         """Delay function for bluetooth data
-
         """
         sys.stdout = open(os.devnull, 'w')
         print(" ")
         sys.stdout = sys.__stdout__
-
 
     @staticmethod
     def _check_mac_address(device_name, mac_address):
