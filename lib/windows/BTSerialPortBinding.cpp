@@ -131,15 +131,21 @@ void BTSerialPortBinding::Read(char *buffer, int* length)
 	if (select(static_cast<int>(data->s) + 1, &set, nullptr, nullptr, nullptr/*&timeout*/) >= 0)
 	{
 		if (FD_ISSET(data->s, &set)){
-		    //cout << "inside C++: asking for data of "<< *length << " byte" << endl;
-            size = recv(data->s, buffer, *length, 0);
-			//cout << "inside C++: size of read data is " << size << endl;
+		try{
+		    size = recv(data->s, buffer, *length, 0);
+		}
+		catch(const std::exception& e){
+		    cout << "INSIDE STD::EXCEPTION" << endl;
+            throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+		}
+		catch(const std::runtime_error& e){
+            cout << "INSIDE STD::RUNTIME_ERROR" << endl;
+            throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+		}
 
 		// checking if data is read properly
         if(size == 0){
-        memset( buffer, '\0', sizeof(char)* *length );
-        //cout << "inside C++: throwing exception from C++" << endl;
-        throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+            throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
         }
 		}
 

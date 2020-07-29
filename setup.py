@@ -30,12 +30,14 @@ def read(*names, **kwargs):
 
 my_req = ['numpy', 'scipy', 'pyedflib==0.1.15', 'click==7.0', 'appdirs==1.4.3']
 ext_modules_list = []
-if not os.environ.get('READTHEDOCS'):
+current_platform = sys.platform
+
+if not os.environ.get('READTHEDOCS') and current_platform != 'darwin':
+    my_req.append('pybluez==0.22')
     my_req.append('pylsl')
     my_req.append('bokeh==1.4.0')
 
     libPath = "lib"
-    current_platform = sys.platform
     if current_platform == 'win32' or current_platform == 'win64':
         windows_lib_path = os.path.join(libPath, 'windows')
         ext_modules_list.append(Extension(

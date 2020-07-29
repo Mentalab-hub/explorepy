@@ -5756,7 +5756,7 @@ SWIGINTERN PyObject *_wrap_delete_BTSerialPortBinding(PyObject *SWIGUNUSEDPARM(s
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -5802,7 +5802,7 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Create(PyObject *SWIGUNUSEDPARM(s
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -5839,7 +5839,7 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Connect(PyObject *SWIGUNUSEDPARM(
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -5875,7 +5875,7 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Close(PyObject *SWIGUNUSEDPARM(se
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -5924,7 +5924,7 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Read(PyObject *SWIGUNUSEDPARM(sel
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -5969,7 +5969,7 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Write(PyObject *SWIGUNUSEDPARM(se
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6006,7 +6006,7 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_IsDataAvailable(PyObject *SWIGUNU
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6052,7 +6052,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_iterator(PyObject *SWIGUNUSEDPARM(self),
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6089,7 +6089,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___nonzero__(PyObject *SWIGUNUSEDPARM(sel
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6126,7 +6126,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___bool__(PyObject *SWIGUNUSEDPARM(self),
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6163,7 +6163,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___len__(PyObject *SWIGUNUSEDPARM(self), 
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6221,7 +6221,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___getslice__(PyObject *SWIGUNUSEDPARM(se
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6277,7 +6277,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___setslice____SWIG_0(PyObject *SWIGUNUSE
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6346,7 +6346,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___setslice____SWIG_1(PyObject *SWIGUNUSE
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6467,7 +6467,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___delslice__(PyObject *SWIGUNUSEDPARM(se
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6515,7 +6515,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___delitem____SWIG_0(PyObject *SWIGUNUSED
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6563,7 +6563,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___getitem____SWIG_0(PyObject *SWIGUNUSED
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6623,7 +6623,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___setitem____SWIG_0(PyObject *SWIGUNUSED
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6672,7 +6672,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___setitem____SWIG_1(PyObject *SWIGUNUSED
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6719,7 +6719,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___delitem____SWIG_1(PyObject *SWIGUNUSED
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6811,7 +6811,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___getitem____SWIG_1(PyObject *SWIGUNUSED
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6914,7 +6914,7 @@ SWIGINTERN PyObject *_wrap_vectordevice___setitem____SWIG_2(PyObject *SWIGUNUSED
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7022,7 +7022,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_pop(PyObject *SWIGUNUSEDPARM(self), PyOb
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7068,7 +7068,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_append(PyObject *SWIGUNUSEDPARM(self), P
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7095,7 +7095,7 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_0(PyObject *SWIGUNUSEDPARM(sel
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7135,7 +7135,7 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_1(PyObject *SWIGUNUSEDPARM(sel
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7174,7 +7174,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_empty(PyObject *SWIGUNUSEDPARM(self), Py
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7211,7 +7211,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_size(PyObject *SWIGUNUSEDPARM(self), PyO
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7257,7 +7257,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_swap(PyObject *SWIGUNUSEDPARM(self), PyO
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7294,7 +7294,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_begin(PyObject *SWIGUNUSEDPARM(self), Py
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7332,7 +7332,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_end(PyObject *SWIGUNUSEDPARM(self), PyOb
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7370,7 +7370,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_rbegin(PyObject *SWIGUNUSEDPARM(self), P
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7408,7 +7408,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_rend(PyObject *SWIGUNUSEDPARM(self), PyO
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7445,7 +7445,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_clear(PyObject *SWIGUNUSEDPARM(self), Py
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7482,7 +7482,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_get_allocator(PyObject *SWIGUNUSEDPARM(s
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7517,7 +7517,7 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_2(PyObject *SWIGUNUSEDPARM(sel
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7553,7 +7553,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_pop_back(PyObject *SWIGUNUSEDPARM(self),
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7595,7 +7595,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_resize__SWIG_0(PyObject *SWIGUNUSEDPARM(
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7644,7 +7644,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_erase__SWIG_0(PyObject *SWIGUNUSEDPARM(s
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7708,7 +7708,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_erase__SWIG_1(PyObject *SWIGUNUSEDPARM(s
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7804,7 +7804,7 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_3(PyObject *SWIGUNUSEDPARM(sel
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7905,7 +7905,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_push_back(PyObject *SWIGUNUSEDPARM(self)
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7942,7 +7942,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_front(PyObject *SWIGUNUSEDPARM(self), Py
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7980,7 +7980,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_back(PyObject *SWIGUNUSEDPARM(self), PyO
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8035,7 +8035,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_assign(PyObject *SWIGUNUSEDPARM(self), P
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8088,7 +8088,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_resize__SWIG_1(PyObject *SWIGUNUSEDPARM(
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8198,7 +8198,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_insert__SWIG_0(PyObject *SWIGUNUSEDPARM(
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8266,7 +8266,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_insert__SWIG_1(PyObject *SWIGUNUSEDPARM(
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8367,7 +8367,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_reserve(PyObject *SWIGUNUSEDPARM(self), 
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8404,7 +8404,7 @@ SWIGINTERN PyObject *_wrap_vectordevice_capacity(PyObject *SWIGUNUSEDPARM(self),
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8440,7 +8440,7 @@ SWIGINTERN PyObject *_wrap_delete_vectordevice(PyObject *SWIGUNUSEDPARM(self), P
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8490,7 +8490,7 @@ SWIGINTERN PyObject *_wrap_new_ExploreException(PyObject *SWIGUNUSEDPARM(self), 
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8527,7 +8527,7 @@ SWIGINTERN PyObject *_wrap_ExploreException_what(PyObject *SWIGUNUSEDPARM(self),
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8563,7 +8563,7 @@ SWIGINTERN PyObject *_wrap_delete_ExploreException(PyObject *SWIGUNUSEDPARM(self
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8613,7 +8613,7 @@ SWIGINTERN PyObject *_wrap_new_ExploreReadBufferException(PyObject *SWIGUNUSEDPA
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8650,7 +8650,7 @@ SWIGINTERN PyObject *_wrap_ExploreReadBufferException_what(PyObject *SWIGUNUSEDP
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8686,7 +8686,7 @@ SWIGINTERN PyObject *_wrap_delete_ExploreReadBufferException(PyObject *SWIGUNUSE
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9118,7 +9118,7 @@ SWIGINTERN PyObject *_wrap_new_device(PyObject *SWIGUNUSEDPARM(self), PyObject *
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9154,7 +9154,7 @@ SWIGINTERN PyObject *_wrap_delete_device(PyObject *SWIGUNUSEDPARM(self), PyObjec
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9201,7 +9201,7 @@ SWIGINTERN PyObject *_wrap_delete_ExploreSDK(PyObject *SWIGUNUSEDPARM(self), PyO
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9228,7 +9228,7 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_Create(PyObject *SWIGUNUSEDPARM(self), PyO
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9271,7 +9271,7 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_PerformDeviceSearch__SWIG_0(PyObject *SWIG
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9306,7 +9306,7 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_PerformDeviceSearch__SWIG_1(PyObject *SWIG
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9394,7 +9394,7 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_SdpSearch(PyObject *SWIGUNUSEDPARM(self), 
       SWIG_exception(SWIG_ValueError, e.what());
     }
     catch(const ExploreReadBufferException& e) {
-      SWIG_exception(SWIG_IOError, e.what());
+      SWIG_exception(SWIG_MemoryError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
