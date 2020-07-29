@@ -60,6 +60,14 @@ file for the marker events. In EDF mode, the data is actually recorded in BDF+ f
       --pybluez                 Use pybluez as the bluetooth interface
       -h, --help                Show this message and exit.
 
+.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
+            `mne <https://github.com/mne-tools/mne-python>`_ (file extension may need to change to bdf manually for mne)
+            in python.
+
+            EEGLAB's BIOSIG plugin has problem with some EDF files currently
+            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled Matlab code from BIOSIG can
+            be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_.
+
 **push2lsl**
 Streams data to Lab Streaming Layer (LSL).::
 
@@ -94,6 +102,14 @@ The data is actually recorded in BDF+ format (in 24-bit resolution).::
       -h, --help           Show this message and exit.
 
 .. note:: For devices with firmware version 2.1.1 and lower, explorepy v0.5.0 has to be used to convert binary files.
+
+.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
+            `mne <https://github.com/mne-tools/mne-python>`_ (file extension may need to change to bdf manually for mne)
+            in python.
+
+            EEGLAB's BIOSIG plugin has problem with some EDF files currently
+            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled Matlab code from BIOSIG can
+            be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_.
 
 **visualize**
 Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported browser. The visualization in other browsers might be slow.::
