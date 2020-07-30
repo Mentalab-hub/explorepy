@@ -71,8 +71,12 @@ class Parser:
                 self.callback(packet=packet)
             except ConnectionAbortedError:
                 print("Device has been disconnected! Scanning for the last connected device...")
-                self.stream_interface.reconnect()
+                if self.stream_interface.reconnect() is None:
+                    print("Could not find the device! Please make sure the device is on and in advertising mode.")
+                    self.stop_streaming()
+                    print("Press Ctrl+c to exit...")
             except (IOError, ValueError, FletcherError) as error:
+                print(error)
                 print('Conversion ended incomplete. The binary file is corrupted.')
                 self.stop_streaming()
 

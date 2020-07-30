@@ -23,6 +23,7 @@ class SDKBtClient:
         self.is_connected = False
         self.mac_address = mac_address
         self.device_name = device_name
+        self.bt_serial_port_manager = None
 
     def connect(self):
         """Connect to the device and return the socket
@@ -64,15 +65,15 @@ class SDKBtClient:
         for _ in range(5):
                 self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
                 connection_error_code = self.bt_serial_port_manager.Connect()
-                if(connection_error_code == 0):
+                if connection_error_code == 0:
                     self.is_connected = True
-                    return
+                    print('Connected to the device')
+                    return self.bt_serial_port_manager
                 else:
                     self.is_connected = False
-                time.sleep(2)
+                    time.sleep(2)
 
-        raise DeviceNotFoundError("Could not find the device! Please make sure the device is on and in"
-                                  "advertising mode.")
+        return None
 
     def disconnect(self):
         """Disconnect from the device"""
