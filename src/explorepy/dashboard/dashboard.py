@@ -17,7 +17,7 @@ from tornado import gen
 from jinja2 import Template
 from datetime import datetime
 
-#from explorepy.tools import HeartRateEstimator
+from explorepy.tools import HeartRateEstimator
 from explorepy.stream_processor import TOPICS
 
 ORN_SRATE = 20  # Hz
@@ -52,7 +52,7 @@ class Dashboard:
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
         self.chan_key_list = [CHAN_LIST[i]
-                              for i, mask in enumerate(self.stream_processor.device_info['adc_mask']) if mask == 1]
+                              for i, mask in enumerate(reversed(self.stream_processor.device_info['adc_mask'])) if mask == 1]
         self.exg_mode = 'EEG'
         self.rr_estimator = None
         self.win_length = WIN_LENGTH
@@ -98,7 +98,7 @@ class Dashboard:
         self.fft_source = ColumnDataSource(data=init_data)
 
         # Init impedance measurement source
-        init_data = {'channel':   [CHAN_LIST[i] for i in range(0, self.n_chan)],
+        init_data = {'channel':   self.chan_key_list,
                      'impedance': ['NA' for i in range(self.n_chan)],
                      'row':       ['1' for i in range(self.n_chan)],
                      'color':     ['black' for i in range(self.n_chan)]}
@@ -222,7 +222,7 @@ class Dashboard:
                     imp_status.append("<5K\u03A9")  # As the ADS is not precise in low values.
 
             data = {"impedance": imp_status,
-                    'channel':   [CHAN_LIST[i] for i in range(0, self.n_chan)],
+                    'channel':   self.chan_key_list,
                     'row':       ['1' for i in range(self.n_chan)],
                     'color':     color
                     }
@@ -328,8 +328,8 @@ class Dashboard:
         self.y_unit = 10 ** (-new)
 
         for chan, value in self._exg_source_ds.data.items():
-            if chan in CHAN_LIST:
-                temp_offset = self.offsets[CHAN_LIST.index(chan)]
+            if chan in self.chan_key_list:
+                temp_offset = self.offsets[self.chan_key_list.index(chan)]
                 self._exg_source_ds.data[chan] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
         self._r_peak_source.data['r_peak'] = (np.array(self._r_peak_source.data['r_peak']) - self.offsets[0]) * \
                                              (old_unit / self.y_unit) + self.offsets[0]
@@ -428,9 +428,9 @@ class Dashboard:
 
         # Initial plot line
         for i in range(self.n_chan):
-            self.exg_plot.line(x='t', y=CHAN_LIST[i], source=self._exg_source_ds,
+            self.exg_plot.line(x='t', y=self.chan_key_list[i], source=self._exg_source_ds,
                                line_width=1.0, alpha=.9, line_color="#42C4F7")
-            self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend_label=CHAN_LIST[i] + " ",
+            self.fft_plot.line(x='f', y=self.chan_key_list[i], source=self.fft_source, legend_label=self.chan_key_list[i] + " ",
                                line_width=1.0, alpha=.9, line_color=FFT_COLORS[i])
         self.fft_plot.yaxis.axis_label_text_font_style = 'normal'
         self.exg_plot.line(x='t', y='marker', source=self._marker_source,
@@ -449,8 +449,7 @@ class Dashboard:
         self._set_t_range(WIN_LENGTH)
 
         # Set the formatting of yaxis ticks' labels
-        self.exg_plot.yaxis[0].formatter = PrintfTickFormatter(format="Ch %i")
-
+        self.exg_plot.yaxis.major_label_overrides = dict(zip(range(1, self.n_chan+1), self.chan_key_list))
         for plot in self.plot_list:
             plot.toolbar.autohide = True
             plot.yaxis.axis_label_text_font_style = 'normal'
@@ -460,7 +459,7 @@ class Dashboard:
                 plot.legend.padding = 2
 
     def _init_imp_plot(self):
-        plot = figure(plot_width=600, plot_height=200, x_range=CHAN_LIST[0:self.n_chan],
+        plot = figure(plot_width=600, plot_height=200, x_range=self.chan_key_list[0:self.n_chan],
                       y_range=[str(1)], toolbar_location=None)
 
         plot.circle(x='channel', y="row", radius=.3, source=self.imp_source, fill_alpha=0.6, color="color",
