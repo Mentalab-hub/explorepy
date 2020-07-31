@@ -381,7 +381,7 @@ class DeviceInfo(Packet):
         fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
         self.firmware_version = '.'.join([char for char in str(fw_num)[1:-1]])
         self.sampling_rate = 16000 / (2 ** bin_data[2])
-        self.adc_mask = [int(bit) for bit in bin(bin_data[3])[2:]]
+        self.adc_mask = [int(bit) for bit in format(bin_data[3], '#010b')[2:]]
 
     def _check_fletcher(self, fletcher):
         if not fletcher == b'\xaf\xbe\xad\xde':
