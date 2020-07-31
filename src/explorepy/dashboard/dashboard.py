@@ -294,6 +294,9 @@ class Dashboard:
         if self.exg_mode == 'EEG':
             self._heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
+        if CHAN_LIST[0] not in self.chan_key_list:
+            print('WARNING: Heart rate estimation works only when channel 1 is enabled.')
+            return
         if self.rr_estimator is None:
             self.rr_estimator = HeartRateEstimator(fs=self.exg_fs)
             # Init R-peaks plot
