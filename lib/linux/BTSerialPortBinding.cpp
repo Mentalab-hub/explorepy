@@ -130,7 +130,7 @@ void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
 			cout << "length is " << *bt_length << "size is " <<  size << endl;
 			if(size < 0)
 			{
-                throw ExploreReadBufferException("Error reading data from bluetooth buffer.....");
+                throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
 			}
 
 
