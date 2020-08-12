@@ -8,12 +8,6 @@ from explorepy import exploresdk
 
 from explorepy._exceptions import DeviceNotFoundError, InputError
 
-from Foundation import NSObject, NSDate, NSPoint, NSDefaultRunLoopMode, NSTimer
-from AppKit import NSApplication, NSEvent, NSApplicationDefined, NSAnyEventMask
-
-LIGHTBLUE_NOTIFY_ID = 5444 # any old number
-WAIT_MAX_TIMEOUT = 3
-
 class SDKBtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
     def __init__(self, device_name=None, mac_address=None):
@@ -123,8 +117,6 @@ class SDKBtClient:
             return actual_byte_data
 
         except Exception as error:
-            print("Python: exception ..................." )
-            print(error.args)
             if error.args[0] == "EMPTY_BUFFER_ERROR":
                 raise ConnectionAbortedError(error)
 

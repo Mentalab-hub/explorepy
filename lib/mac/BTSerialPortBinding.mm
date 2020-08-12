@@ -83,10 +83,6 @@ int BTSerialPortBinding::Connect()
 
 
 	if (status != 0)return -1;
-		//throw ExploreException("Cannot connect");
-	return status;
-
-
 }
 
 void BTSerialPortBinding::Close()
@@ -106,10 +102,7 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 
     size_buffer = -1;
 
-    //cout << "Exploresdk: querying for " << *length << " bytes of data";
-    //changed to pipe_pop for testing read functionality
     size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
-    //cout << "Exploresdk: buffer size is .." << size_buffer;
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
