@@ -8,6 +8,11 @@ from explorepy import exploresdk
 
 from explorepy._exceptions import DeviceNotFoundError, InputError
 
+from Foundation import NSObject, NSDate, NSPoint, NSDefaultRunLoopMode, NSTimer
+from AppKit import NSApplication, NSEvent, NSApplicationDefined, NSAnyEventMask
+
+LIGHTBLUE_NOTIFY_ID = 5444 # any old number
+WAIT_MAX_TIMEOUT = 3
 
 class SDKBtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
@@ -108,15 +113,18 @@ class SDKBtClient:
         # platform specific delays are set so that data visualization can happen smoothly
         if platform == "win32" or platform == "win64":
             time.sleep(.0005)
+        elif platform == 'darwin':
+            self.implicit_delay(.001)
         else:
-            self.implicit_delay()
+            self.implicit_delay(.002)
         try:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
-
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
 
         except Exception as error:
+            print("Python: exception ..................." )
+            print(error.args)
             if error.args[0] == "EMPTY_BUFFER_ERROR":
                 raise ConnectionAbortedError(error)
 
@@ -130,17 +138,17 @@ class SDKBtClient:
         string_data = data.decode('utf-8', errors='surrogateescape')
         self.bt_serial_port_manager.Write(data)
 
-    def implicit_delay(self):
+    def implicit_delay(self, delay_length):
         """Delay function for bluetooth data
         """
         sys.stdout = open(os.devnull, 'w')
+        time.sleep(delay_length)
         print(" ")
         sys.stdout = sys.__stdout__
 
     @staticmethod
     def _check_mac_address(device_name, mac_address):
         return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])
-
 
 
 

@@ -100,20 +100,19 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 {
     if (data->consumer == NULL)
     return;
-        throw ExploreException("connection has been closed");
 
 	if (buffer == nullptr)
 	return;
-		throw ExploreException("buffer cannot be null");
 
     size_buffer = -1;
 
+    //cout << "Exploresdk: querying for " << *length << " bytes of data";
+    //changed to pipe_pop for testing read functionality
     size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
-
+    //cout << "Exploresdk: buffer size is .." << size_buffer;
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
-        throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
     }
 
     // when no data is read from rfcomm the connection has been closed.
@@ -136,7 +135,6 @@ void BTSerialPortBinding::Write(const char *buffer, int length)
 
     if ([worker writeAsync: const_cast<char*>(buffer) length: length toDevice: addressString] != kIOReturnSuccess)
     return;
-        throw ExploreException("Write was unsuccessful");
 
     [pool release];
 }
