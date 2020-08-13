@@ -31,6 +31,8 @@ Available Commands
 **find-device**
 Scans for nearby explore-devices. Prints out Name and MAC address of the found devices.
 
+.. note:: On Windows, this function prints all paired devices.
+
 
 **acquire**::
 
