@@ -83,10 +83,6 @@ int BTSerialPortBinding::Connect()
 
 
 	if (status != 0)return -1;
-		//throw ExploreException("Cannot connect");
-	return status;
-
-
 }
 
 void BTSerialPortBinding::Close()
@@ -100,20 +96,16 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 {
     if (data->consumer == NULL)
     return;
-        throw ExploreException("connection has been closed");
 
 	if (buffer == nullptr)
 	return;
-		throw ExploreException("buffer cannot be null");
 
     size_buffer = -1;
 
     size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
-
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
-        throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
     }
 
     // when no data is read from rfcomm the connection has been closed.
@@ -136,7 +128,6 @@ void BTSerialPortBinding::Write(const char *buffer, int length)
 
     if ([worker writeAsync: const_cast<char*>(buffer) length: length toDevice: addressString] != kIOReturnSuccess)
     return;
-        throw ExploreException("Write was unsuccessful");
 
     [pool release];
 }
