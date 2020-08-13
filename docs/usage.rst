@@ -111,6 +111,10 @@ The data is actually recorded in BDF+ format (in 24-bit resolution).::
             (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled Matlab code from BIOSIG can
             be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_.
 
+.. note::  If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
+            file for ExG data with the given file name plus the time the setting has changed.
+
+
 **visualize**
 Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported browser. The visualization in other browsers might be slow.::
 
@@ -256,7 +260,7 @@ To use explorepy in a python project::
 
 
 .. note:: Since explorepy is using multithreading for data streaming, running python scripts in some consoles such
-as Ipython's or Spyder's consoles may lead to strange behaviours.
+            as Ipython's or Spyder's consoles may lead to strange behaviours.
 
 Initialization
 ^^^^^^^^^^^^^^
@@ -362,6 +366,11 @@ It is also possible to extract BIN files from the device via USB. To convert the
 and converts it to 2 CSV files (one for orientation, the other one for ExG data). Bluetooth connection is not necessary for conversion. ::
 
     explore.convert_bin(bin_file='Data001.BIN', file_type='csv', do_overwrite=False)
+
+
+.. note::  If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
+            file for ExG data with the given file name plus the time the setting has changed. In CSV format all data is written in
+            the same file.
 
 
 Event markers
