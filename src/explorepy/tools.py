@@ -455,7 +455,7 @@ class LslServer:
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
 
-        info_exg = StreamInfo('Explore', 'ExG', n_chan, self.exg_fs, 'float32', 'ExG')
+        info_exg = StreamInfo(device_info["device_name"]+"_ExG", 'ExG', n_chan, self.exg_fs, 'float32', 'ExG')
 
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
@@ -466,7 +466,7 @@ class LslServer:
                     .append_child_value("unit", EXG_UNITS[i])\
                     .append_child_value("type", "ExG")
 
-        info_orn = StreamInfo('Explore', 'Orientation', 9, orn_fs, 'float32', 'ORN')
+        info_orn = StreamInfo(device_info["device_name"]+"_ORN", 'Orientation', 9, orn_fs, 'float32', 'ORN')
         info_orn.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for chan, unit in zip(ORN_CHANNELS, ORN_UNITS):
@@ -475,7 +475,7 @@ class LslServer:
                 .append_child_value("unit", unit) \
                 .append_child_value("type", "ORN")
 
-        info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
+        info_marker = StreamInfo(device_info["device_name"]+"_Marker", 'Markers', 1, 0, 'int32', 'Marker')
 
         self.orn_outlet = StreamOutlet(info_orn)
         self.exg_outlet = StreamOutlet(info_exg)
