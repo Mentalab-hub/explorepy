@@ -49,9 +49,9 @@ class Explore:
             self.device_name = 'Explore_' + mac_address[-5:-3] + mac_address[-2:]
         self.stream_processor = StreamProcessor()
         self.stream_processor.start(device_name=device_name, mac_address=mac_address)
-        while not self.stream_processor.device_info:
+        while "adc_mask" not in self.stream_processor.device_info:
             print('Waiting for device info packet...')
-            time.sleep(.3)
+            time.sleep(.2)
         print('Device info packet has been received. Connection has been established. Streaming...')
         self.is_connected = True
 
@@ -200,7 +200,7 @@ class Explore:
         print('Conversion finished.')
 
     def push2lsl(self, duration=None):
-        r"""Push samples to two lsl streams
+        r"""Push samples to two lsl streams (ExG and ORN streams)
 
         Args:
             duration (float): duration of data acquiring (if None it streams for one hour).
