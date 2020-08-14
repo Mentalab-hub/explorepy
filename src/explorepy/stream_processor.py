@@ -58,6 +58,9 @@ class StreamProcessor:
             device_name (str): Explore device name in form of <Explore_####>
             mac_address (str): MAC address of Explore device
         """
+        if device_name is None:
+            device_name = "Explore_" + str(mac_address[-5:-3]) + str(mac_address[-2:])
+        self.device_info["device_name"] = device_name
         self.parser = Parser(callback=self.process, mode='device')
         self.parser.start_streaming(device_name, mac_address)
         self.is_connected = True
@@ -104,7 +107,7 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info
-            self.device_info = packet.get_info()
+            self.device_info.update(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
