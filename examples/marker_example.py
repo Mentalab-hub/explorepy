@@ -1,7 +1,6 @@
 import explorepy
 import argparse
 import threading
-import os
 
 
 def main():

@@ -132,13 +132,13 @@ class HeartRateEstimator:
     @property
     def heart_rate(self):
         if len(self.r_peaks_buffer) < 7:
-            print('Few peaks to get heart rate!')
+            print('Few peaks to get heart rate! Noisy signal!')
             return 'NA'
         else:
             r_times = [item[1] for item in self.r_peaks_buffer]
             rr_intervals = np.diff(r_times, 1)
             if True in (rr_intervals > 3.):
-                print('Missing peaks!')
+                print('Missing peaks! Noisy signal!')
                 return 'NA'
             else:
                 estimated_heart_rate = int(1. / np.mean(rr_intervals) * 60)

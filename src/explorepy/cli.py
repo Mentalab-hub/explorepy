@@ -172,6 +172,7 @@ def set_sampling_rate(address, name, sampling_rate, pybluez):
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
 def soft_reset(address, name, pybluez):
+    """Software reset of Explore device"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     if pybluez:
@@ -206,6 +207,7 @@ def set_channels(address, name, channel_mask, pybluez):
 @click.option("-m", "--module", required=True, type=str, help="Module name to be disabled, options: ORN, ENV, EXG")
 @click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
 def disable_module(address, name, module, pybluez):
+    """Disable a module of Explore device"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     if pybluez:
@@ -221,6 +223,7 @@ def disable_module(address, name, module, pybluez):
 @click.option("-m", "--module", required=True, type=str, help="Module name to be enabled, options: ORN, ENV, EXG")
 @click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
 def enable_module(address, name, module, pybluez):
+    """Enable a module of Explore device"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     if pybluez:

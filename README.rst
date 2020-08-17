@@ -64,7 +64,7 @@ Requirements
 * Bluetooth header files (only Linux -> use this command: ``sudo apt-get install libbluetooth-dev``)
 
 
-Please check `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_ for more detailed instruction.
+Please check `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_ for more detailed instructions.
 
 To install ``explorepy`` from PyPI run:
 ::
@@ -72,7 +72,7 @@ To install ``explorepy`` from PyPI run:
     pip install explorepy
 
 
-To install the latest development version run:
+To install the latest development version (git must be installed before running this command):
 ::
 
     pip install git+https://github.com/Mentalab-hub/explorepy
