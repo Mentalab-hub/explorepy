@@ -22,6 +22,5 @@
 %template(vectordevice) std::vector<device>;
 
 
-
 %include "ExploreException.h"
 %include "ExploreSDK.h"

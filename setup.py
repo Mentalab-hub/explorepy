@@ -19,7 +19,6 @@ from setuptools import Extension
 from setuptools.command.develop import develop
 from setuptools.command.install import install
 
-
 def read(*names, **kwargs):
     with io.open(
         join(dirname(__file__), *names),
@@ -30,13 +29,18 @@ def read(*names, **kwargs):
 
 my_req = ['numpy', 'scipy', 'pyedflib==0.1.15', 'click==7.0', 'appdirs==1.4.3']
 ext_modules_list = []
+current_platform = sys.platform
+
+
+
 if not os.environ.get('READTHEDOCS'):
-    my_req.append('pybluez==0.22')  # Add pybluez if the environment is other than READTHEDOCS
     my_req.append('pylsl')
     my_req.append('bokeh==1.4.0')
 
+    if current_platform != 'darwin':
+        my_req.append('pybluez==0.22')
+
     libPath = "lib"
-    current_platform = sys.platform
     if current_platform == 'win32' or current_platform == 'win64':
         windows_lib_path = os.path.join(libPath, 'windows')
         ext_modules_list.append(Extension(
@@ -60,9 +64,12 @@ if not os.environ.get('READTHEDOCS'):
             swig_opts=['-c++']
         ))
     else:
-        # Mac implementation
-        source_files = []
-
+        if sys.version_info >= (3, 6):
+            my_req.append('pyobjc-core>=6')
+            my_req.append('pyobjc-framework-Cocoa>=6')
+        else:
+            my_req.append('pyobjc-core>=3.1,<6')
+            my_req.append('pyobjc-framework-Cocoa>=3.1,<6')
 setup(
     name='explorepy',
     version='1.0.0',
