@@ -22,9 +22,24 @@ This instructions guides you to install Explorepy API with all its dependencies 
   * In Conda command prompt: ``conda create -n myenv python=3.6``
   * Activate the virtual environment: ``conda activate myenv``
 
-5. Upgrade your pip: ``python -m pip install --upgrade pip``
+4. Upgrade your pip: ``python -m pip install --upgrade pip``
 
-4. To install ``explorepy`` from PyPI run: ``pip install explorepy``
+5. To install ``explorepy`` from PyPI run: ``pip install explorepy``
+
+
+How to install (Mac)
+--------------------
+1. Install XCode from Mac App store. An update to the latest version of Mac OS might be required for installation of XCode.
+2. Accept the license agreement: ``sudo xcodebuild -license``
+3. We recommend using a virtual environment.
+
+  * In Conda command prompt: ``conda create -n myenv python=3.6``
+  * Activate the virtual environment: ``conda activate myenv``
+
+4. Upgrade your pip: ``python -m pip install --upgrade pip``
+
+5. To install ``explorepy`` from PyPI run: ``pip install explorepy``
+
 
 Quick test
 ----------
