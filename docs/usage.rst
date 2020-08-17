@@ -141,6 +141,9 @@ Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome
       -h, --help                Show this message and exit.
 
 
+.. note:: Impedance value shown for each electrode is the sum of impedances of ground electrode and corresponding ExG electrode.
+
+.. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature.
 
 **calibrate-orn**
 Calibrate the orientation module of the specified device. After running this module, calibration parameters will be
@@ -346,7 +349,7 @@ To measure electrodes impedances::
   :width: 800
   :alt: Impedance Dashboard
 
-.. note:: Impedance values are the measured impedances between ground electrode and each ExG electrode.
+.. note:: Impedance value shown for each electrode is the sum of impedances of ground electrode and corresponding ExG electrode.
 
 .. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature.
 
