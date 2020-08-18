@@ -31,8 +31,9 @@ def find_device(pybluez):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
+@click.option("-d", "--duration", type=int, help="Duration in seconds", metavar="<integer>")
 @click.option("--pybluez", is_flag=True, help="Use pybluez as the bluetooth interface")
-def acquire(name, address, pybluez):
+def acquire(name, address, duration, pybluez):
     """Connect to a device with selected name or address. Only one input is necessary"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
@@ -40,7 +41,7 @@ def acquire(name, address, pybluez):
         explorepy.set_bt_interface('pybluez')
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-    explore.acquire()
+    explore.acquire(duration)
 
 
 @cli.command()

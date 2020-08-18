@@ -75,8 +75,7 @@ class Explore:
 
         self.stream_processor.subscribe(callback=callback, topic=TOPICS.raw_ExG)
         time.sleep(duration)
-        self.stream_processor.stop()
-        time.sleep(1)
+        self.stream_processor.unsubscribe(callback=callback, topic=TOPICS.raw_ExG)
 
     def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv'):
         r"""Records the data in real-time
