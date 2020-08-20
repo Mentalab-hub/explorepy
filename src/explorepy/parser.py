@@ -88,24 +88,24 @@ class Parser:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
             except (ConnectionAbortedError, bluetooth.BluetoothError) as error:
-                print(type(error))
-                print(error)
                 print("Device has been disconnected! Scanning for the last connected device...")
                 if self.stream_interface.reconnect() is None:
                     print("Could not find the device! Please make sure the device is on and in advertising mode.")
                     self.stop_streaming()
                     print("Press Ctrl+c to exit...")
             except (IOError, ValueError, FletcherError) as error:
-                print(type(error))
                 print(error)
-                print('Conversion ended incomplete. The binary file is corrupted.')
+                if self.mode == 'device':
+                    print('Bluetooth connection error! Make sure your device is on and in advertising mode.')
+                else:
+                    print('The binary file is corrupted. Conversion has ended incompletely.')
                 self.stop_streaming()
             except EOFError:
                 print('End of file')
                 self.stop_streaming()
-            except:
-                print('Not handled exception: ', type(error))
-                print(error)
+            except Exception as error:
+                print('Unexpected error: ', error)
+                self.stop_streaming()
 
     def _generate_packet(self):
         """Reads and parses a package from a file or socket
