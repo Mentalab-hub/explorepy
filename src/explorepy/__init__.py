@@ -20,9 +20,8 @@ elif _platform == "win32" or _platform == "win64":
             shutil.copy(full_path, os.path.dirname(__file__))
 
 
-
 from .explore import Explore
-from . import tools, command
+from . import tools, command, exploresdk
 from explorepy.dashboard.dashboard import Dashboard
 
 __version__ = '1.0.0'

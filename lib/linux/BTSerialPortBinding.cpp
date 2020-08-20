@@ -127,7 +127,7 @@ void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
 		if (FD_ISSET(data->s, &set)){
 
 			size = recv(data->s, bt_buffer, *bt_length, MSG_WAITALL);
-			cout << "length is " << *bt_length << "size is " <<  size << endl;
+//			cout << "length is " << *bt_length << "size is " <<  size << endl;
 			if(size < 0)
 			{
                 throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");

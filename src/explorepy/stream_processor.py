@@ -106,7 +106,7 @@ class StreamProcessor:
             self.apply_filters(packet=packet)
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo):
-            self.old_device_info = self.device_info
+            self.old_device_info = self.device_info.copy()
             self.device_info.update(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):

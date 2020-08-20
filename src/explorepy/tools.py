@@ -443,8 +443,8 @@ class FileRecorder:
         elif self.file_type == 'edf':
             timestamp, code = packet.get_data()
             if self._rectime_offset is None:
-                self._rectime_offset = timestamp
-            timestamp = timestamp-self._rectime_offset
+                self._rectime_offset = timestamp[0]
+            timestamp = timestamp-np.float64(self._rectime_offset)
             self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
 
