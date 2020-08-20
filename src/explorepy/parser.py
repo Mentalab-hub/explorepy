@@ -5,6 +5,8 @@ import time
 import struct
 import asyncio
 
+import bluetooth
+
 import explorepy
 from explorepy.packet import PACKET_CLASS_DICT, DeviceInfo
 from explorepy._exceptions import FletcherError
@@ -85,19 +87,25 @@ class Parser:
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
-            except ConnectionAbortedError:
+            except (ConnectionAbortedError, bluetooth.BluetoothError) as error:
+                print(type(error))
+                print(error)
                 print("Device has been disconnected! Scanning for the last connected device...")
                 if self.stream_interface.reconnect() is None:
                     print("Could not find the device! Please make sure the device is on and in advertising mode.")
                     self.stop_streaming()
                     print("Press Ctrl+c to exit...")
             except (IOError, ValueError, FletcherError) as error:
+                print(type(error))
                 print(error)
                 print('Conversion ended incomplete. The binary file is corrupted.')
                 self.stop_streaming()
             except EOFError:
                 print('End of file')
                 self.stop_streaming()
+            except:
+                print('Not handled exception: ', type(error))
+                print(error)
 
     def _generate_packet(self):
         """Reads and parses a package from a file or socket
