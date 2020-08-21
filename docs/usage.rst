@@ -183,7 +183,7 @@ sampling rates are 250, 500 or 1000.::
       -h, --help                      Show this message and exit.
 
 
-**set-channel**
+**set-channels**
 Using this command, you can enable/disable a set of ExG channels of the device. An integer number is required for the
 channel mask, where the binary representation of it shows the mask (eg. 15 for 00001111, to enable 4 channels of an 8-ch device).::
 
