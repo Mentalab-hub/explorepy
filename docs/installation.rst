@@ -31,7 +31,7 @@ This instructions guides you to install Explorepy API with all its dependencies 
 Ubuntu
 ^^^^^^
 1. Install Bluetooth header files using ``sudo apt-get install libbluetooth-dev``
-2. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Windows installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
+2. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Ubuntu installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
 3. We recommend using a virtual environment in Conda.
 
   * In Conda command prompt: ``conda create -n myenv python=3.6``
