@@ -77,7 +77,7 @@ class Explore:
         time.sleep(duration)
         self.stream_processor.unsubscribe(callback=callback, topic=TOPICS.raw_ExG)
 
-    def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv'):
+    def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False):
         r"""Records the data in real-time
 
         Args:
@@ -119,6 +119,13 @@ class Explore:
         print("Recording...")
         self.recorders['timer'] = Timer(duration, self.stop_recording)
         self.recorders['timer'].start()
+        if block:
+            try:
+                while self.recorders['timer'].is_alive():
+                    time.sleep(.3)
+            except KeyboardInterrupt:
+                print("Got Keyboard Interrupt!")
+                self.stop_recording()
 
     def stop_recording(self):
         """Stop recording"""
