@@ -43,9 +43,9 @@ Ubuntu
 
 Mac
 ^^^^
-1. Install XCode from Mac App store. An upgrade to the latest version of Mac OS might be required for installation of XCode.
+1. Install XCode from Mac App store. An upgrade to the latest version of MacOS might be required for installation of XCode. For older versions of MacOS, you can find compatible versions of XCode in this `page <https://en.wikipedia.org/wiki/Xcode>`_. All old Xcode versions are available `here <https://developer.apple.com/download/more/>`_.
 2. Accept the license agreement: ``sudo xcodebuild -license``
-3. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Windows installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
+3. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Mac installer from `here <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and can be downloaded from `here <https://repo.anaconda.com/archive/index.html>`_.
 4. We recommend using a virtual environment in Conda.
 
   * In Conda command prompt: ``conda create -n myenv python=3.6``
