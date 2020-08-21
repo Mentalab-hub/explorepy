@@ -60,7 +60,7 @@ def record_data(address, name, filename, overwrite, duration, file_type, bluetoo
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.record_data(file_name=filename, file_type=file_type,
-                        do_overwrite=overwrite, duration=duration)
+                        do_overwrite=overwrite, duration=duration, block=True)
 
 
 @cli.command()
