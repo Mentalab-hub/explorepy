@@ -3,7 +3,7 @@
 """
 Customized exceptions module
 """
-
+import sys
 
 class InputError(Exception):
     """
@@ -24,4 +24,9 @@ class FletcherError(Exception):
     Fletcher value error
     """
     pass
+
+if sys.platform == "darwin":
+    BluetoothError = None
+else:
+    import bluetooth.BluetoothError
 
