@@ -25,8 +25,14 @@ class FletcherError(Exception):
     """
     pass
 
+class BluetoothError(Exception):
+    """
+    mock exception class for mac OS
+    """
+    pass
+
 if sys.platform == "darwin":
-    BluetoothError = None
+    BluetoothError = BluetoothError
 else:
-    import bluetooth.BluetoothError
+    from bluetooth import BluetoothError
 

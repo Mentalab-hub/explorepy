@@ -5,10 +5,9 @@ import time
 import struct
 import asyncio
 
-import explorepy._exceptions
 import explorepy
 from explorepy.packet import PACKET_CLASS_DICT, DeviceInfo
-from explorepy._exceptions import FletcherError
+from explorepy._exceptions import *
 
 
 class Parser:
