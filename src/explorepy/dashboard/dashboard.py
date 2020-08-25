@@ -372,13 +372,14 @@ class Dashboard:
         banner = Div(text="""<font size="5.5">Explorepy Dashboard</font> <a href="https://www.mentalab.co"><img src=
         "https://images.squarespace-cdn.com/content/5428308ae4b0701411ea8aaf/1505653866447-R24N86G5X1HFZCD7KBWS/
         Mentalab%2C+Name+copy.png?format=1500w&content-type=image%2Fpng" alt="Mentalab"  width="225" height="39">""",
-                     width=1900, height=50, css_classes=["banner"], align='center')
+                     width=1500, height=50, css_classes=["banner"], align='center')
 
         if self.mode == 'signal':
             self.doc.add_root(column(banner,
                                      Spacer(width=600, height=20),
-                                     row([m_widgetbox, Spacer(width=25, height=500), self.tabs,
-                                          Spacer(width=700, height=600), self.recorder_widget])
+                                     row([column(m_widgetbox, self.recorder_widget),
+                                          Spacer(width=25, height=500), self.tabs,
+                                          Spacer(width=700, height=600)])
                                      )
                               )
         elif self.mode == 'impedance':
@@ -515,7 +516,7 @@ class Dashboard:
                                          reorderable=False,
                                          columns=columns, width=210, height=50)
 
-        columns = [widgets.TableColumn(field='temperature', title="Temperature (C)")]
+        columns = [widgets.TableColumn(field='temperature', title="Device temperature (C)")]
         self.temperature = widgets.DataTable(source=self.temperature_source, index_position=None, sortable=False,
                                              reorderable=False, columns=columns, width=210, height=50)
 
@@ -526,14 +527,14 @@ class Dashboard:
         # Add widgets to the doc
         widget_box = widgetbox(
             [Spacer(width=210, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
-             self.battery, self.temperature, self.light, self.firmware], width=220)
+             self.battery, self.temperature, self.firmware], width=220)
         return widget_box
 
     def _init_recorder(self):
         self.rec_button = Toggle(label=u"\u25CF  Record", button_type="default", active=False,
                                  width=210)
         self.file_name_widget = TextInput(value="test_file", title="File name:", width=210)
-        self.file_type_widget = RadioGroup(labels=["EDF (BDF+)", "CSV"], active=0)
+        self.file_type_widget = RadioGroup(labels=["EDF (BDF+)", "CSV"], active=0, width=210)
         columns = [widgets.TableColumn(field='timer', title="Record time",
                                        formatter=widgets.StringFormatter(text_align='center'))]
         self.timer = widgets.DataTable(source=self._timer_source, index_position=None, sortable=False, reorderable=False,
@@ -541,7 +542,7 @@ class Dashboard:
                                        width=210, height=50, css_classes=["timer_widget"])
 
         self.rec_button.on_click(self._toggle_rec)
-        return column(Spacer(width=210, height=35), self.file_name_widget, self.file_type_widget, self.rec_button,
+        return column(Spacer(width=210, height=5), self.file_name_widget, self.file_type_widget, self.rec_button,
                       self.timer)
 
     def _toggle_rec(self, active):
