@@ -7,6 +7,8 @@ from datetime import datetime
 import abc
 from enum import Enum
 
+from explorepy.packet import TimeStamp
+
 
 class CommandID(Enum):
     """Command ID enum class"""
@@ -105,6 +107,10 @@ class DeviceConfiguration:
         print("Sending the command: ", command)
         self._bt_interface.send(command.translate())
         print("The command is sent.")
+
+    def send_timestamp(self):
+        ts = TimeStamp()
+        self._send_command(ts)
 
 
 class Command:
