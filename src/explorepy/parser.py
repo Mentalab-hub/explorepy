@@ -5,11 +5,9 @@ import time
 import struct
 import asyncio
 
-import bluetooth
-
 import explorepy
 from explorepy.packet import PACKET_CLASS_DICT, DeviceInfo
-from explorepy._exceptions import FletcherError
+from explorepy._exceptions import *
 
 
 class Parser:
@@ -87,7 +85,7 @@ class Parser:
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
-            except (ConnectionAbortedError, bluetooth.BluetoothError) as error:
+            except (ConnectionAbortedError, BluetoothError) as error:
                 print("Device has been disconnected! Scanning for the last connected device...")
                 if self.stream_interface.reconnect() is None:
                     print("Could not find the device! Please make sure the device is on and in advertising mode.")
