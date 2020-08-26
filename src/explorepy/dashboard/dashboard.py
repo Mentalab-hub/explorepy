@@ -535,6 +535,7 @@ class Dashboard:
                                  width=210)
         self.file_name_widget = TextInput(value="test_file", title="File name:", width=210)
         self.file_type_widget = RadioGroup(labels=["EDF (BDF+)", "CSV"], active=0, width=210)
+
         columns = [widgets.TableColumn(field='timer', title="Record time",
                                        formatter=widgets.StringFormatter(text_align='center'))]
         self.timer = widgets.DataTable(source=self._timer_source, index_position=None, sortable=False, reorderable=False,

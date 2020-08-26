@@ -9,7 +9,6 @@ Requirements
 * Visual Studio 2015 community edition (only Windows)
 
 
-
 How to install
 --------------
 
@@ -39,7 +38,9 @@ Ubuntu
 
 4. Upgrade your pip: ``python -m pip install --upgrade pip``
 
+
 5. To install ``explorepy`` from PyPI run: ``pip install explorepy``
+
 
 Mac
 ^^^^

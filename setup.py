@@ -19,6 +19,7 @@ from setuptools import Extension
 from setuptools.command.develop import develop
 from setuptools.command.install import install
 
+
 def read(*names, **kwargs):
     with io.open(
         join(dirname(__file__), *names),
@@ -30,8 +31,6 @@ def read(*names, **kwargs):
 my_req = ['numpy', 'scipy', 'pyedflib==0.1.15', 'click==7.0', 'appdirs==1.4.3']
 ext_modules_list = []
 current_platform = sys.platform
-
-
 
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pylsl')

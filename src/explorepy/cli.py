@@ -202,6 +202,7 @@ def disable_module(address, name, module, bluetooth):
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     explorepy.set_bt_interface(bluetooth)
+
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.disable_module(module)
