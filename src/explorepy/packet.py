@@ -2,10 +2,11 @@
 """This module contains all packet classes of Explore device"""
 import abc
 from enum import IntEnum
-from datetime import datetime
+import time
 import numpy as np
 
 from explorepy._exceptions import FletcherError
+from explorepy.command import int2bytearray
 
 
 class PACKET_ID(IntEnum):
@@ -313,14 +314,11 @@ class TimeStamp(Packet):
 
     def translate(self):
         """Translate content to bytearray"""
-        now = datetime.now()
-        timestamp = int(1000000000 * datetime.timestamp(now))  # time stamp in nanosecond
-        ts_str = hex(timestamp)
-        ts_str = ts_str[2:18]
-        host_ts = bytes.fromhex(ts_str)
+        timestamp = int(time.time() + time.localtime().tm_gmtoff)
+        host_ts = int2bytearray(timestamp, 8)
         pid = b'\x1B'
         cnt = b'\x01'
-        payload_len = b'\x10\x00'  # i.e. 0x0010
+        payload_len = int2bytearray(16, 2)
         device_ts = b'\x00\x00\x00\x00'
         fletcher = b'\xFF\xFF\xFF\xFF'
         self.raw_data = pid + cnt + payload_len + device_ts + host_ts + fletcher
