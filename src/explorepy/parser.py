@@ -5,10 +5,9 @@ import time
 import struct
 import asyncio
 
-from explorepy.packet import PACKET_CLASS_DICT
-from explorepy.bt_client import BtClient
-from explorepy.btcpp import SDKBtClient
 import explorepy
+from explorepy.packet import PACKET_CLASS_DICT, DeviceInfo
+from explorepy._exceptions import *
 
 
 class Parser:
@@ -33,17 +32,20 @@ class Parser:
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
         if explorepy._bt_interface == 'sdk':
+            from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
         else:
+            from explorepy.bt_client import BtClient
             self.stream_interface = BtClient(device_name=device_name, mac_address=mac_address)
         self.stream_interface.connect()
         self._stream()
 
     def stop_streaming(self):
         """Stop streaming data"""
-        self.stream_interface.disconnect()
-        self._do_streaming = False
-        self.callback(None)
+        if self._do_streaming:
+            self.stream_interface.disconnect()
+            self._do_streaming = False
+            self.callback(None)
 
     def start_reading(self, filename):
         """Open the binary file
@@ -51,28 +53,57 @@ class Parser:
             filename (str): Binary file name
         """
         self.stream_interface = FileHandler(filename)
-        print("Reading and converting binary file...")
-        self._stream()
+        self._stream(new_thread=True)
 
-    def _stream(self):
+    def read_device_info(self, filename):
+        self.stream_interface = FileHandler(filename)
+        packet = None
+        while not isinstance(packet, DeviceInfo):
+            try:
+                packet = self._generate_packet()
+                self.callback(packet=packet)
+            except (IOError, ValueError, FletcherError) as error:
+                print('Conversion ended incomplete. The binary file is corrupted.')
+                raise error
+            except EOFError:
+                print('End of file')
+            finally:
+                self.stream_interface.disconnect()
+
+    def _stream(self, new_thread=True):
         self._do_streaming = True
-        self._stream_thread = Thread(target=self._stream_loop)
-        self._stream_thread.setDaemon(True)
-        self._stream_thread.start()
+        if new_thread:
+            self._stream_thread = Thread(target=self._stream_loop)
+            self._stream_thread.setDaemon(True)
+            self._stream_thread.start()
+        else:
+            self._stream_loop()
 
     def _stream_loop(self):
         asyncio.set_event_loop(asyncio.new_event_loop())
         while self._do_streaming:
-            while self.is_waiting:
-                time.sleep(.05)
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
-            except ConnectionAbortedError:
+            except (ConnectionAbortedError, BluetoothError) as error:
                 print("Device has been disconnected! Scanning for the last connected device...")
-                self.stream_interface.reconnect()
-            except (IOError, ValueError) as error:
+                if self.stream_interface.reconnect() is None:
+                    print("Could not find the device! Please make sure the device is on and in advertising mode.")
+                    self.stop_streaming()
+                    print("Press Ctrl+c to exit...")
+            except (IOError, ValueError, FletcherError) as error:
                 print(error)
+                if self.mode == 'device':
+                    print('Bluetooth connection error! Make sure your device is on and in advertising mode.')
+                    print("Press Ctrl+c to exit...")
+                else:
+                    print('The binary file is corrupted. Conversion has ended incompletely.')
+                self.stop_streaming()
+            except EOFError:
+                print('End of file')
+                self.stop_streaming()
+            except Exception as error:
+                print('Unexpected error: ', error)
                 self.stop_streaming()
 
     def _generate_packet(self):
@@ -93,6 +124,7 @@ class Parser:
             self.start_time = time.time()
         else:
             timestamp = timestamp * .0001 - self._time_offset   # Timestamp unit is .1 ms
+
         payload_data = self.stream_interface.read(payload - 4)
         packet = self._parse_packet(pid, timestamp, payload_data)
         return packet
@@ -111,11 +143,10 @@ class Parser:
         """
 
         if pid in PACKET_CLASS_DICT:
-            packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
+                packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
         else:
             print("Unknown Packet ID:" + str(pid))
-            print("Length of the binary data:", len(bin_data))
-            packet = None
+            raise ValueError("Unknown Packet ID:" + str(pid))
         return packet
 
 
@@ -134,14 +165,15 @@ class FileHandler:
             n_bytes (int): Number of bytes to be read
         """
         if n_bytes <= 0:
-            raise ValueError('Read length must be a positive number')
+            raise ValueError('Read length must be a positive number!')
         if not self.fid.closed:
             data = self.fid.read(n_bytes)
             if len(data) < n_bytes:
-                raise IOError('End of file!')
+                raise EOFError('End of file!')
             return data
         raise IOError("File has not been opened or already closed!")
 
     def disconnect(self):
         """Close file"""
-        self.fid.close()
+        if not self.fid.closed:
+            self.fid.close()

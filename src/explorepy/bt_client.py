@@ -67,6 +67,7 @@ class BtClient:
                 self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
                 self.socket.connect((self.host, self.port))
                 self.is_connected = True
+                print('Connected to the device')
                 return self.socket
             except bluetooth.BluetoothError as error:
                 print("Bluetooth Error: {}, attempting to reconnect...".format(error))
@@ -76,8 +77,7 @@ class BtClient:
 
         self.socket.close()
         self.is_connected = False
-        raise DeviceNotFoundError("Could not find the device! Please make sure the device is on and in"
-                                  "advertising mode.")
+        return None
 
     def disconnect(self):
         """Disconnect from the device"""

@@ -3,16 +3,15 @@
 import datetime
 import os.path
 import csv
-import bluetooth
 import copy
 import numpy as np
 from scipy import signal
 import pyedflib
 from pylsl import StreamInfo, StreamOutlet
-from appdirs import user_config_dir
 import configparser
 from appdirs import user_cache_dir, user_config_dir
 
+import explorepy
 from explorepy.filters import ExGFilter
 
 EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
@@ -32,12 +31,21 @@ def bt_scan():
 
     """
     print("Searching for nearby devices...")
-    nearby_devices = bluetooth.discover_devices(lookup_names=True)
     explore_devices = []
-    for address, name in nearby_devices:
-        if "Explore" in name:
-            print("Device found: %s - %s" % (name, address))
-            explore_devices.append((address, name))
+    if explorepy._bt_interface == 'sdk':
+        device_manager = explorepy.exploresdk.ExploreSDK_Create()
+        nearby_devices = device_manager.PerformDeviceSearch()
+        for bt_device in nearby_devices:
+            if "Explore" in bt_device.name:
+                print("Device found: %s - %s" % (bt_device.name, bt_device.address))
+                explore_devices.append((bt_device.name, bt_device.address))
+    else:
+        import bluetooth
+        nearby_devices = bluetooth.discover_devices(lookup_names=True)
+        for address, name in nearby_devices:
+            if "Explore" in name:
+                print("Device found: %s - %s" % (name, address))
+                explore_devices.append((address, name))
 
     if not nearby_devices:
         print("No Devices found")
@@ -47,13 +55,13 @@ def bt_scan():
 
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
     exg_ch = ['TimeStamp'] + EXG_CHANNELS
-    exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(adc_mask) if flag == 1]
+    exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_unit = ['s'] + EXG_UNITS
-    exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
+    exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_max = [86400.] + [4e5 for i in range(8)]
-    exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
-    exg_min = [0.] +  [-4e5 for i in range(8)]
-    exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(adc_mask) if flag == 1]
+    exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    exg_min = [0.] + [-4e5 for i in range(8)]
+    exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
                         file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
 
@@ -124,13 +132,13 @@ class HeartRateEstimator:
     @property
     def heart_rate(self):
         if len(self.r_peaks_buffer) < 7:
-            print('Few peaks to get heart rate!')
+            print('Few peaks to get heart rate! Noisy signal!')
             return 'NA'
         else:
             r_times = [item[1] for item in self.r_peaks_buffer]
             rr_intervals = np.diff(r_times, 1)
             if True in (rr_intervals > 3.):
-                print('Missing peaks!')
+                print('Missing peaks! Noisy signal!')
                 return 'NA'
             else:
                 estimated_heart_rate = int(1. / np.mean(rr_intervals) * 60)
@@ -421,6 +429,7 @@ class FileRecorder:
                 self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
             self._csv_obj.writerows(data.T.tolist())
+            self._file_obj.flush()
 
     def set_marker(self, packet):
         """Writes a marker event in the file
@@ -434,8 +443,8 @@ class FileRecorder:
         elif self.file_type == 'edf':
             timestamp, code = packet.get_data()
             if self._rectime_offset is None:
-                self._rectime_offset = timestamp
-            timestamp = timestamp-self._rectime_offset
+                self._rectime_offset = timestamp[0]
+            timestamp = timestamp-np.float64(self._rectime_offset)
             self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
 
@@ -446,7 +455,7 @@ class LslServer:
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
 
-        info_exg = StreamInfo('Explore', 'ExG', n_chan, self.exg_fs, 'float32', 'ExG')
+        info_exg = StreamInfo(device_info["device_name"]+"_ExG", 'ExG', n_chan, self.exg_fs, 'float32', 'ExG')
 
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
@@ -457,7 +466,7 @@ class LslServer:
                     .append_child_value("unit", EXG_UNITS[i])\
                     .append_child_value("type", "ExG")
 
-        info_orn = StreamInfo('Explore', 'Orientation', 9, orn_fs, 'float32', 'ORN')
+        info_orn = StreamInfo(device_info["device_name"]+"_ORN", 'Orientation', 9, orn_fs, 'float32', 'ORN')
         info_orn.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for chan, unit in zip(ORN_CHANNELS, ORN_UNITS):
@@ -466,7 +475,7 @@ class LslServer:
                 .append_child_value("unit", unit) \
                 .append_child_value("type", "ORN")
 
-        info_marker = StreamInfo('Explore', 'Markers', 1, 0, 'int32', 'Marker')
+        info_marker = StreamInfo(device_info["device_name"]+"_Marker", 'Markers', 1, 0, 'int32', 'Marker')
 
         self.orn_outlet = StreamOutlet(info_orn)
         self.exg_outlet = StreamOutlet(info_exg)

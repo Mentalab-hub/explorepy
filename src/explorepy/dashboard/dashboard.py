@@ -52,7 +52,7 @@ class Dashboard:
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
         self.chan_key_list = [CHAN_LIST[i]
-                              for i, mask in enumerate(self.stream_processor.device_info['adc_mask']) if mask == 1]
+                              for i, mask in enumerate(reversed(self.stream_processor.device_info['adc_mask'])) if mask == 1]
         self.exg_mode = 'EEG'
         self.rr_estimator = None
         self.win_length = WIN_LENGTH
@@ -98,7 +98,7 @@ class Dashboard:
         self.fft_source = ColumnDataSource(data=init_data)
 
         # Init impedance measurement source
-        init_data = {'channel':   [CHAN_LIST[i] for i in range(0, self.n_chan)],
+        init_data = {'channel':   self.chan_key_list,
                      'impedance': ['NA' for i in range(self.n_chan)],
                      'row':       ['1' for i in range(self.n_chan)],
                      'color':     ['black' for i in range(self.n_chan)]}
@@ -222,7 +222,7 @@ class Dashboard:
                     imp_status.append("<5K\u03A9")  # As the ADS is not precise in low values.
 
             data = {"impedance": imp_status,
-                    'channel':   [CHAN_LIST[i] for i in range(0, self.n_chan)],
+                    'channel':   self.chan_key_list,
                     'row':       ['1' for i in range(self.n_chan)],
                     'color':     color
                     }
@@ -294,6 +294,9 @@ class Dashboard:
         if self.exg_mode == 'EEG':
             self._heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
+        if CHAN_LIST[0] not in self.chan_key_list:
+            print('WARNING: Heart rate estimation works only when channel 1 is enabled.')
+            return
         if self.rr_estimator is None:
             self.rr_estimator = HeartRateEstimator(fs=self.exg_fs)
             # Init R-peaks plot
@@ -328,8 +331,8 @@ class Dashboard:
         self.y_unit = 10 ** (-new)
 
         for chan, value in self._exg_source_ds.data.items():
-            if chan in CHAN_LIST:
-                temp_offset = self.offsets[CHAN_LIST.index(chan)]
+            if chan in self.chan_key_list:
+                temp_offset = self.offsets[self.chan_key_list.index(chan)]
                 self._exg_source_ds.data[chan] = (value - temp_offset) * (old_unit / self.y_unit) + temp_offset
         self._r_peak_source.data['r_peak'] = (np.array(self._r_peak_source.data['r_peak']) - self.offsets[0]) * \
                                              (old_unit / self.y_unit) + self.offsets[0]
@@ -369,13 +372,14 @@ class Dashboard:
         banner = Div(text="""<font size="5.5">Explorepy Dashboard</font> <a href="https://www.mentalab.co"><img src=
         "https://images.squarespace-cdn.com/content/5428308ae4b0701411ea8aaf/1505653866447-R24N86G5X1HFZCD7KBWS/
         Mentalab%2C+Name+copy.png?format=1500w&content-type=image%2Fpng" alt="Mentalab"  width="225" height="39">""",
-                     width=1900, height=50, css_classes=["banner"], align='center')
+                     width=1500, height=50, css_classes=["banner"], align='center')
 
         if self.mode == 'signal':
             self.doc.add_root(column(banner,
                                      Spacer(width=600, height=20),
-                                     row([m_widgetbox, Spacer(width=25, height=500), self.tabs,
-                                          Spacer(width=700, height=600), self.recorder_widget])
+                                     row([column(m_widgetbox, self.recorder_widget),
+                                          Spacer(width=25, height=500), self.tabs,
+                                          Spacer(width=700, height=600)])
                                      )
                               )
         elif self.mode == 'impedance':
@@ -428,9 +432,9 @@ class Dashboard:
 
         # Initial plot line
         for i in range(self.n_chan):
-            self.exg_plot.line(x='t', y=CHAN_LIST[i], source=self._exg_source_ds,
+            self.exg_plot.line(x='t', y=self.chan_key_list[i], source=self._exg_source_ds,
                                line_width=1.0, alpha=.9, line_color="#42C4F7")
-            self.fft_plot.line(x='f', y=CHAN_LIST[i], source=self.fft_source, legend_label=CHAN_LIST[i] + " ",
+            self.fft_plot.line(x='f', y=self.chan_key_list[i], source=self.fft_source, legend_label=self.chan_key_list[i] + " ",
                                line_width=1.0, alpha=.9, line_color=FFT_COLORS[i])
         self.fft_plot.yaxis.axis_label_text_font_style = 'normal'
         self.exg_plot.line(x='t', y='marker', source=self._marker_source,
@@ -449,8 +453,7 @@ class Dashboard:
         self._set_t_range(WIN_LENGTH)
 
         # Set the formatting of yaxis ticks' labels
-        self.exg_plot.yaxis[0].formatter = PrintfTickFormatter(format="Ch %i")
-
+        self.exg_plot.yaxis.major_label_overrides = dict(zip(range(1, self.n_chan+1), self.chan_key_list))
         for plot in self.plot_list:
             plot.toolbar.autohide = True
             plot.yaxis.axis_label_text_font_style = 'normal'
@@ -460,7 +463,7 @@ class Dashboard:
                 plot.legend.padding = 2
 
     def _init_imp_plot(self):
-        plot = figure(plot_width=600, plot_height=200, x_range=CHAN_LIST[0:self.n_chan],
+        plot = figure(plot_width=600, plot_height=200, x_range=self.chan_key_list[0:self.n_chan],
                       y_range=[str(1)], toolbar_location=None)
 
         plot.circle(x='channel', y="row", radius=.3, source=self.imp_source, fill_alpha=0.6, color="color",
@@ -513,7 +516,7 @@ class Dashboard:
                                          reorderable=False,
                                          columns=columns, width=210, height=50)
 
-        columns = [widgets.TableColumn(field='temperature', title="Temperature (C)")]
+        columns = [widgets.TableColumn(field='temperature', title="Device temperature (C)")]
         self.temperature = widgets.DataTable(source=self.temperature_source, index_position=None, sortable=False,
                                              reorderable=False, columns=columns, width=210, height=50)
 
@@ -524,14 +527,15 @@ class Dashboard:
         # Add widgets to the doc
         widget_box = widgetbox(
             [Spacer(width=210, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
-             self.battery, self.temperature, self.light, self.firmware], width=220)
+             self.battery, self.temperature, self.firmware], width=220)
         return widget_box
 
     def _init_recorder(self):
         self.rec_button = Toggle(label=u"\u25CF  Record", button_type="default", active=False,
                                  width=210)
         self.file_name_widget = TextInput(value="test_file", title="File name:", width=210)
-        self.file_type_widget = RadioGroup(labels=["EDF (BDF+)", "CSV"], active=0)
+        self.file_type_widget = RadioGroup(labels=["EDF (BDF+)", "CSV"], active=0, width=210)
+
         columns = [widgets.TableColumn(field='timer', title="Record time",
                                        formatter=widgets.StringFormatter(text_align='center'))]
         self.timer = widgets.DataTable(source=self._timer_source, index_position=None, sortable=False, reorderable=False,
@@ -539,7 +543,7 @@ class Dashboard:
                                        width=210, height=50, css_classes=["timer_widget"])
 
         self.rec_button.on_click(self._toggle_rec)
-        return column(Spacer(width=210, height=35), self.file_name_widget, self.file_type_widget, self.rec_button,
+        return column(Spacer(width=210, height=5), self.file_name_widget, self.file_type_widget, self.rec_button,
                       self.timer)
 
     def _toggle_rec(self, active):

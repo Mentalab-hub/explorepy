@@ -1,6 +1,16 @@
 
 Changelog
 =========
+
+1.1.0 (27-08-2020)
+------------------
+* MacOS support
+* Fix bugs
+* Add module disable/enable feature
+* Enhanced user interface
+* Add unique lsl stream names
+
+
 1.0.0 (22-05-2020)
 ------------------
 * Add ExploreSDK as the Bluetooth interface

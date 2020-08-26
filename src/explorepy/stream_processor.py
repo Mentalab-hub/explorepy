@@ -58,12 +58,16 @@ class StreamProcessor:
             device_name (str): Explore device name in form of <Explore_####>
             mac_address (str): MAC address of Explore device
         """
+        if device_name is None:
+            device_name = "Explore_" + str(mac_address[-5:-3]) + str(mac_address[-2:])
+        self.device_info["device_name"] = device_name
         self.parser = Parser(callback=self.process, mode='device')
         self.parser.start_streaming(device_name, mac_address)
         self.is_connected = True
         self._device_configurator = DeviceConfiguration(bt_interface=self.parser.stream_interface)
         self.subscribe(callback=self._device_configurator.update_ack, topic=TOPICS.cmd_ack)
         self.subscribe(callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
+        self.orn_initialize(device_name)
 
     def open_file(self, bin_file):
         """Open the binary file and read until it gets device info packet
@@ -73,13 +77,10 @@ class StreamProcessor:
         self.parser = Parser(callback=self.process, mode='file')
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
-        while not self.device_info:
-            time.sleep(.001)
-        self.parser.is_waiting = True
 
-    def read(self):
-        """Start reading the binary file"""
-        self.parser.is_waiting = False
+    def read_device_info(self, bin_file):
+        self.parser = Parser(callback=self.process, mode='file')
+        self.parser.read_device_info(bin_file)
 
     def stop(self):
         """Stop streaming"""
@@ -105,8 +106,8 @@ class StreamProcessor:
             self.apply_filters(packet=packet)
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo):
-            self.old_device_info = self.device_info
-            self.device_info = packet.get_info()
+            self.old_device_info = self.device_info.copy()
+            self.device_info.update(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
@@ -189,7 +190,7 @@ class StreamProcessor:
             self.physical_orn.status = "READY"
         else:
             self.physical_orn.status = "NOT READY"
-            raise ValueError('calibration data does not exists, please first calibrate your device!')
+            print('Calibration data does not exist. If you need physical orientation, calibrate your device first.')
 
     def set_marker(self, code):
         """Set a marker in the stream"""

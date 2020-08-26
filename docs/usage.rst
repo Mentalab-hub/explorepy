@@ -20,7 +20,7 @@ You can get help for a specific command by ``explorepy <command> -h``, for examp
       -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
       -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
       -cf, --calib-file PATH    Calibration file name
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth          Select the Bluetooth interface (default: pybluez)
       -h, --help                Show this message and exit.
 
 
@@ -31,6 +31,12 @@ Available Commands
 **find-device**
 Scans for nearby explore-devices. Prints out Name and MAC address of the found devices.
 
+    Options:
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
+      -h, --help                      Show this message and exit.
+
+.. note:: On Windows, this function prints all paired devices.
+
 
 **acquire**::
 
@@ -39,7 +45,7 @@ Scans for nearby explore-devices. Prints out Name and MAC address of the found d
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help          Show this message and exit.
 
 
@@ -57,8 +63,16 @@ file for the marker events. In EDF mode, the data is actually recorded in BDF+ f
       -d, --duration <integer>  Recording duration in seconds
       --edf                     Write in EDF file (default type)
       --csv                     Write in csv file
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help                Show this message and exit.
+
+.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
+            `mne <https://github.com/mne-tools/mne-python>`_ (file extension may need to change to bdf manually for mne)
+            in python.
+
+            EEGLAB's BIOSIG plugin has problem with some EDF files currently
+            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled Matlab code from BIOSIG can
+            be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_.
 
 **push2lsl**
 Streams data to Lab Streaming Layer (LSL).::
@@ -67,10 +81,8 @@ Streams data to Lab Streaming Layer (LSL).::
       -a, --address TEXT        Explore device's MAC address
       -n, --name TEXT           Name of the device
       -d, --duration <integer>  Streaming duration in seconds
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help                Show this message and exit.
-
-
 
 
 
@@ -97,8 +109,20 @@ The data is actually recorded in BDF+ format (in 24-bit resolution).::
 
 .. note:: For devices with firmware version 2.1.1 and lower, explorepy v0.5.0 has to be used to convert binary files.
 
+.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
+            `mne <https://github.com/mne-tools/mne-python>`_ (file extension may need to change to bdf manually for mne)
+            in python.
+
+            EEGLAB's BIOSIG plugin has problem with some EDF files currently
+            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled Matlab code from BIOSIG can
+            be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_.
+
+.. note::  If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
+            file for ExG data with the given file name plus the time the setting has changed.
+
+
 **visualize**
-Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow.::
+Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported browser. The visualization in other browsers might be slow.::
 
     Options:
       -a, --address TEXT        Explore device's MAC address
@@ -106,8 +130,7 @@ Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the
       -nf, --notchfreq [50|60]  Frequency of notch filter.
       -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
       -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
-      -cf, --calib-file PATH    Calibration file name
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help                Show this message and exit.
 
 
@@ -118,22 +141,25 @@ Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome
       -a, --address TEXT        Explore device's MAC address
       -n, --name TEXT           Name of the device
       -nf, --notchfreq [50|60]  Frequency of notch filter.
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help                Show this message and exit.
 
 
+.. note:: Impedance value shown for each electrode is the sum of impedances of ground electrode and corresponding ExG electrode.
 
-**calibrate_orn**
-Calibrate the orientation module of the specified device. After running this module, a file containing
-calibration data will be generated. Using this file, an extra computation block can be activated in the visualize
-to compute the physical orientation of the device from raw sensor data.::
+.. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature.
+
+**calibrate-orn**
+Calibrate the orientation module of the specified device. After running this module, calibration parameters will be
+stored in the configuration file of Explorepy. If the orientation module is calibrated, Explorepy computes the physical
+orientation (degree and rotation axis). Currently, the physical orientation data is not visualized in the dashboard and
+it is only accessible in python scripts in data packets.::
 
     Options:
       -a, --address TEXT   Explore device's MAC address
       -n, --name TEXT      Name of the device
-      -f, --filename PATH  Name of the file.  [required]
       -ow, --overwrite     Overwrite existing file
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help           Show this message and exit.
 
 
@@ -143,7 +169,7 @@ This command formats the memory of the specified Explore device.::
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help          Show this message and exit.
 
 
@@ -157,11 +183,11 @@ sampling rates are 250, 500 or 1000.::
       -sr, --sampling-rate [250|500|1000]
                                       Sampling rate of ExG channels, it can be 250
                                       or 500  [required]
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help                      Show this message and exit.
 
 
-**set-channel**
+**set-channels**
 Using this command, you can enable/disable a set of ExG channels of the device. An integer number is required for the
 channel mask, where the binary representation of it shows the mask (eg. 15 for 00001111, to enable 4 channels of an 8-ch device).::
 
@@ -172,7 +198,7 @@ channel mask, where the binary representation of it shows the mask (eg. 15 for 0
                                       Channel mask, it should be an integer
                                       between 1 and 255, the binary representation
                                       will be interpreted as mask.  [required]
-      --pybluez                       Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help                      Show this message and exit.
 
 **disable-module**
@@ -184,8 +210,8 @@ with this command.::
       -n, --name TEXT     Name of the device
       -m, --module TEXT   Module name to be disabled, options: ORN, ENV, EXG
                           [required]
-      --pybluez           Use pybluez as the bluetooth interface
-      -h, --help          Show this message and exit.
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
+
 
 
 **enable-module**
@@ -196,7 +222,7 @@ If you have already disabled a module of Explore device, you can enable it with 
       -n, --name TEXT     Name of the device
       -m, --module TEXT   Module name to be enabled, options: ORN, ENV, EXG
                           [required]
-      --pybluez           Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help          Show this message and exit.
 
 
@@ -207,7 +233,7 @@ return to the default values.::
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
-      --pybluez                 Use pybluez as the bluetooth interface
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help          Show this message and exit.
 
 
@@ -223,9 +249,9 @@ Convert a binary file to csv: ``explorepy bin2csv -f input_file.BIN``
 
 Convert a binary file to EDF and overwrite if files exist already: ``explorepy bin2edf -f input_file.BIN -ow``
 
-Visualize in real-time: ``explorepy visualize -n Explore_XXXX``
+Visualize in real-time: ``explorepy visualize -n Explore_XXXX -lf .5 -hf 40 -nf 50``
 
-Impedance measurement: ``explorepy impedance -n Explore_XXXX``
+Impedance measurement: ``explorepy impedance -n Explore_XXXX -nf 50``
 
 Format the memory: ``explorepy format-memory -n Explore_XXXX``
 
@@ -242,10 +268,13 @@ To use explorepy in a python project::
 	import explorepy
 
 
+.. note:: Since explorepy is using multithreading for data streaming, running python scripts in some consoles such
+            as Ipython's or Spyder's consoles may lead to strange behaviours.
+
 Initialization
 ^^^^^^^^^^^^^^
 Before starting a session, make sure your device is paired to your computer. The device will be shown under the following name: Explore_XXXX,
-with the last 4 characters being the last 4 hex numbers of the devices MAC adress
+with the last 4 characters being the last 4 hex numbers of the devices MAC address.
 
 **Make sure to initialize the Bluetooth connection before streaming using the following lines**::
 
@@ -258,14 +287,16 @@ Alternatively you can use the device's MAC address::
 
 If the device is not found it will raise an error.
 
-By defalut, Explorepy uses its own SDK for bluetooth interface. However, you can use Pybluez as the BT interface. To change the
+Explorepy allows users to use either pybluez or Explorepy's SDK as the Bluetooth interface (default BT backend is pybluez). To change the
 BT interface, use the following code. ::
 
-    explorepy.set_bt_interface('pybluez')
+    explorepy.set_bt_interface('sdk')
 
 To return it to the SDK: ::
 
     explorepy.set_bt_interface('sdk')
+
+.. note:: Many MacOS users have reported problems during installation of pybluez, hence only Explorepy's SDK is supported for MacOS. 
 
 
 Streaming
@@ -317,12 +348,14 @@ Impedance measurement
 To measure electrodes impedances::
 
 
-    explore.impedance(notch_freq=50)
+    explore.measure_imp(notch_freq=50)
 
 
 .. image:: /images/Dashboard_imp.jpg
   :width: 800
   :alt: Impedance Dashboard
+
+.. note:: Impedance value shown for each electrode is the sum of impedances of ground electrode and corresponding ExG electrode.
 
 .. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature.
 
@@ -345,9 +378,10 @@ and converts it to 2 CSV files (one for orientation, the other one for ExG data)
 
     explore.convert_bin(bin_file='Data001.BIN', file_type='csv', do_overwrite=False)
 
-If you want to overwrite existing files, use::
 
-    bin2csv(bin_file, do_overwrite=True)
+.. note::  If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
+            file for ExG data with the given file name plus the time the setting has changed. In CSV format all data is written in
+            the same file.
 
 
 Event markers
@@ -355,3 +389,36 @@ Event markers
 In addition to the marker event generated by pressing the button on Explore device, you can set markers in your code using `explorepy.Explore.set_marker` function. However, this function must be called from a different thread than the parsing thread.
 Please not that marker codes between 0 and 7 are reserved for hardware related markers. You can use any other (integer) code for your marker from 8 to 65535.
 To see an example usage of this function look at `this script <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_
+
+Device configuration
+^^^^^^^^^^^^^^^^^^^^
+Using methods of Explore class, the device settings can be changed.
+
+Explore's sampling rate can be changed to 250, 500 or 1000Hz (default sampling rate is 250Hz). ::
+
+    explore.set_sampling_rate(sampling_rate=500)
+
+
+Format memory: ::
+
+    explore.format_memory()
+
+The ExG input channels can be deactivated/activated using ``set_channels`` method. The unsigned binary representation
+of a channel mask will be used to select channels, e.g. 131=0b01000011 means channels 1,2,8 are active. ::
+
+    explore.set_channels(channel_mask=131)
+
+or alternatively: ::
+
+    explore.set_channels(channel_mask=0b01000011)
+
+
+Orientation, ExG and environment modules can be disabled/enabled using ``disable_module``/``enable_module`` functions. ::
+
+    explore.disable_module(module_name='ORN')
+    explore.enable_module(module_name='ENV')
+
+
+You can reset the device to the default settings by: ::
+
+    explore.reset_soft()

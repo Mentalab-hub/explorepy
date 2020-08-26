@@ -1,3 +1,4 @@
+#include <iostream>
 #include <string>
 #include <stdlib.h>
 #include <unistd.h>
@@ -85,8 +86,7 @@ int BTSerialPortBinding::Connect()
 
 	// connect to server
 	int status = connect(data->s, (struct sockaddr *)&addr, sizeof(addr));
-	//fprintf(stdout, " the status code of connect method is %d\n", status);
-	
+
 	int sock_flags = fcntl(data->s, F_GETFL, 0);
 	fcntl(data->s, F_SETFL, sock_flags | O_NONBLOCK);
 
@@ -108,12 +108,12 @@ void BTSerialPortBinding::Close()
 }
 
 void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
-{	
+{
 	if (data->s == 0)
 		//throw ExploreException("connection has been closed");
 		fprintf(stdout, "connection has been closed");
 	//allocating space in buffer
-	 
+
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(data->s, &set);
@@ -125,21 +125,19 @@ void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
 	if (pselect(nfds + 1, &set, NULL, NULL, NULL, NULL) >= 0)
 	{
 		if (FD_ISSET(data->s, &set)){
- 
+
 			size = recv(data->s, bt_buffer, *bt_length, MSG_WAITALL);
-			//fprintf(stdout, "length is %d and size is %d \n", *bt_length, size);
+//			cout << "length is " << *bt_length << "size is " <<  size << endl;
+			if(size < 0)
+			{
+                throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+			}
+
 
 		}
 		else // when no data is read from rfcomm the connection has been closed.
 			fprintf(stdout, " no data is read from rfcomm");
 	}
-
-	if (size < 0)
-		fprintf(stdout, " the read method failed! :(");
-		//throw ExploreException("Error reading from connection");
-	
-
-	return;
 }
 
 void BTSerialPortBinding::Write(const char *write_buffer, int length)
