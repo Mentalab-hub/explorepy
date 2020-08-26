@@ -72,7 +72,7 @@ if not os.environ.get('READTHEDOCS'):
             my_req.append('pyobjc-framework-Cocoa>=3.1,<6')
 setup(
     name='explorepy',
-    version='1.0.0',
+    version='1.1.0',
 
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
