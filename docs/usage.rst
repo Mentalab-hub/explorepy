@@ -66,6 +66,9 @@ file for the marker events. In EDF mode, the data is actually recorded in BDF+ f
       -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: pybluez)
       -h, --help                Show this message and exit.
 
+.. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
+            file for ExG data with the given file name plus the time the setting has changed.
+
 .. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
             `mne <https://github.com/mne-tools/mne-python>`_ (file extension may need to change to bdf manually for mne)
             in python.
@@ -73,6 +76,7 @@ file for the marker events. In EDF mode, the data is actually recorded in BDF+ f
             EEGLAB's BIOSIG plugin has problem with some EDF files currently
             (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled Matlab code from BIOSIG can
             be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_.
+
 
 **push2lsl**
 Streams data to Lab Streaming Layer (LSL).::
@@ -117,8 +121,9 @@ The data is actually recorded in BDF+ format (in 24-bit resolution).::
             (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled Matlab code from BIOSIG can
             be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_.
 
-.. note::  If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
+.. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
             file for ExG data with the given file name plus the time the setting has changed.
+
 
 
 **visualize**
