@@ -69,6 +69,7 @@ class StreamProcessor:
         self.subscribe(callback=self._device_configurator.update_ack, topic=TOPICS.cmd_ack)
         self.subscribe(callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
         self.orn_initialize(device_name)
+        self._device_configurator.send_timestamp()
 
     def open_file(self, bin_file):
         """Open the binary file and read until it gets device info packet

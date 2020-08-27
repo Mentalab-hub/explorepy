@@ -6,7 +6,6 @@ import time
 import numpy as np
 
 from explorepy._exceptions import FletcherError
-from explorepy.command import int2bytearray
 
 
 class PACKET_ID(IntEnum):
@@ -311,17 +310,6 @@ class TimeStamp(Packet):
     def _check_fletcher(self, fletcher):
         if not fletcher == b'\xff\xff\xff\xff':
             raise FletcherError('Fletcher value is incorrect!')
-
-    def translate(self):
-        """Translate content to bytearray"""
-        timestamp = int(time.time() + time.localtime().tm_gmtoff)
-        host_ts = int2bytearray(timestamp, 8)
-        pid = b'\x1B'
-        cnt = b'\x01'
-        payload_len = int2bytearray(16, 2)
-        device_ts = b'\x00\x00\x00\x00'
-        fletcher = b'\xFF\xFF\xFF\xFF'
-        self.raw_data = pid + cnt + payload_len + device_ts + host_ts + fletcher
 
     def __str__(self):
         return "Host timestamp: " + str(self.host_timestamp)

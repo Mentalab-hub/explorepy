@@ -7,8 +7,6 @@ from datetime import datetime
 import abc
 from enum import Enum
 
-from explorepy.packet import TimeStamp
-
 
 class CommandID(Enum):
     """Command ID enum class"""
@@ -109,8 +107,28 @@ class DeviceConfiguration:
         print("The command is sent.")
 
     def send_timestamp(self):
-        ts = TimeStamp()
+        ts = HostTimeStamp()
         self._send_command(ts)
+
+
+class HostTimeStamp:
+    """Host timestamp data packet"""
+    def __init__(self):
+        self.pid = b'\x1B'
+        self.cnt = b'\x01'
+        self.payload_len = int2bytearray(16, 2)
+        self.device_ts = b'\x00\x00\x00\x00'
+        self.host_ts = None
+        self.fletcher = b'\xFF\xFF\xFF\xFF'
+
+    def translate(self):
+        """Translate content to bytearray"""
+        timestamp = int(time.time() + time.localtime().tm_gmtoff)
+        self.host_ts = int2bytearray(timestamp, 8)
+        return self.pid + self.cnt + self.payload_len + self.device_ts + self.host_ts + self.fletcher
+
+    def __str__(self):
+        return "Host timestamp"
 
 
 class Command:
