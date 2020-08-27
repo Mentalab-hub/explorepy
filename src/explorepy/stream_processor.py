@@ -69,6 +69,7 @@ class StreamProcessor:
         self.subscribe(callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
         self.orn_initialize(device_name)
 
+
     def open_file(self, bin_file):
         """Open the binary file and read until it gets device info packet
         Args:
@@ -219,3 +220,7 @@ class StreamProcessor:
             print("ADC mask has been changed in the file.")
             return False
         return True
+
+    def send_timestamp(self):
+        """Send host timestamp to the device"""
+        self._device_configurator.send_timestamp()

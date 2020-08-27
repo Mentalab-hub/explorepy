@@ -54,6 +54,7 @@ class Explore:
             time.sleep(.2)
         print('Device info packet has been received. Connection has been established. Streaming...')
         self.is_connected = True
+        self.stream_processor.send_timestamp()
 
     def disconnect(self):
         r"""Disconnects from the device
