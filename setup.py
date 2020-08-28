@@ -69,6 +69,7 @@ if not os.environ.get('READTHEDOCS'):
         else:
             my_req.append('pyobjc-core>=3.1,<6')
             my_req.append('pyobjc-framework-Cocoa>=3.1,<6')
+        os.system('cp -t src/explorepy /lib/mac/{_exploresdk.so, btScan, exploresdk.py} ')
 setup(
     name='explorepy',
     version='1.1.0',
