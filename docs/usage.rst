@@ -7,7 +7,7 @@ Command Line Interface
 **Command structure:**
 ``explorepy <command> [args]``
 
-You can get help for a specific command by ``explorepy <command> -h``, for example to get help about visualize command, ``explorepy visualize -h`` will result to::
+You can get help for a specific command by  ``explorepy <command> -h``. For example to get help about visualize command, run ``explorepy visualize -h`` will result to::
 
     Usage: explorepy visualize [OPTIONS]
 
@@ -29,7 +29,7 @@ Available Commands
 """"""""""""""""""
 
 **find-device**
-Scans for nearby explore-devices. Prints out Name and MAC address of the found devices.
+Scans for nearby Mentalab Explore devices. Prints out Name and MAC address of the found devices.
 
     Options:
       -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
@@ -52,7 +52,7 @@ Scans for nearby explore-devices. Prints out Name and MAC address of the found d
 
 **record-data**
 
-Connects to a device and records ExG and orientation data into 2 separate files. Note that in CSV mode there will be an extra
+Connects to a device and records ExG and orientation data into two separate files. Note that in CSV mode there will be an extra
 file for the marker events. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution).::
 
     Options:
@@ -91,7 +91,7 @@ Streams data to Lab Streaming Layer (LSL).::
 
 
 **bin2csv**
-Takes a Binary file and converts it to 3 CSV files (ExG, orientation and marker files)::
+Takes a Binary file and converts it to three CSV files (ExG, orientation and marker files)::
 
     Options:
       -f, --filename PATH  Name of (and path to) the binary file.  [required]
@@ -100,10 +100,10 @@ Takes a Binary file and converts it to 3 CSV files (ExG, orientation and marker 
 
 
 
-.. note:: For devices with firmware version 2.1.1 and lower, explorepy v0.5.0 has to be used to convert binary files.
+.. note:: For devices with firmware version 2.1.1 and lower, Explorepy v0.5.0 has to be used to convert binary files.
 
 **bin2edf**
-Takes a Binary file and converts it to 2 EDF files (ExG and orientation - markers will be written in ExG file).
+Takes a Binary file and converts it to two EDF files (ExG and orientation - markers will be written in ExG file).
 The data is actually recorded in BDF+ format (in 24-bit resolution).::
 
     Options:
@@ -127,7 +127,7 @@ The data is actually recorded in BDF+ format (in 24-bit resolution).::
 
 
 **visualize**
-Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported browser. The visualization in other browsers might be slow.::
+Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported and recommended browser. The visualization in IE and Edge might be very slow, and is not recommended.::
 
     Options:
       -a, --address TEXT        Explore device's MAC address
@@ -140,7 +140,7 @@ Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the
 
 
 **impedance**
-Visualizes electrodes impedances in a browser-based dashboard. Currently, Chrome is the supported browser.::
+Visualizes the electrode impedances in a browser  dashboard. Currently, Chrome is the supported browser.::
 
     Options:
       -a, --address TEXT        Explore device's MAC address
@@ -291,7 +291,7 @@ Alternatively you can use the device's MAC address::
 
     explore.connect(mac_address="XX:XX:XX:XX:XX:XX")
 
-If the device is not found it will raise an error.
+If the device is not found, you will receive an error.
 
 Explorepy allows users to use either pybluez or Explorepy's SDK as the Bluetooth interface (in Windows and Ubuntu,
 the default BT backend is pybluez and in MacOS, the default BT backend is SDK). To change the
@@ -299,7 +299,7 @@ BT interface, use the following code. ::
 
     explorepy.set_bt_interface('sdk')
 
-To return it to the SDK: ::
+To set the BT interface back to the SDK: ::
 
     explorepy.set_bt_interface('sdk')
 
@@ -327,7 +327,7 @@ If you want to overwrite already existing files, change the line above::
 
 Visualization
 ^^^^^^^^^^^^^
-It is possible to visualize real-time signal in a browser-based dashboard by the following code. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow.::
+It is possible to visualize data in real-time in a browser-based dashboard by the following code. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow::
 
 
     explore.visualize(bp_freq=(1, 30), notch_freq=50)
@@ -335,7 +335,7 @@ It is possible to visualize real-time signal in a browser-based dashboard by the
 Where `bp_freq` and `notch_freq` determine cut-off frequencies of bandpass/lowpass/highpass filter and frequency of notch filter (either 50 or 60) respectively.
 
 
-In the dashboard, you can set signal mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heart beats are detected and heart rate is estimated from RR-intervals.
+In the dashboard, you can set the signal visualization mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heartbeats are detected and heart rate is calculated from the RR-intervals.
 
 EEG:
 
@@ -362,9 +362,9 @@ To measure electrodes impedances::
   :width: 800
   :alt: Impedance Dashboard
 
-.. note:: Impedance value shown for each electrode is the sum of impedances of ground electrode and corresponding ExG electrode.
+.. note:: Impedance value shown for each electrode is the sum of impedances of ground electrode and corresponding ExG electrode. This can make the impedances appear higher than they actually are. Make sure your ground is well prepared, when facing issues in getting to low impedances.
 
-.. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature.
+.. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature. Therefore, this works best at regular room temperatures (~15-25 °C).
 
 Labstreaminglayer (lsl)
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -373,7 +373,7 @@ You can push data directly to LSL using the following line::
     explore.push2lsl()
 
 
-After that you can stream data from other software such as OpenVibe or other programming languages such as MATLAB, Java, C++ and so on. (See `labstreaminglayer <https://github.com/sccn/labstreaminglayer>`_, `OpenVibe <http://openvibe.inria.fr/how-to-use-labstreaminglayer-in-openvibe/>`_ documentations for details).
+With this, you can stream data from other software such as OpenVibe or other programming languages such as MATLAB, Java, C++ and so on. (See `labstreaminglayer <https://github.com/sccn/labstreaminglayer>`_, `OpenVibe <http://openvibe.inria.fr/how-to-use-labstreaminglayer-in-openvibe/>`_ documentations for details).
 This function creates three LSL streams for ExG, Orientation and markers.
 In case of a disconnect (device loses connection), the program will try to reconnect automatically.
 
@@ -381,7 +381,7 @@ In case of a disconnect (device loses connection), the program will try to recon
 Converter
 ^^^^^^^^^
 It is also possible to extract BIN files from the device via USB. To convert these to CSV, you can use the function bin2csv, which takes your desired BIN file
-and converts it to 2 CSV files (one for orientation, the other one for ExG data). Bluetooth connection is not necessary for conversion. ::
+and converts it to 2 CSV files (one for orientation, the other one for ExG data). A Bluetooth connection is not needed for this. ::
 
     explore.convert_bin(bin_file='Data001.BIN', file_type='csv', do_overwrite=False)
 
@@ -393,7 +393,7 @@ and converts it to 2 CSV files (one for orientation, the other one for ExG data)
 
 Event markers
 ^^^^^^^^^^^^^
-In addition to the marker event generated by pressing the button on Explore device, you can set markers in your code using `explorepy.Explore.set_marker` function. However, this function must be called from a different thread than the parsing thread.
+In addition to the marker event generated by pressing the button on Explore device, you can set markers in your code using the `explorepy.Explore.set_marker` function. However, this function must be called from a different thread than the parsing thread.
 Please not that marker codes between 0 and 7 are reserved for hardware related markers. You can use any other (integer) code for your marker from 8 to 65535.
 To see an example usage of this function look at `this script <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_
 

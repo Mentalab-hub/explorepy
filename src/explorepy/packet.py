@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module contains all packet classes of Explore device"""
+"""This module contains all packet classes of Mentalab Explore device"""
 import abc
 from enum import IntEnum
 import time
