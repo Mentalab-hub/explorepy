@@ -19,7 +19,6 @@ You can get help for a specific command by ``explorepy <command> -h``, for examp
       -nf, --notchfreq [50|60]  Frequency of notch filter.
       -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
       -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
-      -cf, --calib-file PATH    Calibration file name
       -bt, --bluetooth          Select the Bluetooth interface (default: pybluez)
       -h, --help                Show this message and exit.
 
@@ -179,8 +178,9 @@ This command formats the memory of the specified Explore device.::
 
 
 **set-sampling-rate**
-This command sets the sampling rate of ExG on the specified Explore device. The only acceptable values for
-sampling rates are 250, 500 or 1000.::
+This command sets the sampling rate of ExG on the specified Explore device. Acceptable values for
+sampling rates are 250, 500 or 1000. The default sampling rate of the device is 250 Hz. Please note that 1000 Hz sampling rate is in beta phase.::
+
 
     Options:
       -a, --address TEXT              Explore device's MAC address
