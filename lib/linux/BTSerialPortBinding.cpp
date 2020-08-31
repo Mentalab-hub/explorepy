@@ -121,12 +121,13 @@ void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
 
 	int nfds = (data->s > data->rep[0]) ? data->s : data->rep[0];
 	int size = -1;
-
+	Py_BEGIN_ALLOW_THREADS
 	if (pselect(nfds + 1, &set, NULL, NULL, NULL, NULL) >= 0)
 	{
 		if (FD_ISSET(data->s, &set)){
 
 			size = recv(data->s, bt_buffer, *bt_length, MSG_WAITALL);
+			
 //			cout << "length is " << *bt_length << "size is " <<  size << endl;
 			if(size < 0)
 			{
@@ -135,6 +136,7 @@ void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
 
 
 		}
+	Py_END_ALLOW_THREADS
 		else // when no data is read from rfcomm the connection has been closed.
 			fprintf(stdout, " no data is read from rfcomm");
 	}
