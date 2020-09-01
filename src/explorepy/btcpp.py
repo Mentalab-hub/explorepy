@@ -105,12 +105,12 @@ class SDKBtClient:
                 list of bytes
         """
         # platform specific delays are set so that data visualization can happen smoothly
-        # if platform == "win32" or platform == "win64":
-        #     time.sleep(.0005)
-        # elif platform == 'darwin':
-        #     self.implicit_delay(.001)
-        # else:
-        #     self.implicit_delay(.002)
+        if platform == "win32" or platform == "win64":
+            time.sleep(.0005)
+        elif platform == 'darwin':
+            self.implicit_delay(.001)
+        else:
+            self.implicit_delay(.002)
         try:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
