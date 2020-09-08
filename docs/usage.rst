@@ -66,7 +66,7 @@ file for the marker events. In EDF mode, the data is actually recorded in BDF+ f
       -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                Show this message and exit.
 
-.. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
+.. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF/CSV
             file for ExG data with the given file name plus the time the setting has changed.
 
 .. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
@@ -101,6 +101,9 @@ Takes a Binary file and converts it to three CSV files (ExG, orientation and mar
 
 
 .. note:: For devices with firmware version 2.1.1 and lower, Explorepy v0.5.0 has to be used to convert binary files.
+
+.. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new CSV
+            file for ExG data with the given file name plus the time the setting has changed.
 
 **bin2edf**
 Takes a Binary file and converts it to two EDF files (ExG and orientation - markers will be written in ExG file).
@@ -386,9 +389,8 @@ and converts it to 2 CSV files (one for orientation, the other one for ExG data)
     explore.convert_bin(bin_file='Data001.BIN', file_type='csv', do_overwrite=False)
 
 
-.. note::  If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
-            file for ExG data with the given file name plus the time the setting has changed. In CSV format all data is written in
-            the same file.
+.. note::  If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF/CSV
+            file for ExG data with the given file name plus the time the setting has changed.
 
 
 Event markers
