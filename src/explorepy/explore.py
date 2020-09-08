@@ -158,9 +158,10 @@ class Explore:
         filename, extension = os.path.splitext(full_filename)
         assert os.path.isfile(bin_file), "Error: File does not exist!"
         assert extension == '.BIN', "File type error! File extension must be BIN."
-        exg_out_file = os.getcwd() + '//' + out_dir + filename + '_exg'
-        orn_out_file = os.getcwd() + '//' + out_dir + filename + '_orn'
-        marker_out_file = os.getcwd() + '//' + out_dir + filename + '_marker'
+        out_full_path = os.path.join(os.getcwd(), out_dir)
+        exg_out_file = out_full_path + filename + '_exg'
+        orn_out_file = out_full_path + filename + '_orn'
+        marker_out_file = out_full_path + filename + '_marker'
         self.stream_processor = StreamProcessor()
         self.stream_processor.read_device_info(bin_file=bin_file)
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
@@ -184,20 +185,19 @@ class Explore:
         def device_info_callback(packet):
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
-                if self.recorders['file_type'] == 'edf':
-                    new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
-                    print("WARNING: Creating a new edf file:", new_file_name + '.edf')
-                    self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-                    self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
-                    self.recorders['exg'].stop()
-                    self.recorders['exg'] = create_exg_recorder(filename=new_file_name,
-                                                                file_type=self.recorders['file_type'],
-                                                                fs=self.stream_processor.device_info['sampling_rate'],
-                                                                adc_mask=self.stream_processor.device_info['adc_mask'],
-                                                                do_overwrite=do_overwrite)
-                    self.recorders['marker'] = self.recorders['exg']
-                    self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-                    self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
+                print("WARNING: Creating a new file:", new_file_name + '.' + self.recorders['file_type'])
+                self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                self.recorders['exg'].stop()
+                self.recorders['exg'] = create_exg_recorder(filename=new_file_name,
+                                                            file_type=self.recorders['file_type'],
+                                                            fs=self.stream_processor.device_info['sampling_rate'],
+                                                            adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                            do_overwrite=do_overwrite)
+                self.recorders['marker'] = self.recorders['exg']
+                self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
 
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
         self.stream_processor.open_file(bin_file=bin_file)
