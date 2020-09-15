@@ -20,6 +20,7 @@ struct bluetooth_data
 	bool initialized;
 };
 
+
 using namespace std;
 
 BTSerialPortBinding *BTSerialPortBinding::Create(string address, int channelID)
@@ -124,7 +125,7 @@ void BTSerialPortBinding::Read(char *buffer, int* length)
 	FD_ZERO(&set);
 	FD_SET(data->s, &set);
 
-	int size = -1;
+	int size = 0;
 
 	//timeval timeout { 0, 0 };
 
@@ -133,15 +134,14 @@ void BTSerialPortBinding::Read(char *buffer, int* length)
 		if (FD_ISSET(data->s, &set)){
 		try{
 			Py_BEGIN_ALLOW_THREADS
+			Sleep(1),
 		    size = recv(data->s, buffer, *length, 0);
 			Py_END_ALLOW_THREADS
 		}
 		catch(const std::exception& e){
-		    cout << "INSIDE STD::EXCEPTION" << endl;
             throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
 		}
 		catch(const std::runtime_error& e){
-            cout << "INSIDE STD::RUNTIME_ERROR" << endl;
             throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
 		}
 
@@ -176,7 +176,11 @@ void BTSerialPortBinding::Write(const char *buffer, int length)
 	if (data->s == INVALID_SOCKET)
 		throw ExploreException("Attempting to write to a closed connection");
 
-	if (send(data->s, buffer, length, 0) != length)
+	int returnValue = -1;
+	Py_BEGIN_ALLOW_THREADS
+	returnValue = send(data->s, buffer, length, 0);
+	Py_END_ALLOW_THREADS
+	if (returnValue != length)
 		throw ExploreException("Writing attempt was unsuccessful");
 }
 
