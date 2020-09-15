@@ -121,25 +121,42 @@ void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
 
 	int nfds = (data->s > data->rep[0]) ? data->s : data->rep[0];
 	int size = -1;
-	Py_BEGIN_ALLOW_THREADS
+
+	try{
+
 	if (pselect(nfds + 1, &set, NULL, NULL, NULL, NULL) >= 0)
 	{
 		if (FD_ISSET(data->s, &set)){
 
-			size = recv(data->s, bt_buffer, *bt_length, MSG_WAITALL);
-			
+			Py_BEGIN_ALLOW_THREADS
+			size = recv(data->s, bt_buffer, *bt_length, 0);
+			Py_END_ALLOW_THREADS
+
 //			cout << "length is " << *bt_length << "size is " <<  size << endl;
 			if(size < 0)
 			{
-                throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+                		throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+                		cout << "length is " << *bt_length << "size is " <<  size << endl;
 			}
 
 
 		}
-	Py_END_ALLOW_THREADS
+
 		else // when no data is read from rfcomm the connection has been closed.
 			fprintf(stdout, " no data is read from rfcomm");
-	}
+	}}
+
+	catch (abi::__forced_unwind&) {
+     throw;
+
+    }
+    catch(ExploreReadBufferException &e) {
+        throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+    }
+
+
+
+
 }
 
 void BTSerialPortBinding::Write(const char *write_buffer, int length)
@@ -154,9 +171,27 @@ void BTSerialPortBinding::Write(const char *write_buffer, int length)
 		//throw ExploreException("Attempting to write to a closed connection");
 		fprintf(stdout, "write_buffer cannot be null");
 
-	if (write(data->s, write_buffer, length) != length)
+    int write_length = -1;
+
+    try{
+
+    Py_BEGIN_ALLOW_THREADS
+    //write_length = write(data->s, write_buffer, length);
+
+    write_length = send(data->s, write_buffer, length, 0);
+    Py_END_ALLOW_THREADS
+
+	if (write_length != length)
 		//throw ExploreException("Writing attempt was unsuccessful");
 		fprintf(stdout, "Writing attempt was unsuccessful");
+    }
+
+     catch (abi::__forced_unwind&) { // reference to the base of a polymorphic object
+      throw;// information from length_error printed
+
+    }
+
+
 }
 
 bool BTSerialPortBinding::IsDataAvailable()

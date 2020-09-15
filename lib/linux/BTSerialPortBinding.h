@@ -9,7 +9,9 @@
 #include "Python.h"
 #include <string>
 #include <memory>
+#include <cxxabi.h>
 #include "ExploreExceptionConstants.h"
+
 
 struct bluetooth_data;
 
