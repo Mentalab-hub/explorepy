@@ -132,7 +132,9 @@ void BTSerialPortBinding::Read(char *buffer, int* length)
 	{
 		if (FD_ISSET(data->s, &set)){
 		try{
+			Py_BEGIN_ALLOW_THREADS
 		    size = recv(data->s, buffer, *length, 0);
+			Py_END_ALLOW_THREADS
 		}
 		catch(const std::exception& e){
 		    cout << "INSIDE STD::EXCEPTION" << endl;
