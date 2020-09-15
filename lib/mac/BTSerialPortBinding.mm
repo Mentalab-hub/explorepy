@@ -1,6 +1,3 @@
-//iostream for debug
-
-#include<iostream>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -47,8 +44,6 @@ BTSerialPortBinding::BTSerialPortBinding(string address, int channelID)
 	: address(address), channelID(channelID), data(new bluetooth_data())
 {
 	data->consumer = NULL;
-	cout << "address in constructor is  " <<endl;
-	cout << address <<endl;
 }
 
 BTSerialPortBinding::~BTSerialPortBinding()
@@ -58,7 +53,6 @@ BTSerialPortBinding::~BTSerialPortBinding()
 int BTSerialPortBinding::Connect()
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    cout << address <<endl;
     NSString *addressString = [NSString stringWithCString:address.c_str() encoding:NSASCIIStringEncoding];
     BluetoothWorker *worker = [BluetoothWorker getInstance];
     // create pipe to communicate with delegate
@@ -101,8 +95,9 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 	return;
 
     size_buffer = -1;
-
+    Py_BEGIN_ALLOW_THREADS
     size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
+    Py_END_ALLOW_THREADS
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
