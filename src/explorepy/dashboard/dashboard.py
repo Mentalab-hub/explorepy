@@ -549,6 +549,8 @@ class Dashboard:
 
     def _toggle_rec(self, active):
         if active:
+            self.event_code_input.disabled = False
+            self.marker_button.disabled = False
             if self.explore.is_connected:
                 self.explore.record_data(file_name=self.file_name_widget.value,
                                          file_type=['edf', 'csv'][self.file_type_widget.active],
@@ -565,6 +567,8 @@ class Dashboard:
             self.rec_button.label = u"\u25CF  Record"
             self.doc.add_next_tick_callback(partial(self._update_rec_timer, new_data={'timer': '00:00:00'}))
             self.doc.remove_periodic_callback(self.rec_timer_id)
+            self.event_code_input.disabled = True
+            self.marker_button.disabled = True
 
     def _timer_callback(self):
         t_delta = (datetime.now() - self.rec_start_time).seconds
@@ -574,8 +578,8 @@ class Dashboard:
         self.doc.add_next_tick_callback(partial(self._update_rec_timer, new_data=data))
 
     def _init_set_marker(self):
-        self.marker_button = Button(label=u"Set Event", button_type="default", width=100, height=31)
-        self.event_code_input = TextInput(value="8", title="Event code:", width=100)
+        self.marker_button = Button(label=u"Set Event", button_type="default", width=100, height=31, disabled=True)
+        self.event_code_input = TextInput(value="8", title="Event code:", width=100, disabled=True)
         self.event_code_input.on_change('value', self._check_marker_value)
         self.marker_button.on_click(self._set_marker)
         return column(Spacer(width=210, height=5),
