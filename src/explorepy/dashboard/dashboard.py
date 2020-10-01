@@ -6,7 +6,7 @@ from functools import partial
 import numpy as np
 from bokeh.layouts import widgetbox, row, column, Spacer
 from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets, \
-    Toggle, TextInput, RadioGroup, Div, CustomJS
+    Toggle, TextInput, RadioGroup, Div, CustomJS, Button
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.palettes import PRGn
@@ -366,6 +366,7 @@ class Dashboard:
             fft_tab = Panel(child=self.fft_plot, title="Spectral analysis")
             self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=600)
             self.recorder_widget = self._init_recorder()
+            self.set_marker_widget = self._init_set_marker()
         elif self.mode == "impedance":
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
             self.tabs = Tabs(tabs=[imp_tab], width=600)
@@ -377,7 +378,7 @@ class Dashboard:
         if self.mode == 'signal':
             self.doc.add_root(column(banner,
                                      Spacer(width=600, height=20),
-                                     row([column(m_widgetbox, self.recorder_widget),
+                                     row([column(m_widgetbox, self.recorder_widget, self.set_marker_widget),
                                           Spacer(width=25, height=500), self.tabs,
                                           Spacer(width=700, height=600)])
                                      )
@@ -571,6 +572,29 @@ class Dashboard:
                                str(int(t_delta % 60)).zfill(2)])
         data = {'timer': timer_text}
         self.doc.add_next_tick_callback(partial(self._update_rec_timer, new_data=data))
+
+    def _init_set_marker(self):
+        self.marker_button = Button(label=u"Set Event", button_type="default", width=100, height=31)
+        self.event_code_input = TextInput(value="8", title="Event code:", width=100)
+        self.event_code_input.on_change('value', self._check_marker_value)
+        self.marker_button.on_click(self._set_marker)
+        return column(Spacer(width=210, height=5),
+                      row(self.event_code_input,
+                          column(Spacer(width=100, height=19), self.marker_button)
+                          )
+                      )
+
+    def _set_marker(self):
+        code = self.event_code_input.value
+        self.stream_processor.set_marker(int(code))
+
+    def _check_marker_value(self, attr, old, new):
+        try:
+            code = int(self.event_code_input.value)
+            if code < 7 or code > 65535:
+                raise ValueError('Value must be an integer between 8 and 65535')
+        except ValueError:
+            self.event_code_input.value = "7<val<65535"
 
     @gen.coroutine
     @without_property_validation
