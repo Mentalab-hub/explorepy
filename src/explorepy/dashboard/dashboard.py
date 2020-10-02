@@ -52,7 +52,8 @@ class Dashboard:
         self.y_unit = DEFAULT_SCALE
         self.offsets = np.arange(1, self.n_chan + 1)[:, np.newaxis].astype(float)
         self.chan_key_list = [CHAN_LIST[i]
-                              for i, mask in enumerate(reversed(self.stream_processor.device_info['adc_mask'])) if mask == 1]
+                              for i, mask in enumerate(reversed(self.stream_processor.device_info['adc_mask'])) if
+                              mask == 1]
         self.exg_mode = 'EEG'
         self.rr_estimator = None
         self.win_length = WIN_LENGTH
@@ -361,34 +362,38 @@ class Dashboard:
         # Create tabs
         if self.mode == "signal":
             exg_tab = Panel(child=self.exg_plot, title="ExG Signal")
-            orn_tab = Panel(child=column([self.acc_plot, self.gyro_plot, self.mag_plot]),
+            orn_tab = Panel(child=column([self.acc_plot, self.gyro_plot, self.mag_plot], sizing_mode='scale_width'),
                             title="Orientation")
             fft_tab = Panel(child=self.fft_plot, title="Spectral analysis")
-            self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=600)
+            self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=400, sizing_mode='scale_width')
             self.recorder_widget = self._init_recorder()
             self.set_marker_widget = self._init_set_marker()
         elif self.mode == "impedance":
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
-            self.tabs = Tabs(tabs=[imp_tab], width=600)
-        banner = Div(text="""<font size="5.5">Explorepy Dashboard</font> <a href="https://www.mentalab.co"><img src=
+            self.tabs = Tabs(tabs=[imp_tab], width=500, sizing_mode='scale_width')
+        banner = Div(text="""<span><font size="5.5">Explorepy Dashboard</font></span> <a href="https://www.mentalab.com"><img src=
         "https://images.squarespace-cdn.com/content/5428308ae4b0701411ea8aaf/1505653866447-R24N86G5X1HFZCD7KBWS/
         Mentalab%2C+Name+copy.png?format=1500w&content-type=image%2Fpng" alt="Mentalab"  width="225" height="39">""",
-                     width=1500, height=50, css_classes=["banner"], align='center')
-
+                     width=1500, height=50, css_classes=["banner"], align='center', sizing_mode="stretch_width")
+        heading = Div(text=""" """, height=2, sizing_mode="stretch_width")
         if self.mode == 'signal':
-            self.doc.add_root(column(banner,
-                                     Spacer(width=600, height=20),
-                                     row([column(m_widgetbox, self.recorder_widget, self.set_marker_widget),
-                                          Spacer(width=25, height=500), self.tabs,
-                                          Spacer(width=700, height=600)])
-                                     )
-                              )
+            layout = column([heading,
+                             banner,
+                             row(m_widgetbox,
+                                 Spacer(width=10, height=200),
+                                 self.tabs,
+                                 Spacer(width=10, height=300),
+                                 column(Spacer(width=170, height=35), self.recorder_widget, self.set_marker_widget),
+                                 Spacer(width=50, height=300)),
+                             ],
+                            sizing_mode="stretch_both")
+
         elif self.mode == 'impedance':
-            self.doc.add_root(column(banner,
-                                     Spacer(width=600, height=20),
-                                     row([m_widgetbox, Spacer(width=25, height=500), self.tabs])
-                                     )
-                              )
+            layout = column(banner,
+                            Spacer(width=600, height=20),
+                            row([m_widgetbox, Spacer(width=25, height=500), self.tabs])
+                            )
+        self.doc.add_root(layout)
         self.doc.add_periodic_callback(self._update_fft, 2000)
         self.doc.add_periodic_callback(self._update_heart_rate, 2000)
         if self.stream_processor:
@@ -403,28 +408,29 @@ class Dashboard:
         """Initialize all plots in the dashboard"""
         self.exg_plot = figure(y_range=(0.01, self.n_chan + 1 - 0.01), y_axis_label='Voltage', x_axis_label='Time (s)',
                                title="ExG signal",
-                               plot_height=600, plot_width=1270,
+                               plot_height=250, plot_width=500,
                                y_minor_ticks=int(10),
                                tools=[ResetTool()], active_scroll=None, active_drag=None,
-                               active_inspect=None, active_tap=None)
+                               active_inspect=None, active_tap=None, sizing_mode="scale_width")
 
-        self.mag_plot = figure(y_axis_label='Magnetometer [mgauss/LSB]', x_axis_label='Time (s)',
-                               plot_height=230, plot_width=1270,
+        self.mag_plot = figure(y_axis_label='Mag [mgauss/LSB]', x_axis_label='Time (s)',
+                               plot_height=100, plot_width=500,
                                tools=[ResetTool()], active_scroll=None, active_drag=None,
-                               active_inspect=None, active_tap=None)
-        self.acc_plot = figure(y_axis_label='Accelerometer [mg/LSB]',
-                               plot_height=190, plot_width=1270,
+                               active_inspect=None, active_tap=None, sizing_mode="scale_width")
+        self.acc_plot = figure(y_axis_label='Acc [mg/LSB]',
+                               plot_height=75, plot_width=500,
                                tools=[ResetTool()], active_scroll=None, active_drag=None,
-                               active_inspect=None, active_tap=None)
+                               active_inspect=None, active_tap=None, sizing_mode="scale_width")
         self.acc_plot.xaxis.visible = False
-        self.gyro_plot = figure(y_axis_label='Gyroscope [mdps/LSB]',
-                                plot_height=190, plot_width=1270,
+        self.gyro_plot = figure(y_axis_label='Gyro [mdps/LSB]',
+                                plot_height=75, plot_width=500,
                                 tools=[ResetTool()], active_scroll=None, active_drag=None,
-                                active_inspect=None, active_tap=None)
+                                active_inspect=None, active_tap=None, sizing_mode="scale_width")
         self.gyro_plot.xaxis.visible = False
 
         self.fft_plot = figure(y_axis_label='Amplitude (uV)', x_axis_label='Frequency (Hz)', title="FFT",
-                               x_range=(0, 70), plot_height=600, plot_width=1270, y_axis_type="log")
+                               x_range=(0, 70), plot_height=250, plot_width=500, y_axis_type="log",
+                               sizing_mode="scale_width")
 
         self.imp_plot = self._init_imp_plot()
 
@@ -435,7 +441,8 @@ class Dashboard:
         for i in range(self.n_chan):
             self.exg_plot.line(x='t', y=self.chan_key_list[i], source=self._exg_source_ds,
                                line_width=1.0, alpha=.9, line_color="#42C4F7")
-            self.fft_plot.line(x='f', y=self.chan_key_list[i], source=self.fft_source, legend_label=self.chan_key_list[i] + " ",
+            self.fft_plot.line(x='f', y=self.chan_key_list[i], source=self.fft_source,
+                               legend_label=self.chan_key_list[i] + " ",
                                line_width=1.0, alpha=.9, line_color=FFT_COLORS[i])
         self.fft_plot.yaxis.axis_label_text_font_style = 'normal'
         self.exg_plot.line(x='t', y='marker', source=self._marker_source,
@@ -454,7 +461,7 @@ class Dashboard:
         self._set_t_range(WIN_LENGTH)
 
         # Set the formatting of yaxis ticks' labels
-        self.exg_plot.yaxis.major_label_overrides = dict(zip(range(1, self.n_chan+1), self.chan_key_list))
+        self.exg_plot.yaxis.major_label_overrides = dict(zip(range(1, self.n_chan + 1), self.chan_key_list))
         for plot in self.plot_list:
             plot.toolbar.autohide = True
             plot.yaxis.axis_label_text_font_style = 'normal'
@@ -465,9 +472,9 @@ class Dashboard:
 
     def _init_imp_plot(self):
         plot = figure(plot_width=600, plot_height=200, x_range=self.chan_key_list[0:self.n_chan],
-                      y_range=[str(1)], toolbar_location=None)
+                      y_range=[str(1)], toolbar_location=None, sizing_mode="scale_width")
 
-        plot.circle(x='channel', y="row", radius=.3, source=self.imp_source, fill_alpha=0.6, color="color",
+        plot.circle(x='channel', y="row", size=50, source=self.imp_source, fill_alpha=0.6, color="color",
                     line_color='color', line_width=2)
 
         text_props = {"source":          self.imp_source, "text_align": "center",
@@ -476,9 +483,9 @@ class Dashboard:
 
         x = dodge("channel", -0.1, range=plot.x_range)
 
-        plot.text(x=x, y=dodge('row', -.4, range=plot.y_range),
+        plot.text(x=x, y=dodge('row', -.35, range=plot.y_range),
                   text="impedance", **text_props).glyph.text_font_size = "10pt"
-        plot.text(x=x, y=dodge('row', -.3, range=plot.y_range), text="channel",
+        plot.text(x=x, y=dodge('row', -.25, range=plot.y_range), text="channel",
                   **text_props).glyph.text_font_size = "12pt"
 
         plot.outline_line_color = None
@@ -492,60 +499,61 @@ class Dashboard:
     def _init_controls(self):
         """Initialize all controls in the dashboard"""
         # EEG/ECG Radio button
-        self.mode_control = widgets.Select(title="Signal", value='EEG', options=MODE_LIST, width=210)
+        self.mode_control = widgets.Select(title="Signal", value='EEG', options=MODE_LIST, width=170, height=50)
         self.mode_control.on_change('value', self._change_mode)
 
         self.t_range = widgets.Select(title="Time window", value="10 s", options=list(TIME_RANGE_MENU.keys()),
-                                      width=210)
+                                      width=170, height=50)
         self.t_range.on_change('value', self._change_t_range)
-        self.y_scale = widgets.Select(title="Y-axis Scale", value="1 mV", options=list(SCALE_MENU.keys()), width=210)
+        self.y_scale = widgets.Select(title="Y-axis Scale", value="1 mV", options=list(SCALE_MENU.keys()),
+                                      width=170, height=50)
         self.y_scale.on_change('value', self._change_scale)
 
         # Create device info tables
         columns = [widgets.TableColumn(field='heart_rate', title="Heart Rate (bpm)")]
         self.heart_rate = widgets.DataTable(source=self._heart_rate_source, index_position=None, sortable=False,
                                             reorderable=False,
-                                            columns=columns, width=210, height=50)
+                                            columns=columns, width=170, height=50)
 
         columns = [widgets.TableColumn(field='firmware_version', title="Firmware Version")]
         self.firmware = widgets.DataTable(source=self._firmware_source, index_position=None, sortable=False,
                                           reorderable=False,
-                                          columns=columns, width=210, height=50)
+                                          columns=columns, width=170, height=50)
 
         columns = [widgets.TableColumn(field='battery', title="Battery (%)")]
         self.battery = widgets.DataTable(source=self._battery_source, index_position=None, sortable=False,
                                          reorderable=False,
-                                         columns=columns, width=210, height=50)
+                                         columns=columns, width=170, height=50)
 
         columns = [widgets.TableColumn(field='temperature', title="Device temperature (C)")]
         self.temperature = widgets.DataTable(source=self.temperature_source, index_position=None, sortable=False,
-                                             reorderable=False, columns=columns, width=210, height=50)
+                                             reorderable=False, columns=columns, width=170, height=50)
 
         columns = [widgets.TableColumn(field='light', title="Light (Lux)")]
         self.light = widgets.DataTable(source=self.light_source, index_position=None, sortable=False, reorderable=False,
-                                       columns=columns, width=210, height=50)
+                                       columns=columns, width=170, height=50)
 
-        # Add widgets to the doc
         widget_box = widgetbox(
-            [Spacer(width=210, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
-             self.battery, self.temperature, self.firmware], width=220)
+            [Spacer(width=170, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
+             self.battery, self.temperature, self.firmware], width=175, height=450, sizing_mode='fixed')
         return widget_box
 
     def _init_recorder(self):
         self.rec_button = Toggle(label=u"\u25CF  Record", button_type="default", active=False,
-                                 width=210)
-        self.file_name_widget = TextInput(value="test_file", title="File name:", width=210)
-        self.file_type_widget = RadioGroup(labels=["EDF (BDF+)", "CSV"], active=0, width=210)
+                                 width=170, height=35)
+        self.file_name_widget = TextInput(value="test_file", title="File name:", width=170, height=50)
+        self.file_type_widget = RadioGroup(labels=["EDF (BDF+)", "CSV"], active=0, width=170, height=50)
 
         columns = [widgets.TableColumn(field='timer', title="Record time",
                                        formatter=widgets.StringFormatter(text_align='center'))]
-        self.timer = widgets.DataTable(source=self._timer_source, index_position=None, sortable=False, reorderable=False,
+        self.timer = widgets.DataTable(source=self._timer_source, index_position=None, sortable=False,
+                                       reorderable=False,
                                        header_row=False, columns=columns,
-                                       width=210, height=50, css_classes=["timer_widget"])
+                                       width=170, height=50, css_classes=["timer_widget"])
 
         self.rec_button.on_click(self._toggle_rec)
-        return column(Spacer(width=210, height=5), self.file_name_widget, self.file_type_widget, self.rec_button,
-                      self.timer)
+        return column([Spacer(width=170, height=5), self.file_name_widget, self.file_type_widget, self.rec_button,
+                      self.timer], width=170, height=200, sizing_mode='fixed')
 
     def _toggle_rec(self, active):
         if active:
@@ -578,14 +586,14 @@ class Dashboard:
         self.doc.add_next_tick_callback(partial(self._update_rec_timer, new_data=data))
 
     def _init_set_marker(self):
-        self.marker_button = Button(label=u"Set Event", button_type="default", width=100, height=31, disabled=True)
-        self.event_code_input = TextInput(value="8", title="Event code:", width=100, disabled=True)
+        self.marker_button = Button(label=u"Set", button_type="default", width=80, height=31, disabled=True)
+        self.event_code_input = TextInput(value="8", title="Event code:", width=80, disabled=True)
         self.event_code_input.on_change('value', self._check_marker_value)
         self.marker_button.on_click(self._set_marker)
-        return column(Spacer(width=210, height=5),
-                      row(self.event_code_input,
-                          column(Spacer(width=100, height=19), self.marker_button)
-                          )
+        return column([Spacer(width=170, height=5),
+                      row([self.event_code_input,
+                          column(Spacer(width=50, height=19), self.marker_button)], height=50, width=170)],
+                      width=170, height=50, sizing_mode='fixed'
                       )
 
     def _set_marker(self):
