@@ -371,7 +371,7 @@ class Dashboard:
         elif self.mode == "impedance":
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
             self.tabs = Tabs(tabs=[imp_tab], width=500, sizing_mode='scale_width')
-        banner = Div(text="""<span><font size="5.5">Explorepy Dashboard</font></span> <a href="https://www.mentalab.com"><img src=
+        banner = Div(text=""" <a href="https://www.mentalab.com"><img src=
         "https://images.squarespace-cdn.com/content/5428308ae4b0701411ea8aaf/1505653866447-R24N86G5X1HFZCD7KBWS/
         Mentalab%2C+Name+copy.png?format=1500w&content-type=image%2Fpng" alt="Mentalab"  width="225" height="39">""",
                      width=1500, height=50, css_classes=["banner"], align='center', sizing_mode="stretch_width")
