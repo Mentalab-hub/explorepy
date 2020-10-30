@@ -1,27 +1,15 @@
 import os
-import shutil
-from sys import platform as _platform
+import sys
 
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
-files = (file for file in os.listdir(parent_directory)
-         if os.path.isfile(os.path.join(parent_directory, file)))
-
-if _platform == "linux" or _platform == "linux2":
-    for file in files:
-        if '_exploresdk' in file:
-            full_path = os.path.join(parent_directory, file)
-            shutil.copy(full_path, os.path.dirname(__file__))
-
-elif _platform == "win32" or _platform == "win64":
-    for file in files:
-        if '_exploresdk' in file:
-            full_path = os.path.join(parent_directory, file)
-            shutil.copy(full_path, os.path.dirname(__file__))
+if not os.path.normpath(parent_directory) in (os.path.normpath(path) for path in sys.path):
+	sys.path.append(parent_directory)
 
 
 from .explore import Explore
-from . import tools, command, exploresdk
+from . import tools, command
+import _exploresdk
 from explorepy.dashboard.dashboard import Dashboard
 
 __version__ = '1.1.0'
