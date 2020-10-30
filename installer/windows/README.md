@@ -29,7 +29,7 @@ Tested versions in (brackets).
   - A local python installation with virtual env support (3.7.7)
 
 
-### Python wheels
+#### Python wheels
 
 NSIS pulls most software from the net - hopefully soon all of it.
 But, at the moment, we still need to build two python modules locally:
