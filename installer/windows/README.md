@@ -7,14 +7,14 @@ This creates an installer for Windows 10, 64 Bit, using the NSIS installer creat
 
 ## About
 
-The installer is created using PyNSISt, a python front end to Nullsoft's great & free NSIS installer creator.
+The installer is created using PyNSISt, a Python front end to Nullsoft's great & free NSIS installer creator.
 It gets almost all software as Python wheels from PyPI, and hopefully soon all of it.
 PyNSISt creates installers for Windows, but it can also be run under Linux, which is very handy when creating installers from CI pipelines.
 
 
 ## Building
 
-Tested on Windows 10 - should be working on Linux as well (for later integration in the CI pipeline).
+Tested on Windows 10; should be working on Linux as well.
 
 
 ### Dependencies
@@ -31,8 +31,8 @@ Tested versions in (brackets).
 
 #### Python wheels
 
-NSIS pulls most software from the net - hopefully soon all of it.
-But, at the moment, we still need to build two python modules locally:
+NSIS pulls most software from the net.
+At the moment, we still need to build two Python modules locally:
 
 
 `local-wheels/bokeh-1.4.0-py3-none-any.whl`
@@ -59,7 +59,7 @@ We have to back-port the wheel building to the earlier version 0.22 source.
 
 ## Do the thing
 
-I successfully used [Pynsist](https://pynsist.readthedocs.io/) version 2.5.1 for this, but the latest version should be preferable.
+I successfully used [PyNSISt](https://pynsist.readthedocs.io/) version 2.5.1 for this, but the latest version should be preferable.
 
 In the directory `explorepy\installer\windows`, issue the following commands:
 
@@ -72,7 +72,7 @@ In the directory `explorepy\installer\windows`, issue the following commands:
     pynsist installer.cfg
 
 
-This created an executable installer at `build\nsis\MentaLab_ExplorePy_1.1.exe`.
+The last command should have created an executable installer at `build\nsis\MentaLab_ExplorePy_1.1.exe`.
 
 Next, sign the installer so it shows fewer warnings on our customers' machines.
 (not yet - FIXME)
