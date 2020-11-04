@@ -6,7 +6,6 @@ parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pa
 if not os.path.normpath(parent_directory) in (os.path.normpath(path) for path in sys.path):
 	sys.path.append(parent_directory)
 
-
 from .explore import Explore
 from . import tools, command
 import _exploresdk
