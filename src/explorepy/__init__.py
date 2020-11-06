@@ -1,6 +1,5 @@
 import os
 import shutil
-from sys import platform as _platform
 
 from .explore import Explore
 from . import tools, command, exploresdk
