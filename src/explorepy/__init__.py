@@ -1,8 +1,6 @@
-import os
-import shutil
-
 from .explore import Explore
-from . import tools, command, exploresdk
+from . import tools, command
+import _exploresdk
 from explorepy.dashboard.dashboard import Dashboard
 
 __version__ = '1.1.0'
