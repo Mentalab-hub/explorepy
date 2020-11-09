@@ -22,6 +22,8 @@ struct bluetooth_data
 
 using namespace std;
 
+int byteWritten = 0;
+
 BTSerialPortBinding *BTSerialPortBinding::Create(string address, int channelID)
 {
 	if (channelID <= 0)
@@ -55,9 +57,9 @@ int BTSerialPortBinding::Connect()
 {
 	Close();
 	int status = SOCKET_ERROR;
-
+	
 	data->s = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
-
+	
 	if (data->s != SOCKET_ERROR)
 	{
 		SOCKADDR_BTH addr = { 0 };
@@ -78,8 +80,9 @@ int BTSerialPortBinding::Connect()
 		{
 
 			addr.port = channelID;
+			
 			status = connect(data->s, (LPSOCKADDR)&addr, addrSize);
-
+			
 			if (status != SOCKET_ERROR)
 			{
 				unsigned long enableNonBlocking = 1;
@@ -94,8 +97,6 @@ int BTSerialPortBinding::Connect()
 
 		if (data->s != INVALID_SOCKET)
 			closesocket(data->s);
-
-		//throw ExploreException("Cannot connect: " + message);
 	}
 	return status;
 }
@@ -132,9 +133,9 @@ void BTSerialPortBinding::Read(char *buffer, int* length)
 	{
 		if (FD_ISSET(data->s, &set)){
 		try{
-		Py_BEGIN_ALLOW_THREADS;
+		
 		    size = recv(data->s, buffer, *length, 0);
-		Py_END_ALLOW_THREADS;
+		
 		}
 		catch(const std::exception& e){
 		    cout << "INSIDE STD::EXCEPTION" << endl;
@@ -175,9 +176,15 @@ void BTSerialPortBinding::Write(const char *buffer, int length)
 
 	if (data->s == INVALID_SOCKET)
 		throw ExploreException("Attempting to write to a closed connection");
-
-	if (send(data->s, buffer, length, 0) != length)
+	
+	
+	
+	byteWritten = send(data->s, buffer, length, 0);
+	
+	if(byteWritten != length)
+	{
 		throw ExploreException("Writing attempt was unsuccessful");
+	}
 }
 
 bool BTSerialPortBinding::IsDataAvailable()

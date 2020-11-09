@@ -19,19 +19,9 @@
 %include "cstring.i"
 %include "typemaps.i"
 
-%typedef BOOL BOOLAPI
-
-%typemap(python,except) BOOLAPI {
-        Py_BEGIN_ALLOW_THREADS
-        $function
-        Py_END_ALLOW_THREADS
-        if (!$source)  {
-              $cleanup
-               return PyWin_SetAPIError("$name");
-        }
-}
 
 %cstring_output_withsize(char *bt_buffer, int* bt_length)
+
 %typemap(in) (const char *write_buffer, int length) {
     Py_ssize_t len;
     PyBytes_AsStringAndSize($input, &$1, &len);
