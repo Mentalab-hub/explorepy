@@ -104,6 +104,7 @@ class SDKBtClient:
             Returns:
                 list of bytes
         """
+
         try:
             
             read_output = self.bt_serial_port_manager.Read(n_bytes)
