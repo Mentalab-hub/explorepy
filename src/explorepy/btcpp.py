@@ -105,8 +105,7 @@ class SDKBtClient:
                 list of bytes
         """
         try:
-            #if platform == "win32" or platform == "win64":
-            #    time.sleep(.0005)
+            
             read_output = self.bt_serial_port_manager.Read(n_bytes)
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
