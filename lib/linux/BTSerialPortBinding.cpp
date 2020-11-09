@@ -128,9 +128,7 @@ void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
 	{
 		if (FD_ISSET(data->s, &set)){
 
-			Py_BEGIN_ALLOW_THREADS
 			size = recv(data->s, bt_buffer, *bt_length, 0);
-			Py_END_ALLOW_THREADS
 
 //			cout << "length is " << *bt_length << "size is " <<  size << endl;
 			if(size < 0)
@@ -175,11 +173,9 @@ void BTSerialPortBinding::Write(const char *write_buffer, int length)
 
     try{
 
-    Py_BEGIN_ALLOW_THREADS
     //write_length = write(data->s, write_buffer, length);
 
     write_length = send(data->s, write_buffer, length, 0);
-    Py_END_ALLOW_THREADS
 
 	if (write_length != length)
 		//throw ExploreException("Writing attempt was unsuccessful");
