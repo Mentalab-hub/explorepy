@@ -101,7 +101,7 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 	return;
 
     size_buffer = -1;
-
+  
     size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);

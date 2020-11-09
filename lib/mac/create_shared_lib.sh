@@ -29,6 +29,8 @@
 #/Library/Frameworks/Python.framework/Versions/3.7/
 
 swig -python -c++ -py3 -extranative -debug-classes swig_interface.i
+# for windows: use the -threads option 
+#swig -python -c++ -py3 -extranative -debug-classes swig_interface.i
 c++ -c -fpic swig_interface_wrap.cxx -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++ -std=c++11
 
 c++ -c -fpic BluetoothDeviceResources.mm -I/Library/Frameworks/Python.framework/Versions/3.7/include/python3.7m -ObjC++ -std=c++11
