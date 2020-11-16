@@ -57,7 +57,7 @@ BTSerialPortBinding::~BTSerialPortBinding()
 
 int BTSerialPortBinding::Connect()
 {
-     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     cout << address <<endl;
     NSString *addressString = [NSString stringWithCString:address.c_str() encoding:NSASCIIStringEncoding];
     BluetoothWorker *worker = [BluetoothWorker getInstance];
