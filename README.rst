@@ -136,6 +136,7 @@ Authors
 - `Andreas Gutsche`_
 - `Masooma Fazelian`_
 - `Philipp Jakovleski`_
+- `Florian Sesser`_
 - `Sebastian Herberger`_
 
 
