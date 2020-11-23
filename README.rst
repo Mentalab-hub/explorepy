@@ -144,6 +144,7 @@ Authors
 .. _Andreas Gutsche: https://github.com/andyman410
 .. _Masooma Fazelian: https://github.com/fazelian
 .. _Philipp Jakovleski: https://github.com/philippjak
+.. _Florian Sesser : https://github.com/hacklschorsch
 .. _Sebastian Herberger: https://github.com/SHerberger
 
 License
