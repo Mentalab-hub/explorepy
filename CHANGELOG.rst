@@ -2,6 +2,13 @@
 Changelog
 =========
 
+1.2.0 (23-11-2020)
+------------------
+* Standalone installer for Windows OS
+* Fix bugs in ExploreSDK
+* Create new file on device settings change
+
+
 1.1.0 (27-08-2020)
 ------------------
 * MacOS support
