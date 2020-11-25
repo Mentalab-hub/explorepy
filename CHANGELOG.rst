@@ -3,7 +3,7 @@ Changelog
 =========
 
 
-1.2.0 (24-11-2020)
+1.2.0 (25-11-2020)
 ------------------
 * Standalone installer for Windows OS
 * Fix bugs in ExploreSDK
