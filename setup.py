@@ -43,7 +43,7 @@ if not os.environ.get('READTHEDOCS'):
     if current_platform == 'win32' or current_platform == 'win64':
         windows_lib_path = os.path.join(libPath, 'windows')
         ext_modules_list.append(Extension(
-            name='_exploresdk',
+            name='explorepy._exploresdk',
             sources=[os.path.join(windows_lib_path, 'swig_interface_wrap.cxx'),
                      os.path.join(windows_lib_path, 'BluetoothHelpers.cpp'),
                      os.path.join(windows_lib_path, 'DeviceINQ.cpp'),
@@ -55,7 +55,7 @@ if not os.environ.get('READTHEDOCS'):
         linux_lib_path = os.path.join(libPath, 'linux')
 
         ext_modules_list.append(Extension(
-            name='_exploresdk',
+            name='explorepy._exploresdk',
             sources=[os.path.join(linux_lib_path, 'swig_interface_wrap.cxx'),
                      os.path.join(linux_lib_path, 'DeviceINQ.cpp'),
                      os.path.join(linux_lib_path, 'BTSerialPortBinding.cpp')],
@@ -74,7 +74,7 @@ if not os.environ.get('READTHEDOCS'):
         os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
-    version='1.1.0',
+    version='1.2.0',
 
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',

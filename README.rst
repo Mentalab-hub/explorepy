@@ -20,9 +20,9 @@
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/explorepy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v1.1.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v1.2.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v1.1.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v1.2.0...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
     :alt: PyPI Wheel
@@ -136,6 +136,7 @@ Authors
 - `Andreas Gutsche`_
 - `Masooma Fazelian`_
 - `Philipp Jakovleski`_
+- `Florian Sesser`_
 - `Sebastian Herberger`_
 
 
@@ -144,6 +145,7 @@ Authors
 .. _Andreas Gutsche: https://github.com/andyman410
 .. _Masooma Fazelian: https://github.com/fazelian
 .. _Philipp Jakovleski: https://github.com/philippjak
+.. _Florian Sesser : https://github.com/hacklschorsch
 .. _Sebastian Herberger: https://github.com/SHerberger
 
 License

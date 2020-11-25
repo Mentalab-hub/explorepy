@@ -101,8 +101,10 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 	return;
 
     size_buffer = -1;
-
+    
+    Py_BEGIN_ALLOW_THREADS;
     size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
+    Py_END_ALLOW_THREADS;
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
