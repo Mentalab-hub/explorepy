@@ -132,7 +132,7 @@ class Explore:
         """Stop recording"""
         self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.unsubscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-        self.stream_processor.unsubscribe(callback=self.recorders['exg'].set_marker, topic=TOPICS.marker)
+        self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
         self.recorders['exg'].stop()
         self.recorders['orn'].stop()
         if self.recorders['exg'].file_type == 'csv':
