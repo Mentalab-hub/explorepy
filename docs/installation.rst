@@ -81,20 +81,24 @@ Quick test
 Troubleshooting
 ---------------
 
-**Pylsl import issue**
+**1. Pylsl import issue**
 
 ::
 
         self._handle = _dlopen(self._name, mode)
     OSError: [WinError 126] The specified module could not be found
 
+
 To fix this problem, an older version of Pylsl can be installed using this command: ::
+
     pip install pylsl==1.13.1
 
 Alternatively, MS Visual C++ redistributable (vc_redist) can be installed via this `download page <https://support.microsoft.com/en-ca/help/2977003/the-latest-supported-visual-c-downloads>`_.
 
+--------------------
 
-**Anaconda asyncio events library raises "NotImplementedError" error in Windows**
+
+**2. Anaconda asyncio events library raises "NotImplementedError" error in Windows**
 
 ::
 
@@ -111,8 +115,9 @@ Alternatively, MS Visual C++ redistributable (vc_redist) can be installed via th
 
 Solution: Downgrade Anaconda distribution version to one of 3.5, 3.6 or 3.7 versions.
 
+---------------------
 
-**btScan file does not exist error on Mac OS**
+**3. btScan file does not exist error on Mac OS**
 
 Solution: Change the permission of the file btScan from terminal using
 
