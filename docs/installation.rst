@@ -14,7 +14,11 @@ How to install
 
 Windows
 ^^^^^^^
-This instructions guides you to install Explorepy API with all its dependencies on Windows.
+On a Windows machine, Explorepy can be installed using the installable file uploaded in
+the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_ or using pip. Please note using the installable
+files, the dependencies will be installed automatically.
+
+The following instructions guides you to install Explorepy API using pip with all its dependencies on Windows.
 
 1. Install Python 3 on your computer. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Windows installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
 2. Download and install MS Visual Studio Community Edition 2015 from this `link <https://visualstudio.microsoft.com/vs/older-downloads/>`_. You may need to sign in to your Microsoft account to be able to download it. During the installation, select custom installation and in the features list make sure you check **Common tools for Visual C++ 2015** under Visual C++ section and  **Python tools for Visual Studio (January 2017)**.
