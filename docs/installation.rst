@@ -69,7 +69,7 @@ Quick test
 
 * Activate the virtual environment: ``conda activate myenv``
 
-* ``explorepy visualize -n <YOUR-DEVICE-NAME> -c 4`` (Change the number of channels if needed)
+* ``explorepy visualize -n <YOUR-DEVICE-NAME> -lf 1 -hf 40``
 
 * To stop visualization press Ctrl+c
 
