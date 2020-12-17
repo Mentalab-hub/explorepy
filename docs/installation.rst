@@ -119,9 +119,8 @@ Solution: Downgrade Anaconda distribution version to one of 3.5, 3.6 or 3.7 vers
 
 **3. btScan file does not exist error on Mac OS**
 
-Solution: Change the permission of the file btScan from terminal using
+Solution: Change the permission of the file btScan from terminal using ::
 
-::
     chmod +x btScan
 
 The btScan file would be in the site packages folder in anaconda distribution. To find out the actual location the files
