@@ -68,6 +68,10 @@ std::vector<device> ExploreSDK::PerformDeviceSearch(int)
     //printf("file: '%s'\n", getFileForThisSharedObject().c_str());
     //printf("path: '%s'\n", [[[myPath URLByDeletingLastPathComponent] absoluteString] UTF8String]);
     //printf("executable: '%s'\n", [[executable absoluteString] UTF8String]);
+    
+    //changing the file permission using C function chmod()
+    chmod([helperExecutable UTF8String] , S_IXUSR);
+	
     NSPipe* pipe = [[NSPipe alloc] init];
 
     NSTask* task = [[NSTask alloc] init];
