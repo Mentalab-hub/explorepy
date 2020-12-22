@@ -250,7 +250,7 @@ class Explore:
         dashboard.start_server()
         dashboard.start_loop()
 
-    def measure_imp(self, notch_freq=50):
+    def measure_imp(self):
         """
         Visualization of the electrode impedances
 
@@ -260,10 +260,8 @@ class Explore:
         self._check_connection()
         assert self.stream_processor.device_info['sampling_rate'] == 250, \
             "Impedance mode only works in 250 Hz sampling rate!"
-        if notch_freq not in [50, 60]:
-            raise ValueError('Notch frequency must be either 50 or 60 Hz.')
 
-        self.stream_processor.imp_initialize(notch_freq=notch_freq)
+        self.stream_processor.imp_initialize(notch_freq=50)
 
         try:
             dashboard = explorepy.Dashboard(explore=self, mode='impedance')
