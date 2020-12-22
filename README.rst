@@ -55,12 +55,18 @@ Explorepy is Mentalab's open-source Python-based biosignal acquisition API for w
 
 Quick installation
 ==================
+On a Windows machine, Explorepy can be installed using the installable file uploaded in
+the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_ or using pip. Please note using the installable
+files, the dependencies will be installed automatically.
+
+The following instructions are for other operating systems or in case you want to build the package yourself on Windows.
+
 
 Requirements
 ------------
 
-* Python 3.5 or newer version
-* Visual Studio 2015 community edition (only Windows)
+* Python 3.5, 3.6 or 3.7
+* Visual Studio 2015 community edition (only Windows, in case of building the package)
 * Bluetooth header files (only Linux -> use this command: ``sudo apt-get install libbluetooth-dev``)
 
 
