@@ -78,6 +78,9 @@ file for the marker events. In EDF mode, the data is actually recorded in BDF+ f
             from BIOSIG can be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. The
             documentaion can be found in this `link <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
 
+.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
+            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
+            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
 
 **push2lsl**
 Streams data to Lab Streaming Layer (LSL).::
@@ -339,6 +342,9 @@ If you want to overwrite already existing files, change the line above::
             from BIOSIG can be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. The
             documentaion can be found in this `link <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
 
+.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
+            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
+            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
 
 Visualization
 ^^^^^^^^^^^^^
