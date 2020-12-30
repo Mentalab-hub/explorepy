@@ -125,3 +125,23 @@ Solution: Change the permission of the file btScan from terminal using ::
 
 The btScan file would be in the site packages folder in anaconda distribution. To find out the actual location the files
 installed by explorepy, type "which explorepy" in terminal.
+
+---------------------
+
+**4. No module named 'numpy'**
+
+::
+
+    ERROR: Command errored out with exit status 4294967295:
+     command: 'C:\Users\mh\Anaconda3\envs\test130_38\python.exe' -c 'import sys, setuptools, tokenize; sys.argv[0] = '"'"'C:\\Users\\mh_at\\AppData\\Local\\Temp\\pip-install-6fpsl7b1\\pyedflib_e1c2dcc3a4dc46af9468c24083cbda2b\\setup.py'"'"'; __file__='"'"'C:\\Users\\mh_at\\AppData\\Local\\Temp\\pip-install-6fpsl7b1\\pyedflib_e1c2dcc3a4dc46af9468c24083cbda2b\\setup.py'"'"';f=getattr(tokenize, '"'"'open'"'"', open)(__file__);code=f.read().replace('"'"'\r\n'"'"', '"'"'\n'"'"');f.close();exec(compile(code, __file__, '"'"'exec'"'"'))' egg_info --egg-base 'C:\Users\mh_at\AppData\Local\Temp\pip-pip-egg-info-48yn2fu3'
+         cwd: C:\Users\mh\AppData\Local\Temp\pip-install-6fpsl7b1\pyedflib_e1c2dcc3a4dc46af9468c24083cbda2b\
+    Complete output (4 lines):
+    No module named 'numpy'
+    *** package "numpy" not found ***
+    pyEDFlib requires a version of NumPy, even for setup.
+    Please get it from http://numpy.scipy.org/ or install it through your package manager.
+    ----------------------------------------
+    ERROR: Command errored out with exit status 4294967295: python setup.py egg_info Check the logs for full command output.
+
+
+Solution: To fix this error, install numpy separately by `pip install numpy` and then install explorepy.
