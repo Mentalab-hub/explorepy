@@ -34,7 +34,7 @@ current_platform = sys.platform
 
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pylsl')
-    my_req.append('bokeh==1.4.0')
+    my_req.append('bokeh==2.2.3')
 
     if current_platform != 'darwin':
         my_req.append('pybluez==0.22')

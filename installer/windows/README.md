@@ -35,9 +35,9 @@ NSIS pulls most software from the net.
 At the moment, we still need to build two Python modules locally:
 
 
-`local-wheels/bokeh-1.4.0-py3-none-any.whl`
+`local-wheels/bokeh-2.2.3-py3-none-any.whl`
 
-  1. Get the bokeh version sdist: https://pypi.org/project/bokeh/1.4.0/#files
+  1. Get the bokeh version sdist: https://pypi.org/project/bokeh/2.2.3/#files
   2. Extract it
   3. Run `python setup.py bdist_wheel`.
   4. Copy the resulting file in `dist/` to the local-wheels folder.
