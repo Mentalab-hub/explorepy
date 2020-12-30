@@ -150,7 +150,6 @@ Visualizes the electrode impedances in a browser  dashboard. Currently, Chrome i
     Options:
       -a, --address TEXT        Explore device's MAC address
       -n, --name TEXT           Name of the device
-      -nf, --notchfreq [50|60]  Frequency of notch filter.
       -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                Show this message and exit.
 
@@ -262,7 +261,7 @@ Convert a binary file to EDF and overwrite if files exist already: ``explorepy b
 
 Visualize in real-time: ``explorepy visualize -n Explore_XXXX -lf .5 -hf 40 -nf 50``
 
-Impedance measurement: ``explorepy impedance -n Explore_XXXX -nf 50``
+Impedance measurement: ``explorepy impedance -n Explore_XXXX``
 
 Format the memory: ``explorepy format-memory -n Explore_XXXX``
 
@@ -371,7 +370,7 @@ Impedance measurement
 To measure electrodes impedances::
 
 
-    explore.measure_imp(notch_freq=50)
+    explore.measure_imp()
 
 
 .. image:: /images/Dashboard_imp.jpg

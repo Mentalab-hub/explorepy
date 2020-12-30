@@ -123,16 +123,15 @@ def visualize(address, name, notchfreq, lowfreq, highfreq, bluetooth):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
 @click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
-def impedance(address, name, notchfreq, bluetooth):
+def impedance(address, name, bluetooth):
     """Impedance measurement in a browser-based dashboard"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-    explore.measure_imp(notch_freq=int(notchfreq))
+    explore.measure_imp()
 
 
 @cli.command()
