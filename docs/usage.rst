@@ -74,9 +74,13 @@ file for the marker events. In EDF mode, the data is actually recorded in BDF+ f
             in python.
 
             EEGLAB's BIOSIG plugin has problem with some EDF files currently
-            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled Matlab code from BIOSIG can
-            be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_.
+            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled MATLAB code (mexSLOAD.mex)
+            from BIOSIG can be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. The
+            documentaion can be found in this `link <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
 
+.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
+            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
+            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
 
 **push2lsl**
 Streams data to Lab Streaming Layer (LSL).::
@@ -121,8 +125,9 @@ The data is actually recorded in BDF+ format (in 24-bit resolution).::
             in python.
 
             EEGLAB's BIOSIG plugin has problem with some EDF files currently
-            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled Matlab code from BIOSIG can
-            be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_.
+            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled MATLAB code (mexSLOAD.mex)
+            from BIOSIG can be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. The
+            documentaion can be found in this `link <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
 
 .. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
             file for ExG data with the given file name plus the time the setting has changed.
@@ -148,7 +153,6 @@ Visualizes the electrode impedances in a browser  dashboard. Currently, Chrome i
     Options:
       -a, --address TEXT        Explore device's MAC address
       -n, --name TEXT           Name of the device
-      -nf, --notchfreq [50|60]  Frequency of notch filter.
       -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                Show this message and exit.
 
@@ -260,7 +264,7 @@ Convert a binary file to EDF and overwrite if files exist already: ``explorepy b
 
 Visualize in real-time: ``explorepy visualize -n Explore_XXXX -lf .5 -hf 40 -nf 50``
 
-Impedance measurement: ``explorepy impedance -n Explore_XXXX -nf 50``
+Impedance measurement: ``explorepy impedance -n Explore_XXXX``
 
 Format the memory: ``explorepy format-memory -n Explore_XXXX``
 
@@ -328,6 +332,20 @@ If you want to overwrite already existing files, change the line above::
     explore.record_data(file_name='test', do_overwrite=True, file_type='csv', duration=120)
 
 
+
+.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
+            `mne <https://github.com/mne-tools/mne-python>`_ (file extension may need to change to bdf manually for mne)
+            in python.
+
+            EEGLAB's BIOSIG plugin has problem with some EDF files currently
+            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled MATLAB code (mexSLOAD.mex)
+            from BIOSIG can be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. The
+            documentaion can be found in this `link <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
+
+.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
+            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
+            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
+
 Visualization
 ^^^^^^^^^^^^^
 It is possible to visualize data in real-time in a browser-based dashboard by the following code. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow::
@@ -358,7 +376,7 @@ Impedance measurement
 To measure electrodes impedances::
 
 
-    explore.measure_imp(notch_freq=50)
+    explore.measure_imp()
 
 
 .. image:: /images/Dashboard_imp.jpg

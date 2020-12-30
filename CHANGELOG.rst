@@ -2,6 +2,12 @@
 Changelog
 =========
 
+1.3.0 (30-12-2020)
+------------------
+* GUI resizing for different screen resolutions
+* Added event button to dashboard
+* Improvement of impedance measurement
+* Fixed minor bugs
 
 1.2.0 (25-11-2020)
 ------------------

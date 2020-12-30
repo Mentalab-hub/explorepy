@@ -29,7 +29,7 @@ project = 'explorepy'
 year = '2018-2020'
 author = 'Mentalab GmbH.'
 copyright = '{0}, {1}'.format(year, author)
-version = release = '1.2.0'
+version = release = '1.3.0'
 
 pygments_style = 'trac'
 templates_path = ['.']

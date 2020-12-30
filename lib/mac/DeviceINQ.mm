@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include "ExploreException.h"
 #include "ExploreSDK.h"
+#include <sys/stat.h>
+#include <errno.h>
 
 extern "C"{
     #include <stdio.h>
@@ -65,9 +67,15 @@ std::vector<device> ExploreSDK::PerformDeviceSearch(int)
     // The helper executable should be in the same directory as this shared object.
     NSURL* myPath = urlForThisFile();
     NSURL* helperExecutable = [[myPath URLByDeletingLastPathComponent] URLByAppendingPathComponent: @"btScan"];
-    //printf("file: '%s'\n", getFileForThisSharedObject().c_str());
-    //printf("path: '%s'\n", [[[myPath URLByDeletingLastPathComponent] absoluteString] UTF8String]);
-    //printf("executable: '%s'\n", [[executable absoluteString] UTF8String]);
+    
+    //changing the file permission using C function chmod()
+    NSString *nsString = helperExecutable.path;
+    const char* convertedUrl = [nsString UTF8String];
+    
+    if(chmod(convertedUrl , S_IXUSR) != 0){
+        printf("Error occurred while changing file permission :'%s '\n", strerror(errno));
+    }
+	
     NSPipe* pipe = [[NSPipe alloc] init];
 
     NSTask* task = [[NSTask alloc] init];
