@@ -5,7 +5,7 @@ Installation
 
 Requirements
 ------------
-* Python 3.5, 3.6 or 3.7
+* Python 3.5 or newer version
 * Visual Studio 2015 community edition (only Windows)
 
 

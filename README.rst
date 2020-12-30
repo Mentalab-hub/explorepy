@@ -65,7 +65,7 @@ The following instructions are for other operating systems or in case you want t
 Requirements
 ------------
 
-* Python 3.5, 3.6 or 3.7
+* Python 3.6 or newer versions
 * Visual Studio 2015 community edition (only Windows, in case of building the package)
 * Bluetooth header files (only Linux -> use this command: ``sudo apt-get install libbluetooth-dev``)
 
