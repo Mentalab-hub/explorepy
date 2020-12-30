@@ -488,8 +488,7 @@ class LslServer:
             packet (explorepy.packet.EEG): ExG packet
         """
         _, exg_data = packet.get_data(self.exg_fs)
-        for sample in exg_data.T:
-            self.exg_outlet.push_sample(sample.tolist())
+        self.exg_outlet.push_chunk(exg_data.T.tolist())
 
     def push_orn(self, packet):
         """Push data to orientation outlet
