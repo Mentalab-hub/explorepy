@@ -6,7 +6,7 @@ from functools import partial
 import numpy as np
 from bokeh.layouts import widgetbox, row, column, Spacer
 from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets, \
-    Toggle, TextInput, RadioGroup, Div, CustomJS, Button
+    Toggle, TextInput, RadioGroup, Div, Button, CheckboxGroup
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.palettes import PRGn
@@ -59,6 +59,8 @@ class Dashboard:
         self.win_length = WIN_LENGTH
         self.mode = mode
         self.exg_fs = self.stream_processor.device_info['sampling_rate']
+        self._baseline_corrector = {"MA_length": self.exg_fs,
+                                    "baseline": 0}
 
         # Init ExG data source
         exg_temp = np.zeros((self.n_chan, 2))
@@ -133,6 +135,20 @@ class Dashboard:
         # Downsampling
         exg = exg[:, ::int(self.exg_fs / EXG_VIS_SRATE)]
         time_vector = time_vector[::int(self.exg_fs / EXG_VIS_SRATE)]
+
+        # Baseline correction
+        if self.baseline_widget.active:
+            samples_avg = exg.mean(axis=1)
+            if self._baseline_corrector["baseline"] is None:
+                self._baseline_corrector["baseline"] = samples_avg
+            else:
+                self._baseline_corrector["baseline"] -= (
+                        (self._baseline_corrector["baseline"] - samples_avg) / self._baseline_corrector["MA_length"] *
+                        exg.shape[1])
+            exg -= self._baseline_corrector["baseline"][:, np.newaxis]
+        else:
+            self._baseline_corrector["baseline"] = None
+
         # Update ExG unit
         exg = self.offsets + exg / self.y_unit
         new_data = dict(zip(self.chan_key_list, exg))
@@ -368,6 +384,8 @@ class Dashboard:
             self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=400, sizing_mode='scale_width')
             self.recorder_widget = self._init_recorder()
             self.set_marker_widget = self._init_set_marker()
+            self.baseline_widget = CheckboxGroup(labels=['Baseline correction'], active=[0])
+
         elif self.mode == "impedance":
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
             self.tabs = Tabs(tabs=[imp_tab], width=500, sizing_mode='scale_width')
@@ -383,7 +401,7 @@ class Dashboard:
                                  Spacer(width=10, height=200),
                                  self.tabs,
                                  Spacer(width=10, height=300),
-                                 column(Spacer(width=170, height=35), self.recorder_widget, self.set_marker_widget),
+                                 column(Spacer(width=170, height=50), self.baseline_widget, self.recorder_widget, self.set_marker_widget),
                                  Spacer(width=50, height=300)),
                              ],
                             sizing_mode="stretch_both")
