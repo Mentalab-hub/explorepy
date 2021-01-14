@@ -59,7 +59,7 @@ class Dashboard:
         self.win_length = WIN_LENGTH
         self.mode = mode
         self.exg_fs = self.stream_processor.device_info['sampling_rate']
-        self._baseline_corrector = {"MA_length": self.exg_fs,
+        self._baseline_corrector = {"MA_length": 1.5 * EXG_VIS_SRATE,
                                     "baseline": 0}
 
         # Init ExG data source
