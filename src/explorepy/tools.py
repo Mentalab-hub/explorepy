@@ -58,7 +58,7 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
     exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_max = [86400.] + [4e5 for i in range(8)]
+    exg_max = [21600.] + [4e5 for i in range(8)]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_min = [0.] + [-4e5 for i in range(8)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
@@ -69,7 +69,7 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
 def create_orn_recorder(filename, file_type, do_overwrite):
     orn_ch = ['TimeStamp'] + ORN_CHANNELS
     orn_unit = ['s'] + ORN_UNITS
-    orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
+    orn_max = [21600., 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
     orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
                         do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min)
@@ -411,8 +411,6 @@ class FileRecorder:
 
         if len(time_vector) == 1:
             data = np.array(time_vector + signal)[:, np.newaxis]
-            if self._rectime_offset is None:
-                self._rectime_offset = time_vector
         else:
             if self._rectime_offset is None:
                 self._rectime_offset = time_vector[0]
