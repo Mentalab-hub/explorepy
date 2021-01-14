@@ -11,7 +11,7 @@ from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orienta
     Environment, EventMarker, CalibrationInfo
 from explorepy.filters import ExGFilter
 from explorepy.command import DeviceConfiguration, ZMeasurementEnable, ZMeasurementDisable
-from explorepy.tools import ImpedanceMeasurement, PhysicalOrientation
+from explorepy.tools import ImpedanceMeasurement, PhysicalOrientation, get_local_time
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 
@@ -68,7 +68,6 @@ class StreamProcessor:
         self.subscribe(callback=self._device_configurator.update_ack, topic=TOPICS.cmd_ack)
         self.subscribe(callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
         self.orn_initialize(device_name)
-
 
     def open_file(self, bin_file):
         """Open the binary file and read until it gets device info packet
@@ -200,7 +199,7 @@ class StreamProcessor:
         if 0 <= code <= 7:
             raise ValueError('Marker code value is not valid')
 
-        self.process(EventMarker(timestamp=time.time() - self.parser.start_time,
+        self.process(EventMarker(timestamp=get_local_time(),
                                  payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')))
 
     def compare_device_info(self, new_device_info):

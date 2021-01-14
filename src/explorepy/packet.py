@@ -2,7 +2,6 @@
 """This module contains all packet classes of Mentalab Explore device"""
 import abc
 from enum import IntEnum
-import time
 import numpy as np
 
 from explorepy._exceptions import FletcherError
