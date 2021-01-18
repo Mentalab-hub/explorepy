@@ -7,7 +7,7 @@ import copy
 import numpy as np
 from scipy import signal
 import pyedflib
-from pylsl import StreamInfo, StreamOutlet
+from pylsl import StreamInfo, StreamOutlet, local_clock
 import configparser
 from appdirs import user_cache_dir, user_config_dir
 
@@ -18,6 +18,15 @@ EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
 ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+
+
+def get_local_time():
+    """Local time in seconds with sub-ms accuracy (based on pylsl local_clock)
+
+    Returns:
+            float: local time in second
+    """
+    return local_clock()
 
 
 def bt_scan():
@@ -334,7 +343,7 @@ class FileRecorder:
         self._n_chan = len(ch_label)
         self._device_name = device_name
         self._fs = int(fs)
-        self._rectime_offset = None
+        self._rec_time_offset = None
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
@@ -412,8 +421,8 @@ class FileRecorder:
         if len(time_vector) == 1:
             data = np.array(time_vector + signal)[:, np.newaxis]
         else:
-            if self._rectime_offset is None:
-                self._rectime_offset = time_vector[0]
+            if self._rec_time_offset is None:
+                self._rec_time_offset = time_vector[0]
             data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(signal)), axis=0)
         data = np.round(data, 4)
 
@@ -440,9 +449,9 @@ class FileRecorder:
             self.write_data(packet=packet)
         elif self.file_type == 'edf':
             timestamp, code = packet.get_data()
-            if self._rectime_offset is None:
-                self._rectime_offset = timestamp[0]
-            timestamp = timestamp-np.float64(self._rectime_offset)
+            if self._rec_time_offset is None:
+                self._rec_time_offset = timestamp[0]
+            timestamp = timestamp-np.float64(self._rec_time_offset)
             self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
 

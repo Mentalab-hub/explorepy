@@ -59,6 +59,7 @@ class Dashboard:
         self.win_length = WIN_LENGTH
         self.mode = mode
         self.exg_fs = self.stream_processor.device_info['sampling_rate']
+        self._vis_time_offset = None
         self._baseline_corrector = {"MA_length": 1.5 * EXG_VIS_SRATE,
                                     "baseline": 0}
 
@@ -130,6 +131,9 @@ class Dashboard:
 
         """
         time_vector, exg = packet.get_data(self.exg_fs)
+        if self._vis_time_offset is None:
+            self._vis_time_offset = time_vector[0]
+        time_vector -= self._vis_time_offset
         self._exg_source_orig.stream(dict(zip(self.chan_key_list, exg)), rollover=int(self.exg_fs * self.win_length))
 
         # Downsampling
@@ -164,6 +168,9 @@ class Dashboard:
         if self.tabs.active != 1:
             return
         timestamp, orn_data = packet.get_data()
+        if self._vis_time_offset is None:
+            self._vis_time_offset = timestamp[0]
+        timestamp -= self._vis_time_offset
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
         new_data['t'] = timestamp
         self.doc.add_next_tick_callback(partial(self._update_orn, new_data=new_data))
@@ -204,6 +211,9 @@ class Dashboard:
         if self.mode == "impedance":
             return
         timestamp, _ = packet.get_data()
+        if self._vis_time_offset is None:
+            self._vis_time_offset = timestamp[0]
+        timestamp -= self._vis_time_offset
         new_data = dict(zip(['marker', 't', 'code'], [np.array([0.01, self.n_chan + 0.99, None], dtype=np.double),
                                                       np.array([timestamp[0], timestamp[0], None], dtype=np.double)]))
         self.doc.add_next_tick_callback(partial(self._update_marker, new_data=new_data))

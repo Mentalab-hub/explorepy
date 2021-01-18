@@ -8,6 +8,7 @@ import asyncio
 import explorepy
 from explorepy.packet import PACKET_CLASS_DICT, DeviceInfo
 from explorepy._exceptions import *
+from explorepy.tools import get_local_time
 
 
 class Parser:
@@ -24,7 +25,6 @@ class Parser:
         self.callback = callback
 
         self._time_offset = None
-        self.start_time = None
         self._do_streaming = False
         self.is_waiting = False
         self._stream_thread = None
@@ -119,11 +119,10 @@ class Parser:
 
         # Timestamp conversion
         if self._time_offset is None:
-            self._time_offset = timestamp * .0001
+            self._time_offset = get_local_time() - timestamp/10000
             timestamp = 0
-            self.start_time = time.time()
         else:
-            timestamp = timestamp * .0001 - self._time_offset   # Timestamp unit is .1 ms
+            timestamp = timestamp/10000 + self._time_offset
 
         payload_data = self.stream_interface.read(payload - 4)
         packet = self._parse_packet(pid, timestamp, payload_data)
