@@ -136,28 +136,29 @@ class Dashboard:
         time_vector -= self._vis_time_offset
         self._exg_source_orig.stream(dict(zip(self.chan_key_list, exg)), rollover=int(self.exg_fs * self.win_length))
 
-        # Downsampling
-        exg = exg[:, ::int(self.exg_fs / EXG_VIS_SRATE)]
-        time_vector = time_vector[::int(self.exg_fs / EXG_VIS_SRATE)]
+        if self.mode == 'signal':
+            # Downsampling
+            exg = exg[:, ::int(self.exg_fs / EXG_VIS_SRATE)]
+            time_vector = time_vector[::int(self.exg_fs / EXG_VIS_SRATE)]
 
-        # Baseline correction
-        if self.baseline_widget.active:
-            samples_avg = exg.mean(axis=1)
-            if self._baseline_corrector["baseline"] is None:
-                self._baseline_corrector["baseline"] = samples_avg
+            # Baseline correction
+            if self.baseline_widget.active:
+                samples_avg = exg.mean(axis=1)
+                if self._baseline_corrector["baseline"] is None:
+                    self._baseline_corrector["baseline"] = samples_avg
+                else:
+                    self._baseline_corrector["baseline"] -= (
+                            (self._baseline_corrector["baseline"] - samples_avg) / self._baseline_corrector["MA_length"] *
+                            exg.shape[1])
+                exg -= self._baseline_corrector["baseline"][:, np.newaxis]
             else:
-                self._baseline_corrector["baseline"] -= (
-                        (self._baseline_corrector["baseline"] - samples_avg) / self._baseline_corrector["MA_length"] *
-                        exg.shape[1])
-            exg -= self._baseline_corrector["baseline"][:, np.newaxis]
-        else:
-            self._baseline_corrector["baseline"] = None
+                self._baseline_corrector["baseline"] = None
 
-        # Update ExG unit
-        exg = self.offsets + exg / self.y_unit
-        new_data = dict(zip(self.chan_key_list, exg))
-        new_data['t'] = time_vector
-        self.doc.add_next_tick_callback(partial(self._update_exg, new_data=new_data))
+            # Update ExG unit
+            exg = self.offsets + exg / self.y_unit
+            new_data = dict(zip(self.chan_key_list, exg))
+            new_data['t'] = time_vector
+            self.doc.add_next_tick_callback(partial(self._update_exg, new_data=new_data))
 
     def orn_callback(self, packet):
         """Update orientation data
@@ -560,10 +561,13 @@ class Dashboard:
         columns = [widgets.TableColumn(field='light', title="Light (Lux)")]
         self.light = widgets.DataTable(source=self.light_source, index_position=None, sortable=False, reorderable=False,
                                        columns=columns, width=170, height=50)
+        if self.mode == 'signal':
+            widget_list = [Spacer(width=170, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
+                           self.battery, self.temperature, self.firmware]
+        elif self.mode == 'impedance':
+            widget_list = [Spacer(width=170, height=40), self.battery, self.temperature, self.firmware]
 
-        widget_box = widgetbox(
-            [Spacer(width=170, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
-             self.battery, self.temperature, self.firmware], width=175, height=450, sizing_mode='fixed')
+        widget_box = widgetbox(widget_list, width=175, height=450, sizing_mode='fixed')
         return widget_box
 
     def _init_recorder(self):
