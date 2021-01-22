@@ -136,28 +136,29 @@ class Dashboard:
         time_vector -= self._vis_time_offset
         self._exg_source_orig.stream(dict(zip(self.chan_key_list, exg)), rollover=int(self.exg_fs * self.win_length))
 
-        # Downsampling
-        exg = exg[:, ::int(self.exg_fs / EXG_VIS_SRATE)]
-        time_vector = time_vector[::int(self.exg_fs / EXG_VIS_SRATE)]
+        if self.mode == 'signal':
+            # Downsampling
+            exg = exg[:, ::int(self.exg_fs / EXG_VIS_SRATE)]
+            time_vector = time_vector[::int(self.exg_fs / EXG_VIS_SRATE)]
 
-        # Baseline correction
-        if self.baseline_widget.active:
-            samples_avg = exg.mean(axis=1)
-            if self._baseline_corrector["baseline"] is None:
-                self._baseline_corrector["baseline"] = samples_avg
+            # Baseline correction
+            if self.baseline_widget.active:
+                samples_avg = exg.mean(axis=1)
+                if self._baseline_corrector["baseline"] is None:
+                    self._baseline_corrector["baseline"] = samples_avg
+                else:
+                    self._baseline_corrector["baseline"] -= (
+                            (self._baseline_corrector["baseline"] - samples_avg) / self._baseline_corrector["MA_length"] *
+                            exg.shape[1])
+                exg -= self._baseline_corrector["baseline"][:, np.newaxis]
             else:
-                self._baseline_corrector["baseline"] -= (
-                        (self._baseline_corrector["baseline"] - samples_avg) / self._baseline_corrector["MA_length"] *
-                        exg.shape[1])
-            exg -= self._baseline_corrector["baseline"][:, np.newaxis]
-        else:
-            self._baseline_corrector["baseline"] = None
+                self._baseline_corrector["baseline"] = None
 
-        # Update ExG unit
-        exg = self.offsets + exg / self.y_unit
-        new_data = dict(zip(self.chan_key_list, exg))
-        new_data['t'] = time_vector
-        self.doc.add_next_tick_callback(partial(self._update_exg, new_data=new_data))
+            # Update ExG unit
+            exg = self.offsets + exg / self.y_unit
+            new_data = dict(zip(self.chan_key_list, exg))
+            new_data['t'] = time_vector
+            self.doc.add_next_tick_callback(partial(self._update_exg, new_data=new_data))
 
     def orn_callback(self, packet):
         """Update orientation data
