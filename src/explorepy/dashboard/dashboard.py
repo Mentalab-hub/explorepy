@@ -561,10 +561,13 @@ class Dashboard:
         columns = [widgets.TableColumn(field='light', title="Light (Lux)")]
         self.light = widgets.DataTable(source=self.light_source, index_position=None, sortable=False, reorderable=False,
                                        columns=columns, width=170, height=50)
+        if self.mode == 'signal':
+            widget_list = [Spacer(width=170, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
+                           self.battery, self.temperature, self.firmware]
+        elif self.mode == 'impedance':
+            widget_list = [Spacer(width=170, height=40), self.battery, self.temperature, self.firmware]
 
-        widget_box = widgetbox(
-            [Spacer(width=170, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
-             self.battery, self.temperature, self.firmware], width=175, height=450, sizing_mode='fixed')
+        widget_box = widgetbox(widget_list, width=175, height=450, sizing_mode='fixed')
         return widget_box
 
     def _init_recorder(self):
