@@ -13,21 +13,22 @@ logger = logging.getLogger(__name__)
 log_path = user_log_dir(appname="explorepy", appauthor="Mentalab")
 log_filename = 'explorepy.log'
 os.makedirs(log_path, exist_ok=True)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
+file_formatter = logging.Formatter('%(asctime)s - %(name)s - [%(levelname)s] - [%(threadName)-10s] - %(message)s')
+console_formatter = logging.Formatter('%(asctime)s - [%(levelname)s] - %(message)s')
 
 file_log_handler = logging.handlers.RotatingFileHandler(filename=os.path.join(log_path, log_filename),
                                                         maxBytes=5e5, backupCount=5)
 file_log_handler.setLevel(logging.DEBUG)
-file_log_handler.setFormatter(formatter)
+file_log_handler.setFormatter(file_formatter)
 
 console_log_handler = logging.StreamHandler()
-console_log_handler.setFormatter(formatter)
+console_log_handler.setFormatter(console_formatter)
 console_log_handler.setLevel(logging.INFO)
 
 explorepy_logger.addHandler(file_log_handler)
 explorepy_logger.addHandler(console_log_handler)
 logging.getLogger().addHandler(file_log_handler)
+
 
 def setup_thread_excepthook():
     """
