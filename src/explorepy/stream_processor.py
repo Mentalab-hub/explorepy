@@ -142,7 +142,7 @@ class StreamProcessor:
             cutoff_freq (Union[float, tuple]): Cut-off frequency (frequencies) for the filter
             filter_type (str): Filter type ['bandpass', 'lowpass', 'highpass', 'notch']
         """
-        logger.info(f"Adding a {filter_type} filter with cut of freqs of {cutoff_freq}.")
+        logger.info(f"Adding a {filter_type} filter with cut-off freqs of {cutoff_freq}.")
         while not self.device_info:
             logger.warning('No device info is available. Waiting for device info packet...')
             time.sleep(.2)
