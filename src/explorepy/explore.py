@@ -404,5 +404,6 @@ class Explore:
             if duration <= 0:
                 raise ValueError("Recording time must be a positive number!")
         else:
+            logger.warning("Duration has not been set by the user. The duration is 3600 seconds by default.")
             duration = 60 * 60  # one hour
         return duration
