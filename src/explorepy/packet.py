@@ -3,8 +3,11 @@
 import abc
 from enum import IntEnum
 import numpy as np
+import logging
 
 from explorepy._exceptions import FletcherError
+
+logger = logging.getLogger(__name__)
 
 
 class PACKET_ID(IntEnum):

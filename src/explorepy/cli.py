@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """Command Line Interface module for explorepy"""
 import click
+import logging
 import explorepy
-from sys import platform as _platform
+import sys
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+logger = logging.getLogger(__name__)
 
-if _platform == 'darwin':
+if sys.platform == 'darwin':
     default_bt_backend = 'sdk'
 else:
     default_bt_backend = 'pybluez'
@@ -17,6 +19,7 @@ else:
 @click.pass_context
 def cli(ctx, version, args=None):
     """Python API for Mentalab biosignal aquisition devices"""
+    logger.debug(sys.argv)
     if ctx.invoked_subcommand is None:
         if version:
             click.echo(explorepy.__version__)

@@ -3,10 +3,13 @@
 import time
 import os
 import sys
-from sys import platform
-from explorepy import exploresdk
+import logging
 
+from explorepy import exploresdk
 from explorepy._exceptions import DeviceNotFoundError, InputError
+
+logger = logging.getLogger(__name__)
+
 
 class SDKBtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
@@ -46,11 +49,12 @@ class SDKBtClient:
                     return
                 else:
                     self.is_connected = False
-                    print("\nCould not connect; Retrying in 2s...")
+                    logger.warning("\nCould not connect; Retrying in 2s...")
                     time.sleep(2)
-            except:
+            except Exception as e:
                 self.is_connected = False
-                print("\nCould not connect; Retrying in 2s...")
+                logger.debug(f"Got an exception while connecting to the device: {e}")
+                logger.warning("\nCould not connect; Retrying in 2s...")
                 time.sleep(2)
 
     def reconnect(self):
@@ -62,16 +66,17 @@ class SDKBtClient:
 
         self.is_connected = False
         for _ in range(5):
-                self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
-                connection_error_code = self.bt_serial_port_manager.Connect()
-                if connection_error_code == 0:
-                    self.is_connected = True
-                    print('Connected to the device')
-                    return self.bt_serial_port_manager
-                else:
-                    self.is_connected = False
-                    time.sleep(2)
-
+            self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
+            connection_error_code = self.bt_serial_port_manager.Connect()
+            if connection_error_code == 0:
+                self.is_connected = True
+                logger.info('Connected to the device')
+                return self.bt_serial_port_manager
+            else:
+                self.is_connected = False
+                logger.warning("Couldn't connect to the device. Trying to reconnect...")
+                time.sleep(2)
+        logger.error("Could not reconnect after 5 attempts. Closing the socket.")
         return None
 
     def disconnect(self):
@@ -91,7 +96,7 @@ class SDKBtClient:
                     self.mac_address = bt_device.address
                     return
 
-            print("No device found with the name: {}, searching again...".format(self.device_name))
+            logger.warning("No device found with the name: {}, searching again...".format(self.device_name))
             time.sleep(0.1)
         raise DeviceNotFoundError("No device found with the name: {}".format(self.device_name))
 
@@ -106,12 +111,12 @@ class SDKBtClient:
         """
 
         try:
-            
             read_output = self.bt_serial_port_manager.Read(n_bytes)
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
 
         except Exception as error:
+            logger.debug(f"Got an exception while reading data from socket: {error}")
             if error.args[0] == "EMPTY_BUFFER_ERROR":
                 raise ConnectionAbortedError(error)
 
@@ -122,7 +127,7 @@ class SDKBtClient:
             data (bytearray): Data to be sent
         """
 
-        string_data = data.decode('utf-8', errors='surrogateescape')
+        # string_data = data.decode('utf-8', errors='surrogateescape')
         self.bt_serial_port_manager.Write(data)
 
     def implicit_delay(self, delay_length):

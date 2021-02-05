@@ -2,9 +2,11 @@
 """A module for bluetooth connection"""
 import time
 import bluetooth
+import logging
 
 from explorepy._exceptions import DeviceNotFoundError, InputError
 
+logger = logging.getLogger(__name__)
 SPP_UUID = "1101"  # Serial Port Profile (SPP) service
 
 
@@ -42,14 +44,14 @@ class BtClient:
         for _ in range(5):
             try:
                 self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-                print("Connecting to {}".format(self.device_name))
                 self.socket.connect((self.host, self.port))
                 self.is_connected = True
                 return self.socket
             except bluetooth.BluetoothError as error:
                 self.socket.close()
                 self.is_connected = False
-                print(error, "\nCould not connect; Retrying in 2s...")
+                logger.debug(f"Got BT error exception: {error}")
+                logger.warning(error, "\nCould not connect; Retrying in 2s...")
                 time.sleep(2)
 
         self.is_connected = False
@@ -67,15 +69,20 @@ class BtClient:
                 self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
                 self.socket.connect((self.host, self.port))
                 self.is_connected = True
-                print('Connected to the device')
+                logger.info('Connected to the device')
                 return self.socket
             except bluetooth.BluetoothError as error:
-                print("Bluetooth Error: {}, attempting to reconnect...".format(error))
+                logger.error("Bluetooth Error: {}, attempting to reconnect...".format(error))
                 self.socket.close()
                 self.is_connected = False
                 time.sleep(2)
+            except OSError as error:
+                logger.error(f"Got an exception from OS: {error}")
+                return
 
+        logger.error("Could not reconnect after 5 attempts. Closing the socket.")
         self.socket.close()
+
         self.is_connected = False
         return None
 
@@ -91,7 +98,7 @@ class BtClient:
                 if name == self.device_name:
                     self.mac_address = address
                     return
-            print("No device found with the name: {}, searching again...".format(self.device_name))
+            logger.warning("No device found with the name: {}, searching again...".format(self.device_name))
             time.sleep(0.1)
         raise DeviceNotFoundError("No device found with the name: {}".format(self.device_name))
 

@@ -6,7 +6,7 @@ from functools import partial
 import numpy as np
 from bokeh.layouts import widgetbox, row, column, Spacer
 from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets, \
-    Toggle, TextInput, RadioGroup, Div, Button, CheckboxGroup
+    Toggle, TextInput, RadioGroup, Div, Button, CheckboxGroup, BoxZoomTool
 from bokeh.plotting import figure
 from bokeh.server.server import Server
 from bokeh.palettes import PRGn
@@ -16,10 +16,12 @@ from bokeh.themes import Theme
 from tornado import gen
 from jinja2 import Template
 from datetime import datetime
+import logging
 
 from explorepy.tools import HeartRateEstimator
 from explorepy.stream_processor import TOPICS
 
+logger = logging.getLogger(__name__)
 ORN_SRATE = 20  # Hz
 EXG_VIS_SRATE = 125
 WIN_LENGTH = 10  # Seconds
@@ -46,6 +48,7 @@ class Dashboard:
         Args:
             stream_processor (explorepy.stream_processor.StreamProcessor): Stream processor object
         """
+        logger.debug(f"Initializing dashboard in {mode} mode")
         self.explore = explore
         self.stream_processor = self.explore.stream_processor
         self.n_chan = self.stream_processor.device_info['adc_mask'].count(1)
@@ -114,11 +117,13 @@ class Dashboard:
     def start_server(self):
         """Start bokeh server"""
         validate(False)
+        logger.debug("Starting bokeh server...")
         self.server = Server({'/': self._init_doc}, num_procs=1)
         self.server.start()
 
     def start_loop(self):
         """Start io loop and show the dashboard"""
+        logger.debug("Starting bokeh io_loop...")
         self.server.io_loop.add_callback(self.server.show, "/")
         self.server.io_loop.start()
 
@@ -354,6 +359,7 @@ class Dashboard:
     @without_property_validation
     def _change_scale(self, attr, old, new):
         """Change y-scale of ExG plot"""
+        logger.debug(f"ExG scale has been changed from {old} to {new}")
         new, old = SCALE_MENU[new], SCALE_MENU[old]
         old_unit = 10 ** (-old)
         self.y_unit = 10 ** (-new)
@@ -369,11 +375,13 @@ class Dashboard:
     @without_property_validation
     def _change_t_range(self, attr, old, new):
         """Change time range"""
+        logger.debug(f"Time scale has been changed from {old} to {new}")
         self._set_t_range(TIME_RANGE_MENU[new])
 
     @gen.coroutine
     def _change_mode(self, attr, old, new):
         """Set EEG or ECG mode"""
+        logger.debug(f"ExG mode has been changed to {new}")
         self.exg_mode = new
 
     def _init_doc(self, doc):
@@ -459,6 +467,8 @@ class Dashboard:
 
         self.fft_plot = figure(y_axis_label='Amplitude (uV)', x_axis_label='Frequency (Hz)', title="FFT",
                                x_range=(0, 70), plot_height=250, plot_width=500, y_axis_type="log",
+                               tools=[BoxZoomTool(), ResetTool()], active_scroll=None, active_drag=None,
+                               active_tap=None,
                                sizing_mode="scale_width")
 
         self.imp_plot = self._init_imp_plot()
@@ -588,6 +598,7 @@ class Dashboard:
                       self.timer], width=170, height=200, sizing_mode='fixed')
 
     def _toggle_rec(self, active):
+        logger.debug(f"Pressed record button -> {active}")
         if active:
             self.event_code_input.disabled = False
             self.marker_button.disabled = False
