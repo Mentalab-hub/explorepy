@@ -7,9 +7,10 @@ from appdirs import user_log_dir
 
 
 explorepy_logger = logging.getLogger('explorepy')
+explorepy_logger.propagate = False
 logger = logging.getLogger(__name__)
 
-log_path = user_log_dir(appname="explorepy", appauthor="mentalab")
+log_path = user_log_dir(appname="explorepy", appauthor="Mentalab")
 log_filename = 'explorepy.log'
 os.makedirs(log_path, exist_ok=True)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -26,7 +27,7 @@ console_log_handler.setLevel(logging.INFO)
 
 explorepy_logger.addHandler(file_log_handler)
 explorepy_logger.addHandler(console_log_handler)
-
+logging.getLogger().addHandler(file_log_handler)
 
 def setup_thread_excepthook():
     """
@@ -59,7 +60,7 @@ def setup_thread_excepthook():
 
 
 def uncaught_exception_handler(exctype, value, tb):
-    logger.error("Uncaught exception:", exc_info=(exctype, value, tb))
+    logger.error("Unhandled exception:", exc_info=(exctype, value, tb))
 
 
 setup_thread_excepthook()
