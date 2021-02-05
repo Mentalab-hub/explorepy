@@ -33,3 +33,12 @@ def set_bt_interface(bt_interface):
     import explorepy
     explorepy._bt_interface = bt_interface
     logger.info(f"BT interface was changed to {bt_interface}")
+
+
+def get_bt_interface():
+    """Get current Bluetooth interface name
+
+    Returns:
+            string: Bluetooth interface name
+    """
+    return _bt_interface
