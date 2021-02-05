@@ -44,7 +44,6 @@ class Parser:
 
     def stop_streaming(self):
         """Stop streaming data"""
-        logger.debug("Streaming stopped!")
         if self._do_streaming:
             self.stream_interface.disconnect()
             self._do_streaming = False
@@ -77,7 +76,7 @@ class Parser:
         self._do_streaming = True
         if new_thread:
             logger.debug("Creating a new thread for streaming.")
-            self._stream_thread = Thread(target=self._stream_loop)
+            self._stream_thread = Thread(name="ParserThread", target=self._stream_loop)
             self._stream_thread.setDaemon(True)
             self._stream_thread.start()
         else:
