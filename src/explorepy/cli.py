@@ -6,11 +6,6 @@ from sys import platform as _platform
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
-if _platform == 'darwin':
-    default_bt_backend = 'sdk'
-else:
-    default_bt_backend = 'pybluez'
-
 
 @click.group(context_settings=CONTEXT_SETTINGS, invoke_without_command=True)
 @click.option("--version", "-V", help="Print explorepy version", is_flag=True)
