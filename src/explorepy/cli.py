@@ -6,6 +6,7 @@ from sys import platform as _platform
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
+default_bt_backend = explorepy.get_bt_interface()
 
 @click.group(context_settings=CONTEXT_SETTINGS, invoke_without_command=True)
 @click.option("--version", "-V", help="Print explorepy version", is_flag=True)
