@@ -7,7 +7,7 @@ import sentry_sdk
 from appdirs import user_log_dir
 from explorepy._exceptions import *
 
-IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError]
+IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
 
 explorepy_logger = logging.getLogger('explorepy')
 explorepy_logger.propagate = False
