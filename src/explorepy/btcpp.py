@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """A module for bluetooth connection"""
 import time
-import os
-import sys
 import logging
 
 from explorepy import exploresdk
@@ -49,12 +47,12 @@ class SDKBtClient:
                     return
                 else:
                     self.is_connected = False
-                    logger.warning("\nCould not connect; Retrying in 2s...")
+                    logger.warning("Could not connect; Retrying in 2s...")
                     time.sleep(2)
             except Exception as e:
                 self.is_connected = False
                 logger.debug(f"Got an exception while connecting to the device: {e}")
-                logger.warning("\nCould not connect; Retrying in 2s...")
+                logger.warning("Could not connect; Retrying in 2s...")
                 time.sleep(2)
 
     def reconnect(self):
@@ -63,7 +61,6 @@ class SDKBtClient:
         This function reconnects to the the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
-
         self.is_connected = False
         for _ in range(5):
             self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
@@ -85,12 +82,9 @@ class SDKBtClient:
         self.is_connected = False
 
     def _find_mac_address(self):
-
         self.device_manager = exploresdk.ExploreSDK_Create()
         for _ in range(5):
-
             available_list = self.device_manager.PerformDeviceSearch()
-
             for bt_device in available_list:
                 if bt_device.name == self.device_name:
                     self.mac_address = bt_device.address
@@ -109,12 +103,10 @@ class SDKBtClient:
             Returns:
                 list of bytes
         """
-
         try:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
-
         except Exception as error:
             logger.debug(f"Got an exception while reading data from socket: {error}")
             if error.args[0] == "EMPTY_BUFFER_ERROR":
@@ -126,21 +118,8 @@ class SDKBtClient:
         Args:
             data (bytearray): Data to be sent
         """
-
-        # string_data = data.decode('utf-8', errors='surrogateescape')
         self.bt_serial_port_manager.Write(data)
-
-    def implicit_delay(self, delay_length):
-        """Delay function for bluetooth data
-        """
-        sys.stdout = open(os.devnull, 'w')
-        time.sleep(delay_length)
-        print(" ")
-        sys.stdout = sys.__stdout__
 
     @staticmethod
     def _check_mac_address(device_name, mac_address):
         return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])
-
-
-
