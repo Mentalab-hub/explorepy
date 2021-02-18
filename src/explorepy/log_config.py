@@ -1,10 +1,10 @@
-import logging
-import logging.handlers
 import sys
 import os
 import threading
+import logging
+import logging.handlers
+import sentry_sdk
 from appdirs import user_log_dir
-
 
 explorepy_logger = logging.getLogger('explorepy')
 explorepy_logger.propagate = False
@@ -51,7 +51,7 @@ def setup_thread_excepthook():
 
         def run_with_except_hook(*args2, **kwargs2):
             try:
-                run_original(*args2, **kwargs2)
+                run_original()
             except Exception:
                 sys.excepthook(*sys.exc_info())
 
@@ -61,10 +61,36 @@ def setup_thread_excepthook():
 
 
 def uncaught_exception_handler(exctype, value, tb):
+    """Handler of unhandled exceptions"""
+    while True:
+        txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n")
+        if txt in ['n', 'no', 'N', 'No']:
+            sentry_sdk.init()  # disable sentry
+            continue
+        elif txt in ['y', 'yes', 'Y', 'Yes']:
+            logger.info("Sending the error log to Mentalab ...")
+            continue
+
     logger.error("Unhandled exception:", exc_info=(exctype, value, tb))
 
 
+def log_breadcrumb(message, level):
+    """Log breadcrumb messages to be sent to sentry"""
+    sentry_sdk.add_breadcrumb(
+        message=message,
+        level=level
+    )
+
+
+def set_sentry_tag(tag_key, tag_value):
+    """Set a tag in sentry"""
+    sentry_sdk.set_tag(tag_key, tag_value)
+
+
+sentry_sdk.init(
+    "https://aefd994b53a54554b771899782581728@o522106.ingest.sentry.io/5633082",
+    traces_sample_rate=1.0
+)
+
 setup_thread_excepthook()
 sys.excepthook = uncaught_exception_handler
-
-
