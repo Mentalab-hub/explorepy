@@ -5,6 +5,9 @@ import logging
 import logging.handlers
 import sentry_sdk
 from appdirs import user_log_dir
+from explorepy._exceptions import *
+
+IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError]
 
 explorepy_logger = logging.getLogger('explorepy')
 explorepy_logger.propagate = False
@@ -62,14 +65,17 @@ def setup_thread_excepthook():
 
 def uncaught_exception_handler(exctype, value, tb):
     """Handler of unhandled exceptions"""
-    while True:
-        txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n")
-        if txt in ['n', 'no', 'N', 'No']:
-            sentry_sdk.init()  # disable sentry
-            continue
-        elif txt in ['y', 'yes', 'Y', 'Yes']:
-            logger.info("Sending the error log to Mentalab ...")
-            continue
+    if exctype not in IGNORED_EXC_BY_SENTRY:
+        while True:
+            txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n")
+            if txt in ['n', 'no', 'N', 'No']:
+                sentry_sdk.init()  # disable sentry
+                break
+            elif txt in ['y', 'yes', 'Y', 'Yes']:
+                logger.info("Sending the error log to Mentalab ...")
+                break
+    else:
+        sentry_sdk.init()  # disable sentry for ignored exceptions
 
     logger.error("Unhandled exception:", exc_info=(exctype, value, tb))
 
