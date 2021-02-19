@@ -55,9 +55,10 @@ class Explore:
         cnt = 0
         while "adc_mask" not in self.stream_processor.device_info:
             logger.info("Waiting for device info packet...")
-            time.sleep(.5)
-            if cnt >= 20:
+            time.sleep(1)
+            if cnt >= 10:
                 raise ConnectionAbortedError("Could not get info packet from the device")
+            cnt += 1
 
         logger.info('Device info packet has been received. Connection has been established. Streaming...')
         logger.info("Device info: " + str(self.stream_processor.device_info))

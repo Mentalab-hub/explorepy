@@ -69,8 +69,10 @@ class SDKBtClient:
         for _ in range(5):
             self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
             connection_error_code = self.bt_serial_port_manager.Connect()
+            print("connection error code is " , connection_error_code)
             if connection_error_code == 0:
                 self.is_connected = True
+                print("INFO SDK: device is connected!")
                 logger.info('Connected to the device')
                 return self.bt_serial_port_manager
             else:
