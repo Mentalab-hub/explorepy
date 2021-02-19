@@ -3,8 +3,11 @@
 import copy
 import numpy as np
 from scipy.signal import butter, lfilter, iirfilter
+import logging
 
 from explorepy.packet import Packet
+
+logger = logging.getLogger(__name__)
 
 
 class ExGFilter:

@@ -1,11 +1,28 @@
+import logging
+import platform
+import sys
+from . import log_config
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.debug("NEW SESSION ---------------------------------------------")
+logger.debug("OS: %s - %s ", platform.platform(), sys.version)
+log_config.log_breadcrumb(f"OS: {platform.platform()} - {sys.version}", "info")
+
 from .explore import Explore
 from . import tools, command, exploresdk
-from explorepy.dashboard.dashboard import Dashboard
-import explorepy
-from sys import platform as _platform
+from .dashboard.dashboard import Dashboard
+
 
 __version__ = '1.3.0'
 _bt_interface = 'sdk'
+
+if not sys.version_info >= (3, 6):
+    raise EnvironmentError("Explorepy requires python versions 3.6 or newer!")
+
+logger.debug("Explorepy version: %s", __version__)
+log_config.set_sentry_tag("explorepy.version", __version__)
+
 
 def set_bt_interface(bt_interface):
     """Set Explorepy Bluetooth interface type
@@ -16,19 +33,21 @@ def set_bt_interface(bt_interface):
     """
     if bt_interface not in ['sdk', 'pybluez']:
         raise ValueError
-    
-    if _platform == 'darwin' and bt_interface == 'pybluez':
+
+    if sys.platform == 'darwin' and bt_interface == 'pybluez':
         print('Setting Pybluez as Bluetooth backend is not supported in Mac OSX')
         return
-    
-    explorepy._bt_interface = bt_interface
+    from . import _bt_interface
+    _bt_interface = bt_interface
+    logger.info("BT interface is set to %s", bt_interface)
 
 
 def get_bt_interface():
-    """Get Explorepy Bluetooth interface 
+    """Get Explorepy Bluetooth interface name
 
     Returns:
         bt_interface (str): Current Bluetooth interface: 'sdk' or 'pybluez'
 
     """
-    return explorepy._bt_interface
+    from . import _bt_interface
+    return _bt_interface

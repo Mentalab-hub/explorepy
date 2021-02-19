@@ -17,13 +17,15 @@ import os
 import time
 from appdirs import user_cache_dir
 from threading import Timer
-
+import logging
 import numpy as np
 
 import explorepy
 from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer, PhysicalOrientation
 from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh, ModuleDisable, ModuleEnable
 from explorepy.stream_processor import StreamProcessor, TOPICS
+
+logger = logging.getLogger(__name__)
 
 
 class Explore:
@@ -47,12 +49,18 @@ class Explore:
             self.device_name = device_name
         else:
             self.device_name = 'Explore_' + mac_address[-5:-3] + mac_address[-2:]
+        logger.info(f"Connecting to {self.device_name} ...")
         self.stream_processor = StreamProcessor()
         self.stream_processor.start(device_name=device_name, mac_address=mac_address)
+        cnt = 0
         while "adc_mask" not in self.stream_processor.device_info:
-            print('Waiting for device info packet...')
-            time.sleep(.2)
-        print('Device info packet has been received. Connection has been established. Streaming...')
+            logger.info("Waiting for device info packet...")
+            time.sleep(.5)
+            if cnt >= 20:
+                raise ConnectionAbortedError("Could not get info packet from the device")
+
+        logger.info('Device info packet has been received. Connection has been established. Streaming...')
+        logger.info("Device info: " + str(self.stream_processor.device_info))
         self.is_connected = True
         self.stream_processor.send_timestamp()
 
@@ -61,6 +69,7 @@ class Explore:
         """
         self.stream_processor.stop()
         self.is_connected = False
+        logger.debug("Device has been disconnected.")
 
     def acquire(self, duration=None):
         r"""Start getting data from the device
@@ -75,6 +84,7 @@ class Explore:
             print(packet)
 
         self.stream_processor.subscribe(callback=callback, topic=TOPICS.raw_ExG)
+        logger.debug(f"Acquiring and printing data stream for {duration}s ...")
         time.sleep(duration)
         self.stream_processor.unsubscribe(callback=callback, topic=TOPICS.raw_ExG)
 
@@ -117,15 +127,16 @@ class Explore:
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
-        print("Recording...")
+        logger.info("Recording...")
         self.recorders['timer'] = Timer(duration, self.stop_recording)
+
         self.recorders['timer'].start()
         if block:
             try:
                 while self.recorders['timer'].is_alive():
                     time.sleep(.3)
             except KeyboardInterrupt:
-                print("Got Keyboard Interrupt!")
+                logger.info("Got Keyboard Interrupt while recording in blocked mode!")
                 self.stop_recording()
 
     def stop_recording(self):
@@ -139,7 +150,7 @@ class Explore:
             self.recorders['marker'].stop()
         if self.recorders['timer'].is_alive():
             self.recorders['timer'].cancel()
-        print('Recording stopped.')
+        logger.info('Recording stopped.')
 
     def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False):
         """Convert a binary file to EDF or CSV file
@@ -186,7 +197,7 @@ class Explore:
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
                 new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
-                print("WARNING: Creating a new file:", new_file_name + '.' + self.recorders['file_type'])
+                logger.warning("Creating a new file: " + new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
                 self.recorders['exg'].stop()
@@ -201,10 +212,10 @@ class Explore:
 
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
         self.stream_processor.open_file(bin_file=bin_file)
-        print("Converting...")
+        logger.info("Converting...")
         while self.stream_processor.is_connected:
             time.sleep(.1)
-        print('Conversion finished.')
+        logger.info('Conversion finished.')
 
     def push2lsl(self, duration=None):
         r"""Push samples to two lsl streams (ExG and ORN streams)
@@ -221,7 +232,7 @@ class Explore:
         self.stream_processor.subscribe(topic=TOPICS.marker, callback=lsl_server.push_marker)
         time.sleep(duration)
 
-        print("Data acquisition finished after ", duration, " seconds.")
+        logger.info("Data acquisition finished after " + duration + " seconds.")
         self.stream_processor.stop()
         time.sleep(1)
 
@@ -233,7 +244,7 @@ class Explore:
             if it is None.
             notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
         """
-        assert self.is_connected, "Explore device is not connected. Please connect the device first."
+        self._check_connection()
 
         if notch_freq:
             self.stream_processor.add_filter(cutoff_freq=notch_freq, filter_type='notch')
@@ -378,7 +389,7 @@ class Explore:
         assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not(do_overwrite)), \
             "Calibration data already exists!"
         PhysicalOrientation.init_dir()
-        print("Start recording for 100 seconds, please move the device around during this time, in all directions")
+        logger.info("Start recording for 100 seconds, please move the device around during this time, in all directions")
         file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '//temp_' + self.device_name
         self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
         time.sleep(105)
@@ -393,5 +404,6 @@ class Explore:
             if duration <= 0:
                 raise ValueError("Recording time must be a positive number!")
         else:
+            logger.warning("Duration has not been set by the user. The duration is 3600 seconds by default.")
             duration = 60 * 60  # one hour
         return duration
