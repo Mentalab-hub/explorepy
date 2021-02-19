@@ -54,6 +54,10 @@ class SDKBtClient:
                 logger.debug(f"Got an exception while connecting to the device: {e}")
                 logger.warning("Could not connect; Retrying in 2s...")
                 time.sleep(2)
+        
+        self.is_connected = False
+        raise DeviceNotFoundError("Could not find the device! Please make sure"
+                                  " the device is on and in advertising mode.")
 
     def reconnect(self):
         """Reconnect to the last used bluetooth socket.
@@ -65,12 +69,15 @@ class SDKBtClient:
         for _ in range(5):
             self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
             connection_error_code = self.bt_serial_port_manager.Connect()
+            print("connection error code is " , connection_error_code)
             if connection_error_code == 0:
                 self.is_connected = True
+                print("INFO SDK: device is connected!")
                 logger.info('Connected to the device')
                 return self.bt_serial_port_manager
             else:
                 self.is_connected = False
+                print("INFO SDK: Could not connect to the device")  
                 logger.warning("Couldn't connect to the device. Trying to reconnect...")
                 time.sleep(2)
         logger.error("Could not reconnect after 5 attempts. Closing the socket.")
