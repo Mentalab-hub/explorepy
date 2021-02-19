@@ -101,6 +101,7 @@ class Parser:
                 if self.mode == 'device':
                     logger.error('Bluetooth connection error! Make sure your device is on and in advertising mode.')
                     print("Press Ctrl+c to exit...")
+                    raise error
                 else:
                     logger.warning('The binary file is corrupted. Conversion has ended incompletely.')
                 self.stop_streaming()
