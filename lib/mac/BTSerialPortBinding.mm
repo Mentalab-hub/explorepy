@@ -47,8 +47,6 @@ BTSerialPortBinding::BTSerialPortBinding(string address, int channelID)
 	: address(address), channelID(channelID), data(new bluetooth_data())
 {
 	data->consumer = NULL;
-	cout << "address in constructor is  " <<endl;
-	cout << address <<endl;
 }
 
 BTSerialPortBinding::~BTSerialPortBinding()
