@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 """Command Line Interface module for explorepy"""
-import click
-import logging
-import explorepy
 import sys
+import logging
+import click
+import explorepy
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 logger = logging.getLogger(__name__)
 
-if sys.platform == 'darwin':
-    default_bt_backend = 'sdk'
-else:
-    default_bt_backend = 'pybluez'
+default_bt_backend = explorepy.get_bt_interface()
 
 
 @click.group(context_settings=CONTEXT_SETTINGS, invoke_without_command=True)
@@ -172,11 +169,13 @@ def set_sampling_rate(address, name, sampling_rate, bluetooth):
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
 def soft_reset(address, name, bluetooth):
-    """Software reset of Explore device"""
+    """Software reset of Explore device
+    
+    Reset the selected explore device (current session will be terminated)."""
+    
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     explorepy.set_bt_interface(bluetooth)
-    """Reset the selected explore device (current session will be terminated)."""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.reset_soft()
