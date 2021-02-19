@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+"""Logging configurator module"""
 import sys
 import os
 import threading
@@ -5,9 +7,11 @@ import logging
 import logging.handlers
 import sentry_sdk
 from appdirs import user_log_dir
-from explorepy._exceptions import *
+from explorepy._exceptions import DeviceNotFoundError
 
-IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
+_IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
+_IGNORED_LOGGERS = ['explorepy.parser', 'explorepy.bt_client', 'explorepy.btcpp']
+
 
 explorepy_logger = logging.getLogger('explorepy')
 explorepy_logger.propagate = False
@@ -42,8 +46,8 @@ def setup_thread_excepthook():
         https://stackoverflow.com/questions/1643327/sys-excepthook-and-threading
 
     Notes:
-        The 'sys.excepthook' bug has been fixed in Python 3.8 but as we want to keep support for older version of Python,
-        we need this workaround.
+        The 'sys.excepthook' bug has been fixed in Python 3.8 but as we want to keep support for older version
+        of Python, we need this workaround.
     """
     init_original = threading.Thread.__init__
 
@@ -63,21 +67,21 @@ def setup_thread_excepthook():
     threading.Thread.__init__ = init
 
 
-def uncaught_exception_handler(exctype, value, tb):
+def uncaught_exception_handler(exctype, value, trace_back):
     """Handler of unhandled exceptions"""
-    if exctype not in IGNORED_EXC_BY_SENTRY:
+    if exctype not in _IGNORED_EXC_BY_SENTRY:
         while True:
             txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n")
             if txt in ['n', 'no', 'N', 'No']:
                 sentry_sdk.init()  # disable sentry
                 break
-            elif txt in ['y', 'yes', 'Y', 'Yes']:
-                logger.info("Sending the error log to Mentalab ...")
+            if txt in ['y', 'yes', 'Y', 'Yes']:
+                logger.info("Thanks for helping us to improve Explorepy. Sending the error log to Mentalab ...")
                 break
     else:
         sentry_sdk.init()  # disable sentry for ignored exceptions
 
-    logger.error("Unhandled exception:", exc_info=(exctype, value, tb))
+    logger.error("Unhandled exception:", exc_info=(exctype, value, trace_back))
 
 
 def log_breadcrumb(message, level):
@@ -98,5 +102,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0
 )
 
+for logger_name in _IGNORED_LOGGERS:
+    sentry_sdk.integrations.logging.ignore_logger(logger_name)
 setup_thread_excepthook()
 sys.excepthook = uncaught_exception_handler
