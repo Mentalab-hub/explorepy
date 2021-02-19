@@ -35,7 +35,7 @@ def set_bt_interface(bt_interface):
         raise ValueError
 
     if sys.platform == 'darwin' and bt_interface == 'pybluez':
-        print('Setting Pybluez as Bluetooth backend is not supported in Mac OSX')
+        logger.warning('Setting Pybluez as Bluetooth backend is not supported in Mac OSX')
         return
     import explorepy
     explorepy._bt_interface = bt_interface
