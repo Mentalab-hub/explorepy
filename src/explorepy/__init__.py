@@ -15,7 +15,8 @@ from .dashboard.dashboard import Dashboard
 
 
 __version__ = '1.3.0'
-_bt_interface = 'sdk'
+this = sys.modules[__name__]
+this._bt_interface = 'sdk'
 
 if not sys.version_info >= (3, 6):
     raise EnvironmentError("Explorepy requires python versions 3.6 or newer!")
@@ -37,8 +38,7 @@ def set_bt_interface(bt_interface):
     if sys.platform == 'darwin' and bt_interface == 'pybluez':
         logger.warning('Setting Pybluez as Bluetooth backend is not supported in Mac OSX')
         return
-    import explorepy
-    explorepy._bt_interface = bt_interface
+    this._bt_interface = bt_interface
     logger.info("BT interface is set to %s", bt_interface)
 
 
@@ -49,5 +49,5 @@ def get_bt_interface():
         bt_interface (str): Current Bluetooth interface: 'sdk' or 'pybluez'
 
     """
-    import explorepy
-    return explorepy._bt_interface
+    return this._bt_interface
+
