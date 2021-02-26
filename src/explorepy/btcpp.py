@@ -76,8 +76,7 @@ class SDKBtClient:
                 logger.info('Connected to the device')
                 return self.bt_serial_port_manager
             else:
-                self.is_connected = False
-                print("INFO SDK: Could not connect to the device")  
+                self.is_connected = False 
                 logger.warning("Couldn't connect to the device. Trying to reconnect...")
                 time.sleep(2)
         logger.error("Could not reconnect after 5 attempts. Closing the socket.")
