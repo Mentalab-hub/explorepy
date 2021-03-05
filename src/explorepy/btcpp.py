@@ -117,8 +117,8 @@ class SDKBtClient:
         except MemoryError as error:
             logger.debug("Got an exception while reading data from socket: {} of type:{}".format(error ,type(error)))
             raise ConnectionAbortedError(error)
-        else:
-            logger.debug("unknown error occured in while reading bluetooth data by exploresdk")
+        except Exception as error:
+            logger.error("unknown error occured while reading bluetooth data by exploresdk")
 
     def send(self, data):
         """Send data to the device
