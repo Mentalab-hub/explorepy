@@ -119,6 +119,7 @@ class SDKBtClient:
             raise ConnectionAbortedError(error)
         except Exception as error:
             logger.error("unknown error occured while reading bluetooth data by exploresdk")
+            raise ConnectionAbortedError(error)
 
     def send(self, data):
         """Send data to the device
