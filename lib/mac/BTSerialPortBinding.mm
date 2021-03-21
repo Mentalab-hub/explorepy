@@ -67,6 +67,7 @@ int BTSerialPortBinding::Connect()
     IOReturn result = [worker connectDevice: addressString onChannel:channelID withPipe:pipe];
 
     if (result == kIOReturnSuccess) {
+	cout << "success..." <<endl;
         pipe_consumer_t *c = pipe_consumer_new(pipe);
 
         // save consumer side of the pipe
@@ -80,7 +81,7 @@ int BTSerialPortBinding::Connect()
     [pool release];
 
 
-	if (status != 0)return -1;
+    return status;
 }
 
 void BTSerialPortBinding::Close()
@@ -100,13 +101,15 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 
     size_buffer = -1;
     
-    Py_BEGIN_ALLOW_THREADS;
     size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
-    Py_END_ALLOW_THREADS;
+    
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
         throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+    }
+    if(size_buffer < *length){
+    	cout << "***************************************** size mismatch!!" << endl;
     }
 
     // when no data is read from rfcomm the connection has been closed.
