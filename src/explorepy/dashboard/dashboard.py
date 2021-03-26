@@ -208,7 +208,7 @@ class Dashboard:
                 data[key] = [int(data[key][0])]
                 self.doc.add_next_tick_callback(partial(self._update_light, new_data=data))
             else:
-                print("Warning: There is no field named: " + key)
+                logger.warning("There is no field named: " + key)
 
     def marker_callback(self, packet):
         """Update markers
@@ -329,7 +329,7 @@ class Dashboard:
             self._heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
         if CHAN_LIST[0] not in self.chan_key_list:
-            print('WARNING: Heart rate estimation works only when channel 1 is enabled.')
+            logger.warning('Heart rate estimation works only when channel 1 is enabled.')
             return
         if self.rr_estimator is None:
             self.rr_estimator = HeartRateEstimator(fs=self.exg_fs)
@@ -342,7 +342,7 @@ class Dashboard:
 
         # Check if the peak2peak value is bigger than threshold
         if (np.ptp(ecg_data) < V_TH[0]) or (np.ptp(ecg_data) > V_TH[1]):
-            print("WARNING: P2P value larger or less than threshold. Cannot compute heart rate!")
+            logger.warning("P2P value larger or less than threshold. Cannot compute heart rate!")
             return
 
         peaks_time, peaks_val = self.rr_estimator.estimate(ecg_data, time_vector)
