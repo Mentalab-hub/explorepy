@@ -56,7 +56,6 @@ BTSerialPortBinding::~BTSerialPortBinding()
 int BTSerialPortBinding::Connect()
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    cout << address <<endl;
     NSString *addressString = [NSString stringWithCString:address.c_str() encoding:NSASCIIStringEncoding];
     BluetoothWorker *worker = [BluetoothWorker getInstance];
     // create pipe to communicate with delegate
@@ -67,7 +66,6 @@ int BTSerialPortBinding::Connect()
     IOReturn result = [worker connectDevice: addressString onChannel:channelID withPipe:pipe];
 
     if (result == kIOReturnSuccess) {
-	cout << "success..." <<endl;
         pipe_consumer_t *c = pipe_consumer_new(pipe);
 
         // save consumer side of the pipe
@@ -109,7 +107,7 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
         throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
     }
     if(size_buffer < *length){
-    	cout << "***************************************** size mismatch!!" << endl;
+    	throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
     }
 
     // when no data is read from rfcomm the connection has been closed.
