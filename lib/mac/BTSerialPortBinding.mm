@@ -47,8 +47,6 @@ BTSerialPortBinding::BTSerialPortBinding(string address, int channelID)
 	: address(address), channelID(channelID), data(new bluetooth_data())
 {
 	data->consumer = NULL;
-	cout << "address in constructor is  " <<endl;
-	cout << address <<endl;
 }
 
 BTSerialPortBinding::~BTSerialPortBinding()
@@ -58,7 +56,6 @@ BTSerialPortBinding::~BTSerialPortBinding()
 int BTSerialPortBinding::Connect()
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    cout << address <<endl;
     NSString *addressString = [NSString stringWithCString:address.c_str() encoding:NSASCIIStringEncoding];
     BluetoothWorker *worker = [BluetoothWorker getInstance];
     // create pipe to communicate with delegate
@@ -82,7 +79,7 @@ int BTSerialPortBinding::Connect()
     [pool release];
 
 
-	if (status != 0)return -1;
+    return status;
 }
 
 void BTSerialPortBinding::Close()
@@ -102,16 +99,19 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
 
     size_buffer = -1;
     
-    Py_BEGIN_ALLOW_THREADS;
     size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
-    Py_END_ALLOW_THREADS;
+    
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
+        throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+    }
+    if(size_buffer < *length){
+    	throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
     }
 
     // when no data is read from rfcomm the connection has been closed.
-    return;
+    
 }
 
 void BTSerialPortBinding::Write(const char *buffer, int length)
