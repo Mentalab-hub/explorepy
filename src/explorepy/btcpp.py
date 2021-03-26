@@ -24,6 +24,7 @@ class SDKBtClient:
         self.mac_address = mac_address
         self.device_name = device_name
         self.bt_serial_port_manager = None
+        self.device_manager = None
 
     def connect(self):
         """Connect to the device and return the socket
@@ -55,7 +56,7 @@ class SDKBtClient:
                 logger.debug("Got an exception while connecting to the device: {} of type: {}".format(error, type(error)))
                 logger.warning("Could not connect; Retrying in 2s...")
                 time.sleep(2)
-        
+
         self.is_connected = False
         raise DeviceNotFoundError("Could not find the device! Please make sure the device is on and in advertising mode.")
 
@@ -72,7 +73,6 @@ class SDKBtClient:
             logger.debug("Got an exception while connecting to the device: {}".format(connection_error_code))
             if connection_error_code == 0:
                 self.is_connected = True
-                print("INFO SDK: device is connected!")
                 logger.info('Connected to the device')
                 return self.bt_serial_port_manager
             else:
@@ -97,7 +97,7 @@ class SDKBtClient:
                     self.mac_address = bt_device.address
                     return
 
-            logger.warning("No device found with the name: {}, searching again...".format(self.device_name))
+            logger.warning("No device found with the name: %s, searching again...", self.device_name)
             time.sleep(0.1)
         raise DeviceNotFoundError("No device found with the name: {}".format(self.device_name))
 

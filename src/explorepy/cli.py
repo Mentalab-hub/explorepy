@@ -25,7 +25,8 @@ def cli(ctx, version, args=None):
 
 
 @cli.command()
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface (default: pybluez)", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def find_device(bluetooth):
     """List available Explore devices."""
     explorepy.set_bt_interface(bluetooth)
@@ -36,7 +37,8 @@ def find_device(bluetooth):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-d", "--duration", type=int, help="Duration in seconds", metavar="<integer>")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface (default: pybluez)", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def acquire(name, address, duration, bluetooth):
     """Connect to a device with selected name or address. Only one input is necessary"""
     if name is None and address is None:
@@ -56,7 +58,8 @@ def acquire(name, address, duration, bluetooth):
 @click.option("-d", "--duration", type=int, help="Recording duration in seconds", metavar="<integer>")
 @click.option("--edf", 'file_type', flag_value='edf', help="Write in EDF file (default type)", default=True)
 @click.option("--csv", 'file_type', flag_value='csv', help="Write in csv file")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface (default: pybluez)", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def record_data(address, name, filename, overwrite, duration, file_type, bluetooth):
     """Record data from Explore to a file """
     if name is None and address is None:
@@ -72,7 +75,8 @@ def record_data(address, name, filename, overwrite, duration, file_type, bluetoo
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-d", "--duration", type=int, help="Streaming duration in seconds", metavar="<integer>")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface (default: pybluez)", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def push2lsl(address, name, duration, bluetooth):
     """Push data to lsl"""
     if name is None and address is None:
@@ -109,7 +113,8 @@ def bin2edf(filename, overwrite):
 @click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
 @click.option("-lf", "--lowfreq", type=float, help="Low cutoff frequency of bandpass/highpass filter.")
 @click.option("-hf", "--highfreq", type=float, help="High cutoff frequency of bandpass/lowpass filter.")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def visualize(address, name, notchfreq, lowfreq, highfreq, bluetooth):
     """Visualizing signal in a browser-based dashboard"""
     if name is None and address is None:
@@ -123,7 +128,8 @@ def visualize(address, name, notchfreq, lowfreq, highfreq, bluetooth):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def impedance(address, name, bluetooth):
     """Impedance measurement in a browser-based dashboard"""
     if name is None and address is None:
@@ -137,7 +143,8 @@ def impedance(address, name, bluetooth):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def format_memory(address, name, bluetooth):
     """format the memory of Explore device"""
     if name is None and address is None:
@@ -153,7 +160,8 @@ def format_memory(address, name, bluetooth):
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-sr", "--sampling-rate", help="Sampling rate of ExG channels, it can be 250 or 500",
               type=click.Choice(['250', '500', '1000']), required=True)
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def set_sampling_rate(address, name, sampling_rate, bluetooth):
     """Change sampling rate of the Explore device"""
     if name is None and address is None:
@@ -167,12 +175,13 @@ def set_sampling_rate(address, name, sampling_rate, bluetooth):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def soft_reset(address, name, bluetooth):
     """Software reset of Explore device
-    
+
     Reset the selected explore device (current session will be terminated)."""
-    
+
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     explorepy.set_bt_interface(bluetooth)
@@ -187,7 +196,8 @@ def soft_reset(address, name, bluetooth):
 @click.option("-m", "--channel-mask", type=click.IntRange(min=1, max=255), required=True,
               help="Channel mask, it should be an integer between 1 and 255, the binary representation will be "
                    "interpreted as mask.")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def set_channels(address, name, channel_mask, bluetooth):
     """Mask the channels of selected explore device"""
     if name is None and address is None:
@@ -202,7 +212,8 @@ def set_channels(address, name, channel_mask, bluetooth):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-m", "--module", required=True, type=str, help="Module name to be disabled, options: ORN, ENV, EXG")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def disable_module(address, name, module, bluetooth):
     """Disable a module of Explore device"""
     if name is None and address is None:
@@ -218,7 +229,8 @@ def disable_module(address, name, module, bluetooth):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-m", "--module", required=True, type=str, help="Module name to be enabled, options: ORN, ENV, EXG")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def enable_module(address, name, module, bluetooth):
     """Enable a module of Explore device"""
     if name is None and address is None:
@@ -233,7 +245,8 @@ def enable_module(address, name, module, bluetooth):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']), help="Select the Bluetooth interface", default=default_bt_backend)
+@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
+              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def calibrate_orn(address, name, overwrite, bluetooth):
     """Calibrate the orientation module of the specified device"""
     if name is None and address is None:

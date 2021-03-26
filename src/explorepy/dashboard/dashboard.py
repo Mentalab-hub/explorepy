@@ -3,20 +3,21 @@
 import os
 from functools import partial
 
+from datetime import datetime
+import logging
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 from bokeh.layouts import widgetbox, row, column, Spacer
-from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets, \
+from bokeh.models import ColumnDataSource, ResetTool, Panel, Tabs, SingleIntervalTicker, widgets, \
     Toggle, TextInput, RadioGroup, Div, Button, CheckboxGroup, BoxZoomTool
 from bokeh.plotting import figure
 from bokeh.server.server import Server
-from bokeh.palettes import PRGn
+from bokeh.palettes import Category20
 from bokeh.core.property.validation import validate, without_property_validation
 from bokeh.transform import dodge
 from bokeh.themes import Theme
 from tornado import gen
 from jinja2 import Template
-from datetime import datetime
-import logging
 
 from explorepy.tools import HeartRateEstimator
 from explorepy.stream_processor import TOPICS
@@ -37,7 +38,7 @@ SCALE_MENU = {"1 uV": 0, "5 uV": -0.66667, "10 uV": -1, "100 uV": -2, "200 uV": 
 TIME_RANGE_MENU = {"10 s": 10., "5 s": 5., "20 s": 20.}
 
 LINE_COLORS = ['green', '#42C4F7', 'red']
-FFT_COLORS = PRGn[8]
+FFT_COLORS = Category20[8]
 
 
 class Dashboard:
@@ -207,7 +208,7 @@ class Dashboard:
                 data[key] = [int(data[key][0])]
                 self.doc.add_next_tick_callback(partial(self._update_light, new_data=data))
             else:
-                print("Warning: There is no field named: " + key)
+                logger.warning("There is no field named: " + key)
 
     def marker_callback(self, packet):
         """Update markers
@@ -328,7 +329,7 @@ class Dashboard:
             self._heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
         if CHAN_LIST[0] not in self.chan_key_list:
-            print('WARNING: Heart rate estimation works only when channel 1 is enabled.')
+            logger.warning('Heart rate estimation works only when channel 1 is enabled.')
             return
         if self.rr_estimator is None:
             self.rr_estimator = HeartRateEstimator(fs=self.exg_fs)
@@ -341,7 +342,7 @@ class Dashboard:
 
         # Check if the peak2peak value is bigger than threshold
         if (np.ptp(ecg_data) < V_TH[0]) or (np.ptp(ecg_data) > V_TH[1]):
-            print("WARNING: P2P value larger or less than threshold. Cannot compute heart rate!")
+            logger.warning("P2P value larger or less than threshold. Cannot compute heart rate!")
             return
 
         peaks_time, peaks_val = self.rr_estimator.estimate(ecg_data, time_vector)
@@ -482,7 +483,7 @@ class Dashboard:
                                line_width=1.0, alpha=.9, line_color="#42C4F7")
             self.fft_plot.line(x='f', y=self.chan_key_list[i], source=self.fft_source,
                                legend_label=self.chan_key_list[i] + " ",
-                               line_width=1.0, alpha=.9, line_color=FFT_COLORS[i])
+                               line_width=1.5, alpha=.9, line_color=FFT_COLORS[i])
         self.fft_plot.yaxis.axis_label_text_font_style = 'normal'
         self.exg_plot.line(x='t', y='marker', source=self._marker_source,
                            line_width=1, alpha=.8, line_color='#7AB904', line_dash="4 4")
@@ -669,9 +670,11 @@ class Dashboard:
 def get_fft(exg, s_rate):
     """Compute FFT"""
     n_point = 1024
+    exg -= exg.mean(axis=1)[:, np.newaxis]
     freq = s_rate * np.arange(int(n_point / 2)) / n_point
     fft_content = np.fft.fft(exg, n=n_point) / n_point
     fft_content = np.abs(fft_content[:, range(int(n_point / 2))])
+    fft_content = gaussian_filter1d(fft_content, 1)
     return fft_content[:, 1:], freq[1:]
 
 
