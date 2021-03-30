@@ -114,7 +114,7 @@ class SDKBtClient:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
-        except MemoryError as error:
+        except (MemoryError, OSError) as error:
             logger.debug("Got an exception while reading data from socket: {} of type:{}".format(error ,type(error)))
             raise ConnectionAbortedError(error)
         except Exception as error:
