@@ -5,6 +5,7 @@ import os
 import threading
 import logging
 import logging.handlers
+import time
 import sentry_sdk
 from appdirs import user_log_dir
 from explorepy._exceptions import DeviceNotFoundError
@@ -70,8 +71,14 @@ def setup_thread_excepthook():
 def uncaught_exception_handler(exctype, value, trace_back):
     """Handler of unhandled exceptions"""
     if exctype not in _IGNORED_EXC_BY_SENTRY:
+        time.sleep(3)
         while True:
-            txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n")
+            try:
+                txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n>")
+            except (KeyboardInterrupt, EOFError):
+                sentry_sdk.init()  # disable sentry
+                break
+
             if txt in ['n', 'no', 'N', 'No']:
                 sentry_sdk.init()  # disable sentry
                 break

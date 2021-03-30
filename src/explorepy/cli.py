@@ -28,7 +28,7 @@ def cli(ctx, version, args=None):
 @click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
               help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def find_device(bluetooth):
-    """List available Explore devices."""
+    """List available Explore devices"""
     explorepy.set_bt_interface(bluetooth)
     explorepy.tools.bt_scan()
 
@@ -40,7 +40,7 @@ def find_device(bluetooth):
 @click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
               help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def acquire(name, address, duration, bluetooth):
-    """Connect to a device with selected name or address. Only one input is necessary"""
+    """Connect to a device and print the ExG stream in the console"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     explorepy.set_bt_interface(bluetooth)
@@ -56,12 +56,12 @@ def acquire(name, address, duration, bluetooth):
               type=click.Path(file_okay=True, dir_okay=True, resolve_path=True))
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
 @click.option("-d", "--duration", type=int, help="Recording duration in seconds", metavar="<integer>")
-@click.option("--edf", 'file_type', flag_value='edf', help="Write in EDF file (default type)", default=True)
-@click.option("--csv", 'file_type', flag_value='csv', help="Write in csv file")
+@click.option("--edf", 'file_type', flag_value='edf', help="Write in EDF file")
+@click.option("--csv", 'file_type', flag_value='csv', help="Write in csv file (default type)", default=True)
 @click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
               help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def record_data(address, name, filename, overwrite, duration, file_type, bluetooth):
-    """Record data from Explore to a file """
+    """Record data from Explore to a file"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     explorepy.set_bt_interface(bluetooth)
@@ -146,7 +146,7 @@ def impedance(address, name, bluetooth):
 @click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
               help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def format_memory(address, name, bluetooth):
-    """format the memory of Explore device"""
+    """Format the memory of Explore device"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     explorepy.set_bt_interface(bluetooth)
@@ -199,7 +199,7 @@ def soft_reset(address, name, bluetooth):
 @click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
               help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def set_channels(address, name, channel_mask, bluetooth):
-    """Mask the channels of selected explore device"""
+    """Mask the channels of the Explore device"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     explorepy.set_bt_interface(bluetooth)
@@ -248,7 +248,7 @@ def enable_module(address, name, module, bluetooth):
 @click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
               help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 def calibrate_orn(address, name, overwrite, bluetooth):
-    """Calibrate the orientation module of the specified device"""
+    """Calibrate the orientation module"""
     if name is None and address is None:
         raise ValueError("Either name or address must be given!")
     explorepy.set_bt_interface(bluetooth)
