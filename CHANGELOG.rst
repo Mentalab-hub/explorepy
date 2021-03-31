@@ -1,6 +1,15 @@
 
 Changelog
 =========
+1.4.0 (31.03.2021)
+------------------
+* Baseline correction feature in the visualization
+* Error logging system (Logging and Sentry)
+* Fix a bug of SDK in MacOS
+* Change the default Bluetooth interface to SDK
+* Improved FFT visualization
+* More precise local time in all OSes
+
 
 1.3.0 (30-12-2020)
 ------------------

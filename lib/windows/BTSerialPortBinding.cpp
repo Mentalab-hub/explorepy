@@ -78,11 +78,9 @@ int BTSerialPortBinding::Connect()
 
 		if (status != SOCKET_ERROR)
 		{
-
 			addr.port = channelID;
 			
 			status = connect(data->s, (LPSOCKADDR)&addr, addrSize);
-			
 			if (status != SOCKET_ERROR)
 			{
 				unsigned long enableNonBlocking = 1;

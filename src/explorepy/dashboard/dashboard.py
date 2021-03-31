@@ -3,23 +3,26 @@
 import os
 from functools import partial
 
+from datetime import datetime
+import logging
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 from bokeh.layouts import widgetbox, row, column, Spacer
-from bokeh.models import ColumnDataSource, ResetTool, PrintfTickFormatter, Panel, Tabs, SingleIntervalTicker, widgets, \
-    Toggle, TextInput, RadioGroup, Div, CustomJS, Button
+from bokeh.models import ColumnDataSource, ResetTool, Panel, Tabs, SingleIntervalTicker, widgets, \
+    Toggle, TextInput, RadioGroup, Div, Button, CheckboxGroup, BoxZoomTool
 from bokeh.plotting import figure
 from bokeh.server.server import Server
-from bokeh.palettes import PRGn
+from bokeh.palettes import Category20
 from bokeh.core.property.validation import validate, without_property_validation
 from bokeh.transform import dodge
 from bokeh.themes import Theme
 from tornado import gen
 from jinja2 import Template
-from datetime import datetime
 
 from explorepy.tools import HeartRateEstimator
 from explorepy.stream_processor import TOPICS
 
+logger = logging.getLogger(__name__)
 ORN_SRATE = 20  # Hz
 EXG_VIS_SRATE = 125
 WIN_LENGTH = 10  # Seconds
@@ -35,7 +38,7 @@ SCALE_MENU = {"1 uV": 0, "5 uV": -0.66667, "10 uV": -1, "100 uV": -2, "200 uV": 
 TIME_RANGE_MENU = {"10 s": 10., "5 s": 5., "20 s": 20.}
 
 LINE_COLORS = ['green', '#42C4F7', 'red']
-FFT_COLORS = PRGn[8]
+FFT_COLORS = Category20[8]
 
 
 class Dashboard:
@@ -46,6 +49,7 @@ class Dashboard:
         Args:
             stream_processor (explorepy.stream_processor.StreamProcessor): Stream processor object
         """
+        logger.debug(f"Initializing dashboard in {mode} mode")
         self.explore = explore
         self.stream_processor = self.explore.stream_processor
         self.n_chan = self.stream_processor.device_info['adc_mask'].count(1)
@@ -59,6 +63,9 @@ class Dashboard:
         self.win_length = WIN_LENGTH
         self.mode = mode
         self.exg_fs = self.stream_processor.device_info['sampling_rate']
+        self._vis_time_offset = None
+        self._baseline_corrector = {"MA_length": 1.5 * EXG_VIS_SRATE,
+                                    "baseline": 0}
 
         # Init ExG data source
         exg_temp = np.zeros((self.n_chan, 2))
@@ -111,11 +118,13 @@ class Dashboard:
     def start_server(self):
         """Start bokeh server"""
         validate(False)
+        logger.debug("Starting bokeh server...")
         self.server = Server({'/': self._init_doc}, num_procs=1)
         self.server.start()
 
     def start_loop(self):
         """Start io loop and show the dashboard"""
+        logger.debug("Starting bokeh io_loop...")
         self.server.io_loop.add_callback(self.server.show, "/")
         self.server.io_loop.start()
 
@@ -128,16 +137,34 @@ class Dashboard:
 
         """
         time_vector, exg = packet.get_data(self.exg_fs)
+        if self._vis_time_offset is None:
+            self._vis_time_offset = time_vector[0]
+        time_vector -= self._vis_time_offset
         self._exg_source_orig.stream(dict(zip(self.chan_key_list, exg)), rollover=int(self.exg_fs * self.win_length))
 
-        # Downsampling
-        exg = exg[:, ::int(self.exg_fs / EXG_VIS_SRATE)]
-        time_vector = time_vector[::int(self.exg_fs / EXG_VIS_SRATE)]
-        # Update ExG unit
-        exg = self.offsets + exg / self.y_unit
-        new_data = dict(zip(self.chan_key_list, exg))
-        new_data['t'] = time_vector
-        self.doc.add_next_tick_callback(partial(self._update_exg, new_data=new_data))
+        if self.mode == 'signal':
+            # Downsampling
+            exg = exg[:, ::int(self.exg_fs / EXG_VIS_SRATE)]
+            time_vector = time_vector[::int(self.exg_fs / EXG_VIS_SRATE)]
+
+            # Baseline correction
+            if self.baseline_widget.active:
+                samples_avg = exg.mean(axis=1)
+                if self._baseline_corrector["baseline"] is None:
+                    self._baseline_corrector["baseline"] = samples_avg
+                else:
+                    self._baseline_corrector["baseline"] -= (
+                            (self._baseline_corrector["baseline"] - samples_avg) / self._baseline_corrector["MA_length"] *
+                            exg.shape[1])
+                exg -= self._baseline_corrector["baseline"][:, np.newaxis]
+            else:
+                self._baseline_corrector["baseline"] = None
+
+            # Update ExG unit
+            exg = self.offsets + exg / self.y_unit
+            new_data = dict(zip(self.chan_key_list, exg))
+            new_data['t'] = time_vector
+            self.doc.add_next_tick_callback(partial(self._update_exg, new_data=new_data))
 
     def orn_callback(self, packet):
         """Update orientation data
@@ -148,6 +175,9 @@ class Dashboard:
         if self.tabs.active != 1:
             return
         timestamp, orn_data = packet.get_data()
+        if self._vis_time_offset is None:
+            self._vis_time_offset = timestamp[0]
+        timestamp -= self._vis_time_offset
         new_data = dict(zip(ORN_LIST, np.array(orn_data)[:, np.newaxis]))
         new_data['t'] = timestamp
         self.doc.add_next_tick_callback(partial(self._update_orn, new_data=new_data))
@@ -178,7 +208,7 @@ class Dashboard:
                 data[key] = [int(data[key][0])]
                 self.doc.add_next_tick_callback(partial(self._update_light, new_data=data))
             else:
-                print("Warning: There is no field named: " + key)
+                logger.warning("There is no field named: " + key)
 
     def marker_callback(self, packet):
         """Update markers
@@ -188,6 +218,9 @@ class Dashboard:
         if self.mode == "impedance":
             return
         timestamp, _ = packet.get_data()
+        if self._vis_time_offset is None:
+            self._vis_time_offset = timestamp[0]
+        timestamp -= self._vis_time_offset
         new_data = dict(zip(['marker', 't', 'code'], [np.array([0.01, self.n_chan + 0.99, None], dtype=np.double),
                                                       np.array([timestamp[0], timestamp[0], None], dtype=np.double)]))
         self.doc.add_next_tick_callback(partial(self._update_marker, new_data=new_data))
@@ -296,7 +329,7 @@ class Dashboard:
             self._heart_rate_source.stream({'heart_rate': ['NA']}, rollover=1)
             return
         if CHAN_LIST[0] not in self.chan_key_list:
-            print('WARNING: Heart rate estimation works only when channel 1 is enabled.')
+            logger.warning('Heart rate estimation works only when channel 1 is enabled.')
             return
         if self.rr_estimator is None:
             self.rr_estimator = HeartRateEstimator(fs=self.exg_fs)
@@ -309,7 +342,7 @@ class Dashboard:
 
         # Check if the peak2peak value is bigger than threshold
         if (np.ptp(ecg_data) < V_TH[0]) or (np.ptp(ecg_data) > V_TH[1]):
-            print("WARNING: P2P value larger or less than threshold. Cannot compute heart rate!")
+            logger.warning("P2P value larger or less than threshold. Cannot compute heart rate!")
             return
 
         peaks_time, peaks_val = self.rr_estimator.estimate(ecg_data, time_vector)
@@ -327,6 +360,7 @@ class Dashboard:
     @without_property_validation
     def _change_scale(self, attr, old, new):
         """Change y-scale of ExG plot"""
+        logger.debug(f"ExG scale has been changed from {old} to {new}")
         new, old = SCALE_MENU[new], SCALE_MENU[old]
         old_unit = 10 ** (-old)
         self.y_unit = 10 ** (-new)
@@ -342,11 +376,13 @@ class Dashboard:
     @without_property_validation
     def _change_t_range(self, attr, old, new):
         """Change time range"""
+        logger.debug(f"Time scale has been changed from {old} to {new}")
         self._set_t_range(TIME_RANGE_MENU[new])
 
     @gen.coroutine
     def _change_mode(self, attr, old, new):
         """Set EEG or ECG mode"""
+        logger.debug(f"ExG mode has been changed to {new}")
         self.exg_mode = new
 
     def _init_doc(self, doc):
@@ -368,6 +404,8 @@ class Dashboard:
             self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=400, sizing_mode='scale_width')
             self.recorder_widget = self._init_recorder()
             self.set_marker_widget = self._init_set_marker()
+            self.baseline_widget = CheckboxGroup(labels=['Baseline correction'], active=[0])
+
         elif self.mode == "impedance":
             imp_tab = Panel(child=self.imp_plot, title="Impedance")
             self.tabs = Tabs(tabs=[imp_tab], width=500, sizing_mode='scale_width')
@@ -383,7 +421,7 @@ class Dashboard:
                                  Spacer(width=10, height=200),
                                  self.tabs,
                                  Spacer(width=10, height=300),
-                                 column(Spacer(width=170, height=35), self.recorder_widget, self.set_marker_widget),
+                                 column(Spacer(width=170, height=50), self.baseline_widget, self.recorder_widget, self.set_marker_widget),
                                  Spacer(width=50, height=300)),
                              ],
                             sizing_mode="stretch_both")
@@ -430,6 +468,8 @@ class Dashboard:
 
         self.fft_plot = figure(y_axis_label='Amplitude (uV)', x_axis_label='Frequency (Hz)', title="FFT",
                                x_range=(0, 70), plot_height=250, plot_width=500, y_axis_type="log",
+                               tools=[BoxZoomTool(), ResetTool()], active_scroll=None, active_drag=None,
+                               active_tap=None,
                                sizing_mode="scale_width")
 
         self.imp_plot = self._init_imp_plot()
@@ -443,7 +483,7 @@ class Dashboard:
                                line_width=1.0, alpha=.9, line_color="#42C4F7")
             self.fft_plot.line(x='f', y=self.chan_key_list[i], source=self.fft_source,
                                legend_label=self.chan_key_list[i] + " ",
-                               line_width=1.0, alpha=.9, line_color=FFT_COLORS[i])
+                               line_width=1.5, alpha=.9, line_color=FFT_COLORS[i])
         self.fft_plot.yaxis.axis_label_text_font_style = 'normal'
         self.exg_plot.line(x='t', y='marker', source=self._marker_source,
                            line_width=1, alpha=.8, line_color='#7AB904', line_dash="4 4")
@@ -532,10 +572,13 @@ class Dashboard:
         columns = [widgets.TableColumn(field='light', title="Light (Lux)")]
         self.light = widgets.DataTable(source=self.light_source, index_position=None, sortable=False, reorderable=False,
                                        columns=columns, width=170, height=50)
+        if self.mode == 'signal':
+            widget_list = [Spacer(width=170, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
+                           self.battery, self.temperature, self.firmware]
+        elif self.mode == 'impedance':
+            widget_list = [Spacer(width=170, height=40), self.battery, self.temperature, self.firmware]
 
-        widget_box = widgetbox(
-            [Spacer(width=170, height=30), self.mode_control, self.y_scale, self.t_range, self.heart_rate,
-             self.battery, self.temperature, self.firmware], width=175, height=450, sizing_mode='fixed')
+        widget_box = widgetbox(widget_list, width=175, height=450, sizing_mode='fixed')
         return widget_box
 
     def _init_recorder(self):
@@ -556,6 +599,7 @@ class Dashboard:
                       self.timer], width=170, height=200, sizing_mode='fixed')
 
     def _toggle_rec(self, active):
+        logger.debug(f"Pressed record button -> {active}")
         if active:
             self.event_code_input.disabled = False
             self.marker_button.disabled = False
@@ -626,9 +670,11 @@ class Dashboard:
 def get_fft(exg, s_rate):
     """Compute FFT"""
     n_point = 1024
+    exg -= exg.mean(axis=1)[:, np.newaxis]
     freq = s_rate * np.arange(int(n_point / 2)) / n_point
     fft_content = np.fft.fft(exg, n=n_point) / n_point
     fft_content = np.abs(fft_content[:, range(int(n_point / 2))])
+    fft_content = gaussian_filter1d(fft_content, 1)
     return fft_content[:, 1:], freq[1:]
 
 

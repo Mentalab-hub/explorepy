@@ -6,6 +6,9 @@ import time
 from datetime import datetime
 import abc
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CommandID(Enum):
@@ -37,6 +40,7 @@ class Result(Enum):
 
 class DeviceConfiguration:
     """Device Configuration Class"""
+
     def __init__(self, bt_interface):
         """
         Args:
@@ -62,13 +66,13 @@ class DeviceConfiguration:
         self._last_ack_message = None
         self._last_status_message = None
         self._send_command(command)
-        print("waiting for ack and status messages...")
+        logger.info("waiting for ack and status messages...")
         cmd_received = False
         for _ in range(10):
             if not self._last_ack_message:
                 time.sleep(1)
             elif int2bytearray(self._last_ack_message.opcode, 1) == command.opcode.value:
-                print("Command has been received by Explore")
+                logger.info("Command has been received by Explore.")
                 cmd_received = True
                 self._last_ack_message = None
                 break
@@ -77,13 +81,11 @@ class DeviceConfiguration:
                 if not self._last_status_message:
                     time.sleep(1)
                 elif int2bytearray(self._last_status_message.opcode, 1) == command.opcode.value:
-                    print("Command has been successfully executed by the device.")
+                    logger.info("Command has been successfully executed by the device.")
                     return True
 
-        if cmd_received:
-            print("WARNING: Command has not been executed by the device. Try again.")
-        else:
-            print("WARNING: Command has not been received by the device. Try again.")
+        if not cmd_received:
+            logger.warning("Command has not been received by the device. Try again.")
         return False
 
     def update_ack(self, packet):
@@ -102,9 +104,9 @@ class DeviceConfiguration:
             socket (socket): Bluetooth socket
 
         """
-        print("Sending the command: ", command)
+        logger.info("Sending the command: " + str(command))
         self._bt_interface.send(command.translate())
-        print("The command is sent.")
+        logger.info("Command has been sent successfully.")
 
     def send_timestamp(self):
         ts = HostTimeStamp()
@@ -113,6 +115,7 @@ class DeviceConfiguration:
 
 class HostTimeStamp:
     """Host timestamp data packet"""
+
     def __init__(self):
         self.pid = b'\x1B'
         self.cnt = b'\x01'
@@ -133,6 +136,7 @@ class HostTimeStamp:
 
 class Command:
     """An abstract base class for Explore command packet"""
+
     def __init__(self):
         self.pid = None
         self.cnt = b'\x00'
@@ -148,7 +152,7 @@ class Command:
     def translate(self):
         """Translates the command to binary array understandable by Explore device. """
         self.get_time()
-        return self.pid.value + self.cnt + self.payload_length + self.host_ts + self.opcode.value + \
+        return self.pid.value + self.cnt + self.payload_length + self.host_ts + self.opcode.value +\
                self.param + self.fletcher
 
     def get_time(self):
@@ -168,6 +172,7 @@ class Command:
 
 class Command2B(Command):
     """An abstract base class for Explore 2 Byte command data length packets"""
+
     def __init__(self):
         super().__init__()
         self.pid = CommandID.API2BCMD
@@ -193,6 +198,7 @@ class Command4B(Command):
 
 class SetSPS(Command2B):
     """Set the sampling rate of ExG device"""
+
     def __init__(self, sps_rate):
         """
         Args:
@@ -215,6 +221,7 @@ class SetSPS(Command2B):
 
 class MemoryFormat(Command2B):
     """Format device memory"""
+
     def __init__(self):
         super().__init__()
         self.opcode = OpcodeID.CMD_MEM_FORMAT
@@ -226,6 +233,7 @@ class MemoryFormat(Command2B):
 
 class ModuleDisable(Command2B):
     """Module disable command"""
+
     def __init__(self, module_name):
         """
 
@@ -247,6 +255,7 @@ class ModuleDisable(Command2B):
 
 class ModuleEnable(Command2B):
     """Module enable command"""
+
     def __init__(self, module_name):
         """
         Args:
@@ -267,6 +276,7 @@ class ModuleEnable(Command2B):
 
 class ZMeasurementDisable(Command2B):
     """Enables Z measurement mode"""
+
     def __init__(self):
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_DISABLE
@@ -278,6 +288,7 @@ class ZMeasurementDisable(Command2B):
 
 class ZMeasurementEnable(Command2B):
     """Enables Z measurement"""
+
     def __init__(self):
         super().__init__()
         self.opcode = OpcodeID.CMD_ZM_ENABLE
@@ -289,6 +300,7 @@ class ZMeasurementEnable(Command2B):
 
 class SetCh(Command2B):
     """Change channel mask command"""
+
     def __init__(self, ch_mask):
         """
 
@@ -308,6 +320,7 @@ class SetCh(Command2B):
 
 class SoftReset(Command2B):
     """Reset the setting of the device."""
+
     def __init__(self):
         super().__init__()
         self.opcode = OpcodeID.CMD_SOFT_RESET

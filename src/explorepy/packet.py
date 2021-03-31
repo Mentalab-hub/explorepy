@@ -2,10 +2,12 @@
 """This module contains all packet classes of Mentalab Explore device"""
 import abc
 from enum import IntEnum
-import time
 import numpy as np
+import logging
 
 from explorepy._exceptions import FletcherError
+
+logger = logging.getLogger(__name__)
 
 
 class PACKET_ID(IntEnum):

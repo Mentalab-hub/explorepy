@@ -7,17 +7,29 @@ import copy
 import numpy as np
 from scipy import signal
 import pyedflib
-from pylsl import StreamInfo, StreamOutlet
+from pylsl import StreamInfo, StreamOutlet, local_clock
 import configparser
 from appdirs import user_cache_dir, user_config_dir
+import logging
 
 import explorepy
 from explorepy.filters import ExGFilter
+
+logger = logging.getLogger(__name__)
 
 EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
 ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+
+
+def get_local_time():
+    """Local time in seconds with sub-ms accuracy (based on pylsl local_clock)
+
+    Returns:
+            float: local time in second
+    """
+    return local_clock()
 
 
 def bt_scan():
@@ -30,9 +42,10 @@ def bt_scan():
     Returns:
 
     """
-    print("Searching for nearby devices...")
+    logger.info("Searching for nearby devices...")
     explore_devices = []
-    if explorepy._bt_interface == 'sdk':
+    print('\n')
+    if explorepy.get_bt_interface() == 'sdk':
         device_manager = explorepy.exploresdk.ExploreSDK_Create()
         nearby_devices = device_manager.PerformDeviceSearch()
         for bt_device in nearby_devices:
@@ -58,7 +71,7 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
     exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_max = [86400.] + [4e5 for i in range(8)]
+    exg_max = [21600.] + [4e5 for i in range(8)]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_min = [0.] + [-4e5 for i in range(8)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
@@ -69,7 +82,7 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
 def create_orn_recorder(filename, file_type, do_overwrite):
     orn_ch = ['TimeStamp'] + ORN_CHANNELS
     orn_unit = ['s'] + ORN_UNITS
-    orn_max = [86400, 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
+    orn_max = [21600., 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
     orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
                         do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min)
@@ -132,18 +145,18 @@ class HeartRateEstimator:
     @property
     def heart_rate(self):
         if len(self.r_peaks_buffer) < 7:
-            print('Few peaks to get heart rate! Noisy signal!')
+            logger.warning('Few peaks to get heart rate! Noisy signal!')
             return 'NA'
         else:
             r_times = [item[1] for item in self.r_peaks_buffer]
             rr_intervals = np.diff(r_times, 1)
             if True in (rr_intervals > 3.):
-                print('Missing peaks! Noisy signal!')
+                logger.warning('Missing peaks! Noisy signal!')
                 return 'NA'
             else:
                 estimated_heart_rate = int(1. / np.mean(rr_intervals) * 60)
                 if estimated_heart_rate > 140 or estimated_heart_rate < 40:
-                    print('Estimated heart rate <40 or >140!')
+                    logger.warning('Estimated heart rate <40 or >140! Potentially due to noisy signal!')
                     estimated_heart_rate = 'NA'
                 return estimated_heart_rate
 
@@ -301,8 +314,6 @@ class FileRecorder:
     streaming from Explore device. The incoming data will be stored in a buffer and after it reached fs samples, it
     writes the buffer in EDF file.
 
-    Attributes:
-
     """
 
     def __init__(self, filename, ch_label, fs, ch_unit, ch_min=None, ch_max=None,
@@ -334,7 +345,7 @@ class FileRecorder:
         self._n_chan = len(ch_label)
         self._device_name = device_name
         self._fs = int(fs)
-        self._rectime_offset = None
+        self._rec_time_offset = None
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
@@ -411,11 +422,9 @@ class FileRecorder:
 
         if len(time_vector) == 1:
             data = np.array(time_vector + signal)[:, np.newaxis]
-            if self._rectime_offset is None:
-                self._rectime_offset = time_vector
         else:
-            if self._rectime_offset is None:
-                self._rectime_offset = time_vector[0]
+            if self._rec_time_offset is None:
+                self._rec_time_offset = time_vector[0]
             data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(signal)), axis=0)
         data = np.round(data, 4)
 
@@ -442,9 +451,9 @@ class FileRecorder:
             self.write_data(packet=packet)
         elif self.file_type == 'edf':
             timestamp, code = packet.get_data()
-            if self._rectime_offset is None:
-                self._rectime_offset = timestamp[0]
-            timestamp = timestamp-np.float64(self._rectime_offset)
+            if self._rec_time_offset is None:
+                self._rec_time_offset = timestamp[0]
+            timestamp = timestamp-np.float64(self._rec_time_offset)
             self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
 
@@ -456,7 +465,6 @@ class LslServer:
         orn_fs = 20
 
         info_exg = StreamInfo(device_info["device_name"]+"_ExG", 'ExG', n_chan, self.exg_fs, 'float32', 'ExG')
-
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(device_info['adc_mask']):
@@ -547,13 +555,6 @@ class ImpedanceMeasurement:
 
     def measure_imp(self, packet):
         """Compute electrode impedances
-
-        Args:
-            self:
-            packet:
-
-        Returns:
-            packet:
         """
         temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
         self._calib_param['noise_level'] = self._filters['base_noise'].\
@@ -604,7 +605,7 @@ class PhysicalOrientation:
 
     def read_calibre_data(self, device_name):
         config = configparser.ConfigParser()
-        calibre_file = user_config_dir(appname="explorepy", appauthor="mentalab")+ "/conf.ini"
+        calibre_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
         if os.path.isfile(calibre_file) :
             config.read(calibre_file)
             try:
@@ -646,8 +647,8 @@ class PhysicalOrientation:
         N = N / (np.dot(N, N) ** 0.5)
         '''
         If you comment this block it will give you the absolute orientation based on {East,North,Up} coordinate system.
-        If you keep this block of code it will give you the relative orientation based on itial state of the device. so
-        It is important to keep the device steady, so that the device can capture the initial direction properly.
+        If you keep this block of code it will give you the relative orientation based on initial state of the device.
+        So, it is important to keep the device steady, so that the device can capture the initial direction properly.
         '''
         ##########################
         T = np.zeros((3, 3))
@@ -673,9 +674,9 @@ class PhysicalOrientation:
 
     @staticmethod
     def init_dir():
-        if not (os.path.isfile(user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini")):
-            os.makedirs(user_config_dir(appname="explorepy", appauthor="mentalab"), exist_ok=True) #create parent directory
-            calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+        if not (os.path.isfile(user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini")):
+            os.makedirs(user_config_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
+            calibre_out_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
             with open (calibre_out_file, "w") as f_coef:
                 config = configparser.ConfigParser()
                 config['DEFAULT'] = {'description': 'configuration data for Explore devices'}
@@ -683,12 +684,12 @@ class PhysicalOrientation:
                 f_coef.close()
 
         if not (os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab"))):
-            os.makedirs(user_cache_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True) #create parent directory
+            os.makedirs(user_cache_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
 
     @staticmethod
     def calibrate(cache_dir, device_name):
-        calibre_out_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
-        parser = configparser.SafeConfigParser()
+        calibre_out_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
+        parser = configparser.ConfigParser()
         parser.read(calibre_out_file)
         with open((cache_dir + "_ORN.csv"), "r") as f_set:
             csv_reader = csv.reader(f_set, delimiter=",")
@@ -712,7 +713,7 @@ class PhysicalOrientation:
         os.remove((cache_dir + "_ExG.csv"))
         os.remove((cache_dir + "_Marker.csv"))
         if parser.has_section(device_name):
-            parser = configparser.SafeConfigParser()
+            parser = configparser.ConfigParser()
             parser.read(calibre_out_file)
             with open(calibre_out_file, "w") as f_coef:
                 parser.set(device_name, 'kx', str(kx))
@@ -737,7 +738,7 @@ class PhysicalOrientation:
     @staticmethod
     def check_calibre_data(device_name):
         config = configparser.ConfigParser()
-        calibre_file = user_config_dir(appname="explorepy", appauthor="mentalab") + "/conf.ini"
+        calibre_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
         if os.path.isfile(calibre_file):
             config.read(calibre_file)
             if config.has_section(device_name):
