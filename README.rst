@@ -145,7 +145,7 @@ found in the following path.
 
 * Windows: ``<Windows Drive>:\Users\<USER_NAME>\AppData\Local\mentalab\explorepy\Logs\explorepy.log``
 * Ubuntu: ``/home/<USER_NAME>/.cache/explorepy/log/explorepy.log``
-* Mac OS: ``/Users/<USER_NAME>/Library/Logs/explorepy/explorepy.log
+* Mac OS: ``/Users/<USER_NAME>/Library/Logs/explorepy/explorepy.log``
 
 You can also create a new issue in the GitHub repository.
 
