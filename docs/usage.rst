@@ -11,19 +11,23 @@ You can get help for a specific command by  ``explorepy <command> -h``. For exam
 
     Usage: explorepy visualize [OPTIONS]
 
-      Visualizing signal in a browser-based dashboard
+        Visualizing signal in a browser-based dashboard
 
     Options:
-      -a, --address TEXT        Explore device's MAC address
-      -n, --name TEXT           Name of the device
-      -nf, --notchfreq [50|60]  Frequency of notch filter.
-      -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
-      -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
-      -h, --help                Show this message and exit.
+      -a, --address TEXT              Explore device's MAC address
+      -n, --name TEXT                 Name of the device
+      -nf, --notchfreq [50|60]        Frequency of notch filter.
+      -lf, --lowfreq FLOAT            Low cutoff frequency of bandpass/highpass
+                                      filter.
+      -hf, --highfreq FLOAT           High cutoff frequency of bandpass/lowpass
+                                      filter.
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default:
+                                      sdk)
+      -h, --help                      Show this message and exit.
 
-.. note:: Explorepy allows users to use either pybluez or Explorepy's SDK as the Bluetooth interface (in Windows and Ubuntu,
-the default BT backend is pybluez and in MacOS, the default BT backend is SDK).
+.. note:: Explorepy allows users to use either pybluez or Explorepy's SDK as the Bluetooth interface
+            (the default BT backend is SDK).
+
 
 Available Commands
 """"""""""""""""""
@@ -35,7 +39,7 @@ Scans for nearby Mentalab Explore devices. Prints out Name and MAC address of th
       -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                      Show this message and exit.
 
-.. note:: On Windows, this function prints all paired devices.
+.. note:: On Windows, this function may print all the paired devices.
 
 
 **acquire**::
@@ -52,19 +56,20 @@ Scans for nearby Mentalab Explore devices. Prints out Name and MAC address of th
 
 **record-data**
 
-Connects to a device and records ExG and orientation data into two separate files. Note that in CSV mode there will be an extra
-file for the marker events. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution).::
+Connects to a device and records ExG and orientation data into two separate files. Note that in CSV mode there will be
+an extra file for the marker events. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution).::
 
     Options:
-      -a, --address TEXT        Explore device's MAC address
-      -n, --name TEXT           Name of the device
-      -f, --filename PATH       Name of the file.  [required]
-      -ow, --overwrite          Overwrite existing file
-      -d, --duration <integer>  Recording duration in seconds
-      --edf                     Write in EDF file (default type)
-      --csv                     Write in csv file
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
-      -h, --help                Show this message and exit.
+      -a, --address TEXT              Explore device's MAC address
+      -n, --name TEXT                 Name of the device
+      -f, --filename PATH             Name of the file.  [required]
+      -ow, --overwrite                Overwrite existing file
+      -d, --duration <integer>        Recording duration in seconds
+      --edf                           Write in EDF file
+      --csv                           Write in csv file (default type)
+      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: sdk)
+      -h, --help                      Show this message and exit.
+
 
 .. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF/CSV
             file for ExG data with the given file name plus the time the setting has changed.
@@ -81,6 +86,11 @@ file for the marker events. In EDF mode, the data is actually recorded in BDF+ f
 .. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
             compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
             correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
+
+            If you are setting markers in the recording, it is recommended to record in CSV file. Alternative option would
+            be pushing data to LSL and recording with
+            `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. EDF might not give a
+            precise timing for markers, hence it should be avoided.
 
 **push2lsl**
 Streams data to Lab Streaming Layer (LSL).::
@@ -132,7 +142,14 @@ The data is actually recorded in BDF+ format (in 24-bit resolution).::
 .. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
             file for ExG data with the given file name plus the time the setting has changed.
 
+.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
+            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
+            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
 
+            If you are setting markers in the recording, it is recommended to record in CSV file. Alternative option would
+            be pushing data to LSL and recording with
+            `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. EDF might not give a
+            precise timing for markers, hence it should be avoided.
 
 **visualize**
 Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported and recommended browser. The visualization in IE and Edge might be very slow, and is not recommended.::
@@ -300,17 +317,17 @@ Alternatively you can use the device's MAC address::
 
 If the device is not found, you will receive an error.
 
-Explorepy allows users to use either pybluez or Explorepy's SDK as the Bluetooth interface (in Windows and Ubuntu,
-the default BT backend is pybluez and in MacOS, the default BT backend is SDK). To change the
-BT interface, use the following code. ::
+Explorepy allows users to use either pybluez or Explorepy's SDK as the Bluetooth interface (the default BT backend is
+SDK). To change the BT interface to pybluez, use the following code. ::
 
-    explorepy.set_bt_interface('sdk')
+    explorepy.set_bt_interface('pybluez')
 
 To set the BT interface back to the SDK: ::
 
     explorepy.set_bt_interface('sdk')
 
-.. note:: Many MacOS users have reported problems during installation of pybluez, hence only Explorepy's SDK is supported for MacOS.
+.. note:: Many MacOS users have reported problems during installation of pybluez, hence only Explorepy's SDK is
+            supported for MacOS.
 
 
 Streaming
@@ -345,6 +362,11 @@ If you want to overwrite already existing files, change the line above::
 .. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
             compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
             correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
+
+            If you are setting markers in the recording, it is recommended to record in CSV file. Alternative option would
+            be pushing data to LSL and recording with
+            `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. EDF might not give a
+            precise timing for markers, hence it should be avoided.
 
 Visualization
 ^^^^^^^^^^^^^
@@ -404,12 +426,20 @@ Converter
 It is also possible to extract BIN files from the device via USB. To convert these to CSV, you can use the function bin2csv, which takes your desired BIN file
 and converts it to 2 CSV files (one for orientation, the other one for ExG data). A Bluetooth connection is not needed for this. ::
 
-    explore.convert_bin(bin_file='Data001.BIN', file_type='csv', do_overwrite=False)
+    explore.convert_bin(bin_file='DATA001.BIN', file_type='csv', do_overwrite=False)
 
 
 .. note::  If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF/CSV
             file for ExG data with the given file name plus the time the setting has changed.
 
+.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
+            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
+            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
+
+            If you are setting markers in the recording, it is recommended to record in CSV file. Alternative option would
+            be pushing data to LSL and recording with
+            `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. EDF might not give a
+            precise timing for markers, hence it should be avoided.
 
 Event markers
 ^^^^^^^^^^^^^
