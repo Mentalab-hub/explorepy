@@ -134,6 +134,20 @@ Documentation
 
 For the full documentation of the API, visit: https://explorepy.readthedocs.io/
 
+Troubleshooting
+===============
+Please check the `troubleshooting <https://explorepy.readthedocs.io/en/latest/installation.html#troubleshooting>`_
+section of the documentation.
+
+If you do not find the solution in the above link, please send us the error log via Sentry (Explorepy will send the log
+automatically after your permission) or send us the log file via email to contact@mentalab.com. The log file can be
+found in the following path.
+
+* Windows: ``<Windows Drive>:\Users\<USER_NAME>\AppData\Local\mentalab\explorepy\Logs\explorepy.log``
+* Ubuntu: ``/home/<USER_NAME>/.cache/explorepy/log/explorepy.log``
+* Mac OS: ``/Users/<USER_NAME>/Library/Logs/explorepy/explorepy.log
+
+You can also create a new issue in the GitHub repository.
 
 Authors
 =======
