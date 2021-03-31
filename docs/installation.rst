@@ -113,22 +113,11 @@ Alternatively, MS Visual C++ redistributable (vc_redist) can be installed via th
     File "c:\users\jose\anaconda3\lib\asyncio\events.py", line 501, in add_reader
         raise NotImplementedError
 
-Solution: Downgrade Anaconda distribution version to one of 3.5, 3.6 or 3.7 versions.
+Solution: Downgrade Anaconda distribution version to one of 3.6 or 3.7 versions.
 
 ---------------------
 
-**3. btScan file does not exist error on Mac OS**
-
-Solution: Change the permission of the file btScan from terminal using ::
-
-    chmod +x btScan
-
-The btScan file would be in the site packages folder in anaconda distribution. To find out the actual location the files
-installed by explorepy, type "which explorepy" in terminal.
-
----------------------
-
-**4. No module named 'numpy'**
+**3. No module named 'numpy'**
 
 ::
 
@@ -144,4 +133,24 @@ installed by explorepy, type "which explorepy" in terminal.
     ERROR: Command errored out with exit status 4294967295: python setup.py egg_info Check the logs for full command output.
 
 
-Solution: To fix this error, install numpy separately by `pip install numpy` and then install explorepy.
+Solution: To fix this error, install numpy separately by ``pip install numpy`` and then install explorepy.
+
+
+**4. OSError: A socket operation was attempted to an unreachable network.**
+
+Solution: Make sure that the device is paired with your computer and try again.
+
+**5. ValueError: Error opening socket.**
+
+Solution: Make sure the Bluetooth module of operating system is on and working.
+
+**6. OSError: The handle is invalid.**
+
+Solution: Make sure the Bluetooth module of operating system is on and working.
+
+**7. DeviceNotFoundError: No device found with the name: Explore_####**
+
+Solution: Make sure the device is on and in advertising mode (blinking in blue at 1Hz). If the Bluetooth module of your
+computer is off, you may also get this error.
+
+
