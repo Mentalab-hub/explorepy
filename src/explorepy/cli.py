@@ -5,6 +5,7 @@ from functools import update_wrapper
 import logging
 import click
 import explorepy
+import os.path
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 logger = logging.getLogger(__name__)
@@ -79,6 +80,8 @@ def record_data(address, name, filename, overwrite, duration, file_type, bluetoo
     explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
+    if not os.path.exists(os.path.dirname(filename)):
+        os.makedir(os.path.dirname(filename))
     explore.record_data(file_name=filename, file_type=file_type,
                         do_overwrite=overwrite, duration=duration, block=True)
 
