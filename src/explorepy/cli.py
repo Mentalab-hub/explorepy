@@ -31,9 +31,15 @@ def verify_inputs(func):
         if kwargs['name'] is None and kwargs['address'] is None:
             logger.warning("Either name or address must be given!")
             sys.exit()
-        if kwargs['name'][:8] != "Explore_":
-            logger.warning("Invalid device name!")
-            sys.exit()
+        if kwargs['name'] is not None:
+            if kwargs['name'][:8] != "Explore_":
+                logger.warning("Invalid device name! Please check the device name and try again.")
+                sys.exit()
+        if kwargs['address'] is not None:
+            for part in kwargs['address'].split(':'):
+                if len(part) != 2:
+                    logger.warning("Invalid device mac address! Please check the MAC address and try again.")
+                    sys.exit()
         return ctx.invoke(func, *args, **kwargs)
     return update_wrapper(wrapper, func)
 
