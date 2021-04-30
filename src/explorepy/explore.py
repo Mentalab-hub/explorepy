@@ -35,6 +35,7 @@ class Explore:
         self.is_connected = False
         self.stream_processor = None
         self.recorders = {}
+        self.lsl = {}
         self.device_name = None
 
     def connect(self, device_name=None, mac_address=None):
@@ -97,6 +98,7 @@ class Explore:
             do_overwrite (bool): Overwrite if files exist already
             duration (float): Duration of recording in seconds (if None records endlessly).
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
+            block (bool): Record in blocking mode if 'block' is True
         """
         self._check_connection()
 
@@ -139,19 +141,25 @@ class Explore:
             except KeyboardInterrupt:
                 logger.info("Got Keyboard Interrupt while recording in blocked mode!")
                 self.stop_recording()
+                self.stream_processor.stop()
+                time.sleep(1)
 
     def stop_recording(self):
         """Stop recording"""
-        self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-        self.stream_processor.unsubscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-        self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
-        self.recorders['exg'].stop()
-        self.recorders['orn'].stop()
-        if self.recorders['exg'].file_type == 'csv':
-            self.recorders['marker'].stop()
-        if self.recorders['timer'].is_alive():
-            self.recorders['timer'].cancel()
-        logger.info('Recording stopped.')
+        if self.recorders:
+            self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+            self.stream_processor.unsubscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+            self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+            self.recorders['exg'].stop()
+            self.recorders['orn'].stop()
+            if self.recorders['exg'].file_type == 'csv':
+                self.recorders['marker'].stop()
+            if self.recorders['timer'].is_alive():
+                self.recorders['timer'].cancel()
+            self.recorders = {}
+            logger.info('Recording stopped.')
+        else:
+            logger.debug("Tried to stop recording while no recorder is running!")
 
     def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False):
         """Convert a binary file to EDF or CSV file
@@ -218,24 +226,45 @@ class Explore:
             time.sleep(.1)
         logger.info('Conversion finished.')
 
-    def push2lsl(self, duration=None):
+    def push2lsl(self, duration=None, block=False):
         r"""Push samples to two lsl streams (ExG and ORN streams)
 
         Args:
             duration (float): duration of data acquiring (if None it streams for one hour).
+            block (bool): blocking mode
         """
         self._check_connection()
         duration = self._check_duration(duration)
 
-        lsl_server = LslServer(self.stream_processor.device_info)
-        self.stream_processor.subscribe(topic=TOPICS.raw_ExG, callback=lsl_server.push_exg)
-        self.stream_processor.subscribe(topic=TOPICS.raw_orn, callback=lsl_server.push_orn)
-        self.stream_processor.subscribe(topic=TOPICS.marker, callback=lsl_server.push_marker)
-        time.sleep(duration)
+        self.lsl['timer'] = Timer(duration, self.stop_lsl)
+        self.lsl['server'] = LslServer(self.stream_processor.device_info)
+        self.stream_processor.subscribe(topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
+        self.stream_processor.subscribe(topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
+        self.stream_processor.subscribe(topic=TOPICS.marker, callback=self.lsl['server'].push_marker)
+        self.lsl['timer'].start()
 
-        logger.info("Data acquisition finished after " + duration + " seconds.")
-        self.stream_processor.stop()
-        time.sleep(1)
+        if block:
+            try:
+                while self.lsl['timer'].is_alive():
+                    time.sleep(.3)
+            except KeyboardInterrupt:
+                logger.info("Got Keyboard Interrupt while pushing data to LSL in blocked mode!")
+                self.stream_processor.stop()
+                self.stop_lsl()
+                time.sleep(1)
+
+    def stop_lsl(self):
+        """Stop pushing data to LSL streams"""
+        if self.lsl:
+            self.stream_processor.unsubscribe(topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
+            self.stream_processor.unsubscribe(topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
+            self.stream_processor.unsubscribe(topic=TOPICS.marker, callback=self.lsl['server'].push_marker)
+            if self.lsl['timer'].is_alive():
+                self.lsl['timer'].cancel()
+            self.lsl = {}
+            logger.info("Push2lsl has been stopped.")
+        else:
+            logger.debug("Tried to stop LSL while no LSL server is running!")
 
     def visualize(self, bp_freq=(1, 30), notch_freq=50):
         r"""Visualization of the signal in the dashboard
@@ -403,8 +432,8 @@ class Explore:
     def _check_duration(duration):
         if duration:
             if duration <= 0:
-                raise ValueError("Recording time must be a positive number!")
+                raise ValueError("Duration must be a positive number!")
         else:
-            logger.warning("Duration has not been set by the user. The duration is 3600 seconds by default.")
-            duration = 60 * 60  # one hour
+            logger.warning("Duration has not been set by the user. The duration is 3 hours by default.")
+            duration = 3 * 60 * 60  # 3 hours
         return duration
