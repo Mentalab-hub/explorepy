@@ -101,7 +101,7 @@ def push2lsl(address, name, duration, bluetooth):
     explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-    explore.push2lsl(duration)
+    explore.push2lsl(duration, block=True)
 
 
 @cli.command()
