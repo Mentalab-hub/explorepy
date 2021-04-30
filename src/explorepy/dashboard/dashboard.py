@@ -126,7 +126,13 @@ class Dashboard:
         """Start io loop and show the dashboard"""
         logger.debug("Starting bokeh io_loop...")
         self.server.io_loop.add_callback(self.server.show, "/")
-        self.server.io_loop.start()
+        try:
+            self.server.io_loop.start()
+        except KeyboardInterrupt:
+            logger.info("Got Keyboard Interrupt. The program exits ...")
+            self.explore.stop_lsl()
+            self.explore.stop_recording()
+            os._exit(0)
 
     def exg_callback(self, packet):
         """
@@ -403,6 +409,7 @@ class Dashboard:
             fft_tab = Panel(child=self.fft_plot, title="Spectral analysis")
             self.tabs = Tabs(tabs=[exg_tab, orn_tab, fft_tab], width=400, sizing_mode='scale_width')
             self.recorder_widget = self._init_recorder()
+            self.push2lsl_widget = self._init_push2lsl()
             self.set_marker_widget = self._init_set_marker()
             self.baseline_widget = CheckboxGroup(labels=['Baseline correction'], active=[0])
 
@@ -418,10 +425,11 @@ class Dashboard:
             layout = column([heading,
                              banner,
                              row(m_widgetbox,
-                                 Spacer(width=10, height=200),
+                                 Spacer(width=10, height=300),
                                  self.tabs,
                                  Spacer(width=10, height=300),
-                                 column(Spacer(width=170, height=50), self.baseline_widget, self.recorder_widget, self.set_marker_widget),
+                                 column(Spacer(width=170, height=50), self.baseline_widget, self.recorder_widget,
+                                        self.set_marker_widget, self.push2lsl_widget),
                                  Spacer(width=50, height=300)),
                              ],
                             sizing_mode="stretch_both")
@@ -619,8 +627,9 @@ class Dashboard:
             self.rec_button.label = u"\u25CF  Record"
             self.doc.add_next_tick_callback(partial(self._update_rec_timer, new_data={'timer': '00:00:00'}))
             self.doc.remove_periodic_callback(self.rec_timer_id)
-            self.event_code_input.disabled = True
-            self.marker_button.disabled = True
+            if not self.push2lsl_button.active:
+                self.event_code_input.disabled = True
+                self.marker_button.disabled = True
 
     def _timer_callback(self):
         t_delta = (datetime.now() - self.rec_start_time).seconds
@@ -628,6 +637,31 @@ class Dashboard:
                                str(int(t_delta % 60)).zfill(2)])
         data = {'timer': timer_text}
         self.doc.add_next_tick_callback(partial(self._update_rec_timer, new_data=data))
+
+    def _init_push2lsl(self):
+        push2lsl_title = Div(text="""Push to LSL""", width=170, height=10)
+        self.push2lsl_button = Toggle(label=u"\u25CF  Start", button_type="default", active=False,
+                                      width=170, height=35)
+        self.push2lsl_button.on_click(self._toggle_push2lsl)
+        return column([Spacer(width=170, height=30), push2lsl_title, self.push2lsl_button],
+                      width=170, height=200, sizing_mode='fixed')
+
+    def _toggle_push2lsl(self, active):
+        logger.debug(f"Pressed push2lsl button -> {active}")
+        if active:
+            self.event_code_input.disabled = False
+            self.marker_button.disabled = False
+            if self.explore.is_connected:
+                self.explore.push2lsl()
+                self.push2lsl_button.label = u"\u25A0  Stop"
+            else:
+                self.push2lsl_button.active = False
+        else:
+            self.explore.stop_lsl()
+            self.push2lsl_button.label = u"\u25CF  Start"
+            if not self.rec_button.active:
+                self.event_code_input.disabled = True
+                self.marker_button.disabled = True
 
     def _init_set_marker(self):
         self.marker_button = Button(label=u"Set", button_type="default", width=80, height=31, disabled=True)
