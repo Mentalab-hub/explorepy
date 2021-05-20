@@ -27,11 +27,20 @@ class ExGFilter:
         self.filter_param = None
         if filter_type is 'lowpass':
             hc_freq = cutoff_freq / nyq_freq
+            if hc_freq >= 1.0:
+                logger.error("High cutoff frequency cannot be larger than or equal to the nyquist frequency. Setting"
+                             " the high cutoff frequency to %.1f Hz!", nyq_freq-1)
+                hc_freq = (nyq_freq-1)/nyq_freq
+
             b, a = butter(order, hc_freq, btype='lowpass')
             zi = np.zeros((n_chan, order))
 
         elif filter_type is 'highpass':
             lc_freq = cutoff_freq / nyq_freq
+            if lc_freq <= 0.003:
+                logger.warning('Transient band for low cutoff frequency is too narrow. Low cutoff frequency is set to'
+                               ' %.2f Hz', 0.003 * nyq_freq)
+                lc_freq = 0.003
             b, a = butter(order, lc_freq, btype='highpass')
             zi = np.zeros((n_chan, order))
 
@@ -42,10 +51,17 @@ class ExGFilter:
                 cutoff_freq = (1, 40)
             lc_freq = cutoff_freq[0] / nyq_freq
             hc_freq = cutoff_freq[1] / nyq_freq
+
             if lc_freq <= 0.003:
                 logger.warning('Transient band for low cutoff frequency is too narrow. Low cutoff frequency is set to'
                                ' %.2f Hz', 0.003*nyq_freq)
                 lc_freq = 0.003
+
+            if hc_freq >= 1.0:
+                logger.error("High cutoff frequency cannot be larger than or equal to the nyquist frequency. Setting"
+                             " the high cutoff frequency to %.1f Hz!", nyq_freq-1)
+                hc_freq = (nyq_freq-1)/nyq_freq
+
             b, a = butter(order, [lc_freq, hc_freq], btype='band')
             zi = np.zeros((n_chan, order * 2))
 
