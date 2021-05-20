@@ -42,7 +42,6 @@ class ExGFilter:
                 cutoff_freq = (1, 40)
             lc_freq = cutoff_freq[0] / nyq_freq
             hc_freq = cutoff_freq[1] / nyq_freq
-            print(0.003*nyq_freq, lc_freq, hc_freq)
             if lc_freq <= 0.003:
                 logger.warning('Transient band for low cutoff frequency is too narrow. Low cutoff frequency is set to'
                                ' %.2f Hz', 0.003*nyq_freq)
