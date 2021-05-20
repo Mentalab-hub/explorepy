@@ -37,11 +37,16 @@ class ExGFilter:
 
         elif filter_type is 'bandpass':
             if cutoff_freq[0] >= cutoff_freq[1]:
-                raise ValueError("High cutoff frequency must be larger than low cutoff frequency.")
+                logger.error("High cutoff frequency must be larger than low cutoff frequency. Applying a bandpass "
+                             "filter with [1, 40]Hz frequency band instead. ")
+                cutoff_freq = (1, 40)
             lc_freq = cutoff_freq[0] / nyq_freq
             hc_freq = cutoff_freq[1] / nyq_freq
+            print(0.003*nyq_freq, lc_freq, hc_freq)
             if lc_freq <= 0.003:
-                raise ValueError('Transient band for low cutoff frequency is too narrow. Please try with larger values.')
+                logger.warning('Transient band for low cutoff frequency is too narrow. Low cutoff frequency is set to'
+                               ' %.2f Hz', 0.003*nyq_freq)
+                lc_freq = 0.003
             b, a = butter(order, [lc_freq, hc_freq], btype='band')
             zi = np.zeros((n_chan, order * 2))
 
