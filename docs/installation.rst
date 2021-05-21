@@ -3,10 +3,20 @@ Installation
 ============
 
 
-Requirements
+Minimal Requirements
 ------------
 * Python 3.6 or newer version
 * Visual Studio 2015 community edition (only Windows)
+* 4096MB RAM (minimum 1GB free RAM during the session)
+* 2x2GHz CPU
+
+
+Recommended Requirements
+------------
+* Python 3.6 or newer version
+* Visual Studio 2015 community edition (only Windows)
+* 6192MB RAM
+* 2x2.5GHz CPU
 
 
 How to install
