@@ -2,7 +2,6 @@
 """Dashboard module"""
 import os
 from functools import partial
-
 from datetime import datetime
 import logging
 import numpy as np
@@ -19,7 +18,7 @@ from bokeh.themes import Theme
 from tornado import gen
 from jinja2 import Template
 
-from explorepy.tools import HeartRateEstimator
+from explorepy.tools import HeartRateEstimator, find_free_port
 from explorepy.stream_processor import TOPICS
 
 logger = logging.getLogger(__name__)
@@ -119,7 +118,9 @@ class Dashboard:
         """Start bokeh server"""
         validate(False)
         logger.debug("Starting bokeh server...")
-        self.server = Server({'/': self._init_doc}, num_procs=1)
+        port_number = find_free_port()
+        logger.info("Opening the dashboard on port: %i", port_number)
+        self.server = Server({'/': self._init_doc}, num_procs=1, port=port_number)
         self.server.start()
 
     def start_loop(self):
