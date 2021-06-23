@@ -6,7 +6,7 @@ Installation
 Minimal Requirements
 ------------
 * Python 3.6 or newer version
-* Visual Studio 2015 community edition (only Windows)
+* Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
 
@@ -14,7 +14,7 @@ Minimal Requirements
 Recommended Requirements
 ------------
 * Python 3.6 or newer version
-* Visual Studio 2015 community edition (only Windows)
+* Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 8GB RAM
 * Intel i7 or higher CPU
 
@@ -30,11 +30,15 @@ files, the dependencies will be installed automatically.
 
 The following instructions guides you to install Explorepy API using pip with all its dependencies on Windows.
 
-1. Install Python 3 on your computer. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Windows installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
-2. Download and install MS Visual Studio Community Edition 2015 from this `link <https://visualstudio.microsoft.com/vs/older-downloads/>`_. You may need to sign in to your Microsoft account to be able to download it. During the installation, select custom installation and in the features list make sure you check **Common tools for Visual C++ 2015** under Visual C++ section and  **Python tools for Visual Studio (January 2017)**.
+1. Install Anaconda Python package (or any other python distribution, but these instructions assume that anaconda is
+    installed). Download and install Anaconda Python 3.7 Windows installer from
+    `here <https://www.anaconda.com/distribution/#download-section>`_.
+2. Install Microsoft Build Tools for Visual Studio 2019 from `here1 <https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16>`_.
+    Select **Desktop development with C++** in workloads tab, make sure that  **MSVCv142 - VS 2019 C++ x64/x86 build tools** and latest version of **Windows 10 SDK** are checked.
+
 3. We recommend using a virtual environment.
 
-  * In Conda command prompt: ``conda create -n myenv python=3.6``
+  * In Conda command prompt: ``conda create -n myenv python=3.7``
   * Activate the virtual environment: ``conda activate myenv``
 
 4. Upgrade your pip: ``python -m pip install --upgrade pip``
@@ -79,11 +83,11 @@ All old Xcode versions are available in `this link <https://developer.apple.com/
 Quick test
 ----------
 
-* Open Conda command prompt
+* Open Conda command prompt (if you have installed with pip) or Windows command prompt (if you used the installable file)
 
-* Activate the virtual environment: ``conda activate myenv``
+* Activate the virtual environment (this step is only for Conda command prompt): ``conda activate myenv``
 
-* ``explorepy visualize -n <YOUR-DEVICE-NAME> -lf 1 -hf 40``
+* Run ``explorepy visualize -n <YOUR-DEVICE-NAME> -lf 1 -hf 40``
 
 * To stop visualization press Ctrl+c
 
