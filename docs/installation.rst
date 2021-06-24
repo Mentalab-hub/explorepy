@@ -31,9 +31,9 @@ files, the dependencies will be installed automatically.
 The following instructions guides you to install Explorepy API using pip with all its dependencies on Windows.
 
 1. Install Anaconda Python package (or any other python distribution, but these instructions assume that anaconda is
-    installed). Download and install Anaconda Python 3.7 Windows installer from
+    installed). Download and install Anaconda Python 3.8 Windows installer from
     `here <https://www.anaconda.com/distribution/#download-section>`_.
-2. Install Microsoft Build Tools for Visual Studio 2019 from `here1 <https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16>`_.
+2. Install Microsoft Build Tools for Visual Studio 2019 from `here <https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16>`_.
     Select **Desktop development with C++** in workloads tab, make sure that  **MSVCv142 - VS 2019 C++ x64/x86 build tools** and latest version of **Windows 10 SDK** are checked.
 
 3. We recommend using a virtual environment.
