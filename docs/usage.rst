@@ -301,6 +301,10 @@ To use explorepy in a python project::
 .. note:: Since explorepy is using multithreading for data streaming, running python scripts in some consoles such
             as Ipython's or Spyder's consoles may lead to strange behaviours.
 
+.. note:: To give you a better idea how you can develop your own python project based on Explorepy, we have provided
+            some sample projects in this `folder <https://github.com/Mentalab-hub/explorepy/tree/master/examples>`_.
+
+
 Initialization
 ^^^^^^^^^^^^^^
 Before starting a session, make sure your device is paired to your computer. The device will be shown under the following name: Explore_XXXX,
