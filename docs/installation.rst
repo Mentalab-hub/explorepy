@@ -24,6 +24,7 @@ How to install
 
 Windows
 ^^^^^^^
+
 Option 1: Installable .exe file (for manual commands, basic use)
 
 This option is recommended for users who will only access the ExplorePy software from the command prompt,
