@@ -174,9 +174,12 @@ Visualizes the electrode impedances in a browser  dashboard. Currently, Chrome i
       -h, --help                Show this message and exit.
 
 
+.. note::  It is recommended to restart the device after impedance measurement as the mechanism may introduce external noise.
+
 .. note:: Impedance value shown for each electrode is the sum of impedances of ground electrode and corresponding ExG electrode.
 
 .. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature.
+
 
 **calibrate-orn**
 Calibrate the orientation module of the specified device. After running this module, calibration parameters will be
