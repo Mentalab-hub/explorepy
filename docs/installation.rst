@@ -24,7 +24,8 @@ How to install
 
 Windows
 ^^^^^^^
-Option 1: installable .exe file (for manual commands, basic use)
+
+Option 1: Installable .exe file (for manual commands, basic use)
 
 This option is recommended for users who will only access the ExplorePy software from the command prompt,
 for example to quickly visualize and record data. To integrate the commands into a Python script (e.g. an experiment script),
@@ -35,7 +36,7 @@ On a Windows machine, Explorepy can be installed using the .exe installable file
 the `release page <https://github.com/Mentalab-hub/explorepy/releases/download/v1.5.0/MentaLab_ExplorePy_1.5.0.exe>`_. Please note that the dependencies will be installed automatically.
 
 
-Option 2: pip install (for additional use in Python scripts, more advanced)
+Option 2: Installation through Python Package Index(PiPy) and pip(for additional use in Python scripts, more advanced)
 
 This option is recommended for users who not only want to use the command prompt, but also want to include ExplorePy functionalities
 in their own Python scripts. In this case, you must use the Anaconda software to access ExplorePy.
