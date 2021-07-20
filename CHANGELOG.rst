@@ -1,6 +1,13 @@
 
 Changelog
 =========
+1.5.0 (20.7.2021)
+------------------
+* Push to LSL button in the GUI
+* Search free port for initialization of the dashboard
+* Update installation procedure for Windows
+* Fixing some minor bugs
+
 1.4.0 (31.03.2021)
 ------------------
 * Baseline correction feature in the visualization

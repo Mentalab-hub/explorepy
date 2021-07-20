@@ -86,12 +86,17 @@ int BTSerialPortBinding::Connect()
 				unsigned long enableNonBlocking = 1;
 				ioctlsocket(data->s, FIONBIO, &enableNonBlocking);
 			}
+			else
+			{
+				cout << "BT Socket error cooured! error code/message is:" << BluetoothHelpers::GetWSAErrorMessage(WSAGetLastError()) << endl;
+			}
 		}
 	}
 
 	if (status != 0)
 	{
 		string message = BluetoothHelpers::GetWSAErrorMessage(WSAGetLastError());
+		
 
 		if (data->s != INVALID_SOCKET)
 			closesocket(data->s);

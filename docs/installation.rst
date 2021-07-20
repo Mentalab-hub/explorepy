@@ -3,10 +3,20 @@ Installation
 ============
 
 
-Requirements
+Minimal Requirements
 ------------
 * Python 3.6 or newer version
-* Visual Studio 2015 community edition (only Windows)
+* Microsoft Build Tools for Visual Studio 2019 (only Windows)
+* 6GB RAM (minimum 1GB *free* RAM during the session)
+* Intel i5 or higher (2x2.5GHz) CPU
+
+
+Recommended Requirements
+------------
+* Python 3.6 or newer version
+* Microsoft Build Tools for Visual Studio 2019 (only Windows)
+* 8GB RAM
+* Intel i7 or higher CPU
 
 
 How to install
@@ -14,21 +24,38 @@ How to install
 
 Windows
 ^^^^^^^
-On a Windows machine, Explorepy can be installed using the installable file uploaded in
-the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_ or using pip. Please note using the installable
-files, the dependencies will be installed automatically.
 
-The following instructions guides you to install Explorepy API using pip with all its dependencies on Windows.
+Option 1: Installable .exe file (for manual commands, basic use)
 
-1. Install Python 3 on your computer. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Windows installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
-2. Download and install MS Visual Studio Community Edition 2015 from this `link <https://visualstudio.microsoft.com/vs/older-downloads/>`_. You may need to sign in to your Microsoft account to be able to download it. During the installation, select custom installation and in the features list make sure you check **Common tools for Visual C++ 2015** under Visual C++ section and  **Python tools for Visual Studio (January 2017)**.
-3. We recommend using a virtual environment.
+This option is recommended for users who will only access the ExplorePy software from the command prompt,
+for example to quickly visualize and record data. To integrate the commands into a Python script (e.g. an experiment script),
+we recommend to use Explorepy with Anaconda.
+For an overview of the available commands, click `here <https://explorepy.readthedocs.io/en/latest/usage.html#command-line-interface>`_.
 
-  * In Conda command prompt: ``conda create -n myenv python=3.6``
+On a Windows machine, Explorepy can be installed using the .exe installable file uploaded in
+the `release page <https://github.com/Mentalab-hub/explorepy/releases/download/v1.5.0/MentaLab_ExplorePy_1.5.0.exe>`_. Please note that the dependencies will be installed automatically.
+
+
+Option 2: Installation through Python Package Index(PiPy) and pip(for additional use in Python scripts, more advanced)
+
+This option is recommended for users who not only want to use the command prompt, but also want to include ExplorePy functionalities
+in their own Python scripts. In this case, you must use the Anaconda software to access ExplorePy.
+
+The following instructions guide you to install the ExplorePy API using pip with all its dependencies on Windows.
+
+1. Install Anaconda Python package (or any other python distribution, but these instructions assume that Anaconda is
+    installed). Download and install Anaconda Windows installer from
+    `here <https://www.anaconda.com/distribution/#download-section>`_.
+2. Install Microsoft Build Tools for Visual Studio 2019 from `here <https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16>`_.
+    Select **Desktop development with C++** in workloads tab, make sure that  **MSVCv142 - VS 2019 C++ x64/x86 build tools** and latest version of **Windows 10 SDK** are checked.
+3. Open the Conda command prompt.
+4. We recommend using a virtual environment.
+
+  * In Conda command prompt: ``conda create -n myenv python=3.7``
   * Activate the virtual environment: ``conda activate myenv``
 
-4. Upgrade your pip: ``python -m pip install --upgrade pip``
-5. To install ``explorepy`` from PyPI run: ``pip install explorepy``
+5. Upgrade your pip: ``python -m pip install --upgrade pip``
+6. To install ``explorepy`` from PyPI run: ``pip install explorepy``
 
 
 Ubuntu
@@ -41,8 +68,6 @@ Ubuntu
   * Activate the virtual environment: ``conda activate myenv``
 
 4. Upgrade your pip: ``python -m pip install --upgrade pip``
-
-
 5. To install ``explorepy`` from PyPI run: ``pip install explorepy``
 
 
@@ -51,29 +76,25 @@ Mac
 1. Install XCode from Mac App store. An upgrade to the latest version of MacOS might be required for installation of XCode.
 For older versions of MacOS, you can find compatible versions of XCode in this `page <https://en.wikipedia.org/wiki/Xcode>`_.
 All old Xcode versions are available in `this link <https://developer.apple.com/download/more/>`_.
-
 2. Accept the license agreement: ``sudo xcodebuild -license``
-
 3. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Mac installer from `here <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and can be downloaded from `here <https://repo.anaconda.com/archive/index.html>`_.
-
 4. We recommend using a virtual environment in Conda.
 
   * In Conda command prompt: ``conda create -n myenv python=3.6``
   * Activate the virtual environment: ``conda activate myenv``
 
 5. Upgrade your pip: ``python -m pip install --upgrade pip``
-
 6. To install ``explorepy`` from PyPI run: ``pip install explorepy``
 
 
 Quick test
 ----------
 
-* Open Conda command prompt
+* Open Conda command prompt (if you have installed with pip) or Windows command prompt (if you used the installable file)
 
-* Activate the virtual environment: ``conda activate myenv``
+* Activate the virtual environment (this step is only for Conda command prompt): ``conda activate myenv``
 
-* ``explorepy visualize -n <YOUR-DEVICE-NAME> -lf 1 -hf 40``
+* Run ``explorepy visualize -n <YOUR-DEVICE-NAME> -lf 1 -hf 40``
 
 * To stop visualization press Ctrl+c
 
@@ -153,4 +174,6 @@ Solution: Make sure the Bluetooth module of operating system is on and working.
 Solution: Make sure the device is on and in advertising mode (blinking in blue at 1Hz). If the Bluetooth module of your
 computer is off, you may also get this error.
 
+---------------------
 
+If the issues persist, please send a screenshot and brief error description to support@mentalab.com, and we will quickly help you solve it.

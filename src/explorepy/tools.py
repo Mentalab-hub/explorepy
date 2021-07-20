@@ -4,6 +4,8 @@ import datetime
 import os.path
 import csv
 import copy
+import socket
+from contextlib import closing
 import numpy as np
 from scipy import signal
 import pyedflib
@@ -749,3 +751,14 @@ class PhysicalOrientation:
             return False
 
 
+def find_free_port():
+    """Find a free port on the localhost
+
+    Returns:
+        int: Port number
+    """
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(('localhost', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        port_number = s.getsockname()[1]
+        return port_number

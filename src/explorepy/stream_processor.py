@@ -195,7 +195,7 @@ class StreamProcessor:
             self.physical_orn.status = "READY"
         else:
             self.physical_orn.status = "NOT READY"
-            logger.info('Calibration coefs for pysical orientation does not exist. If you need physical orientation,'
+            logger.info('Calibration coefficients for physical orientation do not exist. If you need physical orientation,'
                         ' calibrate the device first.')
 
     def set_marker(self, code):
