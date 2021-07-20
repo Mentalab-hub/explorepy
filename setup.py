@@ -36,25 +36,11 @@ if not os.environ.get('READTHEDOCS'):
     my_req.append('pylsl')
     my_req.append('bokeh==2.2.3')
 
-    if current_platform.startswith('linux'):
-        my_req.append('pybluez==0.22')
+    if current_platform!= 'darwin':
+        my_req.append('pybluez22')
 
     libPath = "lib"
     if current_platform == 'win32' or current_platform == 'win64':
-        import subprocess
-        import urllib.request
-        minor_version = str(sys.version_info.minor)
-
-        if minor_version == '6' or minor_version == '7':
-            url = 'https://github.com/salman2135/pybluez_fork_0.22/releases/download/0.1/PyBluez-0.22-cp3' + minor_version + '-cp3' + minor_version + 'm-win_amd64.whl'
-        else:    
-            url = 'https://github.com/salman2135/pybluez_fork_0.22/releases/download/0.1/PyBluez-0.22-cp3' + minor_version + '-cp3' + minor_version + '-win_amd64.whl'
-        
-        output = url.split('/')[-1]
-        urllib.request.urlretrieve(url, output)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", output]) 
-        if os.path.exists(output): os.remove(output) 
-
         windows_lib_path = os.path.join(libPath, 'windows')
         ext_modules_list.append(Extension(
             name='explorepy._exploresdk',
