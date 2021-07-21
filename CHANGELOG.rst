@@ -1,6 +1,7 @@
 
 Changelog
 =========
+
 1.5.1 (21.7.2021)
 ------------------
 * Hotfix for installation bug

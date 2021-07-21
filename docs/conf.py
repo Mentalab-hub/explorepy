@@ -30,7 +30,6 @@ year = '2018-2020'
 author = 'Mentalab GmbH.'
 copyright = '{0}, {1}'.format(year, author)
 version = release = '1.5.1'
-
 pygments_style = 'trac'
 templates_path = ['.']
 extlinks = {
