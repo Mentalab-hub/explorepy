@@ -36,9 +36,8 @@ if not os.environ.get('READTHEDOCS'):
     my_req.append('pylsl')
     my_req.append('bokeh==2.2.3')
 
-    if current_platform.startswith('linux'):
-        my_req.append('pybluez==0.22')
-
+    if current_platform!= 'darwin':
+        my_req.append('pybluez22')
     libPath = "lib"
     if current_platform == 'win32' or current_platform == 'win64':
         import subprocess
@@ -88,8 +87,7 @@ if not os.environ.get('READTHEDOCS'):
         os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
-    version='1.5.0',
-
+    version='1.5.1',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description='%s\n%s' % (

@@ -14,7 +14,7 @@ from . import tools, command, exploresdk
 from .dashboard.dashboard import Dashboard
 
 
-__version__ = '1.5.0'
+__version__ = '1.5.1'
 this = sys.modules[__name__]
 this._bt_interface = 'sdk'
 
