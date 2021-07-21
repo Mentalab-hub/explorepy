@@ -88,7 +88,7 @@ int BTSerialPortBinding::Connect()
 			}
 			else
 			{
-				cout << "BT Socket error cooured! error code/message is:" << BluetoothHelpers::GetWSAErrorMessage(WSAGetLastError()) << endl;
+				cout << "BT Socket error occurred with error message is:" << BluetoothHelpers::GetWSAErrorMessage(WSAGetLastError()) << endl;
 			}
 		}
 	}
