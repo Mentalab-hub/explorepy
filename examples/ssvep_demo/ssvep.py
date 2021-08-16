@@ -68,7 +68,7 @@ class SSVEPExperiment:
     experiment, EEG data is received continuously in the buffer of this class and data will be analysed by CCA
     algorithm to predict the target which the subject has focused on. EEG data is analysed based on sliding windows with
     the length of `signal_len` and with overlap times of `overlap`"""
-    def __init__(self, frame_rates, positions, signal_len, eeg_s_rate, overlap=.25, screen_refresh_rate=60):
+    def __init__(self, frame_rates, positions, labels, signal_len, eeg_s_rate, overlap=.25, screen_refresh_rate=60):
         """
         Args:
             frame_rates (list): List of number of frames in which each target is flickering (one number for each target)
@@ -83,6 +83,7 @@ class SSVEPExperiment:
         print("Target frequencies: ", self._freqs)
         self.targets = []
         self._positions = positions
+        self._labels = labels
         self.win = None
         self._data_buff = np.array([])
         self.chunk_len = signal_len
@@ -98,13 +99,13 @@ class SSVEPExperiment:
         self.win = visual.Window([800, 600], monitor="testMonitor",
                                  fullscr=True, screen=1, units="norm", color=[0.1, 0.1, 0.1])
         self.win.recordFrameIntervals = True
-        for fr_no, pos, freq in zip(self._fr_rates, self._positions, self._freqs):
+        for fr_no, pos, freq, label in zip(self._fr_rates, self._positions, self._freqs, self._labels):
             self.targets.append(CheckerBoard(window=self.win,
                                              size=.5,
                                              n_frame=fr_no,
                                              position=pos,
                                              log_time=True))
-            self._prediction_text.append(visual.TextStim(win=self.win, pos=[0, 0], text="%.1f Hz" % freq,
+            self._prediction_text.append(visual.TextStim(win=self.win, pos=[0, 0], text=label,
                                                          color=(-1, -1, -1), height=.15,
                                                          colorSpace='rgb', bold=True))
 
