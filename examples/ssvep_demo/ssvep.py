@@ -96,16 +96,16 @@ class SSVEPExperiment:
     def _init_vis(self):
         self._data_buff = np.array([])
         self.win = visual.Window([800, 600], monitor="testMonitor",
-                                 fullscr=True, screen=1, units="deg", color=[0.1, 0.1, 0.1])
+                                 fullscr=True, screen=1, units="norm", color=[0.1, 0.1, 0.1])
         self.win.recordFrameIntervals = True
         for fr_no, pos, freq in zip(self._fr_rates, self._positions, self._freqs):
             self.targets.append(CheckerBoard(window=self.win,
-                                             size=10,
+                                             size=.5,
                                              n_frame=fr_no,
                                              position=pos,
                                              log_time=True))
             self._prediction_text.append(visual.TextStim(win=self.win, pos=[0, 0], text="%.1f Hz" % freq,
-                                                         color=(-1, -1, -1), height=1.5,
+                                                         color=(-1, -1, -1), height=.15,
                                                          colorSpace='rgb', bold=True))
 
     def run(self, duration):
