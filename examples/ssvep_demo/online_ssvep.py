@@ -5,7 +5,7 @@ A script to run a simple SSVEP Experiment with Mentalab's Explore device
 import argparse
 from explorepy.explore import Explore
 from explorepy.stream_processor import TOPICS
-from ssvep import SSVEPExperiment
+from ssvep import SSVEPRealTime
 
 
 def main():
@@ -20,9 +20,9 @@ def main():
     target_pos = [(-.6, -.6), (-.6, .6), (.6, .6), (.6, -.6)]
     target_labels = ['\u2199', '\u2196', '\u2197', '\u2198']
     fr_rates = [5, 6, 7, 8]  # 12hz - 10hz - 8.5hz - 7.5hz
-    experiment = SSVEPExperiment(frame_rates=fr_rates, positions=target_pos, labels=target_labels,
-                                 signal_len=3, eeg_s_rate=250,
-                                 overlap=.2, screen_refresh_rate=60)
+    experiment = SSVEPRealTime(frame_rates=fr_rates, positions=target_pos, labels=target_labels,
+                               signal_len=3, eeg_s_rate=250,
+                               overlap=.2, screen_refresh_rate=60)
 
     # subscribe the experiment buffer to the EEG data stream
     explore.stream_processor.subscribe(callback=experiment.update_buffer, topic=TOPICS.raw_ExG)
@@ -33,4 +33,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

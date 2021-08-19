@@ -60,8 +60,7 @@ class CheckerBoard:
             diff_t = np.diff(np.array(self.toggle_times))
             return diff_t.mean(), diff_t.std()
 
-
-class SSVEPExperiment:
+class SSVEPRealTime:
     """Steady State Visual Evoked Potential (SSVEP) Experiment
 
     This class implements a simple SSVEP experiment in which flickering targets will be shown on the screen. During
@@ -172,4 +171,5 @@ class SSVEPExperiment:
         plt.show()
 
 
-
+class SSVEPExperiment:
+    pass
