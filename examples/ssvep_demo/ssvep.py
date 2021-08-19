@@ -99,9 +99,10 @@ class SSVEPExperiment:
         self.win = visual.Window([800, 600], monitor="testMonitor",
                                  fullscr=True, screen=1, units="norm", color=[0.1, 0.1, 0.1])
         self.win.recordFrameIntervals = True
+        stim_size = (.6 * self.win.size[1]/self.win.size[0], .6)
         for fr_no, pos, freq, label in zip(self._fr_rates, self._positions, self._freqs, self._labels):
             self.targets.append(CheckerBoard(window=self.win,
-                                             size=.5,
+                                             size=stim_size,
                                              n_frame=fr_no,
                                              position=pos,
                                              log_time=True))
