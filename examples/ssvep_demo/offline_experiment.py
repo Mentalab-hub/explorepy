@@ -13,8 +13,8 @@ def main():
     parser.add_argument("-f", "--filename", dest="filename", type=str, help="Record file name")
     args = parser.parse_args()
 
-    n_blocks = 20
-    trials_per_block = 5  # Number of total trials = n_blocks * trials_per_block
+    n_blocks = 20           # Number of blocks
+    trials_per_block = 5    # Number of total trials = n_blocks * trials_per_block
     target_pos = [(-.6, 0), (.6, 0)]  # Positions of left and right targets
     hints = [u'\u2190', u'\u2192']  # Left arrow, Right arrow
     fr_rates = [6, 8]  # 10Hz, 7.5Hz
