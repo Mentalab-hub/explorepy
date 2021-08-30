@@ -3,6 +3,7 @@ from scipy import signal
 import numpy as np
 import mne
 import matplotlib.pyplot as plt
+import argparse
 from analysis import CCAAnalysis
 
 
@@ -48,6 +49,10 @@ def extract_epochs(sig, sig_times, event_times, t_min, t_max, fs):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="SSVEP offline analysis script")
+    parser.add_argument("-f", "--filename", dest="filename", type=str, help="Recorded file name")
+    args = parser.parse_args()
+
     # Initialization
     fs = 250
     lf = .5
@@ -65,8 +70,8 @@ def main():
     chan_name = ['O1', 'O2', 'POz', 'Oz']
     class_names = ['Left', 'Right']
 
-    exg_filename = 'data//Sample_rec_SSVEP_ExG.csv'
-    marker_filename = 'data//Sample_rec_SSVEP_Marker.csv'
+    exg_filename = args.filename + '_ExG.csv'
+    marker_filename = args.filename + '_Marker.csv'
 
     # Import data
     exg = pd.read_csv(exg_filename)
@@ -133,6 +138,7 @@ def main():
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
     fig.colorbar(mesh, cax=cbar_ax)
+    plt.show()
 
 
 if __name__ == '__main__':
