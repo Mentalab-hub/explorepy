@@ -10,7 +10,7 @@ Experiment setup
 [documentation](https://explorepy.readthedocs.io/en/latest/installation.html#how-to-install).
 * Activate your Anaconda virtual environment.
 * Install required packages by running this command:
-`pip install scikit-learn matplotlib psychopy`
+`pip install scikit-learn matplotlib psychopy mne`
 * In Conda terminal, navigate to the example folder of the Explorepy's code.
 * Setup the cap and electrodes. Place EEG electrodes on the occipital visual cortex (Oz, O1, O2, POz, etc.) and the
 ground electrode on Fpz or Mastoid (or any other location far enough from other electrodes).
