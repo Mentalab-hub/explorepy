@@ -133,7 +133,7 @@ def main():
         for i in range(n_chan):
             mesh = ax[i, j].pcolormesh(x, y, power[j, i], cmap='RdBu_r', vmin=-3500, vmax=1500)
             ax[i, j].set_title('TFR - ' + chan_name[i] + ' - ' + class_names[j])
-            ax[i, j].set(ylim=freqs[[0, -1]], xlabel='Time (ms)')
+            ax[i, j].set(ylim=freqs[[0, -1]], xlabel='Time (s)', ylabel='Frequency (Hz)')
     plt.tight_layout()
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
