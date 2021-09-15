@@ -363,17 +363,10 @@ class Explore:
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.set_channels(channel_mask=7)  # disable channel 4 - mask:0111
         """
-
-        c = re.compile('[^01]')
-        if isinstance(channel_mask, int):
-            channel_mask_int = channel_mask
-        elif isinstance(channel_mask, str) and len(c.findall(channel_mask))==0:
-            channel_mask_int = int(channel_mask, 2)
-        else:
-            raise TypeError("Input must be an integer or a binary string!")
-
+        if not isinstance(channel_mask, int):
+            raise TypeError("Input must be an integer!")
         self._check_connection()
-        cmd = SetCh(channel_mask_int)
+        cmd = SetCh(channel_mask)
         self.stream_processor.configure_device(cmd)
 
     def disable_module(self, module_name):
