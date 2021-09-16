@@ -350,18 +350,25 @@ class Explore:
     def set_channels(self, channel_mask):
         """Set the channel mask of the device
 
-        The channels can be disabled/enabled by calling this function and passing an integer which represents the
-        binary form of the mask. For example in a 4 channel device, if you want to disable channel 4, the adc mask
-        should be b'0111' (LSB is channel 1). The integer value of 0111 which is 7 must be given to this function
+        The channels can be disabled/enabled by calling this function and passing either an integer which represents the
+        binary form of the mask or a binary string representing the mask. For example in a 4 channel device, 
+        if you want to disable channel 4, the adc mask should be b'0111' (LSB is channel 1). The inputs to this function can 
+        be 7 (integer value of 0111) or '0111'.
 
         Args:
-            channel_mask (int): Integer representation of the binary channel mask
+            channel_mask (int or str): Integer or string representating of the binary channel mask
 
-        Examples:
+        Example 1:
             >>> from explorepy.explore import Explore
             >>> explore = Explore()
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.set_channels(channel_mask=7)  # disable channel 4 - mask:0111
+
+        Example 2:
+            >>> from explorepy.explore import Explore
+            >>> explore = Explore()
+            >>> explore.connect(device_name='Explore_2FA2')
+            >>> explore.set_channels(channel_mask='0111')  # disable channel 4 - mask:0111
         """
         c = re.compile('[^01]')
         if isinstance(channel_mask, int):
