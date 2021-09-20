@@ -65,7 +65,7 @@ def main():
     t_min = -1
     t_max = 6.
 
-    n_chan = 3
+    n_chan = 4
     chan_list = ['ch' + str(i) for i in range(1, n_chan + 1)]
     chan_name = ['O1', 'O2', 'POz', 'Oz']
     class_names = ['Left', 'Right']
