@@ -371,14 +371,16 @@ class Explore:
             >>> explore.set_channels(channel_mask='0111')  # disable channel 4 - mask:0111
         """
         c = re.compile('[^01]')
-        if isinstance(channel_mask, int):
-            channel_mask_int = channel_mask
-        elif isinstance(channel_mask, str) and len(c.findall(channel_mask))==0:
+
+        if (isinstance(channel_mask, str) and len(c.findall(channel_mask))==0) or (isinstance(channel_mask, bytes)):
             channel_mask_int = int(channel_mask, 2)
+        elif isinstance(channel_mask, int):
+            channel_mask_int = channel_mask
         else:
             raise TypeError("Input must be an integer or a binary string!")
 
         self._check_connection()
+        # cmd = SetCh(channel_mask)
         cmd = SetCh(channel_mask_int)
         self.stream_processor.configure_device(cmd)
 
