@@ -209,7 +209,6 @@ This command formats the memory of the specified Explore device.::
 This command sets the sampling rate of ExG on the specified Explore device. Acceptable values for
 sampling rates are 250, 500 or 1000. The default sampling rate of the device is 250 Hz. Please note that 1000 Hz sampling rate is in beta phase.::
 
-
     Options:
       -a, --address TEXT              Explore device's MAC address
       -n, --name TEXT                 Name of the device
@@ -221,16 +220,16 @@ sampling rates are 250, 500 or 1000. The default sampling rate of the device is 
 
 
 **set-channels**
-Using this command, you can enable/disable a set of ExG channels of the device. An integer number is required for the
-channel mask, where the binary representation of it shows the mask (eg. 15 for 00001111, to enable 4 channels of an 8-ch device).::
+Using this command, you can enable/disable a set of ExG channels of the device. A binary string is required for the
+channel mask, where LSB is channel 1 (eg. 00001111, to enable 4 channels of an 8-ch device).::
 
     Options:
       -a, --address TEXT              Explore device's MAC address
       -n, --name TEXT                 Name of the device
-      -m, --channel-mask INTEGER RANGE
-                                      Channel mask, it should be an integer
-                                      between 1 and 255, the binary representation
-                                      will be interpreted as mask.  [required]
+      -m, --channel-mask TEXT         
+                                      Channel mask, it should be a binary string
+                                      containing 1 and 0, representing the mask.
+                                      [required]
       -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                      Show this message and exit.
 
@@ -290,7 +289,7 @@ Format the memory: ``explorepy format-memory -n Explore_XXXX``
 
 Set the sampling rate: ``explorepy set-sampling-rate -n Explore_XXXX -sr 500``
 
-Set the channel mask: ``explorepy set-channels -n Explore_XXXX -m 15``
+Set the channel mask: ``explorepy set-channels -n Explore_XXXX -m 0111``
 
 To see the full list of commands ``explorepy -h``.
 

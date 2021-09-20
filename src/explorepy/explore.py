@@ -350,21 +350,14 @@ class Explore:
     def set_channels(self, channel_mask):
         """Set the channel mask of the device
 
-        The channels can be disabled/enabled by calling this function and passing either an integer which represents the
-        binary form of the mask or a binary string representing the mask. For example in a 4 channel device, 
-        if you want to disable channel 4, the adc mask should be b'0111' (LSB is channel 1). The inputs to this function can 
-        be 7 (integer value of 0111) or '0111'.
+        The channels can be disabled/enabled by calling this function and passing either bytes or binary string representing the mask. 
+        For example in a 4 channel device, if you want to disable channel 4, the adc mask should be b'0111' (LSB is channel 1). 
+        The inputs to this function can be b'0111' '0111'.
 
         Args:
-            channel_mask (int or str): Integer or string representating of the binary channel mask
+            channel_mask (bytes str): Bytes or String representing the binary channel mask
 
-        Example 1:
-            >>> from explorepy.explore import Explore
-            >>> explore = Explore()
-            >>> explore.connect(device_name='Explore_2FA2')
-            >>> explore.set_channels(channel_mask=7)  # disable channel 4 - mask:0111
-
-        Example 2:
+        Example:
             >>> from explorepy.explore import Explore
             >>> explore = Explore()
             >>> explore.connect(device_name='Explore_2FA2')
@@ -374,10 +367,11 @@ class Explore:
 
         if (isinstance(channel_mask, str) and len(c.findall(channel_mask))==0) or (isinstance(channel_mask, bytes)):
             channel_mask_int = int(channel_mask, 2)
-        elif isinstance(channel_mask, int):
-            channel_mask_int = channel_mask
+        # elif isinstance(channel_mask, int):
+        #     channel_mask_int = channel_mask
         else:
-            raise TypeError("Input must be an integer or a binary string!")
+            # raise TypeError("Input must be an integer or a binary string!")
+            raise TypeError("Input must be bytes or binary string!")
 
         self._check_connection()
         # cmd = SetCh(channel_mask)
