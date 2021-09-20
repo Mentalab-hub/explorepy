@@ -213,7 +213,7 @@ def soft_reset(address, name, bluetooth):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("-m", "--channel-mask", type=bytes, required=True,
+@click.option("-m", "--channel-mask", type=str, required=True,
               help="Channel mask, it should be a binary string containing 1 and 0, representing the mask.")
 @click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
               help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
