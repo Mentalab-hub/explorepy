@@ -228,7 +228,8 @@ channel mask, where LSB is channel 1 (eg. 00001111, to enable 4 channels of an 8
       -n, --name TEXT                 Name of the device
       -m, --channel-mask TEXT         
                                       Channel mask, it should be a binary string
-                                      containing 1 and 0, representing the mask.
+                                      containing 1 and 0, representing the mask
+                                      (LSB is channel 1).
                                       [required]
       -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                      Show this message and exit.
@@ -466,10 +467,10 @@ Format memory: ::
 
     explore.format_memory()
 
-The ExG input channels can be deactivated/activated using ``set_channels`` method. The unsigned binary representation
-of a channel mask will be used to select channels, e.g. 131=0b01000011 means channels 1,2,8 are active. ::
+The ExG input channels can be deactivated/activated using ``set_channels`` method. The (string) binary representation
+of a channel mask will be used to select channels (LSB is channel 1), e.g. 0b01000011 means channels 1,2,7 are active. ::
 
-    explore.set_channels(channel_mask=131)
+    explore.set_channels(channel_mask="01000011")
 
 or alternatively: ::
 
