@@ -2,6 +2,10 @@
 Changelog
 =========
 
+1.5.2 (22.09.2021)
+------------------
+* Hotfix for impedance disable bug
+
 1.5.1 (21.7.2021)
 ------------------
 * Hotfix for installation bug
