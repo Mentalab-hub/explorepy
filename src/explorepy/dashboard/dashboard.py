@@ -130,10 +130,14 @@ class Dashboard:
         try:
             self.server.io_loop.start()
         except KeyboardInterrupt:
-            logger.info("Got Keyboard Interrupt. The program exits ...")
-            self.explore.stop_lsl()
-            self.explore.stop_recording()
-            os._exit(0)
+            if self.mode == 'signal':
+                logger.info("Got Keyboard Interrupt. The program exits ...")
+                self.explore.stop_lsl()
+                self.explore.stop_recording()
+                os._exit(0)
+            else:
+                logger.info("Got Keyboard Interrupt. The program exits after disabling the impedance mode ...")
+                raise KeyboardInterrupt
 
     def exg_callback(self, packet):
         """

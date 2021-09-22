@@ -300,7 +300,7 @@ class Explore:
         """
         self._check_connection()
         assert self.stream_processor.device_info['sampling_rate'] == 250, \
-            "Impedance mode only works in 250 Hz sampling rate!"
+            "Impedance mode only works at 250 Hz sampling rate. Please set the sampling rate to 250Hz."
 
         self.stream_processor.imp_initialize(notch_freq=50)
 
