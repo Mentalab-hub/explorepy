@@ -103,7 +103,7 @@ class StreamProcessor:
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
-            if self._is_imp_mode:
+            if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=packet)
                 self.dispatch(topic=TOPICS.imp, packet=packet_imp)
             self.apply_filters(packet=packet)
@@ -171,10 +171,10 @@ class StreamProcessor:
         logger.info("Starting impedance measurement mode...")
         cmd = ZMeasurementEnable()
         if self.configure_device(cmd):
-            self._is_imp_mode = True
             self.imp_calculator = ImpedanceMeasurement(device_info=self.device_info,
                                                        calib_param=self.imp_calib_info,
                                                        notch_freq=notch_freq)
+            self._is_imp_mode = True
         else:
             raise ConnectionError('Device configuration process failed!')
 
