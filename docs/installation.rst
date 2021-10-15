@@ -25,29 +25,30 @@ How to install
 Windows
 ^^^^^^^
 
-Option 1: Installable .exe file (for manual commands, basic use)
+Option 1: Installing .exe file (for manual commands, basic use)
 
-This option is recommended for users who will only access the ExplorePy software from the command prompt,
-for example to quickly visualize and record data. To integrate the commands into a Python script (e.g. an experiment script),
-we recommend to use Explorepy with Anaconda.
-For an overview of the available commands, click `here <https://explorepy.readthedocs.io/en/latest/usage.html#command-line-interface>`_.
+This option is best for users who only intend to use ExplorePy from a command-line prompt.
+ For example, if you are looking to quickly visualize and record data, use Option 1. 
+ If you intend to add ExplorePy commands to a Python script
+ (e.g. an experiment script), installing ExplorePy via Anaconda is a better solution.
 
-On a Windows machine, Explorepy can be installed using the .exe installable file uploaded in
-the `release page <https://github.com/Mentalab-hub/explorepy/releases/download/v1.5.0/MentaLab_ExplorePy_1.5.0.exe>`_. Please note that the dependencies will be installed automatically.
+For an overview of Explorepy commands, click `here <https://explorepy.readthedocs.io/en/latest/usage.html#command-line-interface>`_.
+
+On a Windows machine, Explorepy can be installed using the .exe installable file uploaded to
+Explorepy's `release page <https://github.com/Mentalab-hub/explorepy/releases/download/v1.5.0/MentaLab_ExplorePy_1.5.0.exe>`_. Please note that the dependencies will be installed automatically.
 
 
-Option 2: Installation through Python Package Index(PiPy) and pip(for additional use in Python scripts, more advanced)
+Option 2: Installing from Python Package Index (PyPI) and pip (for use in Python scripts, more advanced)
 
-This option is recommended for users who not only want to use the command prompt, but also want to include ExplorePy functionalities
-in their own Python scripts. In this case, you must use the Anaconda software to access ExplorePy.
+This option is best for users who intend to include ExplorePy functionalities in their own Python scripts.
+ For this, use `Anaconda <https://www.anaconda.com/>`_ to access ExplorePy.
 
-The following instructions guide you to install the ExplorePy API using pip with all its dependencies on Windows.
+To install the ExplorePy API and all its dependencies using pip on Windows:
 
-1. Install Anaconda Python package (or any other python distribution, but these instructions assume that Anaconda is
-    installed). Download and install Anaconda Windows installer from
-    `here <https://www.anaconda.com/distribution/#download-section>`_.
-2. Install Microsoft Build Tools for Visual Studio 2019 from `here <https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16>`_.
-    Select **Desktop development with C++** in workloads tab, make sure that  **MSVCv142 - VS 2019 C++ x64/x86 build tools** and latest version of **Windows 10 SDK** are checked.
+1. Install Anaconda (or any other python distribution; these instructions pertain to Anaconda only). 
+ Download and install the Anaconda Windows installer `here <https://www.anaconda.com/distribution/#download-section>`_.
+2. Install Microsoft Build Tools for Visual Studio 2019 `here <https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16>`_.
+    Select **Desktop development with C++** in the workloads tab. Make sure that  **MSVCv142 - VS 2019 C++ x64/x86 build tools** and latest version of **Windows 10 SDK** are checked.
 3. Open the Conda command prompt.
 4. We recommend using a virtual environment.
 
@@ -61,7 +62,7 @@ The following instructions guide you to install the ExplorePy API using pip with
 Ubuntu
 ^^^^^^
 1. Install Bluetooth header files using ``sudo apt-get install libbluetooth-dev``
-2. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Ubuntu installer from `here <https://www.anaconda.com/distribution/#download-section>`_.
+2. It is best to install Anaconda. Download and install the Anaconda Python 3.7 Ubuntu installer `here <https://www.anaconda.com/distribution/#download-section>`_.
 3. We recommend using a virtual environment in Conda.
 
   * In Conda command prompt: ``conda create -n myenv python=3.6``
@@ -73,11 +74,14 @@ Ubuntu
 
 Mac
 ^^^
-1. Install XCode from Mac App store. An upgrade to the latest version of MacOS might be required for installation of XCode.
-For older versions of MacOS, you can find compatible versions of XCode in this `page <https://en.wikipedia.org/wiki/Xcode>`_.
-All old Xcode versions are available in `this link <https://developer.apple.com/download/more/>`_.
+1. Install XCode from the Mac App store. For this, you may need to upgrade to the latest version of MacOS.
+For older versions of MacOS, you can find compatible versions of XCode `here <https://en.wikipedia.org/wiki/Xcode>`_.
+All old Xcode versions are available `here <https://developer.apple.com/download/more/>`_.
+
 2. Accept the license agreement: ``sudo xcodebuild -license``
-3. It is recommended to install Anaconda Python package. Download and install Anaconda Python 3.7 Mac installer from `here <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and can be downloaded from `here <https://repo.anaconda.com/archive/index.html>`_.
+
+3. It is best to install Anaconda. Download  and install the Anaconda Python 3.7 Mac installer `here <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and can be downloaded from `here <https://repo.anaconda.com/archive/index.html>`_.
+
 4. We recommend using a virtual environment in Conda.
 
   * In Conda command prompt: ``conda create -n myenv python=3.6``
@@ -90,7 +94,7 @@ All old Xcode versions are available in `this link <https://developer.apple.com/
 Quick test
 ----------
 
-* Open Conda command prompt (if you have installed with pip) or Windows command prompt (if you used the installable file)
+* •	Open the Conda command prompt (if you used pip) or Windows command prompt (if you used the installable file)
 
 * Activate the virtual environment (this step is only for Conda command prompt): ``conda activate myenv``
 
