@@ -18,9 +18,6 @@
     catch(const ExploreReadBufferException& e) {
         SWIG_exception(SWIG_MemoryError, e.what());
     }
-	catch(const ExploreIOException& e) {
-        SWIG_exception(SWIG_IOError, e.what());
-    }
     catch(const std::exception& e) {
         SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {

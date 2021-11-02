@@ -114,19 +114,11 @@ class SDKBtClient:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
-   
-        except OverflowError as error:
-            logger.error("throws overflow from SDK code!! by exploresdk which is {} and type is {}".format(error, type(error)))
-            if self.is_connected == False:
-                raise IOError(error)
-        except IOError as error:
-            if self.is_connected == False:
-                raise IOError(error)
         except (MemoryError, OSError) as error:
-            logger.info("Got an exception while reading data from socket: {} of type:{}".format(error ,type(error)))
+            logger.debug("Got an exception while reading data from socket: {} of type:{}".format(error ,type(error)))
             raise ConnectionAbortedError(error)
         except Exception as error:
-            logger.error("unknown error occured while reading bluetooth data by exploresdk which is {} and type is {}".format(error, type(error)))
+            logger.error("unknown error occured while reading bluetooth data by exploresdk")
 
     def send(self, data):
         """Send data to the device
