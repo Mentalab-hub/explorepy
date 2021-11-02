@@ -49,5 +49,24 @@ public:
 
 };
 
+// class to throw exception when reading the data from bluetooth buffer occurs
+class ExploreIOException : std::exception
+{
+private:
+	std::string message;
+public:
+	ExploreIOException(std::string message) NOEXCEPT
+	{
+		this->message = message;
+
+	}
+
+	virtual const char* what() const NOEXCEPT
+	{
+		return message.c_str();
+	}
+
+};
+
 
 

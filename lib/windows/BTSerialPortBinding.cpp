@@ -106,6 +106,7 @@ int BTSerialPortBinding::Connect()
 
 void BTSerialPortBinding::Close()
 {
+	cout << "Calling close from bt socket!!................................" <<endl;
 	if (data->s != INVALID_SOCKET)
 	{
 		closesocket(data->s);
@@ -116,8 +117,7 @@ void BTSerialPortBinding::Close()
 void BTSerialPortBinding::Read(char *buffer, int* length)
 {
 	if (data->s == INVALID_SOCKET)
-		throw ExploreException("connection has been closed");
-
+		throw ExploreIOException("Connection has been closed");
 	if (buffer == nullptr)
 		throw ExploreException("buffer cannot be null");
 
