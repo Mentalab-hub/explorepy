@@ -70,8 +70,8 @@ class Explore:
     def disconnect(self):
         r"""Disconnects from the device
         """
-        self.stream_processor.stop()
         self.is_connected = False
+        self.stream_processor.stop()
         logger.debug("Device has been disconnected.")
 
     def acquire(self, duration=None):
@@ -350,8 +350,8 @@ class Explore:
     def set_channels(self, channel_mask):
         """Set the channel mask of the device
 
-        The channels can be disabled/enabled by calling this function and passing either bytes or binary string representing the mask. 
-        For example in a 4 channel device, if you want to disable channel 4, the adc mask should be b'0111' (LSB is channel 1). 
+        The channels can be disabled/enabled by calling this function and passing either bytes or binary string representing the mask.
+        For example in a 4 channel device, if you want to disable channel 4, the adc mask should be b'0111' (LSB is channel 1).
         The inputs to this function can be b'0111' '0111'.
 
         Args:

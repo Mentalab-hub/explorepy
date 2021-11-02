@@ -88,8 +88,8 @@ class BtClient:
 
     def disconnect(self):
         """Disconnect from the device"""
-        self.socket.close()
         self.is_connected = False
+        self.socket.close()
 
     def _find_mac_address(self):
         for _ in range(5):
