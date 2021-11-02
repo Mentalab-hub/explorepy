@@ -116,7 +116,7 @@ void BTSerialPortBinding::Close()
 void BTSerialPortBinding::Read(char *buffer, int* length)
 {
 	if (data->s == INVALID_SOCKET)
-		throw ExploreException("connection has been closed");
+		throw ExploreIOException("connection has been closed");
 
 	if (buffer == nullptr)
 		throw ExploreException("buffer cannot be null");

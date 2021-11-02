@@ -49,5 +49,23 @@ public:
 
 };
 
+// class to throw exception when socket is closed but read() method is called from Python
+class ExploreIOException : std::exception
+{
+private:
+	std::string message;
+public:
+	ExploreIOException(std::string message) NOEXCEPT
+	{
+		this->message = message;
+
+	}
+
+	virtual const char* what() const NOEXCEPT
+	{
+		return message.c_str();
+	}
+
+};
 
 
