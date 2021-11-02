@@ -85,7 +85,7 @@ def main():
     ts_markers_nontarget = markers[markers.Code.isin([label_nontarget])]['TimeStamp'].to_numpy()
     ts_markers_target = markers[markers.Code.isin([label_target])]['TimeStamp'].to_numpy()
     sig = exg[['ch'+str(i) for i in range(1, 9)]].to_numpy().T
-
+    sig -= (sig[0, :]/2)
     filt_sig = custom_filter(sig, 45, 55, fs, 'bandstop')
     filt_sig = custom_filter(filt_sig, lf, hf, fs, 'bandpass')
 
@@ -104,6 +104,9 @@ def main():
     for i, ax in enumerate(axes.flatten()):
         ax.plot(t, erp_nontarget[i, :], label='Non-target')
         ax.plot(t, erp_target[i, :], 'tab:orange', label='Target')
+        ax.plot([0, 0], [-30, 30], linestyle='dotted', color='black')
+        ax.set_ylabel('\u03BCV')
+        ax.set_xlabel('Time (s)')
         ax.set_title(CH_LABELS[i])
         ax.set_ylim([-10, 20])
         ax.legend()

@@ -37,7 +37,7 @@ Results
 -------
 After running the analysis script, you should have a similar plot containing P300 waveforms.
 
-![alt text](plots.jpg "P300 plots")
+![alt text](plots.jpeg "P300 plots")
 
 
 Feel free to contact support[at]mentalab.com if you have any questions.
