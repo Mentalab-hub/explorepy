@@ -4,7 +4,7 @@ import pandas as pd
 from scipy import signal
 import numpy as np
 
-CH_LABELS = ['TP9', 'P4', 'CP1', 'CP2', 'O1', 'O2', 'Cz', 'Pz']
+CH_LABELS = ['TP9', 'Cz', 'Pz', 'CP1', 'CP2', 'P3', 'P4', 'Oz']
 
 
 def extract_epochs(sig, sig_times, event_times, t_min, t_max, fs):
@@ -105,7 +105,7 @@ def main():
         ax.plot(t, erp_nontarget[i, :], label='Non-target')
         ax.plot(t, erp_target[i, :], 'tab:orange', label='Target')
         ax.set_title(CH_LABELS[i])
-        ax.set_ylim([-10, 10])
+        ax.set_ylim([-10, 20])
         ax.legend()
     plt.show()
 
