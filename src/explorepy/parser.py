@@ -45,9 +45,9 @@ class Parser:
     def stop_streaming(self):
         """Stop streaming data"""
         if self._do_streaming:
-            self.stream_interface.disconnect()
             self._do_streaming = False
             self.callback(None)
+            self.stream_interface.disconnect()
 
     def start_reading(self, filename):
         """Open the binary file
@@ -99,9 +99,10 @@ class Parser:
             except (IOError, ValueError, FletcherError) as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 if self.mode == 'device':
-                    logger.error('Bluetooth connection error! Make sure your device is on and in advertising mode.')
-                    print("Press Ctrl+c to exit...")
-                    raise error
+                    if str(error) != 'connection has been closed':
+                        logger.error('Bluetooth connection error! Make sure your device is on and in advertising mode.')
+                        print("Press Ctrl+c to exit...")
+                        raise error
                 else:
                     logger.warning('The binary file is corrupted. Conversion has ended incompletely.')
                 self.stop_streaming()
@@ -152,7 +153,8 @@ class Parser:
                 packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
         else:
             logger.debug("Unknown Packet ID:" + str(pid))
-            raise ValueError("Unknown Packet ID:" + str(pid))
+            # raise ValueError("Unknown Packet ID:" + str(pid))
+            packet = None
         return packet
 
 

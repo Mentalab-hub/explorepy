@@ -17,6 +17,7 @@ from explorepy.tools import ImpedanceMeasurement, PhysicalOrientation, get_local
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 logger = logging.getLogger(__name__)
 
+
 class StreamProcessor:
     """Stream processor class"""
 
@@ -87,8 +88,8 @@ class StreamProcessor:
 
     def stop(self):
         """Stop streaming"""
-        self.parser.stop_streaming()
         self.is_connected = False
+        self.parser.stop_streaming()
 
     def process(self, packet):
         """Process incoming packet
