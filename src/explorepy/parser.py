@@ -99,7 +99,7 @@ class Parser:
             except (IOError, ValueError, FletcherError) as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 if self.mode == 'device':
-                    if str(error) != 'An established connection was aborted by the software in your host machine.\r\n':
+                    if str(error) != 'connection has been closed':
                         logger.error('Bluetooth connection error! Make sure your device is on and in advertising mode.')
                         print("Press Ctrl+c to exit...")
                         raise error
@@ -121,7 +121,6 @@ class Parser:
             packet object
         """
         pid = struct.unpack('B', self.stream_interface.read(1))[0]
-        print(pid)
         self.stream_interface.read(1)[0]  # read cnt
         payload = struct.unpack('<H', self.stream_interface.read(2))[0]
         timestamp = struct.unpack('<I', self.stream_interface.read(4))[0]
