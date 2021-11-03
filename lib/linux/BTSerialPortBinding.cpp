@@ -111,7 +111,6 @@ void BTSerialPortBinding::Read(char *bt_buffer, int* bt_length)
 {
 	if (data->s == 0)
 		throw ExploreIOException("connection has been closed");
-		fprintf(stdout, "connection has been closed");
 	//allocating space in buffer
 
 	fd_set set;
