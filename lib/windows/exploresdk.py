@@ -290,6 +290,20 @@ class ExploreReadBufferException(object):
 # Register ExploreReadBufferException in _exploresdk:
 _exploresdk.ExploreReadBufferException_swigregister(ExploreReadBufferException)
 
+class ExploreIOException(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+
+    def __init__(self, message: "std::string"):
+        _exploresdk.ExploreIOException_swiginit(self, _exploresdk.new_ExploreIOException(message))
+
+    def what(self) -> "char const *":
+        return _exploresdk.ExploreIOException_what(self)
+    __swig_destroy__ = _exploresdk.delete_ExploreIOException
+
+# Register ExploreIOException in _exploresdk:
+_exploresdk.ExploreIOException_swigregister(ExploreIOException)
+
 class device(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
