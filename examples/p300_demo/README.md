@@ -5,10 +5,11 @@ This folder contains codes and instructions of a P300 Evoked Potential example p
 Experiment setup
 ----------------
 * Follow the instructions for installing Explorepy in the
-[documentation](https://explorepy.readthedocs.io/en/latest/installation.html#how-to-install).
+[documentation](https://explorepy.readthedocs.io/en/latest/installation.html#how-to-install). Use option 2 (via PyPI).
 * Activate your Anaconda virtual environment.
 * Install required packages by running this command:
 `pip install matplotlib psychopy mne`
+* Download the code from this page.
 * In Conda terminal, navigate to `p300_demo` folder in the example directory of the Explorepy's code.
 * Setup the cap and electrodes. Place EEG electrodes on the desired positions (e.g. Cz, Pz, CP1, CP2, P3, P4, Oz, etc.) and the
 ground electrode on Mastoid (or any other location far enough from other electrodes).
