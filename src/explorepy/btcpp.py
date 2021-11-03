@@ -115,18 +115,21 @@ class SDKBtClient:
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
         except OverflowError as error:
-            logger.error("throws overflow from SDK code!! by exploresdk which is {} and type is {}".format(error, type(error)))
-            if self.is_connected == False:
-                raise IOError(error)
+            logger.error(
+                "throws overflow from SDK code!! by exploresdk which is {} and type is {}".format(error, type(error)))
+            if not self.is_connected:
+                raise IOError(str(error))
             else:
-                logger.debug("Got an exception while reading data from socket which connection is open: {} of type:{}".format(error ,type(error)))
+                logger.debug(
+                    "Got an exception while reading data from "
+                    "socket which connection is open: {} of type:{}".format(error, type(error)))
                 raise ConnectionAbortedError(error)
         except IOError as error:
-            if self.is_connected == False:
-                raise IOError(error)
+            if not self.is_connected:
+                raise IOError(str(error))
         except (MemoryError, OSError) as error:
             logger.debug("Got an exception while reading data from socket: {} of type:{}".format(error, type(error)))
-            raise ConnectionAbortedError(error)
+            raise ConnectionAbortedError(str(error))
         except Exception as error:
             print(error)
             logger.error("unknown error occured while reading bluetooth data by exploresdk")
