@@ -31,17 +31,17 @@
 swig -python -c++ -py3 -extranative -threads -debug-classes   swig_interface.i
 # for windows: use the -threads option 
 #swig -python -c++ -py3 -extranative -debug-classes swig_interface.i
-c++ -c -fpic swig_interface_wrap.cxx -I/usr/local/Cellar/python@3.7/3.7.10_2/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
+c++ -c -fpic swig_interface_wrap.cxx -I/usr/local/Cellar/python@3.7/3.7.11/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
 
-c++ -c -fpic BluetoothDeviceResources.mm -I/usr/local/Cellar/python@3.7/3.7.10_2/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
+c++ -c -fpic BluetoothDeviceResources.mm -I/usr/local/Cellar/python@3.7/3.7.11/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
 
-c++ -c -fpic BluetoothWorker.mm -I/usr/local/Cellar/python@3.7/3.7.10_2/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
+c++ -c -fpic BluetoothWorker.mm -I/usr/local/Cellar/python@3.7/3.7.11/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
 
-c++ -c -fpic BTSerialPortBinding.mm -I/usr/local/Cellar/python@3.7/3.7.10_2/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
+c++ -c -fpic BTSerialPortBinding.mm -I/usr/local/Cellar/python@3.7/3.7.11/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
 
-c++ -c -fpic -std=c++11 DeviceINQ.mm -I/usr/local/Cellar/python@3.7/3.7.10_2/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
+c++ -c -fpic -std=c++11 DeviceINQ.mm -I/usr/local/Cellar/python@3.7/3.7.11/Frameworks/Python.framework/Versions/3.7/include/python3.7m/ -ObjC++ -std=c++11
 
-gcc  -c -fpic pipe.c -I/usr/local/Cellar/python@3.7/3.7.10_2/Frameworks/Python.framework/Versions/3.7/include/python3.7m/
+gcc  -c -fpic pipe.c -I/usr/local/Cellar/python@3.7/3.7.11/Frameworks/Python.framework/Versions/3.7/include/python3.7m/
 
 c++ -shared -flat_namespace -undefined suppress BTSerialPortBinding.o DeviceINQ.o BluetoothDeviceResources.o BluetoothWorker.o pipe.o  swig_interface_wrap.o -std=c++11  -framework foundation -framework IOBluetooth -o _exploresdk.so
 

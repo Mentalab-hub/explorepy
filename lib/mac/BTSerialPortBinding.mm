@@ -92,7 +92,7 @@ void BTSerialPortBinding::Close()
 void BTSerialPortBinding::Read(char *buffer, int *length)
 {
     if (data->consumer == NULL)
-    return;
+    throw ExploreIOException("BT socket is closed!");;
 
 	if (buffer == nullptr)
 	return;
