@@ -151,7 +151,10 @@ class StreamProcessor:
                                       s_rate=self.device_info['sampling_rate'],
                                       n_chan=self.device_info['adc_mask'].count(1)))
     
-    def remove_filter(self):
+    def remove_filters(self):
+        '''
+        Remove all filters from the stream
+        '''
         logger.info(f"Removing all filters.")
         # logger.info(f"Removing the {filter_type} filter.")
         while not self.device_info:
