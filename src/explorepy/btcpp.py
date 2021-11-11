@@ -76,7 +76,7 @@ class SDKBtClient:
                 logger.info('Connected to the device')
                 return self.bt_serial_port_manager
             else:
-                self.is_connected = False 
+                self.is_connected = False
                 logger.warning("Couldn't connect to the device. Trying to reconnect...")
                 time.sleep(2)
         logger.error("Could not reconnect after 5 attempts. Closing the socket.")
@@ -84,8 +84,8 @@ class SDKBtClient:
 
     def disconnect(self):
         """Disconnect from the device"""
-        self.bt_serial_port_manager.Close()
         self.is_connected = False
+        self.bt_serial_port_manager.Close()
 
     def _find_mac_address(self):
         self.device_manager = exploresdk.ExploreSDK_Create()
@@ -114,10 +114,24 @@ class SDKBtClient:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
+        except OverflowError as error:
+            logger.error(
+                "throws overflow from SDK code!! by exploresdk which is {} and type is {}".format(error, type(error)))
+            if not self.is_connected:
+                raise IOError(str(error))
+            else:
+                logger.debug(
+                    "Got an exception while reading data from "
+                    "socket which connection is open: {} of type:{}".format(error, type(error)))
+                raise ConnectionAbortedError(error)
+        except IOError as error:
+            if not self.is_connected:
+                raise IOError(str(error))
         except (MemoryError, OSError) as error:
-            logger.debug("Got an exception while reading data from socket: {} of type:{}".format(error ,type(error)))
-            raise ConnectionAbortedError(error)
+            logger.debug("Got an exception while reading data from socket: {} of type:{}".format(error, type(error)))
+            raise ConnectionAbortedError(str(error))
         except Exception as error:
+            print(error)
             logger.error("unknown error occured while reading bluetooth data by exploresdk")
 
     def send(self, data):
