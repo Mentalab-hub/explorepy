@@ -37,8 +37,7 @@ class Parser:
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
         else:
-            from explorepy.bt_client import BtClient
-            self.stream_interface = BtClient(device_name=device_name, mac_address=mac_address)
+            raise ValueError("Invalid Bluetooth interface: " + explorepy.get_bt_interface())
         self.stream_interface.connect()
         self._stream()
 
@@ -88,7 +87,7 @@ class Parser:
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
-            except (ConnectionAbortedError, BluetoothError) as error:
+            except ConnectionAbortedError as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 logger.warning("Device has been disconnected! Scanning for the last connected device...")
                 if self.stream_interface.reconnect() is None:
