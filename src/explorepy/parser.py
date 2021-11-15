@@ -30,6 +30,7 @@ class Parser:
         self._do_streaming = False
         self.is_waiting = False
         self._stream_thread = None
+        self._is_reconnecting = False
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -90,16 +91,19 @@ class Parser:
             except ConnectionAbortedError as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 logger.warning("Device has been disconnected! Scanning for the last connected device...")
+                self._is_reconnecting = True
                 if self.stream_interface.reconnect() is None:
                     logger.warning("Could not find the device! "
                                    "Please make sure the device is on and in advertising mode.")
                     self.stop_streaming()
                     print("Press Ctrl+c to exit...")
+                self._is_reconnecting = False
             except (IOError, ValueError, FletcherError) as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 if self.mode == 'device':
                     if str(error) != 'connection has been closed':
                         logger.error('Bluetooth connection error! Make sure your device is on and in advertising mode.')
+                        self.stop_streaming()
                         print("Press Ctrl+c to exit...")
                         raise error
                 else:
