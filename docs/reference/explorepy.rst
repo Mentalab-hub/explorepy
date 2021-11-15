@@ -13,7 +13,7 @@ Main API
 
 Bluetooth API
 *************
-.. automodule:: bt_client
+.. automodule:: btcpp
     :members:
     :undoc-members:
 
