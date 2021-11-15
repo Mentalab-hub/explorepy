@@ -44,7 +44,7 @@ class DeviceConfiguration:
     def __init__(self, bt_interface):
         """
         Args:
-            bt_interface (explorepy.bt_client.BtClient): Bluetooth interface
+            bt_interface: Bluetooth interface
         """
         self._bt_interface = bt_interface
         self._last_ack_message = None
