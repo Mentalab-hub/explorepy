@@ -45,7 +45,7 @@ def verify_inputs(func):
 
             if separator == '-' or separator == ':':
                 for unit in kwargs['address'].split(separator):
-                    if len(unit) != 2: 
+                    if len(unit) != 2:
                         logger.warning("Invalid device mac address! Please check the MAC address and try again.")
                         sys.exit()
         return ctx.invoke(func, *args, **kwargs)
@@ -53,11 +53,9 @@ def verify_inputs(func):
 
 
 @cli.command()
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
-def find_device(bluetooth):
+def find_device():
     """List available Explore devices"""
-    explorepy.set_bt_interface(bluetooth)
+    explorepy.set_bt_interface(default_bt_backend)
     explorepy.tools.bt_scan()
 
 
@@ -65,12 +63,9 @@ def find_device(bluetooth):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-d", "--duration", type=int, help="Duration in seconds", metavar="<integer>")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def acquire(name, address, duration, bluetooth):
+def acquire(name, address, duration):
     """Connect to a device and print the ExG stream in the console"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.acquire(duration)
@@ -85,12 +80,9 @@ def acquire(name, address, duration, bluetooth):
 @click.option("-d", "--duration", type=int, help="Recording duration in seconds", metavar="<integer>")
 @click.option("--edf", 'file_type', flag_value='edf', help="Write in EDF file")
 @click.option("--csv", 'file_type', flag_value='csv', help="Write in csv file (default type)", default=True)
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def record_data(address, name, filename, overwrite, duration, file_type, bluetooth):
+def record_data(address, name, filename, overwrite, duration, file_type):
     """Record data from Explore to a file"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.record_data(file_name=filename, file_type=file_type,
@@ -101,12 +93,9 @@ def record_data(address, name, filename, overwrite, duration, file_type, bluetoo
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-d", "--duration", type=int, help="Streaming duration in seconds", metavar="<integer>")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def push2lsl(address, name, duration, bluetooth):
+def push2lsl(address, name, duration):
     """Push data to lsl"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.push2lsl(duration, block=True)
@@ -138,12 +127,9 @@ def bin2edf(filename, overwrite):
 @click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
 @click.option("-lf", "--lowfreq", type=float, help="Low cutoff frequency of bandpass/highpass filter.")
 @click.option("-hf", "--highfreq", type=float, help="High cutoff frequency of bandpass/lowpass filter.")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def visualize(address, name, notchfreq, lowfreq, highfreq, bluetooth):
+def visualize(address, name, notchfreq, lowfreq, highfreq):
     """Visualizing signal in a browser-based dashboard"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.visualize(notch_freq=int(notchfreq), bp_freq=(lowfreq, highfreq))
@@ -152,12 +138,9 @@ def visualize(address, name, notchfreq, lowfreq, highfreq, bluetooth):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def impedance(address, name, bluetooth):
+def impedance(address, name):
     """Impedance measurement in a browser-based dashboard"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.measure_imp()
@@ -166,12 +149,9 @@ def impedance(address, name, bluetooth):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def format_memory(address, name, bluetooth):
+def format_memory(address, name):
     """Format the memory of Explore device"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.format_memory()
@@ -182,12 +162,9 @@ def format_memory(address, name, bluetooth):
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-sr", "--sampling-rate", help="Sampling rate of ExG channels, it can be 250 or 500",
               type=click.Choice(['250', '500', '1000']), required=True)
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def set_sampling_rate(address, name, sampling_rate, bluetooth):
+def set_sampling_rate(address, name, sampling_rate):
     """Change sampling rate of the Explore device"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.set_sampling_rate(int(sampling_rate))
@@ -196,15 +173,11 @@ def set_sampling_rate(address, name, sampling_rate, bluetooth):
 @cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def soft_reset(address, name, bluetooth):
+def soft_reset(address, name):
     """Software reset of Explore device
 
     Reset the selected explore device (current session will be terminated)."""
-
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.reset_soft()
@@ -215,12 +188,9 @@ def soft_reset(address, name, bluetooth):
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-m", "--channel-mask", type=str, required=True,
               help="Channel mask, it should be a binary string containing 1 and 0, representing the mask (LSB is channel 1).")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def set_channels(address, name, channel_mask, bluetooth):
+def set_channels(address, name, channel_mask):
     """Mask the channels of the Explore device"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.set_channels(channel_mask)
@@ -230,13 +200,9 @@ def set_channels(address, name, channel_mask, bluetooth):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-m", "--module", required=True, type=str, help="Module name to be disabled, options: ORN, ENV, EXG")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def disable_module(address, name, module, bluetooth):
+def disable_module(address, name, module):
     """Disable a module of Explore device"""
-    explorepy.set_bt_interface(bluetooth)
-
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.disable_module(module)
@@ -246,12 +212,9 @@ def disable_module(address, name, module, bluetooth):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-m", "--module", required=True, type=str, help="Module name to be enabled, options: ORN, ENV, EXG")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def enable_module(address, name, module, bluetooth):
+def enable_module(address, name, module):
     """Enable a module of Explore device"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.enable_module(module)
@@ -261,12 +224,9 @@ def enable_module(address, name, module, bluetooth):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
-@click.option("--bluetooth", "-bt", type=click.Choice(['sdk', 'pybluez']),
-              help="Select the Bluetooth interface (default: sdk)", default=default_bt_backend)
 @verify_inputs
-def calibrate_orn(address, name, overwrite, bluetooth):
+def calibrate_orn(address, name, overwrite):
     """Calibrate the orientation module"""
-    explorepy.set_bt_interface(bluetooth)
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.calibrate_orn(do_overwrite=overwrite)
