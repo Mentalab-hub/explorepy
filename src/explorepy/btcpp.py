@@ -118,7 +118,7 @@ class SDKBtClient:
             logger.error(
                 "throws overflow from SDK code!! by exploresdk which is {} and type is {}".format(error, type(error)))
             if not self.is_connected:
-                raise IOError(str(error))
+                raise IOError("connection has been closed")
             else:
                 logger.debug(
                     "Got an exception while reading data from "
