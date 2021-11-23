@@ -115,10 +115,8 @@ class SDKBtClient:
             actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
             return actual_byte_data
         except OverflowError as error:
-            logger.error(
-                "throws overflow from SDK code!! by exploresdk which is {} and type is {}".format(error, type(error)))
             if not self.is_connected:
-                raise IOError(str(error))
+                raise IOError("connection has been closed")
             else:
                 logger.debug(
                     "Got an exception while reading data from "

@@ -137,7 +137,7 @@ class Explore:
         self.recorders['timer'].start()
         if block:
             try:
-                while self.recorders['timer'].is_alive():
+                while 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
                     time.sleep(.3)
             except KeyboardInterrupt:
                 logger.info("Got Keyboard Interrupt while recording in blocked mode!")
@@ -246,7 +246,7 @@ class Explore:
 
         if block:
             try:
-                while self.lsl['timer'].is_alive():
+                while 'timer' in self.lsl.keys() and self.lsl['timer'].is_alive():
                     time.sleep(.3)
             except KeyboardInterrupt:
                 logger.info("Got Keyboard Interrupt while pushing data to LSL in blocked mode!")

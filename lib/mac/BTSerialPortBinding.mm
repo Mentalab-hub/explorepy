@@ -35,6 +35,7 @@ struct bluetooth_data
 };
 
 size_t size_buffer;
+bool isSocketClosed = false;
 
 BTSerialPortBinding *BTSerialPortBinding::Create(string address, int channelID)
 {
@@ -91,8 +92,12 @@ void BTSerialPortBinding::Close()
 
 void BTSerialPortBinding::Read(char *buffer, int *length)
 {
-    if (data->consumer == NULL)
-    throw ExploreIOException("BT socket is closed!");;
+    if (data->consumer == NULL){
+        isSocketClosed = true;
+        cout << "Socket closed as data consumer is null" << endl;
+        throw ExploreIOException("BT socket is closed!");
+    }
+    
 
 	if (buffer == nullptr)
 	return;
@@ -104,10 +109,20 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
-        throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+        cout << "Possible socket closure, raising IO Exception" << endl;
+        throw ExploreIOException("BT socket is closed!");
+        
+        
     }
     if(size_buffer < *length){
-    	throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+        if(isSocketClosed){
+            cout << "Socket closed from read command read function..length" << endl;
+            throw ExploreIOException("BT socket is closed!");
+        }
+        else{
+            cout << "Read error from read command read function..normal operation...length" << endl;
+            throw ExploreReadBufferException("EMPTY_BUFFER_ERROR");
+        }
     }
 
     // when no data is read from rfcomm the connection has been closed.
