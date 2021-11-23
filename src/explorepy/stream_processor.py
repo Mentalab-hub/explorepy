@@ -151,6 +151,17 @@ class StreamProcessor:
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
                                       n_chan=self.device_info['adc_mask'].count(1)))
+    
+    def remove_filters(self):
+        '''
+        Remove all filters from the stream
+        '''
+        logger.info(f"Removing all filters.")
+        # logger.info(f"Removing the {filter_type} filter.")
+        while not self.device_info:
+            logger.warning('No device info is available. Waiting for device info packet...')
+            time.sleep(.2)
+        self.filters = []
 
     def apply_filters(self, packet):
         """Apply temporal filters to a packet"""
