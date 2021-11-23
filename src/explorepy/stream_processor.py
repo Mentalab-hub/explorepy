@@ -17,6 +17,7 @@ from explorepy.tools import ImpedanceMeasurement, PhysicalOrientation, get_local
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 logger = logging.getLogger(__name__)
 
+
 class StreamProcessor:
     """Stream processor class"""
 
@@ -87,8 +88,8 @@ class StreamProcessor:
 
     def stop(self):
         """Stop streaming"""
-        self.parser.stop_streaming()
         self.is_connected = False
+        self.parser.stop_streaming()
 
     def process(self, packet):
         """Process incoming packet
@@ -103,7 +104,7 @@ class StreamProcessor:
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
-            if self._is_imp_mode:
+            if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=packet)
                 self.dispatch(topic=TOPICS.imp, packet=packet_imp)
             self.apply_filters(packet=packet)
@@ -150,6 +151,17 @@ class StreamProcessor:
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
                                       n_chan=self.device_info['adc_mask'].count(1)))
+    
+    def remove_filters(self):
+        '''
+        Remove all filters from the stream
+        '''
+        logger.info(f"Removing all filters.")
+        # logger.info(f"Removing the {filter_type} filter.")
+        while not self.device_info:
+            logger.warning('No device info is available. Waiting for device info packet...')
+            time.sleep(.2)
+        self.filters = []
 
     def apply_filters(self, packet):
         """Apply temporal filters to a packet"""
@@ -171,10 +183,10 @@ class StreamProcessor:
         logger.info("Starting impedance measurement mode...")
         cmd = ZMeasurementEnable()
         if self.configure_device(cmd):
-            self._is_imp_mode = True
             self.imp_calculator = ImpedanceMeasurement(device_info=self.device_info,
                                                        calib_param=self.imp_calib_info,
                                                        notch_freq=notch_freq)
+            self._is_imp_mode = True
         else:
             raise ConnectionError('Device configuration process failed!')
 

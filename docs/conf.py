@@ -4,7 +4,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath('../src/explorepy/'))
-autodoc_mock_imports = ['pybluez', 'bluetooth', 'pylsl', 'bokeh', 'tornado',
+autodoc_mock_imports = ['bluetooth', 'pylsl', 'bokeh', 'tornado',
                         'explorepy.exploresdk', 'explorepy._exploresdk']
 
 extensions = [
@@ -29,7 +29,8 @@ project = 'explorepy'
 year = '2018-2020'
 author = 'Mentalab GmbH.'
 copyright = '{0}, {1}'.format(year, author)
-version = release = '1.5.2'
+version = release = '1.6.0'
+
 pygments_style = 'trac'
 templates_path = ['.']
 extlinks = {

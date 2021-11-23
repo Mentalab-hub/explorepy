@@ -21,12 +21,7 @@ You can get help for a specific command by  ``explorepy <command> -h``. For exam
                                       filter.
       -hf, --highfreq FLOAT           High cutoff frequency of bandpass/lowpass
                                       filter.
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default:
-                                      sdk)
       -h, --help                      Show this message and exit.
-
-.. note:: Explorepy allows users to use either pybluez or Explorepy's SDK as the Bluetooth interface
-            (the default BT backend is SDK).
 
 
 Available Commands
@@ -36,7 +31,6 @@ Available Commands
 Scans for nearby Mentalab Explore devices. Prints out Name and MAC address of the found devices.
 
     Options:
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                      Show this message and exit.
 
 .. note:: On Windows, this function may print all the paired devices.
@@ -49,7 +43,6 @@ Scans for nearby Mentalab Explore devices. Prints out Name and MAC address of th
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help          Show this message and exit.
 
 
@@ -67,7 +60,6 @@ an extra file for the marker events. In EDF mode, the data is actually recorded 
       -d, --duration <integer>        Recording duration in seconds
       --edf                           Write in EDF file
       --csv                           Write in csv file (default type)
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface (default: sdk)
       -h, --help                      Show this message and exit.
 
 
@@ -99,7 +91,6 @@ Streams data to Lab Streaming Layer (LSL).::
       -a, --address TEXT        Explore device's MAC address
       -n, --name TEXT           Name of the device
       -d, --duration <integer>  Streaming duration in seconds
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                Show this message and exit.
 
 
@@ -160,7 +151,6 @@ Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the
       -nf, --notchfreq [50|60]  Frequency of notch filter.
       -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
       -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                Show this message and exit.
 
 
@@ -170,7 +160,6 @@ Visualizes the electrode impedances in a browser  dashboard. Currently, Chrome i
     Options:
       -a, --address TEXT        Explore device's MAC address
       -n, --name TEXT           Name of the device
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                Show this message and exit.
 
 
@@ -191,7 +180,6 @@ it is only accessible in python scripts in data packets.::
       -a, --address TEXT   Explore device's MAC address
       -n, --name TEXT      Name of the device
       -ow, --overwrite     Overwrite existing file
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help           Show this message and exit.
 
 
@@ -201,7 +189,6 @@ This command formats the memory of the specified Explore device.::
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help          Show this message and exit.
 
 
@@ -209,29 +196,27 @@ This command formats the memory of the specified Explore device.::
 This command sets the sampling rate of ExG on the specified Explore device. Acceptable values for
 sampling rates are 250, 500 or 1000. The default sampling rate of the device is 250 Hz. Please note that 1000 Hz sampling rate is in beta phase.::
 
-
     Options:
       -a, --address TEXT              Explore device's MAC address
       -n, --name TEXT                 Name of the device
       -sr, --sampling-rate [250|500|1000]
                                       Sampling rate of ExG channels, it can be 250
                                       or 500  [required]
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help                      Show this message and exit.
 
 
 **set-channels**
-Using this command, you can enable/disable a set of ExG channels of the device. An integer number is required for the
-channel mask, where the binary representation of it shows the mask (eg. 15 for 00001111, to enable 4 channels of an 8-ch device).::
+Using this command, you can enable/disable a set of ExG channels of the device. A binary string is required for the
+channel mask, where LSB is channel 1 (eg. 00001111, to enable 4 channels of an 8-ch device).::
 
     Options:
       -a, --address TEXT              Explore device's MAC address
       -n, --name TEXT                 Name of the device
-      -m, --channel-mask INTEGER RANGE
-                                      Channel mask, it should be an integer
-                                      between 1 and 255, the binary representation
-                                      will be interpreted as mask.  [required]
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
+      -m, --channel-mask TEXT
+                                      Channel mask, it should be a binary string
+                                      containing 1 and 0, representing the mask
+                                      (LSB is channel 1).
+                                      [required]
       -h, --help                      Show this message and exit.
 
 **disable-module**
@@ -243,7 +228,6 @@ with this command.::
       -n, --name TEXT     Name of the device
       -m, --module TEXT   Module name to be disabled, options: ORN, ENV, EXG
                           [required]
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
 
 
 
@@ -255,7 +239,6 @@ If you have already disabled a module of Explore device, you can enable it with 
       -n, --name TEXT     Name of the device
       -m, --module TEXT   Module name to be enabled, options: ORN, ENV, EXG
                           [required]
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help          Show this message and exit.
 
 
@@ -266,7 +249,6 @@ return to the default values.::
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
-      -bt, --bluetooth [sdk|pybluez]  Select the Bluetooth interface
       -h, --help          Show this message and exit.
 
 
@@ -290,7 +272,7 @@ Format the memory: ``explorepy format-memory -n Explore_XXXX``
 
 Set the sampling rate: ``explorepy set-sampling-rate -n Explore_XXXX -sr 500``
 
-Set the channel mask: ``explorepy set-channels -n Explore_XXXX -m 15``
+Set the channel mask: ``explorepy set-channels -n Explore_XXXX -m 0111``
 
 To see the full list of commands ``explorepy -h``.
 
@@ -309,7 +291,7 @@ To use explorepy in a python project::
 
 
 Initialization
-^^^^^^^^^^^^^^
+""""""""""""""
 Before starting a session, make sure your device is paired to your computer. The device will be shown under the following name: Explore_XXXX,
 with the last 4 characters being the last 4 hex numbers of the devices MAC address.
 
@@ -324,28 +306,16 @@ Alternatively you can use the device's MAC address::
 
 If the device is not found, you will receive an error.
 
-Explorepy allows users to use either pybluez or Explorepy's SDK as the Bluetooth interface (the default BT backend is
-SDK). To change the BT interface to pybluez, use the following code. ::
-
-    explorepy.set_bt_interface('pybluez')
-
-To set the BT interface back to the SDK: ::
-
-    explorepy.set_bt_interface('sdk')
-
-.. note:: Many MacOS users have reported problems during installation of pybluez, hence only Explorepy's SDK is
-            supported for MacOS.
-
 
 Streaming
-^^^^^^^^^
+"""""""""
 After connecting to the device you are able to stream data and print the data in the console.::
 
     explore.acquire()
 
 
 Recording
-^^^^^^^^^
+"""""""""
 You can record data in realtime to EDF (BDF+) or CSV files::
 
     explore.record_data(file_name='test', duration=120, file_type='csv')
@@ -375,8 +345,9 @@ If you want to overwrite already existing files, change the line above::
             `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. EDF might not give a
             precise timing for markers, hence it should be avoided.
 
+
 Visualization
-^^^^^^^^^^^^^
+""""""""""""""
 It is possible to visualize data in real-time in a browser-based dashboard by the following code. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow::
 
 
@@ -401,7 +372,7 @@ ECG with heart beat detection:
 
 
 Impedance measurement
-^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""
 To measure electrodes impedances::
 
 
@@ -417,7 +388,7 @@ To measure electrodes impedances::
 .. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature. Therefore, this works best at regular room temperatures (~15-25 °C).
 
 Labstreaminglayer (lsl)
-^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""
 You can push data directly to LSL using the following line::
 
     explore.push2lsl()
@@ -429,7 +400,7 @@ In case of a disconnect (device loses connection), the program will try to recon
 
 
 Converter
-^^^^^^^^^
+"""""""""
 It is also possible to extract BIN files from the device via USB. To convert these to CSV, you can use the function bin2csv, which takes your desired BIN file
 and converts it to 2 CSV files (one for orientation, the other one for ExG data). A Bluetooth connection is not needed for this. ::
 
@@ -449,13 +420,13 @@ and converts it to 2 CSV files (one for orientation, the other one for ExG data)
             precise timing for markers, hence it should be avoided.
 
 Event markers
-^^^^^^^^^^^^^
+"""""""""""""
 In addition to the marker event generated by pressing the button on Explore device, you can set markers in your code using the `explorepy.Explore.set_marker` function. However, this function must be called from a different thread than the parsing thread.
 Please not that marker codes between 0 and 7 are reserved for hardware related markers. You can use any other (integer) code for your marker from 8 to 65535.
 To see an example usage of this function look at `this script <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_
 
 Device configuration
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
 Using methods of Explore class, the device settings can be changed.
 
 Explore's sampling rate can be changed to 250, 500 or 1000Hz (default sampling rate is 250Hz). ::
@@ -467,10 +438,10 @@ Format memory: ::
 
     explore.format_memory()
 
-The ExG input channels can be deactivated/activated using ``set_channels`` method. The unsigned binary representation
-of a channel mask will be used to select channels, e.g. 131=0b01000011 means channels 1,2,8 are active. ::
+The ExG input channels can be deactivated/activated using ``set_channels`` method. The (string) binary representation
+of a channel mask will be used to select channels (LSB is channel 1), e.g. 0b01000011 means channels 1,2,7 are active. ::
 
-    explore.set_channels(channel_mask=131)
+    explore.set_channels(channel_mask="01000011")
 
 or alternatively: ::
 

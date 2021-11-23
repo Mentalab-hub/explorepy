@@ -5,6 +5,7 @@ Customized exceptions module
 """
 import sys
 
+
 class InputError(Exception):
     """
     User input exception
@@ -32,6 +33,3 @@ if sys.platform == "darwin":
         mock exception class for mac OS
         """
         pass
-else:
-    from bluetooth import BluetoothError
-

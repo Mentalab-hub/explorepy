@@ -15,6 +15,7 @@ from .dashboard.dashboard import Dashboard
 
 
 __version__ = '1.5.2'
+
 this = sys.modules[__name__]
 this._bt_interface = 'sdk'
 
@@ -29,15 +30,12 @@ def set_bt_interface(bt_interface):
     """Set Explorepy Bluetooth interface type
 
     Args:
-        bt_interface (str): Bluetooth interface type. Options: 'sdk' or 'pybluez'
+        bt_interface (str): Bluetooth interface type. Options:'sdk'
 
     """
-    if bt_interface not in ['sdk', 'pybluez']:
-        raise ValueError
+    if bt_interface not in ['sdk']:
+        raise ValueError(("Invalid Bluetooth interface: " + bt_interface))
 
-    if sys.platform == 'darwin' and bt_interface == 'pybluez':
-        logger.warning('Setting Pybluez as Bluetooth backend is not supported in Mac OSX')
-        return
     this._bt_interface = bt_interface
     logger.info("BT interface is set to %s", bt_interface)
 
@@ -46,8 +44,7 @@ def get_bt_interface():
     """Get Explorepy Bluetooth interface name
 
     Returns:
-        bt_interface (str): Current Bluetooth interface: 'sdk' or 'pybluez'
-
+        bt_interface (str): Current Bluetooth interface: 'sdk'
     """
     return this._bt_interface
 

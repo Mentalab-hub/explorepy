@@ -30,6 +30,7 @@ class Parser:
         self._do_streaming = False
         self.is_waiting = False
         self._stream_thread = None
+        self._is_reconnecting = False
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -37,17 +38,16 @@ class Parser:
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
         else:
-            from explorepy.bt_client import BtClient
-            self.stream_interface = BtClient(device_name=device_name, mac_address=mac_address)
+            raise ValueError("Invalid Bluetooth interface: " + explorepy.get_bt_interface())
         self.stream_interface.connect()
         self._stream()
 
     def stop_streaming(self):
         """Stop streaming data"""
         if self._do_streaming:
-            self.stream_interface.disconnect()
             self._do_streaming = False
             self.callback(None)
+            self.stream_interface.disconnect()
 
     def start_reading(self, filename):
         """Open the binary file
@@ -88,20 +88,24 @@ class Parser:
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
-            except (ConnectionAbortedError, BluetoothError) as error:
+            except ConnectionAbortedError as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 logger.warning("Device has been disconnected! Scanning for the last connected device...")
+                self._is_reconnecting = True
                 if self.stream_interface.reconnect() is None:
                     logger.warning("Could not find the device! "
                                    "Please make sure the device is on and in advertising mode.")
                     self.stop_streaming()
                     print("Press Ctrl+c to exit...")
+                self._is_reconnecting = False
             except (IOError, ValueError, FletcherError) as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 if self.mode == 'device':
-                    logger.error('Bluetooth connection error! Make sure your device is on and in advertising mode.')
-                    print("Press Ctrl+c to exit...")
-                    raise error
+                    if str(error) != 'connection has been closed':
+                        logger.error('Bluetooth connection error! Make sure your device is on and in advertising mode.')
+                        self.stop_streaming()
+                        print("Press Ctrl+c to exit...")
+                        raise error
                 else:
                     logger.warning('The binary file is corrupted. Conversion has ended incompletely.')
                 self.stop_streaming()
@@ -152,7 +156,8 @@ class Parser:
                 packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
         else:
             logger.debug("Unknown Packet ID:" + str(pid))
-            raise ValueError("Unknown Packet ID:" + str(pid))
+            # raise ValueError("Unknown Packet ID:" + str(pid))
+            packet = None
         return packet
 
 

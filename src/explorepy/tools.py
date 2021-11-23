@@ -466,7 +466,12 @@ class LslServer:
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
 
-        info_exg = StreamInfo(device_info["device_name"]+"_ExG", 'ExG', n_chan, self.exg_fs, 'float32', 'ExG')
+        info_exg = StreamInfo(name=device_info["device_name"]+"_ExG",
+                              type='ExG',
+                              channel_count=n_chan,
+                              nominal_srate=self.exg_fs,
+                              channel_format='float32',
+                              source_id=device_info["device_name"]+"_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(device_info['adc_mask']):
@@ -476,7 +481,12 @@ class LslServer:
                     .append_child_value("unit", EXG_UNITS[i])\
                     .append_child_value("type", "ExG")
 
-        info_orn = StreamInfo(device_info["device_name"]+"_ORN", 'Orientation', 9, orn_fs, 'float32', 'ORN')
+        info_orn = StreamInfo(name=device_info["device_name"]+"_ORN",
+                              type='ORN',
+                              channel_count=9,
+                              nominal_srate=orn_fs,
+                              channel_format='float32',
+                              source_id=device_info["device_name"]+"_ORN")
         info_orn.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for chan, unit in zip(ORN_CHANNELS, ORN_UNITS):
@@ -485,8 +495,18 @@ class LslServer:
                 .append_child_value("unit", unit) \
                 .append_child_value("type", "ORN")
 
-        info_marker = StreamInfo(device_info["device_name"]+"_Marker", 'Markers', 1, 0, 'int32', 'Marker')
+        info_marker = StreamInfo(name=device_info["device_name"]+"_Marker",
+                                 type='Markers',
+                                 channel_count=1,
+                                 nominal_srate=0,
+                                 channel_format='int32',
+                                 source_id=device_info["device_name"]+"_Markers")
 
+        logger.info("LSL Streams have been created with names/source IDs as the following:\n" +
+                    "\t\t\t\t\t" + device_info["device_name"]+"_ExG\n" +
+                    "\t\t\t\t\t" + device_info["device_name"] + "_ORN\n" +
+                    "\t\t\t\t\t" + device_info["device_name"] + "_Markers\n"
+                    )
         self.orn_outlet = StreamOutlet(info_orn)
         self.exg_outlet = StreamOutlet(info_exg)
         self.marker_outlet = StreamOutlet(info_marker)

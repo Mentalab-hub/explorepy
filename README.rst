@@ -3,7 +3,6 @@
    :align: center
 
 
-
 .. start-badges
 
 |docs| |version| |wheel| |supported-versions| |commits-since| |travis|
@@ -20,9 +19,11 @@
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/explorepy
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v1.5.2.svg
+
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v1.6.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v1.5.2...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v1.6.0...master
+
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
     :alt: PyPI Wheel
@@ -43,7 +44,7 @@
 Explorepy overview
 ==================
 
-Explorepy is Mentalab's open-source Python-based biosignal acquisition API for working with Mentalab Explore device. Amongst many things, it provides the following features:
+Explorepy is an open-source Python API designed to collect and process biosignal data using Mentalab’s Explore device. Amongst other things, Explorepy provides the following features:
 
 * Real-time streaming of ExG, orientation and environmental data
 * Real-time visualization
@@ -55,11 +56,10 @@ Explorepy is Mentalab's open-source Python-based biosignal acquisition API for w
 
 Quick installation
 ==================
-On a Windows machine, Explorepy can be installed using the installable file uploaded in
-the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_ or using pip. Please note using the installable
-files, the dependencies will be installed automatically.
+For Windows users, the best way to install Explorepy is to download the latest Explorepy version from the
+the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_ or use pip. Please note that dependencies will install automatically from the release page.
 
-The following instructions are for other operating systems or in case you want to build the package yourself on Windows.
+For other operating systems, or to build the package manually on Windows, please refer to the information below.
 
 
 Requirements
@@ -70,7 +70,7 @@ Requirements
 * Bluetooth header files (only Linux -> use this command: ``sudo apt-get install libbluetooth-dev``)
 
 
-Please check out the  `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_ for more detailed instructions.
+Detailed installation instructions can be found on the `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_.
 
 To install ``explorepy`` from PyPI run:
 ::
@@ -132,16 +132,15 @@ ECG with heart beat detection:
 Documentation
 =============
 
-For the full documentation of the API, visit: https://explorepy.readthedocs.io/
+For full API documentation, visit: https://explorepy.readthedocs.io/
 
 Troubleshooting
 ===============
-Please check the `troubleshooting <https://explorepy.readthedocs.io/en/latest/installation.html#troubleshooting>`_
+If you are having problems, please check the `troubleshooting <https://explorepy.readthedocs.io/en/latest/installation.html#troubleshooting>`_
 section of the documentation.
 
-If you do not find the solution in the above link, please send us the error log via Sentry (Explorepy will send the log
-automatically after your permission) or send us the log file via email to contact@mentalab.com. The log file can be
-found in the following path.
+If you are still having problems, send us your error log via Sentry (note: Explorepy will send the log
+automatically once you have provided permission), or send us the log file via email to contact@mentalab.com. The log file is usually found under:
 
 * Windows: ``<Windows Drive>:\Users\<USER_NAME>\AppData\Local\mentalab\explorepy\Logs\explorepy.log``
 * Ubuntu: ``/home/<USER_NAME>/.cache/explorepy/log/explorepy.log``
@@ -171,7 +170,3 @@ Authors
 License
 =======
 This project is licensed under the `MIT <https://github.com/Mentalab-hub/explorepy/blob/master/LICENSE>`_ license. You can reach us at contact@mentalab.com.
-
-
-
-

@@ -25,14 +25,14 @@ Install this software on the machine you want to create the installer on.
 Tested versions in (brackets).
 
   - [NSIS - the Nullsoft Scriptable Install System](https://nsis.sourceforge.io/) (3.06.1)
-  - [Visual Studio 2015 Community Edition](https://visualstudio.microsoft.com/vs/older-downloads/) for compiling PyBluez
+  - [Microsoft Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16)
   - A local python installation with virtual env support (3.7.7)
 
 
 #### Python wheels
 
 NSIS pulls most software from the net.
-At the moment, we still need to build two Python modules locally:
+At the moment, we still need to build bokeh module locally:
 
 
 `local-wheels/bokeh-2.2.3-py3-none-any.whl`
@@ -45,16 +45,6 @@ At the moment, we still need to build two Python modules locally:
 This step hopefully will be unneeded when bokeh has wheels online in the Python cheese shop, as most other packages already do.
 @hacklschorsch tries to help with that: [See GitHub issue](https://github.com/bokeh/bokeh/issues/10572).
 
-
-`local-wheels/PyBluez-0.22-cp37-cp37m-win_amd64.whl`
-
-Building of a wheel was introduced in PyBluez 0.23, but that version does not work with our software.
-We have to back-port the wheel building to the earlier version 0.22 source.
-
-  1. Get the 0.22 and 0.23 releases of PyBluez from https://pypi.org/project/PyBluez/#history
-  2. Copy the 0.23 `setup.py` to the source of version 0.22 and amend to say `0.22` everywhere for the version.
-  3. Run `python setup.py bdist_wheel`.
-  4. Copy the resulting file in `dist/` to the local-wheels folder.
 
 
 ## Do the thing

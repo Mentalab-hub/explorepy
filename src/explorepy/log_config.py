@@ -11,7 +11,7 @@ from appdirs import user_log_dir
 from explorepy._exceptions import DeviceNotFoundError
 
 _IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
-_IGNORED_LOGGERS = ['explorepy.parser', 'explorepy.bt_client', 'explorepy.btcpp']
+_IGNORED_LOGGERS = ['explorepy.parser', 'explorepy.btcpp']
 
 
 explorepy_logger = logging.getLogger('explorepy')
