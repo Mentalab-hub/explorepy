@@ -1,6 +1,14 @@
 
 Changelog
 =========
+1.6.0 (23.11.2021)
+------------------
+* Remove dependency on Pybluez
+* Add SSVEP offline experiment
+* Add P300 example
+* Update LSL stream names
+* Fixing some bugs
+
 
 1.5.2 (22.09.2021)
 ------------------
