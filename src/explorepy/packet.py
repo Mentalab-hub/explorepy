@@ -351,7 +351,7 @@ class EventMarker(Packet):
     def __str__(self):
         return "Event marker: " + str(self.marker_code)
 
-    def get_data(self, srate=None   ):
+    def get_data(self, srate=None):
         """Get marker data
         Args:
             srate: NOT USED. Only for compatibility purpose"""
@@ -497,7 +497,7 @@ class TriggerIn(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        precise_ts = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'), count=1, offset=0)
+        precise_ts = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'), count=1, offset=0)[0]
         self.precise_ts = precise_ts/10000
 
     def _check_fletcher(self, fletcher):
