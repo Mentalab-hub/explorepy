@@ -2,8 +2,9 @@
 """This module contains all packet classes of Mentalab Explore device"""
 import abc
 from enum import IntEnum
-import numpy as np
 import logging
+
+import numpy as np
 
 from explorepy._exceptions import FletcherError
 
@@ -27,6 +28,8 @@ class PACKET_ID(IntEnum):
     CMDSTAT = 193
     MARKER = 194
     CALIBINFO = 195
+    TRIGGER_OUT = 28
+    TRIGGER_IN = 29
 
 
 EXG_UNIT = 1e-6
@@ -334,10 +337,8 @@ class EventMarker(Packet):
     def __str__(self):
         return "Event marker: " + str(self.marker_code)
 
-    def get_data(self, srate=None):
-        """Get marker data
-        Args:
-            srate: NOT USED. Only for compatibility purpose"""
+    def get_data(self):
+        """Get marker data"""
         return [self.timestamp], [self.marker_code]
 
 
@@ -453,6 +454,49 @@ class CalibrationInfo(Packet):
         return "calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset)
 
 
+class TriggerOut(Packet):
+    """Trigger Out packet"""
+    def __init__(self, timestamp, payload):
+        super(TriggerOut, self).__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        precise_ts = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'), count=1, offset=0)
+        self.precise_ts = precise_ts
+
+    def _check_fletcher(self, fletcher):
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
+
+    def __str__(self):
+        return "Trigger Out: precise_ts = " + str(self.precise_ts)
+
+
+class TriggerIn(Packet):
+    """Trigger In packet"""
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        precise_ts = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'), count=1, offset=0)
+        self.precise_ts = precise_ts/10000
+        print('Got trigger in: ', precise_ts, self.timestamp)
+
+    def _check_fletcher(self, fletcher):
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
+
+    def __str__(self):
+        return "Trigger In: precise_ts = " + str(self.precise_ts)
+
+    def get_data(self):
+        """Get trigger data"""
+        return [self.precise_ts], [1001]
+
+
 PACKET_CLASS_DICT = {
     PACKET_ID.ORN: Orientation,
     PACKET_ID.ENV: Environment,
@@ -468,5 +512,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
     PACKET_ID.CALIBINFO: CalibrationInfo,
-    PACKET_ID.MARKER: EventMarker
+    PACKET_ID.MARKER: EventMarker,
+    PACKET_ID.TRIGGER_OUT: TriggerOut,
+    PACKET_ID.TRIGGER_IN: TriggerIn,
 }
