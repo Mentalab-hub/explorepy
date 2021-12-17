@@ -79,6 +79,11 @@ class EEG(Packet):
     """EEG packet class"""
     __metadata__ = abc.ABCMeta
 
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self.data = None
+        self.imp_data = None
+
     def calculate_impedance(self, imp_calib_info):
         """calculate impedance with the help of impedance calibration info
 
@@ -108,6 +113,15 @@ class EEG(Packet):
     def get_ptp(self):
         """Get peak to peak value"""
         return np.ptp(self.data, axis=1)
+
+    def __str__(self):
+        pass
+
+    def _check_fletcher(self, fletcher):
+        pass
+
+    def _convert(self, bin_data):
+        pass
 
 
 class EEG94(EEG):
@@ -215,14 +229,14 @@ class Orientation(Packet):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+        self.theta = None
+        self.rot_axis = None
 
     def _convert(self, bin_data):
         data = np.copy(np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder('<'))).astype(np.float)
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
         self.mag = 1.52 * np.multiply(data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
-        self.theta = None
-        self.rot_axis = None
 
     def _check_fletcher(self, fletcher):
         if not fletcher == b'\xaf\xbe\xad\xde':
@@ -239,10 +253,10 @@ class Orientation(Packet):
         """Compute physical angle"""
         trace = matrix[0][0]+matrix[1][1]+matrix[2][2]
         theta = np.arccos((trace-1)/2)*57.2958
-        nx = matrix[2][1] - matrix[1][2]
-        ny = matrix[0][2] - matrix[2][0]
-        nz = matrix[1][0] - matrix[0][1]
-        rot_axis = 1/np.sqrt((3-trace)*(1+trace))*np.array([nx, ny, nz])
+        n_x = matrix[2][1] - matrix[1][2]
+        n_y = matrix[0][2] - matrix[2][0]
+        n_z = matrix[1][0] - matrix[0][1]
+        rot_axis = 1/np.sqrt((3-trace)*(1+trace))*np.array([n_x, n_y, n_z])
         self.theta = theta
         self.rot_axis = rot_axis
         return [theta, rot_axis]
@@ -337,8 +351,10 @@ class EventMarker(Packet):
     def __str__(self):
         return "Event marker: " + str(self.marker_code)
 
-    def get_data(self):
-        """Get marker data"""
+    def get_data(self, srate=None   ):
+        """Get marker data
+        Args:
+            srate: NOT USED. Only for compatibility purpose"""
         return [self.timestamp], [self.marker_code]
 
 
@@ -362,13 +378,13 @@ class Disconnect(Packet):
 class DeviceInfo(Packet):
     """Device information packet"""
     def __init__(self, timestamp, payload):
-        super(DeviceInfo, self).__init__(timestamp, payload)
+        super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
         fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
-        self.firmware_version = '.'.join([char for char in str(fw_num)[1:-1]])
+        self.firmware_version = '.'.join(list(str(fw_num)[1:-1]))
         self.sampling_rate = 16000 / (2 ** bin_data[2])
         self.adc_mask = [int(bit) for bit in format(bin_data[3], '#010b')[2:]]
 
@@ -394,7 +410,7 @@ class DeviceInfo(Packet):
 class CommandRCV(Packet):
     """Command Status packet"""
     def __init__(self, timestamp, payload):
-        super(CommandRCV, self).__init__(timestamp, payload)
+        super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -412,7 +428,7 @@ class CommandRCV(Packet):
 class CommandStatus(Packet):
     """Command Status packet"""
     def __init__(self, timestamp, payload):
-        super(CommandStatus, self).__init__(timestamp, payload)
+        super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -431,7 +447,7 @@ class CommandStatus(Packet):
 class CalibrationInfo(Packet):
     """Calibration Info packet"""
     def __init__(self, timestamp, payload):
-        super(CalibrationInfo, self).__init__(timestamp, payload)
+        super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -457,7 +473,7 @@ class CalibrationInfo(Packet):
 class TriggerOut(Packet):
     """Trigger Out packet"""
     def __init__(self, timestamp, payload):
-        super(TriggerOut, self).__init__(timestamp, payload)
+        super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -492,8 +508,10 @@ class TriggerIn(Packet):
     def __str__(self):
         return "Trigger In: precise_ts = " + str(self.precise_ts)
 
-    def get_data(self):
-        """Get trigger data"""
+    def get_data(self, srate=None):
+        """Get trigger data
+        Args:
+            srate: NOT USED. Only for compatibility purpose"""
         return [self.precise_ts], [1001]
 
 
