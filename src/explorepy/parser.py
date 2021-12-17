@@ -137,6 +137,8 @@ class Parser:
 
         payload_data = self.stream_interface.read(payload - 4)
         packet = self._parse_packet(pid, timestamp, payload_data)
+        if pid == 29:
+            packet.precise_ts = packet.precise_ts + self._time_offset
         return packet
 
     @staticmethod
