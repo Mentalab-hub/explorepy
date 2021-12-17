@@ -9,7 +9,7 @@ import logging
 
 from explorepy.parser import Parser
 from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, \
-    Environment, EventMarker, CalibrationInfo
+    Environment, EventMarker, CalibrationInfo, TriggerOut, TriggerIn
 from explorepy.filters import ExGFilter
 from explorepy.command import DeviceConfiguration, ZMeasurementEnable, ZMeasurementDisable
 from explorepy.tools import ImpedanceMeasurement, PhysicalOrientation, get_local_time
@@ -119,7 +119,7 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.cmd_status, packet=packet)
         elif isinstance(packet, Environment):
             self.dispatch(topic=TOPICS.env, packet=packet)
-        elif isinstance(packet, EventMarker):
+        elif isinstance(packet, (EventMarker, TriggerOut, TriggerIn)):
             self.dispatch(topic=TOPICS.marker, packet=packet)
         elif isinstance(packet, CalibrationInfo):
             self.imp_calib_info = packet.get_info()
@@ -151,7 +151,7 @@ class StreamProcessor:
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
                                       n_chan=self.device_info['adc_mask'].count(1)))
-    
+
     def remove_filters(self):
         '''
         Remove all filters from the stream
