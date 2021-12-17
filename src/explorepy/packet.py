@@ -499,7 +499,6 @@ class TriggerIn(Packet):
     def _convert(self, bin_data):
         precise_ts = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'), count=1, offset=0)
         self.precise_ts = precise_ts/10000
-        print('Got trigger in: ', precise_ts, self.timestamp)
 
     def _check_fletcher(self, fletcher):
         if not fletcher == b'\xaf\xbe\xad\xde':
