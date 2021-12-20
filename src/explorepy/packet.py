@@ -343,6 +343,8 @@ class EventMarker(Packet):
 
     def _convert(self, bin_data):
         self.marker_code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
+        if self.marker_code < 8:
+            self.marker_code = 10000  # Code for push button events
 
     def _check_fletcher(self, fletcher):
         if not fletcher == b'\xaf\xbe\xad\xde':
@@ -488,6 +490,12 @@ class TriggerOut(Packet):
     def __str__(self):
         return "Trigger Out: precise_ts = " + str(self.precise_ts)
 
+    def get_data(self, srate=None):
+        """Get trigger data
+        Args:
+            srate: NOT USED. Only for compatibility purpose"""
+        return [self.precise_ts], [10101]
+
 
 class TriggerIn(Packet):
     """Trigger In packet"""
@@ -511,7 +519,7 @@ class TriggerIn(Packet):
         """Get trigger data
         Args:
             srate: NOT USED. Only for compatibility purpose"""
-        return [self.precise_ts], [1001]
+        return [self.precise_ts], [10001]
 
 
 PACKET_CLASS_DICT = {
