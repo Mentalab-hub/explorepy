@@ -5,6 +5,9 @@ import os.path
 import csv
 import copy
 import socket
+import time
+import serial
+from serial.tools import list_ports
 from contextlib import closing
 import numpy as np
 from scipy import signal
@@ -13,6 +16,7 @@ from pylsl import StreamInfo, StreamOutlet, local_clock
 import configparser
 from appdirs import user_cache_dir, user_config_dir
 import logging
+
 
 import explorepy
 from explorepy.filters import ExGFilter
@@ -782,3 +786,34 @@ def find_free_port():
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         port_number = s.getsockname()[1]
         return port_number
+
+
+class Trigger:
+    """A class for sending triggers from the computer over USB-serial port
+
+    Example:
+        >>>from explorepy.tools import Trigger
+        >>>trigger = Trigger()
+        >>>trigger.set() # Sends a trigger signal
+    """
+    def __init__(self):
+        self.port = self.find_usb_serial_port()
+        self.serial = serial.Serial(port=self.port, baudrate=9600, rtscts=False)
+
+    def set(self):
+        self.serial.setRTS(True)
+        time.sleep(.001)
+        self.serial.setRTS(False)
+
+    @staticmethod
+    def find_usb_serial_port():
+        dest_port = ''
+        all_ports = list_ports.comports()
+        for port in all_ports:
+            if 'USB Serial Port' in port.description:
+                dest_port = port.name
+                break
+        if not dest_port:
+            raise IOError("No USB-Serial port was found. Make sure the trigger module is "
+                          "connected and the driver is installed!")
+        return dest_port
