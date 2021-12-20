@@ -316,8 +316,7 @@ class Explore:
         """Sets a digital event marker while streaming
 
         Args:
-            code (int): Marker code. It must be an integer larger than 7
-                        (codes from 0 to 7 are reserved for hardware markers).
+            code (int): Marker code. It must be an integer between 0 and 9999
 
         """
         self._check_connection()
