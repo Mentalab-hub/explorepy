@@ -4,7 +4,7 @@
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
-
+#include<iostream>
 #include <initguid.h>
 #include <winsock2.h>
 #include <windows.h>
@@ -70,6 +70,10 @@ ExploreSDK::~ExploreSDK()
 
 vector<device> ExploreSDK::PerformDeviceSearch(int length)
 {
+
+	if(!BluetoothIsConnectable(NULL)) 
+		throw ExploreNoBluetoothException("No Bluetooth conenction available");
+	
   (void)(length);
 	// Construct windows socket bluetooth variables
 	DWORD flags = LUP_CONTAINERS | LUP_FLUSHCACHE | LUP_RETURN_NAME | LUP_RETURN_ADDR;
