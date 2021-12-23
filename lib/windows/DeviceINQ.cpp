@@ -167,6 +167,7 @@ vector<device> ExploreSDK::PerformDeviceSearch(int length)
 					dev.name = BluetoothHelpers::ToString(querySet->lpszServiceInstanceName);
 				}
 
+
 				if (result == ERROR_SUCCESS)
 				{
 					ULONG cod = deviceInfo.ulClassofDevice;
@@ -185,7 +186,7 @@ vector<device> ExploreSDK::PerformDeviceSearch(int length)
 					dev.lastSeen = 0;
 					dev.lastUsed = 0;
 				}
-
+				if(!dev.authenticated)
 				devices.push_back(dev);
 			}
 		}
