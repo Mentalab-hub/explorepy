@@ -690,7 +690,7 @@ class Dashboard:
                 logger.warning('Value must be an integer between 1 and 9999')
                 raise ValueError('Value must be an integer between 1 and 9999')
         except ValueError:
-            self.event_code_input.value = "val<9999"
+            self.event_code_input.value = "val>0"
 
     @gen.coroutine
     @without_property_validation
