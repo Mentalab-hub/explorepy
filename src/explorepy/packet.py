@@ -344,7 +344,7 @@ class EventMarker(Packet):
     def _convert(self, bin_data):
         self.marker_code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
         if self.marker_code < 8:
-            self.marker_code = 10000  # Code for push button events
+            self.marker_code = 0  # Code for push button events
 
     def _check_fletcher(self, fletcher):
         if not fletcher == b'\xaf\xbe\xad\xde':

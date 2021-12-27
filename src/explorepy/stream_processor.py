@@ -215,7 +215,7 @@ class StreamProcessor:
         logger.info(f"Setting a marker with code: {code}")
         if not isinstance(code, int):
             raise TypeError('Marker code must be an integer!')
-        if not 0 <= code <= 9999:
+        if not 1 <= code <= 9999:
             raise ValueError('Marker code value is not valid')
 
         self.process(EventMarker(timestamp=get_local_time(),
