@@ -218,8 +218,10 @@ class StreamProcessor:
         if not 1 <= code <= 9999:
             raise ValueError('Marker code value is not valid')
 
-        self.process(EventMarker(timestamp=get_local_time(),
-                                 payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')))
+        marker = EventMarker(timestamp=get_local_time(),
+                             payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde'))
+        marker.marker_code = code
+        self.process(marker)
 
     def compare_device_info(self, new_device_info):
         """Compare a device info dict with the current version
