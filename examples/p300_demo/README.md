@@ -10,7 +10,8 @@ Experiment setup
 * Install required packages by running this command:
 `pip install matplotlib psychopy mne`
 * Download the code from this page.
-* In Conda terminal, navigate to `p300_demo` folder in the example directory of the Explorepy's code.
+* In Conda terminal, navigate to `p300_demo` folder in the example directory of the Explorepy's code (e.g.
+`cd <YOUR-FOLDER>\explorepy-master\examples\p300_demo`).
 * Setup the cap and electrodes. Place EEG electrodes on the desired positions and the
 ground electrode on Mastoid (or any other location far enough from other electrodes).
 The default setup in the code is `ch1` to `ch8` and ground on `TP9`, `Cz`, `Pz`, `CP1`, `CP2`, `P3`, `P4`, `Oz` and `TP10` respectively.
