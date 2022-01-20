@@ -18,7 +18,7 @@ Documentation improvements
 ==========================
 
 We are happy to receive contributions to our documentation. Please do suggest changes to the
-official `explorepy` docs and docstrings, or increase our web presence with blog posts
+official ``explorepy`` docs and docstrings, or increase our web presence with blog posts
 and articles.
 
 Feature requests and feedback
@@ -34,7 +34,7 @@ If you are proposing a feature:
 Development
 ===========
 
-To set up `explorepy` for local development:
+To set up ``explorepy`` for local development:
 
 1. Fork `explorepy <https://github.com/Mentalab-hub/explorepy>`_
    (look for the "Fork" button).
