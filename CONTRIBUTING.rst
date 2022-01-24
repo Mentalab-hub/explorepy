@@ -39,26 +39,26 @@ To set up ``explorepy`` for local development:
 1. Fork `explorepy <https://github.com/Mentalab-hub/explorepy>`_
    (look for the "Fork" button).
 
-2. Clone your fork locally::
-
+2. Clone your fork locally
+::
     git clone git@github.com:USERNAME/explorepy.git
 
-3. Create a branch for local development::
-
+3. Create a branch for local development
+::
     git checkout -b name-of-bugfix-or-feature
 
-4. Commit your changes and push your branch to GitHub::
-
+4. Commit your changes and push your branch to GitHub
+::
     git add .
     git commit -m "Detailed description of changes."
     git push origin name-of-bugfix-or-feature
 
-5. Submit a pull request through the GitHub website.
+5. Submit a pull request to the develop branch through the GitHub website.
 
 Pull Request Guidelines
 -----------------------
 
-For a code review or feedback, create a pull request.
+For a code review or feedback, create a pull request to the develop branch.
 
 For merge approval:
 

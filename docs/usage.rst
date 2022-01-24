@@ -80,7 +80,7 @@ Connects to a device and records ExG and orientation data into two separate file
 
 .. note:: Because environmental factors, like temperature, can affect your device's sampling rate, we recommend computing the sampling rate of recorded data. If you find a deviation between the recorded sampling rate and ``explorepy``'s sampling rate, resample your signal to correct for drifts. The timestamps in the CSV/EDF file can be used to compute the resampling factor.
 
-           If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF, as it cannot guarantee precise timing.
+           If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF files here, as they cannot guarantee precise timing.
 
 Example:
 ::
@@ -144,7 +144,7 @@ Takes a binary file and converts it to two EDF files (ExG and orientation - mark
 
 .. note:: Because environmental factors, like temperature, can affect your device's sampling rate, we recommend computing the sampling rate of recorded data. If you find a deviation between the recorded sampling rate and ``explorepy``'s sampling rate, resample your signal to correct for drifts. The timestamps in the CSV/EDF file can be used to compute the resampling factor.
 
-           If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF, as it cannot guarantee precise timing.
+           If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF files here, as they cannot guarantee precise timing.
 
 Example (overwrite):
 ::
@@ -239,9 +239,9 @@ Example:
 set-channels
 %%%%
 
-Enables and disables a set of ExG channels. Takes a binary string to represent the channel mask (where the least significant bit is 1).
+Enables and disables a set of ExG channels. Takes a binary string to represent the channel mask (where the least significant/right-most bit represents channel 1).
 
-For example, to enable 4 channels of an 8 channel device, use ``00001111``.
+For example, to disable channels 5 to 8 of an 8 channel device, use ``00001111``.
 ::
 
     Options:

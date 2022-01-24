@@ -55,7 +55,7 @@
 
 Quick installation
 ==================
-For Windows users, the best way to install ``explorepy`` is to download the latest ``explorepy`` version from the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_ or use pip. Please note that dependencies will install automatically from the release page.
+For Windows users, the best way to install ``explorepy`` is to download the latest ``explorepy`` version from the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_. Please note that dependencies will install automatically from the release page.
 
 For other operating systems, or to build the package manually on Windows, please refer to the information below.
 
@@ -65,7 +65,7 @@ Requirements
 
 * Python 3.6 to Python 3.9.
 * Visual Studio 2015 community edition (Windows only. For package building).
-* Bluetooth header files (Linux command: ``sudo apt-get install libbluetooth-dev``).
+* Bluetooth header files (Linux only. Use: ``sudo apt-get install libbluetooth-dev``).
 
 
 Detailed installation instructions can be found on the `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_.

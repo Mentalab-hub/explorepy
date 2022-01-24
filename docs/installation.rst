@@ -41,8 +41,6 @@ Option 2: Installing from Python Package Index (PyPI) and pip (advanced)
 
 *This option is best for users who intend to include* ``explorepy`` *functionalities in their own Python scripts.*
 
-For this, use `Anaconda <https://www.anaconda.com/>`_ to access ``explorepy``.
-
 To install the ``explorepy`` API and all its dependencies using pip on Windows:
 
 1. Install Anaconda (or any other Python distribution; these instructions pertain to Anaconda only). Download and install the `Anaconda Windows installer <https://www.anaconda.com/distribution/#download-section>`_.
@@ -62,7 +60,7 @@ Ubuntu
 2. We recommend installing Anaconda. Download and install the `Anaconda Python 3.7 Ubuntu installer <https://www.anaconda.com/distribution/#download-section>`_.
 3. We recommend using a virtual environment in Conda. To do this:
 
-   a. In Conda command prompt: ``conda create -n myenv python=3.6``
+   a. In Conda command prompt: ``conda create -n myenv python=3.7``
    b. Activate the virtual environment: ``conda activate myenv``
 
 4. Upgrade your pip: ``python -m pip install --upgrade pip``
