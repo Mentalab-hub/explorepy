@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
+EXG_MAX_LIM = 400000
+EXG_MIN_LIM = -400000
 ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
 ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
 
@@ -73,9 +75,9 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
     exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_max = [21600.] + [4e5 for i in range(8)]
+    exg_max = [21600.] + [EXG_MAX_LIM for i in range(8)]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_min = [0.] + [-4e5 for i in range(8)]
+    exg_min = [0.] + [EXG_MIN_LIM for i in range(8)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
                         file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
