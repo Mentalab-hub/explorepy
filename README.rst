@@ -41,23 +41,21 @@
 .. end-badges
 
 ==================
-Explorepy overview
+``explorepy`` overview
 ==================
 
-Explorepy is an open-source Python API designed to collect and process biosignal data using Mentalab’s Explore device. Amongst other things, Explorepy provides the following features:
+``explorepy`` is an open-source Python API designed to collect and process ExG data using Mentalab's Explore device. Amongst other things, ``explorepy`` provides the following features:
 
-* Real-time streaming of ExG, orientation and environmental data
-* Real-time visualization
-* Data recording in CSV and BDF+ formats
-* LSL integration
-* Impedance measurement
-* Explore device configuration
-
+* Real-time streaming of ExG, orientation and environmental data.
+* Real-time visualization of ExG, orientation and environmental data.
+* Data recording in CSV and BDF+ formats.
+* Integration with LabStreaming Layer.
+* Electrode impedance measurements.
+* Explore device configuration.
 
 Quick installation
 ==================
-For Windows users, the best way to install Explorepy is to download the latest Explorepy version from the
-the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_ or use pip. Please note that dependencies will install automatically from the release page.
+For Windows users, the best way to install ``explorepy`` is to download the latest ``explorepy`` version from the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_. Please note that dependencies will install automatically from the release page.
 
 For other operating systems, or to build the package manually on Windows, please refer to the information below.
 
@@ -65,9 +63,9 @@ For other operating systems, or to build the package manually on Windows, please
 Requirements
 ------------
 
-* Python 3.6 or newer versions
-* Visual Studio 2015 community edition (only Windows, in case of building the package)
-* Bluetooth header files (only Linux -> use this command: ``sudo apt-get install libbluetooth-dev``)
+* Python 3.6 to Python 3.9.
+* Visual Studio 2015 community edition (Windows only. For package building).
+* Bluetooth header files (Linux only. Use: ``sudo apt-get install libbluetooth-dev``).
 
 
 Detailed installation instructions can be found on the `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_.
@@ -89,17 +87,19 @@ Get started
 
 CLI command
 -----------
-For a simple, quick start of Explorepy,  run:
+To check ``explorepy`` is running use:
+::
+    explorepy acquire -n Explore_XXXX
 
-``explorepy acquire -n Explore_XXXX``
-
-Enter ``explorepy -h`` for help.
+For help, use:
+::
+    explorepy -h
 
 
 Python code
 -----------
 
-When working in Python, the following connects to the Explore device and prints the data.
+In Python you can connect to the Explore device and print data using:
 
 ::
 
@@ -132,7 +132,7 @@ ECG with heart beat detection:
 Documentation
 =============
 
-For full API documentation, visit: https://explorepy.readthedocs.io/
+For full API documentation, visit: https://explorepy.readthedocs.io/.
 
 Troubleshooting
 ===============
