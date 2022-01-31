@@ -26,7 +26,11 @@ class Parser:
         self.device_configurator = None
         self.callback = callback
 
-        self._time_offset = None
+        if self.mode == 'file':
+            self._time_offset = 0
+        else:
+            self._time_offset = None
+
         self._do_streaming = False
         self.is_waiting = False
         self._stream_thread = None
