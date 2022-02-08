@@ -7,8 +7,9 @@ import logging
 import logging.handlers
 import time
 import sentry_sdk
-from appdirs import user_log_dir
+from appdirs import user_log_dir, user_config_dir
 from explorepy._exceptions import DeviceNotFoundError
+import configparser
 
 _IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
 _IGNORED_LOGGERS = ['explorepy.parser', 'explorepy.btcpp']
@@ -71,20 +72,28 @@ def setup_thread_excepthook():
 def uncaught_exception_handler(exctype, value, trace_back):
     """Handler of unhandled exceptions"""
     if exctype not in _IGNORED_EXC_BY_SENTRY:
-        time.sleep(3)
-        while True:
-            try:
-                txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n>")
-            except (KeyboardInterrupt, EOFError):
-                sentry_sdk.init()  # disable sentry
-                break
+        permitted = False
+        config_file = os.path.join(user_config_dir(appname="explorepy", appauthor="Mentalab"), "conf.ini")
+        if os.path.isfile(config_file):
+            config_parser = configparser.ConfigParser()
+            config_parser.read(config_file)
+            if config_parser["error_log_sharing"] == "allowed":
+                permitted = True
+        time.sleep(2)
+        if not permitted:  # Then ask for permission
+            while True:
+                try:
+                    txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n>")
+                except (KeyboardInterrupt, EOFError):
+                    sentry_sdk.init()  # disable sentry
+                    break
 
-            if txt in ['n', 'no', 'N', 'No']:
-                sentry_sdk.init()  # disable sentry
-                break
-            if txt in ['y', 'yes', 'Y', 'Yes']:
-                logger.info("Thanks for helping us to improve Explorepy. Sending the error log to Mentalab ...")
-                break
+                if txt in ['n', 'no', 'N', 'No']:
+                    sentry_sdk.init()  # disable sentry
+                    break
+                if txt in ['y', 'yes', 'Y', 'Yes']:
+                    logger.info("Thanks for helping us to improve Explorepy. Sending the error log to Mentalab ...")
+                    break
     else:
         sentry_sdk.init()  # disable sentry for ignored exceptions
 
