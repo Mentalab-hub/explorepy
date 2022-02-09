@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 """Logging configurator module"""
-import sys
-import os
-import threading
+import configparser
 import logging
 import logging.handlers
+import os
+import sys
+import threading
 import time
+
 import sentry_sdk
-from appdirs import user_log_dir, user_config_dir
+from appdirs import user_config_dir
+from appdirs import user_log_dir
+
 from explorepy._exceptions import DeviceNotFoundError
-import configparser
 
 _IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
 _IGNORED_LOGGERS = ['explorepy.parser', 'explorepy.btcpp']
-
+USER_SETTING_KEY = "user settings"
+SHARE_LOG_PERMISSION_KEY = "share_logs"
 
 explorepy_logger = logging.getLogger('explorepy')
 explorepy_logger.propagate = False
@@ -69,18 +73,35 @@ def setup_thread_excepthook():
     threading.Thread.__init__ = init
 
 
+def read_config(section, var):
+    """Read config file and return the value of the requested variable
+
+    Args:
+        section (str): section name
+        var (str): variable name
+
+    Returns:
+        str: content of the requested variable, empty string if the file/section/variable is not found
+    """
+    config_file = os.path.join(user_config_dir(appname="explorepy", appauthor="Mentalab"), "conf.ini")
+    if os.path.isfile(config_file):
+        config = configparser.ConfigParser()
+        config.read(config_file)
+        if section in config and var in config[section]:
+            return config[section][var]
+    return ""
+
+
 def uncaught_exception_handler(exctype, value, trace_back):
     """Handler of unhandled exceptions"""
     if exctype not in _IGNORED_EXC_BY_SENTRY:
-        permitted = False
-        config_file = os.path.join(user_config_dir(appname="explorepy", appauthor="Mentalab"), "conf.ini")
-        if os.path.isfile(config_file):
-            config_parser = configparser.ConfigParser()
-            config_parser.read(config_file)
-            if config_parser["error_log_sharing"] == "allowed":
-                permitted = True
+        permission = False
+
+        if read_config(USER_SETTING_KEY, SHARE_LOG_PERMISSION_KEY) == "True":
+            permission = True
+
         time.sleep(2)
-        if not permitted:  # Then ask for permission
+        if not permission:  # Then ask for permission
             while True:
                 try:
                     txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n>")
