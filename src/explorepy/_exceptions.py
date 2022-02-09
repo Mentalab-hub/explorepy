@@ -19,6 +19,11 @@ class DeviceNotFoundError(IOError):
     """
     pass
 
+class UnsupportedBtHardwareError(Exception):
+    """
+    Exception for Bluetooth hardwares needing manual intervention
+    """
+    pass
 
 class FletcherError(Exception):
     """

@@ -22,6 +22,9 @@
 	catch(const ExploreIOException& e) {
         SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+        SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
         SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
