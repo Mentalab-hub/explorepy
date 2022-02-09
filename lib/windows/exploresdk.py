@@ -318,6 +318,20 @@ class ExploreBtSocketException(object):
 # Register ExploreBtSocketException in _exploresdk:
 _exploresdk.ExploreBtSocketException_swigregister(ExploreBtSocketException)
 
+class ExploreNoBluetoothException(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+
+    def __init__(self, message: "std::string"):
+        _exploresdk.ExploreNoBluetoothException_swiginit(self, _exploresdk.new_ExploreNoBluetoothException(message))
+
+    def what(self) -> "char const *":
+        return _exploresdk.ExploreNoBluetoothException_what(self)
+    __swig_destroy__ = _exploresdk.delete_ExploreNoBluetoothException
+
+# Register ExploreNoBluetoothException in _exploresdk:
+_exploresdk.ExploreNoBluetoothException_swigregister(ExploreNoBluetoothException)
+
 class device(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr

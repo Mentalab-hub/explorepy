@@ -48,7 +48,7 @@ vector<device> ExploreSDK::PerformDeviceSearch(int length)
 	int sock = hci_open_dev(dev_id);
 
 	if (dev_id < 0 || sock < 0)
-		throw ExploreException("error opening socket");
+		throw ExploreException("Bluetooth is off. Please turn Bluetooth service on in your machine");
 
 	int max_rsp = 255;
 	inquiry_info *ii = (inquiry_info*)malloc(max_rsp * sizeof(inquiry_info));

@@ -18,9 +18,11 @@
     catch(const ExploreReadBufferException& e) {
         SWIG_exception(SWIG_MemoryError, e.what());
     }
-	
 	catch(const ExploreIOException& e) {
         SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreNoBluetoothException& e) {
+        SWIG_exception(SWIG_SystemError, e.what());
     }
     catch(const ExploreBtSocketException& e) {
         SWIG_exception(SWIG_TypeError, e.what());
