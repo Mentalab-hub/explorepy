@@ -13,6 +13,7 @@ from pylsl import StreamInfo, StreamOutlet, local_clock
 import configparser
 from appdirs import user_cache_dir, user_config_dir
 import logging
+from collections import namedtuple
 
 import explorepy
 from explorepy.filters import ExGFilter
@@ -37,35 +38,31 @@ def get_local_time():
 
 
 def bt_scan():
-    """"Scan for bluetooth devices
-    Scans for available explore devices.
-    Prints out MAC address and name of each found device
+    """ Scan for nearby Explore devices
 
-    Args:
+    This function searches for nearby bluetooth devices and returns a list of advertising Explore devices.
+
+    Note:
+        In Windows, this function returns all the paired devices and unpaired advertising devices. The 'is_paired'
+        attribute shows if the device is paired. If a device is paired, it will be in the returned list regardless if
+        it is currently advertising or not.
 
     Returns:
-
+            list[namedtuple]: list of nearby devices
     """
+    NearbyDeviceInfo = namedtuple("NearbyDeviceInfo", ["name", "address", "is_paired"])
     logger.info("Searching for nearby devices...")
     explore_devices = []
     print('\n')
-    if explorepy.get_bt_interface() == 'sdk':
-        device_manager = explorepy.exploresdk.ExploreSDK_Create()
-        nearby_devices = device_manager.PerformDeviceSearch()
-        for bt_device in nearby_devices:
-            if "Explore" in bt_device.name:
-                print("Device found: %s - %s" % (bt_device.name, bt_device.address))
-                explore_devices.append((bt_device.name, bt_device.address))
-    else:
-        import bluetooth
-        nearby_devices = bluetooth.discover_devices(lookup_names=True)
-        for address, name in nearby_devices:
-            if "Explore" in name:
-                print("Device found: %s - %s" % (name, address))
-                explore_devices.append((address, name))
+    device_manager = explorepy.exploresdk.ExploreSDK_Create()
+    nearby_devices = device_manager.PerformDeviceSearch()
+    for bt_device in nearby_devices:
+        if "Explore" in bt_device.name:
+            print("Device found: %s - %s - Paired: %s" % (bt_device.name, bt_device.address, bt_device.authenticated))
+            explore_devices.append(NearbyDeviceInfo(bt_device.name, bt_device.address, bt_device.authenticated))
 
     if not nearby_devices:
-        print("No Devices found")
+        logger.info("No Explore device was found!")
 
     return explore_devices
 
