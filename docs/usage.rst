@@ -7,7 +7,11 @@ Command Line Interface
 **Command structure:**
 ``explorepy <command> [args]``
 
-You can get help for a specific command by  ``explorepy <command> -h``. For example to get help about visualize command, run ``explorepy visualize -h`` will result to::
+Get help for a specific command using
+::
+    explorepy <command> -h
+For example to get help about the visualize command, run: ``explorepy visualize -h``
+::
 
     Usage: explorepy visualize [OPTIONS]
 
@@ -27,30 +31,35 @@ You can get help for a specific command by  ``explorepy <command> -h``. For exam
 Available Commands
 """"""""""""""""""
 
-**find-device**
-Scans for nearby Mentalab Explore devices. Prints out Name and MAC address of the found devices.
+find-device
+%%%%
+Scans for nearby Mentalab Explore devices. Prints out the Name and MAC address of found devices.
 
     Options:
       -h, --help                      Show this message and exit.
 
-.. note:: On Windows, this function may print all the paired devices.
+.. note:: On Windows, this function may print all paired devices.
 
 
-**acquire**::
-
-    Connect to a device with selected name or address. Only one input is necessary.
+acquire
+%%%%
+Connects to a device with selected name or address. Only one input is necessary.
+::
 
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
       -h, --help          Show this message and exit.
 
+Example:
+::
+    explorepy acquire -n Explore_XXXX  # Put your device Bluetooth name
 
+record-data
+%%%%
 
-**record-data**
-
-Connects to a device and records ExG and orientation data into two separate files. Note that in CSV mode there will be
-an extra file for the marker events. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution).::
+Connects to a device and records ExG and orientation data into two separate files. Note that in CSV mode there will be an extra file for the marker events. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution).
+::
 
     Options:
       -a, --address TEXT              Explore device's MAC address
@@ -63,29 +72,25 @@ an extra file for the marker events. In EDF mode, the data is actually recorded 
       -h, --help                      Show this message and exit.
 
 
-.. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF/CSV
-            file for ExG data with the given file name plus the time the setting has changed.
+.. note:: If you change your device's sampling rate or channel mask during recording, ``explorepy`` will create a new CSV file for ExG data with the given file name plus the time the setting changed.
 
-.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
-            `mne <https://github.com/mne-tools/mne-python>`_ (file extension may need to change to bdf manually for mne)
-            in python.
+.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or `mne <https://github.com/mne-tools/mne-python>`_ (for mne, you may need to change the file extension to ``bdf`` manually) in Python.
 
-            EEGLAB's BIOSIG plugin has problem with some EDF files currently
-            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled MATLAB code (mexSLOAD.mex)
-            from BIOSIG can be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. The
-            documentaion can be found in this `link <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
+          EEGLAB's BIOSIG plugin has problems with some EDF files (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). To resolve this, download a precompiled MATLAB file (mexSLOAD.mex) from BIOSIG `here <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. Documentation is `here <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
 
-.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
-            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
-            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
+.. note:: Because environmental factors, like temperature, can affect your device's sampling rate, we recommend computing the sampling rate of recorded data. If you find a deviation between the recorded sampling rate and ``explorepy``'s sampling rate, resample your signal to correct for drifts. The timestamps in the CSV/EDF file can be used to compute the resampling factor.
 
-            If you are setting markers in the recording, it is recommended to record in CSV file. Alternative option would
-            be pushing data to LSL and recording with
-            `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. EDF might not give a
-            precise timing for markers, hence it should be avoided.
+           If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF files here, as they cannot guarantee precise timing.
 
-**push2lsl**
-Streams data to Lab Streaming Layer (LSL).::
+Example:
+::
+    explorepy record-data -n Explore_XXXX -f test_file --edf -ow
+
+push2lsl
+%%%%
+
+Streams data to Lab Streaming Layer (LSL).
+::
 
     Options:
       -a, --address TEXT        Explore device's MAC address
@@ -93,57 +98,63 @@ Streams data to Lab Streaming Layer (LSL).::
       -d, --duration <integer>  Streaming duration in seconds
       -h, --help                Show this message and exit.
 
+Example:
+::
+    explorepy push2lsl -n Explore_XXXX
 
+bin2csv
+%%%%
 
-**bin2csv**
-Takes a Binary file and converts it to three CSV files (ExG, orientation and marker files)::
-
-    Options:
-      -f, --filename PATH  Name of (and path to) the binary file.  [required]
-      -ow, --overwrite     Overwrite existing file
-      -h, --help           Show this message and exit.
-
-
-
-.. note:: For devices with firmware version 2.1.1 and lower, Explorepy v0.5.0 has to be used to convert binary files.
-
-.. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new CSV
-            file for ExG data with the given file name plus the time the setting has changed.
-
-**bin2edf**
-Takes a Binary file and converts it to two EDF files (ExG and orientation - markers will be written in ExG file).
-The data is actually recorded in BDF+ format (in 24-bit resolution).::
+Takes a binary file and converts it to three CSV files (ExG, orientation and marker files).
+::
 
     Options:
       -f, --filename PATH  Name of (and path to) the binary file.  [required]
       -ow, --overwrite     Overwrite existing file
       -h, --help           Show this message and exit.
 
-.. note:: For devices with firmware version 2.1.1 and lower, explorepy v0.5.0 has to be used to convert binary files.
 
-.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
-            `mne <https://github.com/mne-tools/mne-python>`_ (file extension may need to change to bdf manually for mne)
-            in python.
 
-            EEGLAB's BIOSIG plugin has problem with some EDF files currently
-            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled MATLAB code (mexSLOAD.mex)
-            from BIOSIG can be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. The
-            documentaion can be found in this `link <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
+.. note:: For devices with firmware version 2.1.1 and lower, use ``explorepy`` v0.5.0 to convert binary files.
 
-.. note:: If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF
-            file for ExG data with the given file name plus the time the setting has changed.
+.. note:: If you change your device's sampling rate or channel mask during recording, ``explorepy`` will create a new CSV file for ExG data with the given file name plus the time the setting changed.
 
-.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
-            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
-            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
+Example:
+::
+    explorepy bin2csv -f input_file.BIN
 
-            If you are setting markers in the recording, it is recommended to record in CSV file. Alternative option would
-            be pushing data to LSL and recording with
-            `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. EDF might not give a
-            precise timing for markers, hence it should be avoided.
+bin2edf
+%%%%
 
-**visualize**
-Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the supported and recommended browser. The visualization in IE and Edge might be very slow, and is not recommended.::
+Takes a binary file and converts it to two EDF files (ExG and orientation - markers will be written in ExG file). The data is actually recorded in BDF+ format (in 24-bit resolution).
+::
+
+    Options:
+      -f, --filename PATH  Name of (and path to) the binary file.  [required]
+      -ow, --overwrite     Overwrite existing file
+      -h, --help           Show this message and exit.
+
+.. note:: For devices with firmware version 2.1.1 and lower, use ``explorepy`` v0.5.0 to convert binary files.
+
+.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or `mne <https://github.com/mne-tools/mne-python>`_ (for mne, you may need to change the file extension to ``bdf`` manually) in Python.
+
+          EEGLAB's BIOSIG plugin has problems with some EDF files (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). To resolve this, download a precompiled MATLAB file (mexSLOAD.mex) from BIOSIG `here <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. Documentation is `here <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
+
+.. note:: If you change your device's sampling rate or channel mask during recording, ``explorepy`` will create a new CSV file for ExG data with the given file name plus the time the setting changed.
+
+.. note:: Because environmental factors, like temperature, can affect your device's sampling rate, we recommend computing the sampling rate of recorded data. If you find a deviation between the recorded sampling rate and ``explorepy``'s sampling rate, resample your signal to correct for drifts. The timestamps in the CSV/EDF file can be used to compute the resampling factor.
+
+           If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF files here, as they cannot guarantee precise timing.
+
+Example (overwrite):
+::
+    explorepy bin2edf -f input_file.BIN -ow
+
+visualize
+%%%%
+
+Visualizes real-time data in a browser-based dashboard. Currently, Google Chrome is supported. Visualization in IE and Edge can be slow.
+::
 
     Options:
       -a, --address TEXT        Explore device's MAC address
@@ -153,9 +164,15 @@ Visualizes real-time data in a browser-based dashboard. Currently, Chrome is the
       -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
       -h, --help                Show this message and exit.
 
+Example:
+::
+    explorepy visualize -n Explore_XXXX -lf .5 -hf 40 -nf 50
 
-**impedance**
-Visualizes the electrode impedances in a browser  dashboard. Currently, Chrome is the supported browser.::
+impedance
+%%%%
+
+Visualizes electrode impedances in a browser dashboard. Currently, Google Chrome is supported.
+::
 
     Options:
       -a, --address TEXT        Explore device's MAC address
@@ -163,18 +180,21 @@ Visualizes the electrode impedances in a browser  dashboard. Currently, Chrome i
       -h, --help                Show this message and exit.
 
 
-.. note::  It is recommended to restart the device after impedance measurement as the mechanism may introduce external noise.
+.. note:: Restart your device after measuring its impedance to avoid introducing external noise.
 
-.. note:: Impedance value shown for each electrode is the sum of impedances of ground electrode and corresponding ExG electrode.
+.. note:: Impedance values for each electrode are the sum of impedances values for the ground electrode and corresponding ExG electrode.
 
-.. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature.
+.. note:: Impedance accuracy is affected by environmental conditions such as noise and temperature.
 
+Example:
+::
+    explorepy impedance -n Explore_XXXX
 
-**calibrate-orn**
-Calibrate the orientation module of the specified device. After running this module, calibration parameters will be
-stored in the configuration file of Explorepy. If the orientation module is calibrated, Explorepy computes the physical
-orientation (degree and rotation axis). Currently, the physical orientation data is not visualized in the dashboard and
-it is only accessible in python scripts in data packets.::
+calibrate-orn
+%%%%
+
+Calibrates the orientation module of a device. This module stores calibration parameters in ``explorepy``'s configuration file. Once calibrated, ``explorepy`` computes the device's orientation (degree and rotation axis).
+::
 
     Options:
       -a, --address TEXT   Explore device's MAC address
@@ -183,18 +203,26 @@ it is only accessible in python scripts in data packets.::
       -h, --help           Show this message and exit.
 
 
-**format-memory**
-This command formats the memory of the specified Explore device.::
+format-memory
+%%%%
+
+Formats device memory.
+::
 
     Options:
       -a, --address TEXT  Explore device's MAC address
       -n, --name TEXT     Name of the device
       -h, --help          Show this message and exit.
 
+Example:
+::
+    explorepy format-memory -n Explore_XXXX
 
-**set-sampling-rate**
-This command sets the sampling rate of ExG on the specified Explore device. Acceptable values for
-sampling rates are 250, 500 or 1000. The default sampling rate of the device is 250 Hz. Please note that 1000 Hz sampling rate is in beta phase.::
+set-sampling-rate
+%%%%
+
+Sets a device's ExG sampling rate. Acceptable values: 250, 500 or 1000 (beta). The default sampling rate is 250 Hz.
+::
 
     Options:
       -a, --address TEXT              Explore device's MAC address
@@ -204,10 +232,17 @@ sampling rates are 250, 500 or 1000. The default sampling rate of the device is 
                                       or 500  [required]
       -h, --help                      Show this message and exit.
 
+Example:
+::
+    explorepy set-sampling-rate -n Explore_XXXX -sr 500
 
-**set-channels**
-Using this command, you can enable/disable a set of ExG channels of the device. A binary string is required for the
-channel mask, where LSB is channel 1 (eg. 00001111, to enable 4 channels of an 8-ch device).::
+set-channels
+%%%%
+
+Enables and disables a set of ExG channels. Takes a binary string to represent the channel mask (where the least significant/right-most bit represents channel 1).
+
+For example, to disable channels 5 to 8 of an 8 channel device, use ``00001111``.
+::
 
     Options:
       -a, --address TEXT              Explore device's MAC address
@@ -219,9 +254,15 @@ channel mask, where LSB is channel 1 (eg. 00001111, to enable 4 channels of an 8
                                       [required]
       -h, --help                      Show this message and exit.
 
-**disable-module**
-Using this command, you can disable a module of Explore device. Orientation, environment and ExG modules can be disabled
-with this command.::
+Example:
+::
+    explorepy set-channels -n Explore_XXXX -m 0111
+
+disable-module
+%%%%
+
+Disables a device module (orientation, environment and ExG).
+::
 
     Options:
       -a, --address TEXT  Explore device's MAC address
@@ -231,8 +272,11 @@ with this command.::
 
 
 
-**enable-module**
-If you have already disabled a module of Explore device, you can enable it with this command.::
+enable-module
+%%%%
+
+Enables a device module (orientation, environment and ExG).
+::
 
     Options:
       -a, --address TEXT  Explore device's MAC address
@@ -242,9 +286,11 @@ If you have already disabled a module of Explore device, you can enable it with 
       -h, --help          Show this message and exit.
 
 
-**soft-reset**
-This command does a soft reset of the device. All the settings (e.g. sampling rate, channel mask)
-return to the default values.::
+soft-reset
+%%%%
+
+Soft resets a device. All settings (e.g. sampling rate, channel mask) return to default.
+::
 
     Options:
       -a, --address TEXT  Explore device's MAC address
@@ -252,111 +298,76 @@ return to the default values.::
       -h, --help          Show this message and exit.
 
 
-Example commands:
+All commands:
 """""""""""""""""
-Data acquisition: ``explorepy acquire -n Explore_XXXX  # Put your device Bluetooth name``
+To see the full list of commands
+::
+    explorepy -h
 
-Record data: ``explorepy record-data -n Explore_XXXX -f test_file --edf -ow``
 
-Push data to lsl: ``explorepy push2lsl -n Explore_XXXX``
-
-Convert a binary file to csv: ``explorepy bin2csv -f input_file.BIN``
-
-Convert a binary file to EDF and overwrite if files exist already: ``explorepy bin2edf -f input_file.BIN -ow``
-
-Visualize in real-time: ``explorepy visualize -n Explore_XXXX -lf .5 -hf 40 -nf 50``
-
-Impedance measurement: ``explorepy impedance -n Explore_XXXX``
-
-Format the memory: ``explorepy format-memory -n Explore_XXXX``
-
-Set the sampling rate: ``explorepy set-sampling-rate -n Explore_XXXX -sr 500``
-
-Set the channel mask: ``explorepy set-channels -n Explore_XXXX -m 0111``
-
-To see the full list of commands ``explorepy -h``.
-
-Python project
+Creating a Python project
 ^^^^^^^^^^^^^^
-To use explorepy in a python project::
-
+To use ``explorepy`` in a Python project:
+::
 	import explorepy
 
+.. note:: Because ``explorepy`` uses multithreading, running Python scripts in some consoles, such as Ipython's or Spyder's, can cause strange behaviours.
 
-.. note:: Since explorepy is using multithreading for data streaming, running python scripts in some consoles such
-            as Ipython's or Spyder's consoles may lead to strange behaviours.
-
-.. note:: To give you a better idea how you can develop your own python project based on Explorepy, we have provided
-            some sample projects in this `folder <https://github.com/Mentalab-hub/explorepy/tree/master/examples>`_.
+.. note:: For an exmaple project using ``explorepy``, see this `folder on GitHub <https://github.com/Mentalab-hub/explorepy/tree/master/examples>`_.
 
 
 Initialization
 """"""""""""""
-Before starting a session, make sure your device is paired to your computer. The device will be shown under the following name: Explore_XXXX,
-with the last 4 characters being the last 4 hex numbers of the devices MAC address.
+Before starting a session, ensure your device is paired to your computer. The device will display under the following: ``Explore_XXXX``.
 
-**Make sure to initialize the Bluetooth connection before streaming using the following lines**::
+**Be sure to initialize the Bluetooth connection before streaming:**
+::
 
     explore = explorepy.Explore()
     explore.connect(device_name="Explore_XXXX") # Put your device Bluetooth name
 
-Alternatively you can use the device's MAC address::
-
+Alternatively, use your device's MAC address.
+::
     explore.connect(mac_address="XX:XX:XX:XX:XX:XX")
 
-If the device is not found, you will receive an error.
-
+If the device cannot be found, you will receive an error.
 
 Streaming
 """""""""
-After connecting to the device you are able to stream data and print the data in the console.::
 
+After connecting to the device, you will be able to stream and print data to the console.
+::
     explore.acquire()
-
 
 Recording
 """""""""
-You can record data in realtime to EDF (BDF+) or CSV files::
 
+You can record data in realtime to EDF (BDF+) or CSV files using:
+::
     explore.record_data(file_name='test', duration=120, file_type='csv')
 
-This will record data in three separate files "test_ExG.csv", "test_ORN.csv" and "test_marker.csv" which contain ExG, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. The duration of the recording can be specified (in seconds).
-If you want to overwrite already existing files, change the line above::
-
+This will record data in three separate files: "``test_ExG.csv``", "``test_ORN.csv``" and "``test_marker.csv``", which contain ExG data, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. Add command arguments to overwrite files and set the duration of the recording (in seconds).
+::
     explore.record_data(file_name='test', do_overwrite=True, file_type='csv', duration=120)
 
+.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or `mne <https://github.com/mne-tools/mne-python>`_ (for mne, you may need to change the file extension to ``bdf`` manually) in Python.
 
+          EEGLAB's BIOSIG plugin has problems with some EDF files (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). To resolve this, download a precompiled MATLAB file (mexSLOAD.mex) from BIOSIG `here <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. Documentation is `here <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
 
-.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or
-            `mne <https://github.com/mne-tools/mne-python>`_ (file extension may need to change to bdf manually for mne)
-            in python.
+.. note:: Because environmental factors, like temperature, can affect your device's sampling rate, we recommend computing the sampling rate of recorded data. If you find a deviation between the recorded sampling rate and ``explorepy``'s sampling rate, resample your signal to correct for drifts. The timestamps in the CSV/EDF file can be used to compute the resampling factor.
 
-            EEGLAB's BIOSIG plugin has problem with some EDF files currently
-            (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). A precompiled MATLAB code (mexSLOAD.mex)
-            from BIOSIG can be downloaded from this `link <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. The
-            documentaion can be found in this `link <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
-
-.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
-            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
-            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
-
-            If you are setting markers in the recording, it is recommended to record in CSV file. Alternative option would
-            be pushing data to LSL and recording with
-            `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. EDF might not give a
-            precise timing for markers, hence it should be avoided.
-
+           If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF, as it cannot guarantee precise timing.
 
 Visualization
 """"""""""""""
-It is possible to visualize data in real-time in a browser-based dashboard by the following code. Currently, Chrome is the supported browser. The visualization in IE and Edge might be very slow::
 
-
+You can visualize real-time data in a browser-based dashboard using the following code. Currently, Google Chrome is supported. Visualization in IE and Edge can be slow.
+::
     explore.visualize(bp_freq=(1, 30), notch_freq=50)
 
-Where `bp_freq` and `notch_freq` determine cut-off frequencies of bandpass/lowpass/highpass filter and frequency of notch filter (either 50 or 60) respectively.
+``bp_freq`` specifies the cut-off frequencies of bandpass/lowpass/highpass filters.  ``notch_freq`` sets the notch filter (either 50 or 60).
 
-
-In the dashboard, you can set the signal visualization mode to EEG or ECG. EEG mode provides the spectral analysis plot of the signal. In ECG mode, the heartbeats are detected and heart rate is calculated from the RR-intervals.
+In the dashboard, you can set the signal visualization mode to either EEG or ECG. EEG mode provides the spectral analysis plot of the signal. ECG mode detects heartbeats and calculates heart rate using RR-intervals.
 
 EEG:
 
@@ -373,87 +384,88 @@ ECG with heart beat detection:
 
 Impedance measurement
 """""""""""""""""""""
-To measure electrodes impedances::
 
-
+You can measure electrodes impedances using:
+::
     explore.measure_imp()
-
 
 .. image:: /images/Dashboard_imp.jpg
   :width: 800
   :alt: Impedance Dashboard
 
-.. note:: Impedance value shown for each electrode is the sum of impedances of ground electrode and corresponding ExG electrode. This can make the impedances appear higher than they actually are. Make sure your ground is well prepared, when facing issues in getting to low impedances.
+.. note:: Impedance values for each electrode are the sum of impedances values for the ground electrode and corresponding ExG electrode.
 
-.. note::  The accuracy of measured impedances are subject to environmental conditions such as noise and temperature. Therefore, this works best at regular room temperatures (~15-25 °C).
+.. note:: Impedance accuracy is affected by environmental conditions such as noise and temperature.
 
-Labstreaminglayer (lsl)
+Lab Streaming Layer (lsl)
 """""""""""""""""""""""
-You can push data directly to LSL using the following line::
 
+You can push data to LSL using:
+::
     explore.push2lsl()
 
+LSL allows you to stream data from your Explore device and third-parties, like OpenVibe or MATLAB, simultaneously. (See the `LabStreaming Layer docs <https://github.com/sccn/labstreaminglayer>`_ and `OpenVibe docs <http://openvibe.inria.fr/how-to-use-labstreaminglayer-in-openvibe/>`_ for more).
 
-With this, you can stream data from other software such as OpenVibe or other programming languages such as MATLAB, Java, C++ and so on. (See `labstreaminglayer <https://github.com/sccn/labstreaminglayer>`_, `OpenVibe <http://openvibe.inria.fr/how-to-use-labstreaminglayer-in-openvibe/>`_ documentations for details).
-This function creates three LSL streams for ExG, Orientation and markers.
-In case of a disconnect (device loses connection), the program will try to reconnect automatically.
-
+``push2lsl`` creates three LSL streams; one for each of ExG data, orientation data and marker events. If your device loses connection, ``explorepy`` will try to reconnect automatically.
 
 Converter
 """""""""
-It is also possible to extract BIN files from the device via USB. To convert these to CSV, you can use the function bin2csv, which takes your desired BIN file
-and converts it to 2 CSV files (one for orientation, the other one for ExG data). A Bluetooth connection is not needed for this. ::
 
+It is possible to extract BIN files from a device via USB. To convert these binary files to CSV, use ``bin2csv``. This function will create two CSV files (one for orientation, the other one for ExG data). A Bluetooth connection is not needed for this.
+::
     explore.convert_bin(bin_file='DATA001.BIN', file_type='csv', do_overwrite=False)
 
 
-.. note::  If the sampling rate or channel mask has been changed during the recording, Explorepy will create a new EDF/CSV
-            file for ExG data with the given file name plus the time the setting has changed.
+.. note:: If you change your device's sampling rate or channel mask during recording, ``explorepy`` will create a new CSV file for ExG data with the given file name plus the time the setting changed.
 
-.. note:: As the environmental factors such as temperature may affect the sampling rate of the ADC, we recommend to
-            compute the sampling rate of the recorded data. In case of deviations, the signal must be resampled to
-            correct drifts. The timestamps in the csv/edf file can be used to compute the resampling factor.
+.. note:: Because environmental factors, like temperature, can affect your device's sampling rate, we recommend computing the sampling rate of recorded data. If you find a deviation between the recorded sampling rate and ``explorepy``'s sampling rate, resample your signal to correct for drifts. The timestamps in the CSV/EDF file can be used to compute the resampling factor.
 
-            If you are setting markers in the recording, it is recommended to record in CSV file. Alternative option would
-            be pushing data to LSL and recording with
-            `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. EDF might not give a
-            precise timing for markers, hence it should be avoided.
+           If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF, as it cannot guarantee precise timing.
 
 Event markers
 """""""""""""
-In addition to the marker event generated by pressing the button on Explore device, you can set markers in your code using the `explorepy.Explore.set_marker` function. However, this function must be called from a different thread than the parsing thread.
-Please not that marker codes between 0 and 7 are reserved for hardware related markers. You can use any other (integer) code for your marker from 8 to 65535.
-To see an example usage of this function look at `this script <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_
+
+In addition to the marker event generated by pressing the button on your Explore device, you can set markers programmatically using:
+::
+    explorepy.Explore.set_marker
+
+However, this function must be called from its own, dedicated thread.
+
+.. note:: Marker codes 0-7 are reserved for the hardware. You can use any other (integer) code for your marker (8-65535).
+
+For an example, see `this script <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_.
 
 Device configuration
 """"""""""""""""""""
-Using methods of Explore class, the device settings can be changed.
 
-Explore's sampling rate can be changed to 250, 500 or 1000Hz (default sampling rate is 250Hz). ::
+You can programmatically change a device's settings.
 
+To change a device's sampling rate:
+::
     explore.set_sampling_rate(sampling_rate=500)
 
 
-Format memory: ::
-
+To format a device's memory:
+::
     explore.format_memory()
 
-The ExG input channels can be deactivated/activated using ``set_channels`` method. The (string) binary representation
-of a channel mask will be used to select channels (LSB is channel 1), e.g. 0b01000011 means channels 1,2,7 are active. ::
-
+To activate/deactivate ExG input channels:
+::
     explore.set_channels(channel_mask="01000011")
 
-or alternatively: ::
+.. note:: Represent the channel masks using a String of binary numbers. For example, ``01000011`` means channels 1,2,7 are active.
 
+Alternatively, use:
+::
     explore.set_channels(channel_mask=0b01000011)
 
 
-Orientation, ExG and environment modules can be disabled/enabled using ``disable_module``/``enable_module`` functions. ::
-
+To disabled/enable orientation, ExG or environment modules:
+::
     explore.disable_module(module_name='ORN')
     explore.enable_module(module_name='ENV')
 
 
-You can reset the device to the default settings by: ::
-
+To reset a device's settings:
+::
     explore.reset_soft()

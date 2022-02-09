@@ -88,7 +88,13 @@ int BTSerialPortBinding::Connect()
 			}
 			else
 			{
-				cout << "BT Socket error occurred with error message is:" << BluetoothHelpers::GetWSAErrorMessage(WSAGetLastError()) << endl;
+				int lastErrorCode = WSAGetLastError();
+				// Checking if the error is due to bluetooth socket unresponsiveness
+				int btSocketErrorCode = 10058; 
+				cout << "BT Socket error:" << BluetoothHelpers::GetWSAErrorMessage(lastErrorCode) << endl;
+				if(lastErrorCode == btSocketErrorCode) 
+					throw ExploreBtSocketException("Connection attempt not sucessful due to socket error");
+
 			}
 		}
 	}

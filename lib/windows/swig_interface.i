@@ -24,6 +24,9 @@
     catch(const ExploreNoBluetoothException& e) {
         SWIG_exception(SWIG_SystemError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+        SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
         SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {

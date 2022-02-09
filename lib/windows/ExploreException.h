@@ -68,6 +68,26 @@ public:
 
 };
 
+// exception for unresponsive socket error
+class ExploreBtSocketException : std::exception
+{
+private:
+	std::string message;
+public:
+	ExploreBtSocketException(std::string message) NOEXCEPT
+	{
+		this->message = message;
+
+	}
+
+
+	virtual const char* what() const NOEXCEPT
+	{
+		return message.c_str();
+	}
+
+};
+
 // class to throw exception when no BT service is available
 class ExploreNoBluetoothException : std::exception
 {
@@ -86,5 +106,3 @@ public:
 	}
 
 };
-
-
