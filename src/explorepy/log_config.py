@@ -16,14 +16,17 @@ from explorepy._exceptions import DeviceNotFoundError
 
 _IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
 _IGNORED_LOGGERS = ['explorepy.parser', 'explorepy.btcpp']
+
 USER_SETTING_KEY = "user settings"
 SHARE_LOG_PERMISSION_KEY = "share_logs"
+APP_AUTHOUR = "Mentalab"
+APP_NAME = "explorepy"
 
 explorepy_logger = logging.getLogger('explorepy')
 explorepy_logger.propagate = False
 logger = logging.getLogger(__name__)
 
-log_path = user_log_dir(appname="explorepy", appauthor="Mentalab")
+log_path = user_log_dir(appname=APP_NAME, appauthor=APP_AUTHOUR)
 log_filename = 'explorepy.log'
 os.makedirs(log_path, exist_ok=True)
 file_formatter = logging.Formatter('%(asctime)s - %(name)s - [%(levelname)s] - [%(threadName)-10s] - %(message)s')
