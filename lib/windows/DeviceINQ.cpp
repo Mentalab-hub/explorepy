@@ -72,7 +72,7 @@ vector<device> ExploreSDK::PerformDeviceSearch(int length)
 {
 
 	if(!BluetoothIsConnectable(NULL)) 
-		throw ExploreNoBluetoothException("No Bluetooth conenction available");
+		throw ExploreNoBluetoothException("Bluetooth is off. Please turn Bluetooth service on in your machine");
 	
   (void)(length);
 	// Construct windows socket bluetooth variables
