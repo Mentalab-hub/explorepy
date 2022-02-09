@@ -4,7 +4,7 @@ import time
 import logging
 
 from explorepy import exploresdk
-from explorepy._exceptions import DeviceNotFoundError, InputError
+from explorepy._exceptions import *
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,11 @@ class SDKBtClient:
                     self.is_connected = False
                     logger.warning("Could not connect; Retrying in 2s...")
                     time.sleep(2)
+
+            except TypeError as error:
+                self.is_connected == False
+                logger.debug("Got an exception while connecting to the device: {} of type: {}".format(error, type(error)))
+                raise ConnectionRefusedError("Please unpair Explore device manually or use a Bluetooth dongle")
             except Exception as error:
                 self.is_connected = False
                 logger.debug("Got an exception while connecting to the device: {} of type: {}".format(error, type(error)))
@@ -130,7 +135,7 @@ class SDKBtClient:
             raise ConnectionAbortedError(str(error))
         except Exception as error:
             print(error)
-            logger.error("unknown error occured while reading bluetooth data by exploresdk")
+            logger.error("unknown error occured while reading bluetooth data by exploresdk{} of type:{}".format(error, type(error)))
 
     def send(self, data):
         """Send data to the device
