@@ -9,10 +9,13 @@ import threading
 import time
 
 import sentry_sdk
-from appdirs import user_config_dir
-from appdirs import user_log_dir
+from appdirs import (
+    user_config_dir,
+    user_log_dir
+)
 
 from explorepy._exceptions import DeviceNotFoundError
+
 
 _IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
 _IGNORED_LOGGERS = ['explorepy.parser', 'explorepy.btcpp']
@@ -107,7 +110,8 @@ def uncaught_exception_handler(exctype, value, trace_back):
         if not permission:  # Then ask for permission
             while True:
                 try:
-                    txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n>")
+                    txt = input("An unexpected error occurred! "
+                                "Do you want to send the error log to Mentalab? (y/n) \n>")
                 except (KeyboardInterrupt, EOFError):
                     sentry_sdk.init()  # disable sentry
                     break

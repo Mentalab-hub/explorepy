@@ -2,17 +2,34 @@
 """Stream Processor module
 This module is responsible for processing incoming stream from Explore device and publishing data to subscribers.
 """
-from enum import Enum
-import time
-import struct
 import logging
+import struct
+import time
+from enum import Enum
 
-from explorepy.parser import Parser
-from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, \
-    Environment, EventMarker, CalibrationInfo
+from explorepy.command import (
+    DeviceConfiguration,
+    ZMeasurementDisable,
+    ZMeasurementEnable
+)
 from explorepy.filters import ExGFilter
-from explorepy.command import DeviceConfiguration, ZMeasurementEnable, ZMeasurementDisable
-from explorepy.tools import ImpedanceMeasurement, PhysicalOrientation, get_local_time
+from explorepy.packet import (
+    EEG,
+    CalibrationInfo,
+    CommandRCV,
+    CommandStatus,
+    DeviceInfo,
+    Environment,
+    EventMarker,
+    Orientation
+)
+from explorepy.parser import Parser
+from explorepy.tools import (
+    ImpedanceMeasurement,
+    PhysicalOrientation,
+    get_local_time
+)
+
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 logger = logging.getLogger(__name__)
@@ -151,12 +168,12 @@ class StreamProcessor:
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
                                       n_chan=self.device_info['adc_mask'].count(1)))
-    
+
     def remove_filters(self):
         '''
         Remove all filters from the stream
         '''
-        logger.info(f"Removing all filters.")
+        logger.info("Removing all filters.")
         # logger.info(f"Removing the {filter_type} filter.")
         while not self.device_info:
             logger.warning('No device info is available. Waiting for device info packet...')
@@ -207,8 +224,8 @@ class StreamProcessor:
             self.physical_orn.status = "READY"
         else:
             self.physical_orn.status = "NOT READY"
-            logger.info('Calibration coefficients for physical orientation do not exist. If you need physical orientation,'
-                        ' calibrate the device first.')
+            logger.debug('Calibration coefficients for physical orientation do not exist. '
+                         'If you need physical orientation, calibrate the device first.')
 
     def set_marker(self, code):
         """Set a marker in the stream"""

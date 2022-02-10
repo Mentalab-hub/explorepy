@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 """Parser module"""
-from threading import Thread
-import struct
 import asyncio
 import logging
+import struct
+from threading import Thread
 
 import explorepy
-from explorepy.packet import PACKET_CLASS_DICT, DeviceInfo
-from explorepy._exceptions import *
+from explorepy._exceptions import FletcherError
+from explorepy.packet import (
+    PACKET_CLASS_DICT,
+    DeviceInfo
+)
 from explorepy.tools import get_local_time
 
+
 logger = logging.getLogger(__name__)
+
+TIMESTAMP_SCALE = 10000
 
 
 class Parser:
@@ -134,10 +140,10 @@ class Parser:
 
         # Timestamp conversion
         if self._time_offset is None:
-            self._time_offset = get_local_time() - timestamp/10000
+            self._time_offset = get_local_time() - timestamp / TIMESTAMP_SCALE
             timestamp = 0
         else:
-            timestamp = timestamp/10000 + self._time_offset
+            timestamp = timestamp / TIMESTAMP_SCALE + self._time_offset
 
         payload_data = self.stream_interface.read(payload - 4)
         packet = self._parse_packet(pid, timestamp, payload_data)
@@ -157,7 +163,7 @@ class Parser:
         """
 
         if pid in PACKET_CLASS_DICT:
-                packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
+            packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
         else:
             logger.debug("Unknown Packet ID:" + str(pid))
             # raise ValueError("Unknown Packet ID:" + str(pid))

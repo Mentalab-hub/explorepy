@@ -13,18 +13,36 @@ Examples:
     >>> explore.visualize(bp_freq=(1, 40), notch_freq=50)
 """
 
-import os
-import time
-from appdirs import user_cache_dir
-from threading import Timer
 import logging
-import numpy as np
+import os
 import re
+import time
+from threading import Timer
+
+import numpy as np
+from appdirs import user_cache_dir
 
 import explorepy
-from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer, PhysicalOrientation
-from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh, ModuleDisable, ModuleEnable
-from explorepy.stream_processor import StreamProcessor, TOPICS
+from explorepy.command import (
+    MemoryFormat,
+    ModuleDisable,
+    ModuleEnable,
+    SetCh,
+    SetSPS,
+    SoftReset
+)
+from explorepy.stream_processor import (
+    TOPICS,
+    StreamProcessor
+)
+from explorepy.tools import (
+    LslServer,
+    PhysicalOrientation,
+    create_exg_recorder,
+    create_marker_recorder,
+    create_orn_recorder
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -294,10 +312,7 @@ class Explore:
 
     def measure_imp(self):
         """
-        Visualization of the electrode impedances
-
-        Args:
-            notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
+        Visualization of the electrode impedance
         """
         self._check_connection()
         assert self.stream_processor.device_info['sampling_rate'] == 250, \
@@ -350,9 +365,9 @@ class Explore:
     def set_channels(self, channel_mask):
         """Set the channel mask of the device
 
-        The channels can be disabled/enabled by calling this function and passing either bytes or binary string representing the mask.
-        For example in a 4 channel device, if you want to disable channel 4, the adc mask should be b'0111' (LSB is channel 1).
-        The inputs to this function can be b'0111' '0111'.
+        The channels can be disabled/enabled by calling this function and passing either bytes or binary string
+         representing the mask. For example in a 4 channel device, if you want to disable channel 4, the adc mask
+         should be b'0111' (LSB is channel 1). The inputs to this function can be b'0111' '0111'.
 
         Args:
             channel_mask (bytes str): Bytes or String representing the binary channel mask
@@ -365,16 +380,12 @@ class Explore:
         """
         c = re.compile('[^01]')
 
-        if (isinstance(channel_mask, str) and len(c.findall(channel_mask))==0) or (isinstance(channel_mask, bytes)):
+        if (isinstance(channel_mask, str) and len(c.findall(channel_mask)) == 0) or (isinstance(channel_mask, bytes)):
             channel_mask_int = int(channel_mask, 2)
-        # elif isinstance(channel_mask, int):
-        #     channel_mask_int = channel_mask
         else:
-            # raise TypeError("Input must be an integer or a binary string!")
             raise TypeError("Input must be bytes or binary string!")
 
         self._check_connection()
-        # cmd = SetCh(channel_mask)
         cmd = SetCh(channel_mask_int)
         self.stream_processor.configure_device(cmd)
 
@@ -417,8 +428,8 @@ class Explore:
     def calibrate_orn(self, do_overwrite=False):
         """Calibrate orientation module
 
-        This method calibrates orientation sensors in order to get the real physical orientation in addition to raw sensor
-        data. While running this function you would need to move and rotate the device. This function will store
+        This method calibrates orientation sensors in order to get the real physical orientation in addition to raw
+        sensor data. While running this function you would need to move and rotate the device. This function will store
         calibration info in the configuration file which will be used later during streaming to calculate physical
         orientation from raw sensor data.
 
@@ -426,10 +437,11 @@ class Explore:
             do_overwrite: to overwrite the calibration data if already exists or not
 
         """
-        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not(do_overwrite)), \
+        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not do_overwrite), \
             "Calibration data already exists!"
         PhysicalOrientation.init_dir()
-        logger.info("Start recording for 100 seconds, please move the device around during this time, in all directions")
+        logger.info("Start recording for 100 seconds, "
+                    "please move the device around during this time, in all directions")
         file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '//temp_' + self.device_name
         self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
         time.sleep(105)
