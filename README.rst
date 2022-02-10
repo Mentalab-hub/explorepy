@@ -5,15 +5,12 @@
 
 .. start-badges
 
-|docs| |version| |wheel| |supported-versions| |commits-since| |travis|
+|docs| |version| |wheel| |supported-versions| |commits-since|
 
 .. |docs| image:: https://readthedocs.org/projects/explorepy/badge/?style=flat
     :target: https://readthedocs.org/projects/explorepy
     :alt: Documentation Status
 
-.. |travis| image:: https://travis-ci.org/Mentalab-hub/explorepy.svg?branch=master
-    :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/Mentalab-hub/explorepy
 
 .. |version| image:: https://img.shields.io/pypi/v/explorepy.svg
     :alt: PyPI Package latest release

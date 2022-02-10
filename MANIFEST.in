@@ -15,6 +15,6 @@ include LICENSE
 include README.rst
 recursive-include lib *
 
-include tox.ini .travis.yml appveyor.yml
+include tox.ini
 
 global-exclude *.py[cod] __pycache__  *.dylib
