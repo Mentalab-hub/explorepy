@@ -98,6 +98,45 @@ def read_config(section, var):
     return ""
 
 
+def write_config(section, var, val):
+    """ Write to config file
+    Args:
+        section (str): section name
+        var (str): variable name
+        val (str): value
+    Exceptions:
+        ValueError: Raised if the inputs types are other than string.
+        OSError: Raised if there is an error during reading/writing config file.
+    Returns:
+        bool: True if the action is successful, otherwise False
+    """
+    if not (type(val) == str and type(section) == str and type(var) == str):
+        logger.error("Wrong input type. Inputs must be strings.")
+        raise ValueError("Wrong input type. Inputs must be strings.")
+
+    config_file = os.path.join(user_config_dir(appname="explorepy", appauthor="Mentalab"), "conf.ini")
+
+    config = configparser.ConfigParser()
+    if os.path.isfile(config_file):
+        config.read(config_file)
+        if not config.has_section(section):
+            config.add_section(section)
+    if not os.path.isfile(config_file):  # Create the dir and file
+        os.makedirs(user_config_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
+        config['DEFAULT'] = {'description': 'configurations for Explorepy'}
+        config.add_section(section)
+
+    config[section][var] = val
+
+    try:
+        with open(config_file, "w") as fid:
+            config.write(fid)
+    except OSError as error:
+        error_msg = f"Could not open file: {config_file}"
+        logger.error(error_msg)
+        raise error(error_msg)
+
+
 def uncaught_exception_handler(exctype, value, trace_back):
     """Handler of unhandled exceptions"""
     if exctype not in _IGNORED_EXC_BY_SENTRY:
