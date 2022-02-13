@@ -140,13 +140,16 @@ def write_config(section, var, val):
 def uncaught_exception_handler(exctype, value, trace_back):
     """Handler of unhandled exceptions"""
     if exctype not in _IGNORED_EXC_BY_SENTRY:
-        permission = False
+        permission = None
 
-        if read_config(USER_SETTING_KEY, SHARE_LOG_PERMISSION_KEY) == "True":
+        share_log_flag = read_config(USER_SETTING_KEY, SHARE_LOG_PERMISSION_KEY)
+        if share_log_flag == "True":
             permission = True
+        elif share_log_flag == "False":
+            permission = False
 
         time.sleep(2)
-        if not permission:  # Then ask for permission
+        if permission is None:  # Then ask for permission
             while True:
                 try:
                     txt = input("An unexpected error occurred! "
@@ -161,6 +164,8 @@ def uncaught_exception_handler(exctype, value, trace_back):
                 if txt in ['y', 'yes', 'Y', 'Yes']:
                     logger.info("Thanks for helping us to improve Explorepy. Sending the error log to Mentalab ...")
                     break
+        elif not permission:
+            sentry_sdk.init()  # disable sentry
     else:
         sentry_sdk.init()  # disable sentry for ignored exceptions
 
