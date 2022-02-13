@@ -741,7 +741,7 @@ class PhysicalOrientation:
             calibre_out_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
             with open(calibre_out_file, "w") as f_coef:
                 config = configparser.ConfigParser()
-                config['DEFAULT'] = {'description': 'configurations for Explorepy'}
+                config['DEFAULT'] = {'description': 'configuration data for Explore devices'}
                 config.write(f_coef)
                 f_coef.close()
 
