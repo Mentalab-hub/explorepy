@@ -189,7 +189,5 @@ sentry_sdk.init(
     traces_sample_rate=1.0
 )
 
-for logger_name in _IGNORED_LOGGERS:
-    sentry_sdk.integrations.logging.ignore_logger(logger_name)
 setup_thread_excepthook()
 sys.excepthook = uncaught_exception_handler
