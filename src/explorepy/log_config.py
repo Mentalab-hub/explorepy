@@ -18,7 +18,6 @@ from explorepy._exceptions import DeviceNotFoundError
 
 
 _IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
-_IGNORED_LOGGERS = ['explorepy.parser', 'explorepy.btcpp']
 
 USER_SETTING_KEY = "user settings"
 SHARE_LOG_PERMISSION_KEY = "share_logs"
