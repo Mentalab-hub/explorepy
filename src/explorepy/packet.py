@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 """This module contains all packet classes of Mentalab Explore device"""
 import abc
-from enum import IntEnum
-import numpy as np
 import logging
+from enum import IntEnum
+
+import numpy as np
 
 from explorepy._exceptions import FletcherError
+
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +85,12 @@ class EEG(Packet):
             imp_calib_info (dict): dictionary of impedance calibration info including slope, offset and noise level
 
         """
-        self.imp_data = np.round((self.get_ptp() - imp_calib_info['noise_level']) * imp_calib_info['slope']/1.e6 -
-                                 imp_calib_info['offset'], decimals=0)
+        scale = imp_calib_info['slope']
+        offset = imp_calib_info['offset']
+        self.imp_data = np.round(
+            (self.get_ptp() - imp_calib_info['noise_level']) * scale / 1.e6 - offset,
+            decimals=0
+        )
 
     def get_data(self, exg_fs=None):
         """get time vector and data
@@ -212,6 +218,8 @@ class Orientation(Packet):
         super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+        self.theta = None
+        self.rot_axis = None
 
     def _convert(self, bin_data):
         data = np.copy(np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder('<'))).astype(np.float)
@@ -234,12 +242,12 @@ class Orientation(Packet):
 
     def compute_angle(self, matrix=None):
         """Compute physical angle"""
-        trace = matrix[0][0]+matrix[1][1]+matrix[2][2]
-        theta = np.arccos((trace-1)/2)*57.2958
+        trace = matrix[0][0] + matrix[1][1] + matrix[2][2]
+        theta = np.arccos((trace - 1) / 2) * 57.2958
         nx = matrix[2][1] - matrix[1][2]
         ny = matrix[0][2] - matrix[2][0]
         nz = matrix[1][0] - matrix[0][1]
-        rot_axis = 1/np.sqrt((3-trace)*(1+trace))*np.array([nx, ny, nz])
+        rot_axis = 1 / np.sqrt((3 - trace) * (1 + trace)) * np.array([nx, ny, nz])
         self.theta = theta
         self.rot_axis = rot_axis
         return [theta, rot_axis]

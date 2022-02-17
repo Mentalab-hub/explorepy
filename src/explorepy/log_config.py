@@ -9,13 +9,15 @@ import threading
 import time
 
 import sentry_sdk
-from appdirs import user_config_dir
-from appdirs import user_log_dir
+from appdirs import (
+    user_config_dir,
+    user_log_dir
+)
 
 from explorepy._exceptions import DeviceNotFoundError
 
+
 _IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
-_IGNORED_LOGGERS = ['explorepy.parser', 'explorepy.btcpp']
 
 USER_SETTING_KEY = "user settings"
 SHARE_LOG_PERMISSION_KEY = "share_logs"
@@ -95,19 +97,62 @@ def read_config(section, var):
     return ""
 
 
+def write_config(section, var, val):
+    """ Write to config file
+    Args:
+        section (str): section name
+        var (str): variable name
+        val (str): value
+    Exceptions:
+        ValueError: Raised if the inputs types are other than string.
+        OSError: Raised if there is an error during reading/writing config file.
+    Returns:
+        bool: True if the action is successful, otherwise False
+    """
+    if not (type(val) == str and type(section) == str and type(var) == str):
+        logger.error("Wrong input type. Inputs must be strings.")
+        raise ValueError("Wrong input type. Inputs must be strings.")
+
+    config_file = os.path.join(user_config_dir(appname="explorepy", appauthor="Mentalab"), "conf.ini")
+
+    config = configparser.ConfigParser()
+    if os.path.isfile(config_file):
+        config.read(config_file)
+        if not config.has_section(section):
+            config.add_section(section)
+    if not os.path.isfile(config_file):  # Create the dir and file
+        os.makedirs(user_config_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
+        config['DEFAULT'] = {'description': 'configurations for Explorepy'}
+        config.add_section(section)
+
+    config[section][var] = val
+
+    try:
+        with open(config_file, "w") as fid:
+            config.write(fid)
+    except OSError as error:
+        error_msg = f"Could not open file: {config_file}"
+        logger.error(error_msg)
+        raise error(error_msg)
+
+
 def uncaught_exception_handler(exctype, value, trace_back):
     """Handler of unhandled exceptions"""
     if exctype not in _IGNORED_EXC_BY_SENTRY:
-        permission = False
+        permission = None
 
-        if read_config(USER_SETTING_KEY, SHARE_LOG_PERMISSION_KEY) == "True":
+        share_log_flag = read_config(USER_SETTING_KEY, SHARE_LOG_PERMISSION_KEY)
+        if share_log_flag == "True":
             permission = True
+        elif share_log_flag == "False":
+            permission = False
 
         time.sleep(2)
-        if not permission:  # Then ask for permission
+        if permission is None:  # Then ask for permission
             while True:
                 try:
-                    txt = input("An unexpected error occurred! Do you want to send the error log to Mentalab? (y/n) \n>")
+                    txt = input("An unexpected error occurred! "
+                                "Do you want to send the error log to Mentalab? (y/n) \n>")
                 except (KeyboardInterrupt, EOFError):
                     sentry_sdk.init()  # disable sentry
                     break
@@ -118,6 +163,8 @@ def uncaught_exception_handler(exctype, value, trace_back):
                 if txt in ['y', 'yes', 'Y', 'Yes']:
                     logger.info("Thanks for helping us to improve Explorepy. Sending the error log to Mentalab ...")
                     break
+        elif not permission:
+            sentry_sdk.init()  # disable sentry
     else:
         sentry_sdk.init()  # disable sentry for ignored exceptions
 
@@ -142,7 +189,5 @@ sentry_sdk.init(
     traces_sample_rate=1.0
 )
 
-for logger_name in _IGNORED_LOGGERS:
-    sentry_sdk.integrations.logging.ignore_logger(logger_name)
 setup_thread_excepthook()
 sys.excepthook = uncaught_exception_handler

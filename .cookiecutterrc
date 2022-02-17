@@ -49,7 +49,7 @@ default_context:
     test_matrix_configurator:  'no'
     test_matrix_separate_coverage: 'no'
     test_runner:               'pytest'
-    travis:                    'yes'
+    travis:                    'no'
     version:                   '0.1.0'
     website:                   'https://mentalab.co/'
     year_from:                 '2018'

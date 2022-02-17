@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 """A module for bluetooth connection"""
-import time
 import logging
+import time
 
 from explorepy import exploresdk
-from explorepy._exceptions import *
+from explorepy._exceptions import (
+    DeviceNotFoundError,
+    InputError
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -53,22 +57,28 @@ class SDKBtClient:
                     time.sleep(2)
 
             except TypeError as error:
-                self.is_connected == False
-                logger.debug("Got an exception while connecting to the device: {} of type: {}".format(error, type(error)))
+                self.is_connected = False
+                logger.debug(
+                    "Got an exception while connecting to the device: {} of type: {}".format(error, type(error))
+                )
                 raise ConnectionRefusedError("Please unpair Explore device manually or use a Bluetooth dongle")
             except Exception as error:
                 self.is_connected = False
-                logger.debug("Got an exception while connecting to the device: {} of type: {}".format(error, type(error)))
+                logger.debug(
+                    "Got an exception while connecting to the device: {} of type: {}".format(error, type(error))
+                )
                 logger.warning("Could not connect; Retrying in 2s...")
                 time.sleep(2)
 
         self.is_connected = False
-        raise DeviceNotFoundError("Could not find the device! Please make sure the device is on and in advertising mode.")
+        raise DeviceNotFoundError(
+            "Could not find the device! Please make sure the device is on and in advertising mode."
+        )
 
     def reconnect(self):
         """Reconnect to the last used bluetooth socket.
 
-        This function reconnects to the the last bluetooth socket. If after 1 minute the connection doesn't succeed,
+        This function reconnects to the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
         self.is_connected = False
@@ -135,7 +145,10 @@ class SDKBtClient:
             raise ConnectionAbortedError(str(error))
         except Exception as error:
             print(error)
-            logger.error("unknown error occured while reading bluetooth data by exploresdk{} of type:{}".format(error, type(error)))
+            logger.error(
+                "unknown error occured while reading bluetooth data by "
+                "exploresdk {} of type:{}".format(error, type(error))
+            )
 
     def send(self, data):
         """Send data to the device

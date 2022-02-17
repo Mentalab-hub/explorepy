@@ -1,22 +1,31 @@
 # -*- coding: utf-8 -*-
 """Some useful tools such as file recorder, heart rate estimation, etc. used in explorepy"""
-import datetime
-import os.path
-import csv
-import copy
-import socket
-from contextlib import closing
-import numpy as np
-from scipy import signal
-import pyedflib
-from pylsl import StreamInfo, StreamOutlet, local_clock
 import configparser
-from appdirs import user_cache_dir, user_config_dir
+import copy
+import csv
+import datetime
 import logging
+import os.path
+import socket
 from collections import namedtuple
+from contextlib import closing
+
+import numpy as np
+import pyedflib
+from appdirs import (
+    user_cache_dir,
+    user_config_dir
+)
+from pylsl import (
+    StreamInfo,
+    StreamOutlet,
+    local_clock
+)
+from scipy import signal
 
 import explorepy
 from explorepy.filters import ExGFilter
+
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +77,20 @@ def bt_scan():
 
 
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
+    """ Create ExG recorder
+
+    Args:
+        filename (str): file name
+        file_type (str): file type
+        adc_mask (str): channel mask
+        fs (int): sampling rate
+        do_overwrite (bool): overwrite if the file already exists
+
+    Returns:
+        FileRecorder: file recorder object
+    """
     exg_ch = ['TimeStamp'] + EXG_CHANNELS
-    exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_max = [21600.] + [EXG_MAX_LIM for i in range(8)]
@@ -81,6 +102,16 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
 
 
 def create_orn_recorder(filename, file_type, do_overwrite):
+    """ Create orientation data recorder
+
+    Args:
+        filename (str): file name
+        file_type (str): file type
+        do_overwrite (bool): overwrite if the file already exists
+
+    Returns:
+        FileRecorder: file recorder object
+    """
     orn_ch = ['TimeStamp'] + ORN_CHANNELS
     orn_unit = ['s'] + ORN_UNITS
     orn_max = [21600., 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
@@ -90,6 +121,15 @@ def create_orn_recorder(filename, file_type, do_overwrite):
 
 
 def create_marker_recorder(filename, do_overwrite):
+    """ Create marker recorder
+
+    Args:
+        filename (str): file name
+        do_overwrite (str): overwrite if the file already exists
+
+    Returns:
+        FileRecorder: file recorder object
+    """
     marker_ch = ['TimeStamp', 'Code']
     marker_unit = ['s', '-']
     return FileRecorder(filename=filename, ch_label=marker_ch, fs=0, ch_unit=marker_unit,
@@ -148,18 +188,18 @@ class HeartRateEstimator:
         if len(self.r_peaks_buffer) < 7:
             logger.warning('Few peaks to get heart rate! Noisy signal!')
             return 'NA'
-        else:
-            r_times = [item[1] for item in self.r_peaks_buffer]
-            rr_intervals = np.diff(r_times, 1)
-            if True in (rr_intervals > 3.):
-                logger.warning('Missing peaks! Noisy signal!')
-                return 'NA'
-            else:
-                estimated_heart_rate = int(1. / np.mean(rr_intervals) * 60)
-                if estimated_heart_rate > 140 or estimated_heart_rate < 40:
-                    logger.warning('Estimated heart rate <40 or >140! Potentially due to noisy signal!')
-                    estimated_heart_rate = 'NA'
-                return estimated_heart_rate
+
+        r_times = [item[1] for item in self.r_peaks_buffer]
+        rr_intervals = np.diff(r_times, 1)
+        if True in (rr_intervals > 3.):
+            logger.warning('Missing peaks! Noisy signal!')
+            return 'NA'
+
+        estimated_heart_rate = int(1. / np.mean(rr_intervals) * 60)
+        if estimated_heart_rate > 140 or estimated_heart_rate < 40:
+            logger.warning('Estimated heart rate <40 or >140! Potentially due to noisy signal!')
+            estimated_heart_rate = 'NA'
+        return estimated_heart_rate
 
     def _push_r_peak(self, val, time):
         self.r_peaks_buffer.append((val, time))
@@ -395,15 +435,15 @@ class FileRecorder:
 
         ch_info_list = []
         for ch in zip(self._ch_label, self._ch_unit, self._ch_max, self._ch_min):
-            ch_info_list.append({'label':        ch[0],
-                                 'dimension':    ch[1],
-                                 'sample_rate':  self._fs,
+            ch_info_list.append({'label': ch[0],
+                                 'dimension': ch[1],
+                                 'sample_rate': self._fs,
                                  'physical_max': ch[2],
                                  'physical_min': ch[3],
-                                 'digital_max':  8388607,
-                                 'digital_min':  -8388608,
-                                 'prefilter':    '',
-                                 'transducer':   ''
+                                 'digital_max': 8388607,
+                                 'digital_min': -8388608,
+                                 'prefilter': '',
+                                 'transducer': ''
                                  })
         for i, ch_info in enumerate(ch_info_list):
             self._file_obj.setSignalHeader(i, ch_info)
@@ -419,14 +459,14 @@ class FileRecorder:
             packet (explorepy.packet.Packet): ExG or Orientation packet
 
         """
-        time_vector, signal = packet.get_data(self._fs)
+        time_vector, sig = packet.get_data(self._fs)
 
         if len(time_vector) == 1:
-            data = np.array(time_vector + signal)[:, np.newaxis]
+            data = np.array(time_vector + sig)[:, np.newaxis]
         else:
             if self._rec_time_offset is None:
                 self._rec_time_offset = time_vector[0]
-            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(signal)), axis=0)
+            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
         data = np.round(data, 4)
 
         if self.file_type == 'edf':
@@ -454,7 +494,7 @@ class FileRecorder:
             timestamp, code = packet.get_data()
             if self._rec_time_offset is None:
                 self._rec_time_offset = timestamp[0]
-            timestamp = timestamp-np.float64(self._rec_time_offset)
+            timestamp = timestamp - np.float64(self._rec_time_offset)
             self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
 
@@ -465,12 +505,12 @@ class LslServer:
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
 
-        info_exg = StreamInfo(name=device_info["device_name"]+"_ExG",
+        info_exg = StreamInfo(name=device_info["device_name"] + "_ExG",
                               type='ExG',
                               channel_count=n_chan,
                               nominal_srate=self.exg_fs,
                               channel_format='float32',
-                              source_id=device_info["device_name"]+"_ExG")
+                              source_id=device_info["device_name"] + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(device_info['adc_mask']):
@@ -480,12 +520,12 @@ class LslServer:
                     .append_child_value("unit", EXG_UNITS[i])\
                     .append_child_value("type", "ExG")
 
-        info_orn = StreamInfo(name=device_info["device_name"]+"_ORN",
+        info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
                               type='ORN',
                               channel_count=9,
                               nominal_srate=orn_fs,
                               channel_format='float32',
-                              source_id=device_info["device_name"]+"_ORN")
+                              source_id=device_info["device_name"] + "_ORN")
         info_orn.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for chan, unit in zip(ORN_CHANNELS, ORN_UNITS):
@@ -494,18 +534,19 @@ class LslServer:
                 .append_child_value("unit", unit) \
                 .append_child_value("type", "ORN")
 
-        info_marker = StreamInfo(name=device_info["device_name"]+"_Marker",
+        info_marker = StreamInfo(name=device_info["device_name"] + "_Marker",
                                  type='Markers',
                                  channel_count=1,
                                  nominal_srate=0,
                                  channel_format='int32',
-                                 source_id=device_info["device_name"]+"_Markers")
+                                 source_id=device_info["device_name"] + "_Markers")
 
-        logger.info("LSL Streams have been created with names/source IDs as the following:\n" +
-                    "\t\t\t\t\t" + device_info["device_name"]+"_ExG\n" +
-                    "\t\t\t\t\t" + device_info["device_name"] + "_ORN\n" +
-                    "\t\t\t\t\t" + device_info["device_name"] + "_Markers\n"
-                    )
+        logger.info(
+            f"LSL Streams have been created with names/source IDs as the following:\n"
+            f"\t\t\t\t\t {device_info['device_name']}_ExG\n"
+            f"\t\t\t\t\t {device_info['device_name']}_ORN\n"
+            f"\t\t\t\t\t {device_info['device_name']}_Markers\n"
+        )
         self.orn_outlet = StreamOutlet(info_orn)
         self.exg_outlet = StreamOutlet(info_exg)
         self.marker_outlet = StreamOutlet(info_marker)
@@ -554,10 +595,8 @@ class ImpedanceMeasurement:
         self._add_filters()
 
     def _add_filters(self):
-        bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, \
-                  self._device_info['sampling_rate'] / 4 + 1.5
-        noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, \
-                     self._device_info['sampling_rate'] / 4 + 5.5
+        bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, self._device_info['sampling_rate'] / 4 + 1.5
+        noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, self._device_info['sampling_rate'] / 4 + 5.5
 
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
                                            filter_type='notch',
@@ -580,7 +619,9 @@ class ImpedanceMeasurement:
         temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
         self._calib_param['noise_level'] = self._filters['base_noise'].\
             apply(input_data=temp_packet, in_place=False).get_ptp()
-        self._filters['demodulation'].apply(input_data=temp_packet, in_place=True).calculate_impedance(self._calib_param)
+        self._filters['demodulation'].apply(
+            input_data=temp_packet, in_place=True
+        ).calculate_impedance(self._calib_param)
         return temp_packet
 
 
@@ -627,7 +668,7 @@ class PhysicalOrientation:
     def read_calibre_data(self, device_name):
         config = configparser.ConfigParser()
         calibre_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
-        if os.path.isfile(calibre_file) :
+        if os.path.isfile(calibre_file):
             config.read(calibre_file)
             try:
                 calibre_coef = config[device_name]
@@ -695,16 +736,16 @@ class PhysicalOrientation:
 
     @staticmethod
     def init_dir():
-        if not (os.path.isfile(user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini")):
+        if not os.path.isfile(user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"):
             os.makedirs(user_config_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
             calibre_out_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
-            with open (calibre_out_file, "w") as f_coef:
+            with open(calibre_out_file, "w") as f_coef:
                 config = configparser.ConfigParser()
-                config['DEFAULT'] = {'description': 'configuration data for Explore devices'}
+                config['DEFAULT'] = {'description': 'configurations for Explorepy'}
                 config.write(f_coef)
                 f_coef.close()
 
-        if not (os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab"))):
+        if not os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab")):
             os.makedirs(user_cache_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
 
     @staticmethod
@@ -725,7 +766,7 @@ class PhysicalOrientation:
             kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
             ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
             kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
-            k = np.sort(np.array([kx, ky, kz]))
+            # k = np.sort(np.array([kx, ky, kz]))  # Not used here but might be needed in the future
             kx = 1 / kx
             ky = 1 / ky
             kz = 1 / kz
@@ -764,10 +805,7 @@ class PhysicalOrientation:
             config.read(calibre_file)
             if config.has_section(device_name):
                 return True
-            else:
-                return False
-        else:
-            return False
+        return False
 
 
 def find_free_port():
@@ -776,8 +814,8 @@ def find_free_port():
     Returns:
         int: Port number
     """
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(('localhost', 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        port_number = s.getsockname()[1]
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as free_socket:
+        free_socket.bind(('localhost', 0))
+        free_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        port_number = free_socket.getsockname()[1]
         return port_number

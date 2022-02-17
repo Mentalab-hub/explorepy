@@ -2,11 +2,12 @@
 """
 A module providing classes for Explore device configuration
 """
+import abc
+import logging
 import time
 from datetime import datetime
-import abc
 from enum import Enum
-import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -152,8 +153,9 @@ class Command:
     def translate(self):
         """Translates the command to binary array understandable by Explore device. """
         self.get_time()
-        return self.pid.value + self.cnt + self.payload_length + self.host_ts + self.opcode.value +\
-               self.param + self.fletcher
+        result = [self.pid.value, self.cnt, self.payload_length,
+                  self.host_ts, self.opcode.value, self.param, self.fletcher]
+        return b''.join(result)
 
     def get_time(self):
         """Gets the current machine time based on unix format and fills the corresponding field.
