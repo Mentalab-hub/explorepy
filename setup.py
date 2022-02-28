@@ -32,7 +32,8 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy', 'pyedflib==0.1.25', 'click==7.0', 'appdirs==1.4.3', 'sentry_sdk==1.0.0']
+
+my_req = ['numpy', 'scipy', 'pyedflib==0.1.25', 'click==7.0', 'appdirs==1.4.3', 'sentry_sdk==1.0.0', 'pyserial==3.5']
 ext_modules_list = []
 current_platform = sys.platform
 

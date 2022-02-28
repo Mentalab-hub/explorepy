@@ -7,11 +7,6 @@ import struct
 import time
 from enum import Enum
 
-from explorepy.command import (
-    DeviceConfiguration,
-    ZMeasurementDisable,
-    ZMeasurementEnable
-)
 from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
@@ -21,7 +16,9 @@ from explorepy.packet import (
     DeviceInfo,
     Environment,
     EventMarker,
-    Orientation
+    Orientation,
+    TriggerIn,
+    TriggerOut
 )
 from explorepy.parser import Parser
 from explorepy.tools import (
@@ -136,7 +133,7 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.cmd_status, packet=packet)
         elif isinstance(packet, Environment):
             self.dispatch(topic=TOPICS.env, packet=packet)
-        elif isinstance(packet, EventMarker):
+        elif isinstance(packet, (EventMarker, TriggerOut, TriggerIn)):
             self.dispatch(topic=TOPICS.marker, packet=packet)
         elif isinstance(packet, CalibrationInfo):
             self.imp_calib_info = packet.get_info()
@@ -232,11 +229,13 @@ class StreamProcessor:
         logger.info(f"Setting a marker with code: {code}")
         if not isinstance(code, int):
             raise TypeError('Marker code must be an integer!')
-        if 0 <= code <= 7:
+        if not 1 <= code <= 9999:
             raise ValueError('Marker code value is not valid')
 
-        self.process(EventMarker(timestamp=get_local_time(),
-                                 payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')))
+        marker = EventMarker(timestamp=get_local_time(),
+                             payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde'))
+        marker.marker_code = code
+        self.process(marker)
 
     def compare_device_info(self, new_device_info):
         """Compare a device info dict with the current version

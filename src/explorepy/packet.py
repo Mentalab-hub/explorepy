@@ -29,6 +29,8 @@ class PACKET_ID(IntEnum):
     CMDSTAT = 193
     MARKER = 194
     CALIBINFO = 195
+    TRIGGER_OUT = 28
+    TRIGGER_IN = 29
 
 
 EXG_UNIT = 1e-6
@@ -78,6 +80,11 @@ class EEG(Packet):
     """EEG packet class"""
     __metadata__ = abc.ABCMeta
 
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self.data = None
+        self.imp_data = None
+
     def calculate_impedance(self, imp_calib_info):
         """calculate impedance with the help of impedance calibration info
 
@@ -111,6 +118,15 @@ class EEG(Packet):
     def get_ptp(self):
         """Get peak to peak value"""
         return np.ptp(self.data, axis=1)
+
+    def __str__(self):
+        pass
+
+    def _check_fletcher(self, fletcher):
+        pass
+
+    def _convert(self, bin_data):
+        pass
 
 
 class EEG94(EEG):
@@ -226,8 +242,6 @@ class Orientation(Packet):
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
         self.mag = 1.52 * np.multiply(data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
-        self.theta = None
-        self.rot_axis = None
 
     def _check_fletcher(self, fletcher):
         if not fletcher == b'\xaf\xbe\xad\xde':
@@ -334,6 +348,8 @@ class EventMarker(Packet):
 
     def _convert(self, bin_data):
         self.marker_code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
+        if self.marker_code < 8:
+            self.marker_code = 0  # Code for push button events
 
     def _check_fletcher(self, fletcher):
         if not fletcher == b'\xaf\xbe\xad\xde':
@@ -369,13 +385,13 @@ class Disconnect(Packet):
 class DeviceInfo(Packet):
     """Device information packet"""
     def __init__(self, timestamp, payload):
-        super(DeviceInfo, self).__init__(timestamp, payload)
+        super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
         fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
-        self.firmware_version = '.'.join([char for char in str(fw_num)[1:-1]])
+        self.firmware_version = '.'.join(list(str(fw_num)[1:-1]))
         self.sampling_rate = 16000 / (2 ** bin_data[2])
         self.adc_mask = [int(bit) for bit in format(bin_data[3], '#010b')[2:]]
 
@@ -401,7 +417,7 @@ class DeviceInfo(Packet):
 class CommandRCV(Packet):
     """Command Status packet"""
     def __init__(self, timestamp, payload):
-        super(CommandRCV, self).__init__(timestamp, payload)
+        super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -419,7 +435,7 @@ class CommandRCV(Packet):
 class CommandStatus(Packet):
     """Command Status packet"""
     def __init__(self, timestamp, payload):
-        super(CommandStatus, self).__init__(timestamp, payload)
+        super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -438,7 +454,7 @@ class CommandStatus(Packet):
 class CalibrationInfo(Packet):
     """Calibration Info packet"""
     def __init__(self, timestamp, payload):
-        super(CalibrationInfo, self).__init__(timestamp, payload)
+        super().__init__(timestamp, payload)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -461,6 +477,56 @@ class CalibrationInfo(Packet):
         return "calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset)
 
 
+class TriggerOut(Packet):
+    """Trigger Out packet"""
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        precise_ts = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'), count=1, offset=0)
+        self.precise_ts = precise_ts
+
+    def _check_fletcher(self, fletcher):
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
+
+    def __str__(self):
+        return "Trigger Out: precise_ts = " + str(self.precise_ts)
+
+    def get_data(self, srate=None):
+        """Get trigger data
+        Args:
+            srate: NOT USED. Only for compatibility purpose"""
+        return [self.precise_ts], [10101]
+
+
+class TriggerIn(Packet):
+    """Trigger In packet"""
+    def __init__(self, timestamp, payload):
+        super().__init__(timestamp, payload)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        precise_ts = np.frombuffer(bin_data, dtype=np.dtype(np.uint32).newbyteorder('<'), count=1, offset=0)[0]
+        self.precise_ts = precise_ts/10000
+
+    def _check_fletcher(self, fletcher):
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
+
+    def __str__(self):
+        return "Trigger In: precise_ts = " + str(self.precise_ts)
+
+    def get_data(self, srate=None):
+        """Get trigger data
+        Args:
+            srate: NOT USED. Only for compatibility purpose"""
+        return [self.precise_ts], [10001]
+
+
 PACKET_CLASS_DICT = {
     PACKET_ID.ORN: Orientation,
     PACKET_ID.ENV: Environment,
@@ -476,5 +542,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
     PACKET_ID.CALIBINFO: CalibrationInfo,
-    PACKET_ID.MARKER: EventMarker
+    PACKET_ID.MARKER: EventMarker,
+    PACKET_ID.TRIGGER_OUT: TriggerOut,
+    PACKET_ID.TRIGGER_IN: TriggerIn,
 }
