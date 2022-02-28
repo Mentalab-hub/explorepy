@@ -1,21 +1,27 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import (
+    absolute_import,
+    print_function
+)
 
 import io
-import re
 import os
+import re
 import sys
 from glob import glob
-from os.path import basename
-from os.path import dirname
-from os.path import join
-from os.path import splitext
+from os.path import (
+    basename,
+    dirname,
+    join,
+    splitext
+)
 
-from setuptools import find_packages
-from setuptools import setup
-from setuptools import Extension
+from setuptools import (
+    Extension,
+    find_packages,
+    setup
+)
 
 
 def read(*names, **kwargs):
@@ -26,7 +32,8 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy', 'pyedflib==0.1.22', 'click==7.0', 'appdirs==1.4.3', 'sentry_sdk==1.0.0', 'pyserial==3.5']
+
+my_req = ['numpy', 'scipy', 'pyedflib==0.1.25', 'click==7.0', 'appdirs==1.4.3', 'sentry_sdk==1.0.0', 'pyserial==3.5']
 ext_modules_list = []
 current_platform = sys.platform
 

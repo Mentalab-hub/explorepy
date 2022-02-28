@@ -2,22 +2,19 @@
 Installation
 ============
 
-
 Minimal Requirements
 ------------
-* Python 3.6 or newer version
+* Python 3.6 to Python 3.9
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
 
-
 Recommended Requirements
 ------------
-* Python 3.6 or newer version
+* Python 3.6 to Python 3.9
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 8GB RAM
 * Intel i7 or higher CPU
-
 
 How to install
 --------------
@@ -25,83 +22,70 @@ How to install
 Windows
 ^^^^^^^
 
-Option 1: Installing .exe file (for manual commands, basic use)
+Option 1: Installing .exe file (basic)
+""""""""
 
-This option is best for users who only intend to use ExplorePy from a command-line prompt.
- For example, if you are looking to quickly visualize and record data, use Option 1. 
- If you intend to add ExplorePy commands to a Python script
- (e.g. an experiment script), installing ExplorePy via Anaconda is a better solution.
+*This option is best for users who only intend to use* ``explorepy`` *from a command-line prompt.*
 
-For an overview of Explorepy commands, click `here <https://explorepy.readthedocs.io/en/latest/usage.html#command-line-interface>`_.
+For example, if you want to quickly visualize and record data, use Option 1.
+If you intend to add ``explorepy`` commands to a Python script
+(e.g. an experiment script), install ``explorepy`` via Anaconda instead.
 
-On a Windows machine, Explorepy can be installed using the .exe installable file uploaded to
-Explorepy's `release page <https://github.com/Mentalab-hub/explorepy/releases/download/v1.5.0/MentaLab_ExplorePy_1.5.0.exe>`_. Please note that the dependencies will be installed automatically.
+For an overview of ``explorepy`` commands, click `here <https://explorepy.readthedocs.io/en/latest/usage.html#command-line-interface>`_.
 
+On a Windows machine, ``explorepy`` can be installed using the .exe installable file uploaded to
+``explorepy``'s `release page <https://github.com/Mentalab-hub/explorepy/releases/download/v1.5.0/MentaLab_ExplorePy_1.5.0.exe>`_. Please note that the dependencies will be installed automatically.
 
-Option 2: Installing from Python Package Index (PyPI) and pip (for use in Python scripts, more advanced)
+Option 2: Installing from Python Package Index (PyPI) and pip (advanced)
+""""""""
 
-This option is best for users who intend to include ExplorePy functionalities in their own Python scripts.
- For this, use `Anaconda <https://www.anaconda.com/>`_ to access ExplorePy.
+*This option is best for users who intend to include* ``explorepy`` *functionalities in their own Python scripts.*
 
-To install the ExplorePy API and all its dependencies using pip on Windows:
+To install the ``explorepy`` API and all its dependencies using pip on Windows:
 
-1. Install Anaconda (or any other python distribution; these instructions pertain to Anaconda only). 
- Download and install the Anaconda Windows installer `here <https://www.anaconda.com/distribution/#download-section>`_.
-2. Install Microsoft Build Tools for Visual Studio 2019 `here <https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16>`_.
-    Select **Desktop development with C++** in the workloads tab. Make sure that  **MSVCv142 - VS 2019 C++ x64/x86 build tools** and latest version of **Windows 10 SDK** are checked.
+1. Install Anaconda (or any other Python distribution; these instructions pertain to Anaconda only). Download and install the `Anaconda Windows installer <https://www.anaconda.com/distribution/#download-section>`_.
+2. Install `Microsoft Build Tools for Visual Studio 2019 <https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16>`_. Select *Desktop development with C++* in the workloads tab. Make sure that *MSVCv142 - VS 2019 C++ x64/x86 build tools* and the latest version of *Windows 10 SDK* are checked.
 3. Open the Conda command prompt.
-4. We recommend using a virtual environment.
+4. We recommend using a virtual environment. To do this:
 
-  * In Conda command prompt: ``conda create -n myenv python=3.7``
-  * Activate the virtual environment: ``conda activate myenv``
+   a. In Conda command prompt: ``conda create -n myenv python=3.7``
+   b. Activate the virtual environment: ``conda activate myenv``
 
 5. Upgrade your pip: ``python -m pip install --upgrade pip``
-6. To install ``explorepy`` from PyPI run: ``pip install explorepy``
-
+6. Run: ``pip install explorepy``, to install ``explorepy`` from PyPI.
 
 Ubuntu
 ^^^^^^
 1. Install Bluetooth header files using ``sudo apt-get install libbluetooth-dev``
-2. It is best to install Anaconda. Download and install the Anaconda Python 3.7 Ubuntu installer `here <https://www.anaconda.com/distribution/#download-section>`_.
-3. We recommend using a virtual environment in Conda.
+2. We recommend installing Anaconda. Download and install the `Anaconda Python 3.7 Ubuntu installer <https://www.anaconda.com/distribution/#download-section>`_.
+3. We recommend using a virtual environment in Conda. To do this:
 
-  * In Conda command prompt: ``conda create -n myenv python=3.6``
-  * Activate the virtual environment: ``conda activate myenv``
+   a. In Conda command prompt: ``conda create -n myenv python=3.7``
+   b. Activate the virtual environment: ``conda activate myenv``
 
 4. Upgrade your pip: ``python -m pip install --upgrade pip``
-5. To install ``explorepy`` from PyPI run: ``pip install explorepy``
-
+5. Run: ``pip install explorepy``, to install ``explorepy`` from PyPI.
 
 Mac
 ^^^
-1. Install XCode from the Mac App store. For this, you may need to upgrade to the latest version of MacOS.
-For older versions of MacOS, you can find compatible versions of XCode `here <https://en.wikipedia.org/wiki/Xcode>`_.
-All old Xcode versions are available `here <https://developer.apple.com/download/more/>`_.
-
+1. Install ``XCode`` from the Mac App store. For this, you may need to upgrade to the latest version of MacOS. For older versions of MacOS, find compatible versions of ``XCode`` `here <https://en.wikipedia.org/wiki/Xcode>`_. All old ``XCode`` versions are available `here <https://developer.apple.com/download/more/>`_.
 2. Accept the license agreement: ``sudo xcodebuild -license``
-
-3. It is best to install Anaconda. Download  and install the Anaconda Python 3.7 Mac installer `here <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and can be downloaded from `here <https://repo.anaconda.com/archive/index.html>`_.
-
+3. It is best to install Anaconda. Download  and install the `Anaconda Python 3.7 Mac installer <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and downloaded `here <https://repo.anaconda.com/archive/index.html>`_.
 4. We recommend using a virtual environment in Conda.
 
-  * In Conda command prompt: ``conda create -n myenv python=3.6``
-  * Activate the virtual environment: ``conda activate myenv``
+   a. In Conda command prompt: ``conda create -n myenv python=3.6``
+   b. Activate the virtual environment: ``conda activate myenv``
 
 5. Upgrade your pip: ``python -m pip install --upgrade pip``
-6. To install ``explorepy`` from PyPI run: ``pip install explorepy``
-
+6. Run: ``pip install explorepy``, to install ``explorepy`` from PyPI.
 
 Quick test
 ----------
 
-* •	Open the Conda command prompt (if you used pip) or Windows command prompt (if you used the installable file)
-
-* Activate the virtual environment (this step is only for Conda command prompt): ``conda activate myenv``
-
-* Run ``explorepy visualize -n <YOUR-DEVICE-NAME> -lf 1 -hf 40``
-
-* To stop visualization press Ctrl+c
-
+* Open the Conda command prompt (if you used pip) or Windows command prompt (if you used the installable file).
+* Activate the virtual environment (this step is only necessary in the Conda command prompt): ``conda activate myenv``
+* Run ``explorepy visualize -n DEVICE-NAME -lf 1 -hf 40``
+* To stop visualization press ``Ctrl+C``
 
 Troubleshooting
 ---------------
@@ -114,11 +98,11 @@ Troubleshooting
     OSError: [WinError 126] The specified module could not be found
 
 
-To fix this problem, an older version of Pylsl can be installed using this command: ::
+Solution: Install an older version of Pylsl. To do this, run: ::
 
     pip install pylsl==1.13.1
 
-Alternatively, MS Visual C++ redistributable (vc_redist) can be installed via this `download page <https://support.microsoft.com/en-ca/help/2977003/the-latest-supported-visual-c-downloads>`_.
+Alternatively, install `MS Visual C++ redistributable (vc_redist) <https://support.microsoft.com/en-ca/help/2977003/the-latest-supported-visual-c-downloads>`_.
 
 --------------------
 
@@ -138,7 +122,7 @@ Alternatively, MS Visual C++ redistributable (vc_redist) can be installed via th
     File "c:\users\jose\anaconda3\lib\asyncio\events.py", line 501, in add_reader
         raise NotImplementedError
 
-Solution: Downgrade Anaconda distribution version to one of 3.6 or 3.7 versions.
+Solution: Downgrade your Anaconda distribution to version 3.6 or 3.7.
 
 ---------------------
 
@@ -158,26 +142,34 @@ Solution: Downgrade Anaconda distribution version to one of 3.6 or 3.7 versions.
     ERROR: Command errored out with exit status 4294967295: python setup.py egg_info Check the logs for full command output.
 
 
-Solution: To fix this error, install numpy separately by ``pip install numpy`` and then install explorepy.
-
-
-**4. OSError: A socket operation was attempted to an unreachable network.**
-
-Solution: Make sure that the device is paired with your computer and try again.
-
-**5. ValueError: Error opening socket.**
-
-Solution: Make sure the Bluetooth module of operating system is on and working.
-
-**6. OSError: The handle is invalid.**
-
-Solution: Make sure the Bluetooth module of operating system is on and working.
-
-**7. DeviceNotFoundError: No device found with the name: Explore_####**
-
-Solution: Make sure the device is on and in advertising mode (blinking in blue at 1Hz). If the Bluetooth module of your
-computer is off, you may also get this error.
+Solution: Install numpy separately using ``pip install numpy`` and then install ``explorepy``.
 
 ---------------------
 
-If the issues persist, please send a screenshot and brief error description to support@mentalab.com, and we will quickly help you solve it.
+**4. OSError: A socket operation was attempted to an unreachable network.**
+
+Solution: Ensure that your Explore device is paired with your computer and try again.
+
+---------------------
+
+**5. ValueError: Error opening socket.**
+
+Solution: Ensure the Bluetooth module of your computer's operating system is on and working.
+
+---------------------
+
+**6. OSError: The handle is invalid.**
+
+Solution: Ensure the Bluetooth module of your computer's operating system is on and working.
+
+---------------------
+
+**7. DeviceNotFoundError: No device found with the name: Explore_####**
+
+Solution: Ensure your Explore device is on and in advertising mode (blinking in blue at 1Hz).
+
+You may also get this error if your computer's Bluetooth module is off.
+
+---------------------
+
+If your issue persists, please send a screenshot and brief error description to support@mentalab.com, and we will quickly help you solve it.

@@ -1,19 +1,27 @@
 import logging
 import platform
 import sys
+
 from . import log_config
 
+
+# need to import logger before importing other modules to catch logs during initialization
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.debug("NEW SESSION ---------------------------------------------")
 logger.debug("OS: %s - %s ", platform.platform(), sys.version)
 log_config.log_breadcrumb(f"OS: {platform.platform()} - {sys.version}", "info")
 
-from .explore import Explore
-from . import tools, command, exploresdk
-from .dashboard.dashboard import Dashboard
+from . import (  # noqa ignore E402
+    command,
+    exploresdk,
+    tools
+)
+from .dashboard.dashboard import Dashboard  # noqa
+from .explore import Explore  # noqa
 
 
+__all__ = ["Explore", "Dashboard", "command", "exploresdk", "tools", "log_config"]
 __version__ = '1.6.0'
 
 this = sys.modules[__name__]
@@ -47,4 +55,3 @@ def get_bt_interface():
         bt_interface (str): Current Bluetooth interface: 'sdk'
     """
     return this._bt_interface
-

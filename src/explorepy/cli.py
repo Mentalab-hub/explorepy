@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """Command Line Interface module for explorepy"""
+import logging
 import sys
 from functools import update_wrapper
-import logging
+
 import click
+
 import explorepy
+
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 logger = logging.getLogger(__name__)
@@ -187,7 +190,8 @@ def soft_reset(address, name):
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-m", "--channel-mask", type=str, required=True,
-              help="Channel mask, it should be a binary string containing 1 and 0, representing the mask (LSB is channel 1).")
+              help="Channel mask, it should be a binary string containing 1 and 0, "
+                   "representing the mask (LSB is channel 1).")
 @verify_inputs
 def set_channels(address, name, channel_mask):
     """Mask the channels of the Explore device"""
@@ -230,4 +234,3 @@ def calibrate_orn(address, name, overwrite):
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.calibrate_orn(do_overwrite=overwrite)
-
