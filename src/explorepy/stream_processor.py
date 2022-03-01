@@ -3,7 +3,6 @@
 This module is responsible for processing incoming stream from Explore device and publishing data to subscribers.
 """
 import logging
-import struct
 import time
 from enum import Enum
 
@@ -233,11 +232,10 @@ class StreamProcessor:
         logger.info(f"Setting a software marker with code: {code}")
         if not isinstance(code, int):
             raise TypeError('Marker code must be an integer!')
-        if 0 <= code <= 65535:
+        if 0 < code < 65535:
             raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
 
-        self.process(SoftwareMarker(timestamp=get_local_time(),
-                                    payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')))
+        self.process(SoftwareMarker.create(get_local_time(), code))
 
     def compare_device_info(self, new_device_info):
         """Compare a device info dict with the current version

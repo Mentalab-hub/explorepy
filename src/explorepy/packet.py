@@ -2,6 +2,7 @@
 """This module contains all packet classes of Mentalab Explore device"""
 import abc
 import logging
+import struct
 from enum import IntEnum
 
 import numpy as np
@@ -393,6 +394,20 @@ class SoftwareMarker(EventMarker):
     def _convert(self, bin_data):
         self.code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
 
+    @staticmethod
+    def create(local_time, code):
+        """ Create a software marker
+
+        Args:
+            local_time (double): Local time from LSL
+            code (int): Event marker code
+
+        Returns:
+            SoftwareMarker
+        """
+        return SoftwareMarker(local_time * TIMESTAMP_SCALE,
+                              payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')
+                              )
 
 class TriggerIn(EventMarker):
     """Trigger in packet"""
