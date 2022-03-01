@@ -409,6 +409,7 @@ class SoftwareMarker(EventMarker):
                               payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')
                               )
 
+
 class TriggerIn(EventMarker):
     """Trigger in packet"""
     def __init__(self, timestamp, payload, time_offset=0):
