@@ -150,7 +150,9 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite):
         FileRecorder: file recorder object
     """
     header = ['Timestamp', 'Device', 'sr', 'adcMask', 'ExGUnits']
-    exg_unit = EXG_UNITS[0] # we only need the first channel's units as this will correspond with the rest
+    exg_unit = 'mV'
+    if EXG_UNITS:
+        exg_unit = EXG_UNITS[0]  # we only need the first channel's units as this will correspond with the rest
     return FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=exg_unit,
                         adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite)
 
