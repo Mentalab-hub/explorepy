@@ -540,7 +540,7 @@ class LslServer:
                                  type='Markers',
                                  channel_count=1,
                                  nominal_srate=0,
-                                 channel_format='int32',
+                                 channel_format='string',
                                  source_id=device_info["device_name"] + "_Markers")
 
         logger.info(
