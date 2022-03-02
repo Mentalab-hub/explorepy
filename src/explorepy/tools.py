@@ -149,8 +149,9 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite):
     Returns:
         FileRecorder: file recorder object
     """
-    header = ['Device', 'sr', 'adcMask']
-    return FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=[],
+    header = ['Timestamp', 'Device', 'sr', 'adcMask', 'ExGUnits']
+    exg_unit = EXG_UNITS[0] # we only need the first channel's units as this will correspond with the rest
+    return FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=exg_unit,
                         adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite)
 
 
@@ -375,7 +376,7 @@ class FileRecorder:
 
     """
 
-    def __init__(self, filename, ch_label, fs, ch_unit, adc_mask=None, ch_min=None, ch_max=None,
+    def __init__(self, filename, ch_label, fs, ch_unit, timestamp=None, adc_mask=None, ch_min=None, ch_max=None,
                  device_name='Explore', file_type='edf', do_overwrite=False):
         """
 
@@ -384,6 +385,7 @@ class FileRecorder:
             ch_label (list): List of channel labels.
             fs (int): Sampling rate (must be identical for all channels)
             ch_unit (list): List of channels unit (e.g. 'uV', 'mG', 's', etc.)
+            timestamp (datetime): The time at which this recording starts
             adc_mask (str): Channel mask
             ch_min (list): List of minimum value of each channel. Only needed in edf mode (can be None in csv mode)
             ch_max (list): List of maximum value of each channel. Only needed in edf mode (can be None in csv mode)
@@ -398,6 +400,7 @@ class FileRecorder:
 
         self._file_obj = None
         self.file_type = file_type
+        self.timestamp = timestamp
         self._ch_label = ch_label
         self._ch_unit = ch_unit
         self.adc_mask = adc_mask
@@ -519,7 +522,8 @@ class FileRecorder:
 
     def write_meta(self):
         """Writes meta data in the file"""
-        self._csv_obj.writerow([self._device_name, self._fs, self.adc_mask])
+        channels = ['ch' + str(i) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        self._csv_obj.writerow([self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit])
         self._file_obj.flush()
 
 
