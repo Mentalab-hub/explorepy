@@ -232,7 +232,7 @@ class StreamProcessor:
         logger.info(f"Setting a software marker with code: {code}")
         if not isinstance(code, int):
             raise TypeError('Marker code must be an integer!')
-        if 0 < code < 65535:
+        if not 0 <= code <= 65535:
             raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
 
         self.process(SoftwareMarker.create(get_local_time(), code))
