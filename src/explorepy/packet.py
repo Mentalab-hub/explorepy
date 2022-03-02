@@ -354,6 +354,7 @@ class EventMarker(Packet):
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self.code = None
+        self._label_prefix = None
 
     @abc.abstractmethod
     def _convert(self, bin_data):
@@ -367,7 +368,7 @@ class EventMarker(Packet):
         """Get marker data
         Args:
             srate: NOT USED. Only for compatibility purpose"""
-        return [self.timestamp], [self.code]
+        return [self.timestamp], [self._label_prefix + str(self.code)]
 
     def __str__(self):
         return f"{self.__class__.__name__}, Timestamp: {self.timestamp}, Code: {self.code}"
@@ -379,6 +380,7 @@ class PushButtonMarker(EventMarker):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+        self._label_prefix = 'pb_'
 
     def _convert(self, bin_data):
         self.code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
@@ -390,6 +392,7 @@ class SoftwareMarker(EventMarker):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+        self._label_prefix = 'sw_'
 
     def _convert(self, bin_data):
         self.code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
@@ -417,6 +420,7 @@ class TriggerIn(EventMarker):
         self._time_offset = time_offset
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+        self._label_prefix = 'in_'
 
     def _convert(self, bin_data):
         precise_ts = np.asscalar(np.frombuffer(bin_data,
@@ -437,6 +441,7 @@ class TriggerOut(EventMarker):
         self._time_offset = time_offset
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+        self._label_prefix = 'out_'
 
     def _convert(self, bin_data):
         precise_ts = np.asscalar(np.frombuffer(bin_data,
