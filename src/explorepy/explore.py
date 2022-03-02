@@ -40,8 +40,8 @@ from explorepy.tools import (
     PhysicalOrientation,
     create_exg_recorder,
     create_marker_recorder,
-    create_orn_recorder,
-    create_meta_recorder
+    create_meta_recorder,
+    create_orn_recorder
 )
 
 
