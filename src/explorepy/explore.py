@@ -40,7 +40,8 @@ from explorepy.tools import (
     PhysicalOrientation,
     create_exg_recorder,
     create_marker_recorder,
-    create_orn_recorder
+    create_orn_recorder,
+    create_meta_recorder
 )
 
 
@@ -131,6 +132,7 @@ class Explore:
         exg_out_file = file_name + "_ExG"
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
+        meta_out_file = file_name + "_Meta"
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=file_type,
@@ -145,6 +147,12 @@ class Explore:
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         elif file_type == 'edf':
             self.recorders['marker'] = self.recorders['exg']
+
+        self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+                                                      fs=self.stream_processor.device_info['sampling_rate'],
+                                                      adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                      device_name=self.device_name,
+                                                      do_overwrite=do_overwrite)
 
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
@@ -175,6 +183,9 @@ class Explore:
                 self.recorders['marker'].stop()
             if self.recorders['timer'].is_alive():
                 self.recorders['timer'].cancel()
+
+            self.recorders['meta'].write_meta()
+            self.recorders['meta'].stop()
             self.recorders = {}
             logger.info('Recording stopped.')
         else:
