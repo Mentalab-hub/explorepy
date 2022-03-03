@@ -247,6 +247,7 @@ class Explore:
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
                 new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
+                new_meta_name = meta_out_file + "_" + str(np.round(packet.timestamp, 0))
                 logger.warning("Creating a new file: " + new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
@@ -257,7 +258,7 @@ class Explore:
                                                             adc_mask=self.stream_processor.device_info['adc_mask'],
                                                             do_overwrite=do_overwrite)
                 self.recorders['marker'] = self.recorders['exg']
-                self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+                self.recorders['meta'] = create_meta_recorder(filename=new_meta_name,
                                                               fs=self.stream_processor.device_info['sampling_rate'],
                                                               adc_mask=self.stream_processor.device_info['adc_mask'],
                                                               device_name=self.device_name,
