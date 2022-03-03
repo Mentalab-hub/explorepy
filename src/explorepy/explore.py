@@ -158,6 +158,9 @@ class Explore:
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
         logger.info("Recording...")
+        self.recorders['meta'].write_meta()
+        self.recorders['meta'].stop()
+
         self.recorders['timer'] = Timer(duration, self.stop_recording)
 
         self.recorders['timer'].start()
@@ -184,8 +187,6 @@ class Explore:
             if self.recorders['timer'].is_alive():
                 self.recorders['timer'].cancel()
 
-            self.recorders['meta'].write_meta()
-            self.recorders['meta'].stop()
             self.recorders = {}
             logger.info('Recording stopped.')
         else:
@@ -239,6 +240,8 @@ class Explore:
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+        self.recorders['meta'].write_meta()
+        self.recorders['meta'].stop()
 
         def device_info_callback(packet):
             new_device_info = packet.get_info()
@@ -254,8 +257,15 @@ class Explore:
                                                             adc_mask=self.stream_processor.device_info['adc_mask'],
                                                             do_overwrite=do_overwrite)
                 self.recorders['marker'] = self.recorders['exg']
+                self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+                                                              fs=self.stream_processor.device_info['sampling_rate'],
+                                                              adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                              device_name=self.device_name,
+                                                              do_overwrite=do_overwrite)
                 self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                self.recorders['meta'].write_meta()
+                self.recorders['meta'].stop()
 
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
         self.stream_processor.open_file(bin_file=bin_file)
