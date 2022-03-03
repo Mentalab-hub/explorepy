@@ -212,6 +212,8 @@ class Explore:
         exg_out_file = out_full_path + filename + '_exg'
         orn_out_file = out_full_path + filename + '_orn'
         marker_out_file = out_full_path + filename + '_marker'
+        meta_out_file = out_full_path + filename + '_meta'
+
         self.stream_processor = StreamProcessor()
         self.stream_processor.read_device_info(bin_file=bin_file)
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
@@ -227,6 +229,12 @@ class Explore:
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         else:
             self.recorders['marker'] = self.recorders['exg']
+
+        self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+                                                      fs=self.stream_processor.device_info['sampling_rate'],
+                                                      adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                      device_name=self.device_name,
+                                                      do_overwrite=do_overwrite)
 
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
