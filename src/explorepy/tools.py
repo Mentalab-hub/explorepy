@@ -493,6 +493,7 @@ class FileRecorder:
         if self.file_type == 'csv':
             data = timestamp + code
             self._csv_obj.writerow(data)
+            self._file_obj.flush()
         elif self.file_type == 'edf':
             if self._rec_time_offset is None:
                 self._rec_time_offset = timestamp[0]
