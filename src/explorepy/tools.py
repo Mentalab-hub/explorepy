@@ -136,6 +136,27 @@ def create_marker_recorder(filename, do_overwrite):
                         file_type='csv', do_overwrite=do_overwrite)
 
 
+def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite):
+    """ Create meta file recorder
+
+    Args:
+        filename (str): file name
+        fs (int): sampling rate
+        adc_mask (str): channel mask
+        device_name (str): device name
+        do_overwrite (str): overwrite if the file already exists
+
+    Returns:
+        FileRecorder: file recorder object
+    """
+    header = ['Timestamp', 'Device', 'sr', 'adcMask', 'ExGUnits']
+    exg_unit = 'mV'
+    if EXG_UNITS:
+        exg_unit = EXG_UNITS[0]  # we only need the first channel's units as this will correspond with the rest
+    return FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=exg_unit,
+                        adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite)
+
+
 class HeartRateEstimator:
     def __init__(self, fs=250, smoothing_win=20):
         """Real-time heart Rate Estimator class This class provides the tools for heart rate estimation. It basically detects
@@ -357,7 +378,7 @@ class FileRecorder:
 
     """
 
-    def __init__(self, filename, ch_label, fs, ch_unit, ch_min=None, ch_max=None,
+    def __init__(self, filename, ch_label, fs, ch_unit, timestamp=None, adc_mask=None, ch_min=None, ch_max=None,
                  device_name='Explore', file_type='edf', do_overwrite=False):
         """
 
@@ -366,6 +387,8 @@ class FileRecorder:
             ch_label (list): List of channel labels.
             fs (int): Sampling rate (must be identical for all channels)
             ch_unit (list): List of channels unit (e.g. 'uV', 'mG', 's', etc.)
+            timestamp (datetime): The time at which this recording starts
+            adc_mask (str): Channel mask
             ch_min (list): List of minimum value of each channel. Only needed in edf mode (can be None in csv mode)
             ch_max (list): List of maximum value of each channel. Only needed in edf mode (can be None in csv mode)
             device_name (str): Recording device name
@@ -379,8 +402,10 @@ class FileRecorder:
 
         self._file_obj = None
         self.file_type = file_type
+        self.timestamp = timestamp
         self._ch_label = ch_label
         self._ch_unit = ch_unit
+        self.adc_mask = adc_mask
         self._ch_max = ch_max
         self._ch_min = ch_min
         self._n_chan = len(ch_label)
@@ -499,6 +524,12 @@ class FileRecorder:
                 self._rec_time_offset = timestamp[0]
             timestamp = timestamp - np.float64(self._rec_time_offset)
             self._file_obj.writeAnnotation(timestamp[0], 0.001, code[0])
+
+    def write_meta(self):
+        """Writes meta data in the file"""
+        channels = ['ch' + str(i) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        self._csv_obj.writerow([self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit])
+        self._file_obj.flush()
 
 
 class LslServer:

@@ -40,6 +40,7 @@ from explorepy.tools import (
     PhysicalOrientation,
     create_exg_recorder,
     create_marker_recorder,
+    create_meta_recorder,
     create_orn_recorder
 )
 
@@ -131,6 +132,7 @@ class Explore:
         exg_out_file = file_name + "_ExG"
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
+        meta_out_file = file_name + "_Meta"
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=file_type,
@@ -146,10 +148,19 @@ class Explore:
         elif file_type == 'edf':
             self.recorders['marker'] = self.recorders['exg']
 
+        self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+                                                      fs=self.stream_processor.device_info['sampling_rate'],
+                                                      adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                      device_name=self.device_name,
+                                                      do_overwrite=do_overwrite)
+
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
         logger.info("Recording...")
+        self.recorders['meta'].write_meta()
+        self.recorders['meta'].stop()
+
         self.recorders['timer'] = Timer(duration, self.stop_recording)
 
         self.recorders['timer'].start()
@@ -175,6 +186,7 @@ class Explore:
                 self.recorders['marker'].stop()
             if self.recorders['timer'].is_alive():
                 self.recorders['timer'].cancel()
+
             self.recorders = {}
             logger.info('Recording stopped.')
         else:
@@ -201,6 +213,8 @@ class Explore:
         exg_out_file = out_full_path + filename + '_exg'
         orn_out_file = out_full_path + filename + '_orn'
         marker_out_file = out_full_path + filename + '_marker'
+        meta_out_file = out_full_path + filename + '_meta'
+
         self.stream_processor = StreamProcessor()
         self.stream_processor.read_device_info(bin_file=bin_file)
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
@@ -217,14 +231,23 @@ class Explore:
         else:
             self.recorders['marker'] = self.recorders['exg']
 
+        self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+                                                      fs=self.stream_processor.device_info['sampling_rate'],
+                                                      adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                      device_name=self.device_name,
+                                                      do_overwrite=do_overwrite)
+
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+        self.recorders['meta'].write_meta()
+        self.recorders['meta'].stop()
 
         def device_info_callback(packet):
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
                 new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
+                new_meta_name = meta_out_file + "_" + str(np.round(packet.timestamp, 0))
                 logger.warning("Creating a new file: " + new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
@@ -235,8 +258,15 @@ class Explore:
                                                             adc_mask=self.stream_processor.device_info['adc_mask'],
                                                             do_overwrite=do_overwrite)
                 self.recorders['marker'] = self.recorders['exg']
+                self.recorders['meta'] = create_meta_recorder(filename=new_meta_name,
+                                                              fs=self.stream_processor.device_info['sampling_rate'],
+                                                              adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                              device_name=self.device_name,
+                                                              do_overwrite=do_overwrite)
                 self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                self.recorders['meta'].write_meta()
+                self.recorders['meta'].stop()
 
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
         self.stream_processor.open_file(bin_file=bin_file)
