@@ -696,7 +696,7 @@ class Dashboard:
 
     def _init_set_marker(self):
         self.marker_button = Button(label=u"Set", button_type="default", width=80, height=31, disabled=True)
-        self.event_code_input = TextInput(value="8", title="Event code:", width=80, disabled=True)
+        self.event_code_input = TextInput(value="0", title="Event code:", width=80, disabled=True)
         self.event_code_input.on_change('value', self._check_marker_value)
         self.marker_button.on_click(self._set_marker)
         return column([Spacer(width=170, height=5),
@@ -712,10 +712,10 @@ class Dashboard:
     def _check_marker_value(self, attr, old, new):
         try:
             code = int(self.event_code_input.value)
-            if code < 7 or code > 65535:
-                raise ValueError('Value must be an integer between 8 and 65535')
+            if code < 0 or code > 65535:
+                raise ValueError('Value must be an integer between 0 and 65535')
         except ValueError:
-            self.event_code_input.value = "7<val<65535"
+            self.event_code_input.value = "0<=val<=65535"
 
     @gen.coroutine
     @without_property_validation

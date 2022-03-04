@@ -488,14 +488,17 @@ class FileRecorder:
             packet (explorepy.packet.EventMarker): Event marker packet
 
         """
+        timestamp, code = packet.get_data()
+        timestamp[0] = round(timestamp[0], 4)
         if self.file_type == 'csv':
-            self.write_data(packet=packet)
+            data = timestamp + code
+            self._csv_obj.writerow(data)
+            self._file_obj.flush()
         elif self.file_type == 'edf':
-            timestamp, code = packet.get_data()
             if self._rec_time_offset is None:
                 self._rec_time_offset = timestamp[0]
             timestamp = timestamp - np.float64(self._rec_time_offset)
-            self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
+            self._file_obj.writeAnnotation(timestamp[0], 0.001, code[0])
 
 
 class LslServer:
@@ -538,7 +541,7 @@ class LslServer:
                                  type='Markers',
                                  channel_count=1,
                                  nominal_srate=0,
-                                 channel_format='int32',
+                                 channel_format='string',
                                  source_id=device_info["device_name"] + "_Markers")
 
         logger.info(

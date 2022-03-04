@@ -3,7 +3,6 @@
 This module is responsible for processing incoming stream from Explore device and publishing data to subscribers.
 """
 import logging
-import struct
 import time
 from enum import Enum
 
@@ -21,7 +20,8 @@ from explorepy.packet import (
     DeviceInfo,
     Environment,
     EventMarker,
-    Orientation
+    Orientation,
+    SoftwareMarker
 )
 from explorepy.parser import Parser
 from explorepy.tools import (
@@ -229,14 +229,13 @@ class StreamProcessor:
 
     def set_marker(self, code):
         """Set a marker in the stream"""
-        logger.info(f"Setting a marker with code: {code}")
+        logger.info(f"Setting a software marker with code: {code}")
         if not isinstance(code, int):
             raise TypeError('Marker code must be an integer!')
-        if 0 <= code <= 7:
-            raise ValueError('Marker code value is not valid')
+        if not 0 <= code <= 65535:
+            raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
 
-        self.process(EventMarker(timestamp=get_local_time(),
-                                 payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')))
+        self.process(SoftwareMarker.create(get_local_time(), code))
 
     def compare_device_info(self, new_device_info):
         """Compare a device info dict with the current version
