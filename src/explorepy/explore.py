@@ -258,7 +258,8 @@ class Explore:
                                                             fs=self.stream_processor.device_info['sampling_rate'],
                                                             adc_mask=self.stream_processor.device_info['adc_mask'],
                                                             do_overwrite=do_overwrite)
-                self.recorders['marker'] = self.recorders['exg']
+                if self.recorders['file_type'] == 'edf':
+                    self.recorders['marker'] = self.recorders['exg']
                 self.recorders['meta'] = create_meta_recorder(filename=new_meta_name,
                                                               fs=self.stream_processor.device_info['sampling_rate'],
                                                               adc_mask=self.stream_processor.device_info['adc_mask'],
@@ -274,6 +275,11 @@ class Explore:
         logger.info("Converting...")
         while self.stream_processor.is_connected:
             time.sleep(.1)
+
+        if self.recorders['file_type'] == 'csv':
+            self.recorders["marker"].stop()
+        self.recorders["exg"].stop()
+        self.recorders["orn"].stop()
         logger.info('Conversion finished.')
 
     def push2lsl(self, duration=None, block=False):
