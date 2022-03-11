@@ -28,6 +28,7 @@ from explorepy.command import (
     ModuleDisable,
     ModuleEnable,
     SetCh,
+    SetChTest,
     SetSPS,
     SoftReset
 )
@@ -407,12 +408,7 @@ class Explore:
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.set_channels(channel_mask='0111')  # disable channel 4 - mask:0111
         """
-        c = re.compile('[^01]')
-
-        if (isinstance(channel_mask, str) and len(c.findall(channel_mask)) == 0) or (isinstance(channel_mask, bytes)):
-            channel_mask_int = int(channel_mask, 2)
-        else:
-            raise TypeError("Input must be bytes or binary string!")
+        channel_mask_int = self._convert_chan_mask(channel_mask)
 
         self._check_connection()
         cmd = SetCh(channel_mask_int)
@@ -475,6 +471,22 @@ class Explore:
         self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
         time.sleep(105)
         PhysicalOrientation.calibrate(cache_dir=file_name, device_name=self.device_name)
+
+    def _activate_test_sig(self, channel_mask):
+        """ Activate the internal ADS test signals
+        """
+        channel_mask_int = self._convert_chan_mask(channel_mask)
+        self._check_connection()
+        cmd = SetChTest(channel_mask_int)
+        self.stream_processor.configure_device(cmd)
+
+    def _convert_chan_mask(self, mask):
+        c = re.compile('[^01]')
+
+        if (isinstance(mask, str) and len(c.findall(mask)) == 0) or (isinstance(mask, bytes)):
+            return int(mask, 2)
+        else:
+            raise TypeError("Input must be bytes or binary string!")
 
     def _check_connection(self):
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
