@@ -1,6 +1,12 @@
+import explorepy
 
-from explorepy.cli import main
+
+explorepy.set_bt_interface('sdk')
 
 
-def test_main():
-    main([])
+class TestMainClass:
+    def test_dummy_1(self):
+        assert 1 == 1
+
+    def test_dummy_2(self):
+        assert 2 == 2
