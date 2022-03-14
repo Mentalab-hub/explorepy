@@ -29,12 +29,13 @@ jobs:
               uses: actions/setup-python@v2
               with:
                 python-version: ${{ matrix.python }}
-
-            - name: Install Python dependencies
-              run: |
-                python -m pip install --upgrade pip
-                # install explorepy with its test dependencies
+#                conda-channels: anaconda, conda-forge
+            - uses: s-weigand/setup-conda@v1
+              with:
+                  activate conda: false
+                  conda-channels: anaconda, conda-forge
+            - run: |
+                conda --version
+                conda install -c conda-forge liblsl
                 pip install -e .[test]
-            - name: Run pytest
-              run: |
-                  python -m pytest --import-mode=append
+                python - pytest --import-mode=append
