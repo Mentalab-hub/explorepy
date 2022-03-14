@@ -146,21 +146,21 @@ class Explore:
 
         if file_type == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
-        elif file_type == 'edf':
-            self.recorders['marker'] = self.recorders['exg']
-
-        self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+            self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                       fs=self.stream_processor.device_info['sampling_rate'],
                                                       adc_mask=self.stream_processor.device_info['adc_mask'],
                                                       device_name=self.device_name,
                                                       do_overwrite=do_overwrite)
+            self.recorders['meta'].write_meta()
+            self.recorders['meta'].stop()
+
+        elif file_type == 'edf':
+            self.recorders['marker'] = self.recorders['exg']
 
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
         logger.info("Recording...")
-        self.recorders['meta'].write_meta()
-        self.recorders['meta'].stop()
 
         self.recorders['timer'] = Timer(duration, self.stop_recording)
 
@@ -211,10 +211,10 @@ class Explore:
         assert os.path.isfile(bin_file), "Error: File does not exist!"
         assert extension == '.BIN', "File type error! File extension must be BIN."
         out_full_path = os.path.join(os.getcwd(), out_dir)
-        exg_out_file = out_full_path + filename + '_exg'
-        orn_out_file = out_full_path + filename + '_orn'
-        marker_out_file = out_full_path + filename + '_marker'
-        meta_out_file = out_full_path + filename + '_meta'
+        exg_out_file = out_full_path + filename + '_ExG'
+        orn_out_file = out_full_path + filename + '_ORN'
+        marker_out_file = out_full_path + filename + '_Marker'
+        meta_out_file = out_full_path + filename + '_Meta'
 
         self.stream_processor = StreamProcessor()
         self.stream_processor.read_device_info(bin_file=bin_file)
@@ -229,20 +229,19 @@ class Explore:
 
         if self.recorders['file_type'] == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
-        else:
-            self.recorders['marker'] = self.recorders['exg']
-
-        self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+            self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                       fs=self.stream_processor.device_info['sampling_rate'],
                                                       adc_mask=self.stream_processor.device_info['adc_mask'],
                                                       device_name=self.device_name,
                                                       do_overwrite=do_overwrite)
+            self.recorders['meta'].write_meta()
+            self.recorders['meta'].stop()
+        else:
+            self.recorders['marker'] = self.recorders['exg']
 
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
-        self.recorders['meta'].write_meta()
-        self.recorders['meta'].stop()
 
         def device_info_callback(packet):
             new_device_info = packet.get_info()
@@ -259,15 +258,18 @@ class Explore:
                                                             adc_mask=self.stream_processor.device_info['adc_mask'],
                                                             do_overwrite=do_overwrite)
                 self.recorders['marker'] = self.recorders['exg']
-                self.recorders['meta'] = create_meta_recorder(filename=new_meta_name,
+
+                self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+
+                if self.recorders['file_type'] == 'csv':
+                    self.recorders['meta'] = create_meta_recorder(filename=new_meta_name,
                                                               fs=self.stream_processor.device_info['sampling_rate'],
                                                               adc_mask=self.stream_processor.device_info['adc_mask'],
                                                               device_name=self.device_name,
                                                               do_overwrite=do_overwrite)
-                self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-                self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
-                self.recorders['meta'].write_meta()
-                self.recorders['meta'].stop()
+                    self.recorders['meta'].write_meta()
+                    self.recorders['meta'].stop()
 
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
         self.stream_processor.open_file(bin_file=bin_file)
