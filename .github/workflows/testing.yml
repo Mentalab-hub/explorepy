@@ -29,13 +29,11 @@ jobs:
               uses: actions/setup-python@v2
               with:
                 python-version: ${{ matrix.python }}
-#                conda-channels: anaconda, conda-forge
             - uses: s-weigand/setup-conda@v1
               with:
-                  activate conda: false
+                  activate-conda: false
                   conda-channels: anaconda, conda-forge
             - run: |
-                conda --version
                 conda install -c conda-forge liblsl
                 pip install -e .[test]
-                python - pytest --import-mode=append
+            - run: python - pytest --import-mode=append
