@@ -31,9 +31,8 @@ jobs:
                 python-version: ${{ matrix.python }}
             - uses: s-weigand/setup-conda@v1
               with:
-                  activate-conda: false
                   conda-channels: anaconda, conda-forge
             - run: |
                 conda install -c conda-forge liblsl
                 pip install -e .[test]
-            - run: python -m pytest --import-mode=append
+                python -m pytest --import-mode=append
