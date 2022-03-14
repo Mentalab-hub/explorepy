@@ -527,7 +527,7 @@ class FileRecorder:
 
     def write_meta(self):
         """Writes meta data in the file"""
-        channels = ['ch' + str(i) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
         self._csv_obj.writerow([self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit])
         self._file_obj.flush()
 
