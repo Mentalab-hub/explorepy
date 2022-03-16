@@ -146,11 +146,12 @@ class Explore:
 
         if file_type == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
-            self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
-                                                      fs=self.stream_processor.device_info['sampling_rate'],
-                                                      adc_mask=self.stream_processor.device_info['adc_mask'],
-                                                      device_name=self.device_name,
-                                                      do_overwrite=do_overwrite)
+            self.recorders['meta'] = create_meta_recorder(
+                filename=meta_out_file,
+                fs=self.stream_processor.device_info['sampling_rate'],
+                adc_mask=self.stream_processor.device_info['adc_mask'],
+                device_name=self.device_name,
+                do_overwrite=do_overwrite)
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
