@@ -21,6 +21,7 @@ from threading import Timer
 
 import numpy as np
 from appdirs import user_cache_dir
+from datetime import datetime
 
 import explorepy
 from explorepy.command import (
@@ -150,7 +151,8 @@ class Explore:
                                                           fs=self.stream_processor.device_info['sampling_rate'],
                                                           adc_mask=self.stream_processor.device_info['adc_mask'],
                                                           device_name=self.device_name,
-                                                          do_overwrite=do_overwrite)
+                                                          do_overwrite=do_overwrite,
+                                                          timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
