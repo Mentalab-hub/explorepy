@@ -146,12 +146,11 @@ class Explore:
 
         if file_type == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
-            self.recorders['meta'] = create_meta_recorder(
-                filename=meta_out_file,
-                fs=self.stream_processor.device_info['sampling_rate'],
-                adc_mask=self.stream_processor.device_info['adc_mask'],
-                device_name=self.device_name,
-                do_overwrite=do_overwrite)
+            self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+                                                          fs=self.stream_processor.device_info['sampling_rate'],
+                                                          adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                          device_name=self.device_name,
+                                                          do_overwrite=do_overwrite)
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
@@ -231,10 +230,10 @@ class Explore:
         if self.recorders['file_type'] == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
-                                                      fs=self.stream_processor.device_info['sampling_rate'],
-                                                      adc_mask=self.stream_processor.device_info['adc_mask'],
-                                                      device_name=self.device_name,
-                                                      do_overwrite=do_overwrite)
+                                                          fs=self.stream_processor.device_info['sampling_rate'],
+                                                          adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                          device_name=self.device_name,
+                                                          do_overwrite=do_overwrite)
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
         else:
@@ -264,11 +263,12 @@ class Explore:
                 self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
 
                 if self.recorders['file_type'] == 'csv':
-                    self.recorders['meta'] = create_meta_recorder(filename=new_meta_name,
-                                                              fs=self.stream_processor.device_info['sampling_rate'],
-                                                              adc_mask=self.stream_processor.device_info['adc_mask'],
-                                                              device_name=self.device_name,
-                                                              do_overwrite=do_overwrite)
+                    self.recorders['meta'] = create_meta_recorder(
+                        filename=new_meta_name,
+                        fs=self.stream_processor.device_info['sampling_rate'],
+                        adc_mask=self.stream_processor.device_info['adc_mask'],
+                        device_name=self.device_name,
+                        do_overwrite=do_overwrite)
                     self.recorders['meta'].write_meta()
                     self.recorders['meta'].stop()
 
