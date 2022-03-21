@@ -17,11 +17,11 @@ import logging
 import os
 import re
 import time
+from datetime import datetime
 from threading import Timer
 
 import numpy as np
 from appdirs import user_cache_dir
-from datetime import datetime
 
 import explorepy
 from explorepy.command import (
