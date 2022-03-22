@@ -452,14 +452,9 @@ available for Explore device.
 
 In order to set markers programmatically, use:
 ::
-    explorepy.Explore.set_marker
+    explore.set_marker(code=10)
 
-However, this function must be called from its own, dedicated thread.
-
-.. note:: Push button markers have
-Marker codes 0-7 are reserved for the hardware. You can use any other (integer) code for your marker (8-65535).
-
-For an example, see `this script <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_.
+A simple example of software markers used in a script can be found `here <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_.
 
 Device configuration
 """"""""""""""""""""
