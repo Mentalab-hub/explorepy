@@ -148,6 +148,8 @@ class Explore:
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
         elif file_type == 'edf':
             self.recorders['marker'] = self.recorders['exg']
+            logger.warning("Markers' timing might not be precise in EDF files. We recommend recording in CSV format "
+                           "if you are setting markers during the recording.")
 
         self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                       fs=self.stream_processor.device_info['sampling_rate'],
