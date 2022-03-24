@@ -185,9 +185,11 @@ Visualizes electrode impedances in a browser dashboard. Currently, Google Chrome
 
 
 
-.. note:: Impedance values for each electrode are the sum of impedances values for the ground electrode and corresponding ExG electrode.
+.. note:: Impedance values depend on the impedance of the reference electrode. The value shown for each electrode is the average of the ground and ExG electrodes' impedances.
 
-.. note:: Impedance accuracy is affected by environmental conditions such as noise and temperature.
+            If all channel impedances are high, try cleaning the skin under the reference electrode more thoroughly using, e.g., alcohol, abrasive gel, or EEG.
+
+.. note:: Impedance values are subject to environmental conditions like noise and temperature. Aim for regular room temperatures (~15-25 degree celsius).
 
 Example:
 ::
@@ -396,9 +398,11 @@ You can measure electrodes impedances using:
   :width: 800
   :alt: Impedance Dashboard
 
-.. note:: Impedance values for each electrode are the sum of impedances values for the ground electrode and corresponding ExG electrode.
+.. note:: Impedance values depend on the impedance of the reference electrode. The value shown for each electrode is the average of the ground and ExG electrodes' impedances.
 
-.. note:: Impedance accuracy is affected by environmental conditions such as noise and temperature.
+            If all channel impedances are high, try cleaning the skin under the reference electrode more thoroughly using, e.g., alcohol, abrasive gel, or EEG.
+
+.. note:: Impedance values are subject to environmental conditions like noise and temperature. Aim for regular room temperatures (~15-25 degree celsius).
 
 Lab Streaming Layer (lsl)
 """""""""""""""""""""""
