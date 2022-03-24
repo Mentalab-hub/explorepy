@@ -269,7 +269,7 @@ class Dashboard:
              packet (explorepy.packet.EEG): ExG packet
         """
         if self.mode == "impedance":
-            imp = packet.get_impedances()/2
+            imp = packet.get_impedances() / 2
             color = []
             imp_status = []
             for value in imp:
