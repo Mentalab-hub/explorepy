@@ -269,17 +269,20 @@ class Dashboard:
              packet (explorepy.packet.EEG): ExG packet
         """
         if self.mode == "impedance":
-            imp = packet.get_impedances()
+            imp = packet.get_impedances()/2
             color = []
             imp_status = []
             for value in imp:
-                if value > 500:
+                if value > 250:
                     color.append("black")
                     imp_status.append("Open")
-                elif value > 100:
+                elif value > 50:
+                    color.append("black")
+                    imp_status.append(str(round(value, 0)) + " K\u03A9")
+                elif value > 30:
                     color.append("red")
                     imp_status.append(str(round(value, 0)) + " K\u03A9")
-                elif value > 50:
+                elif value > 20:
                     color.append("orange")
                     imp_status.append(str(round(value, 0)) + " K\u03A9")
                 elif value > 10:
