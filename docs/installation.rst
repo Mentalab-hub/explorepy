@@ -4,14 +4,14 @@ Installation
 
 Minimal Requirements
 ------------
-* Python 3.6 to Python 3.9
+* Python 3.6 to Python 3.10
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
 
 Recommended Requirements
 ------------
-* Python 3.6 to Python 3.9
+* Python 3.6 to Python 3.10
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 8GB RAM
 * Intel i7 or higher CPU
@@ -48,7 +48,7 @@ To install the ``explorepy`` API and all its dependencies using pip on Windows:
 3. Open the Conda command prompt.
 4. We recommend using a virtual environment. To do this:
 
-   a. In Conda command prompt: ``conda create -n myenv python=3.7``
+   a. In Conda command prompt: ``conda create -n myenv python=3.8``
    b. Activate the virtual environment: ``conda activate myenv``
 
 5. Upgrade your pip: ``python -m pip install --upgrade pip``
@@ -60,7 +60,7 @@ Ubuntu
 2. We recommend installing Anaconda. Download and install the `Anaconda Python 3.7 Ubuntu installer <https://www.anaconda.com/distribution/#download-section>`_.
 3. We recommend using a virtual environment in Conda. To do this:
 
-   a. In Conda command prompt: ``conda create -n myenv python=3.7``
+   a. In Conda command prompt: ``conda create -n myenv python=3.8``
    b. Activate the virtual environment: ``conda activate myenv``
 
 4. Upgrade your pip: ``python -m pip install --upgrade pip``
@@ -73,7 +73,7 @@ Mac
 3. It is best to install Anaconda. Download  and install the `Anaconda Python 3.7 Mac installer <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and downloaded `here <https://repo.anaconda.com/archive/index.html>`_.
 4. We recommend using a virtual environment in Conda.
 
-   a. In Conda command prompt: ``conda create -n myenv python=3.6``
+   a. In Conda command prompt: ``conda create -n myenv python=3.8``
    b. Activate the virtual environment: ``conda activate myenv``
 
 5. Upgrade your pip: ``python -m pip install --upgrade pip``
