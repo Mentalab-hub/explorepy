@@ -136,7 +136,7 @@ def create_marker_recorder(filename, do_overwrite):
                         file_type='csv', do_overwrite=do_overwrite)
 
 
-def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, timestamp=None):
+def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, timestamp=''):
     """ Create meta file recorder
 
     Args:
@@ -150,9 +150,7 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, time
     Returns:
         FileRecorder: file recorder object
     """
-    header = ['Device', 'sr', 'adcMask', 'ExGUnits']
-    if timestamp is not None:
-        header.insert(0, "Timestamp")
+    header = ['DateTime', 'Device', 'sr', 'adcMask', 'ExGUnits']
     exg_unit = 'mV'
     if EXG_UNITS:
         exg_unit = EXG_UNITS[0]  # we only need the first channel's units as this will correspond with the rest
@@ -531,9 +529,7 @@ class FileRecorder:
     def write_meta(self):
         """Writes meta data in the file"""
         channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-        row = [self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
-        if self.timestamp is not None:
-            row.insert(0, self.timestamp)
+        row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
         self._csv_obj.writerow(row)
         self._file_obj.flush()
 
