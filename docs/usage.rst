@@ -38,7 +38,7 @@ Scans for nearby Mentalab Explore devices. Prints out the Name and MAC address o
     Options:
       -h, --help                      Show this message and exit.
 
-.. note:: On Windows, this function may print all paired devices.
+.. note:: On Windows, this command prints all paired devices.
 
 
 acquire
@@ -58,7 +58,7 @@ Example:
 record-data
 %%%%
 
-Connects to a device and records ExG and orientation data into two separate files. Note that in CSV mode there will be an extra file for the marker events. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution).
+Connects to a device and records ExG and orientation data into two separate files. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution). Note that in CSV mode there will be two extra files. One for the marker events, and one for the metadata.
 ::
 
     Options:
@@ -81,6 +81,10 @@ Connects to a device and records ExG and orientation data into two separate file
 .. note:: Because environmental factors, like temperature, can affect your device's sampling rate, we recommend computing the sampling rate of recorded data. If you find a deviation between the recorded sampling rate and ``explorepy``'s sampling rate, resample your signal to correct for drifts. The timestamps in the CSV/EDF file can be used to compute the resampling factor.
 
            If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF files here, as they cannot guarantee precise timing.
+
+.. note:: If the Bluetooth connection is unstable, data may not arrive in order. Timestamps in the recorded files can be
+            used to sort the samples according to their precise sampling time in the device.
+
 
 Example:
 ::
@@ -105,7 +109,7 @@ Example:
 bin2csv
 %%%%
 
-Takes a binary file and converts it to three CSV files (ExG, orientation and marker files).
+Takes a binary file and converts it to four CSV files (ExG, orientation, marker files and metadata).
 ::
 
     Options:
@@ -180,11 +184,12 @@ Visualizes electrode impedances in a browser dashboard. Currently, Google Chrome
       -h, --help                Show this message and exit.
 
 
-.. note:: Restart your device after measuring its impedance to avoid introducing external noise.
 
-.. note:: Impedance values for each electrode are the sum of impedances values for the ground electrode and corresponding ExG electrode.
+.. note:: Impedance values depend on the impedance of the reference electrode. The value shown for each electrode is the average of the ground and ExG electrodes' impedances.
 
-.. note:: Impedance accuracy is affected by environmental conditions such as noise and temperature.
+            If all channel impedances are high, try cleaning the skin under the reference electrode more thoroughly using, e.g., alcohol, abrasive gel, or EEG.
+
+.. note:: Impedance values are subject to environmental conditions like noise and temperature. Aim for regular room temperatures (~15-25 degree celsius).
 
 Example:
 ::
@@ -227,9 +232,9 @@ Sets a device's ExG sampling rate. Acceptable values: 250, 500 or 1000 (beta). T
     Options:
       -a, --address TEXT              Explore device's MAC address
       -n, --name TEXT                 Name of the device
-      -sr, --sampling-rate [250|500|1000]
-                                      Sampling rate of ExG channels, it can be 250
-                                      or 500  [required]
+      -sr, --sampling-rate [250 | 500 | 1000]
+                                      Sampling rate of ExG channels, it can be 250,
+                                      500 or 1000 [required]
       -h, --help                      Show this message and exit.
 
 Example:
@@ -393,9 +398,11 @@ You can measure electrodes impedances using:
   :width: 800
   :alt: Impedance Dashboard
 
-.. note:: Impedance values for each electrode are the sum of impedances values for the ground electrode and corresponding ExG electrode.
+.. note:: Impedance values depend on the impedance of the reference electrode. The value shown for each electrode is the average of the ground and ExG electrodes' impedances.
 
-.. note:: Impedance accuracy is affected by environmental conditions such as noise and temperature.
+            If all channel impedances are high, try cleaning the skin under the reference electrode more thoroughly using, e.g., alcohol, abrasive gel, or EEG.
+
+.. note:: Impedance values are subject to environmental conditions like noise and temperature. Aim for regular room temperatures (~15-25 degree celsius).
 
 Lab Streaming Layer (lsl)
 """""""""""""""""""""""
@@ -424,16 +431,34 @@ It is possible to extract BIN files from a device via USB. To convert these bina
 
 Event markers
 """""""""""""
+Event markers can be used to time synch data. The following table describes all types of event markers
+available for Explore device.
 
-In addition to the marker event generated by pressing the button on your Explore device, you can set markers programmatically using:
+.. list-table:: Event markers table
+    :widths: 25 25 50
+    :header-rows: 1
+
+    * - Type
+      - Code range
+      - Label in recordings
+    * - Push button
+      - 0-7
+      - pb_<CODE>
+    * - Software marker
+      - 0-65535
+      - sw_<CODE>
+    * - Trigger-in
+      - 0-65535
+      - in_<CODE>
+    * - Trigger-out
+      - 0-65535
+      - out_<CODE>
+
+In order to set markers programmatically, use:
 ::
-    explorepy.Explore.set_marker
+    explore.set_marker(code=10)
 
-However, this function must be called from its own, dedicated thread.
-
-.. note:: Marker codes 0-7 are reserved for the hardware. You can use any other (integer) code for your marker (8-65535).
-
-For an example, see `this script <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_.
+A simple example of software markers used in a script can be found `here <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_.
 
 Device configuration
 """"""""""""""""""""

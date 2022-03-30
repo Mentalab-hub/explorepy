@@ -1,6 +1,6 @@
+import time
 import explorepy
 import argparse
-import threading
 
 
 def main():
@@ -9,16 +9,18 @@ def main():
     args = parser.parse_args()
 
     # Create an Explore object
-    exp_device = explorepy.Explore()
+    explore = explorepy.Explore()
+    explore.connect(device_name=args.name)
+    explore.record_data(file_name='test_event_gen', file_type='csv', do_overwrite=True, block=False)
 
-    def marker_gen():
-        exp_device.set_marker(code=12)
-        threading.Timer(5, marker_gen).start()
+    n_markers = 20
+    interval = 2
 
-    exp_device.connect(device_name=args.name)
-    marker_gen()
-    exp_device.record_data(file_name='test_event_gen', duration=25, file_type='edf', do_overwrite=True, block=True)
-    print("Press Ctrl+c to exit.")
+    for i in range(n_markers):
+        explore.set_marker(code=i)
+        time.sleep(interval)
+
+    explore.stop_recording()
 
 
 if __name__ == "__main__":
