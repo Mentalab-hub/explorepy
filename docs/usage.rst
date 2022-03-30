@@ -38,7 +38,7 @@ Scans for nearby Mentalab Explore devices. Prints out the Name and MAC address o
     Options:
       -h, --help                      Show this message and exit.
 
-.. note:: On Windows, this command prints all paired devices as well.
+.. note:: On Windows, this command prints all paired devices.
 
 
 acquire
@@ -58,7 +58,7 @@ Example:
 record-data
 %%%%
 
-Connects to a device and records ExG and orientation data into two separate files. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution). Note that in CSV mode there will be two extra file for the marker events and recording metadata.
+Connects to a device and records ExG and orientation data into two separate files. In EDF mode, the data is actually recorded in BDF+ format (in 24-bit resolution). Note that in CSV mode there will be two extra files. One for the marker events, and one for the metadata.
 ::
 
     Options:
@@ -109,7 +109,7 @@ Example:
 bin2csv
 %%%%
 
-Takes a binary file and converts it to three CSV files (ExG, orientation, marker files and metadata).
+Takes a binary file and converts it to four CSV files (ExG, orientation, marker files and metadata).
 ::
 
     Options:
@@ -431,7 +431,7 @@ It is possible to extract BIN files from a device via USB. To convert these bina
 
 Event markers
 """""""""""""
-Event markers can be used for time synchronization in the analyses. The following table describes all type of event markers
+Event markers can be used to time synch data. The following table describes all type of event markers
 available for Explore device.
 
 .. list-table:: Event markers table
