@@ -1,0 +1,36 @@
+name: testing
+on:
+    pull_request:
+        branches: [master]
+jobs:
+    test:
+        strategy:
+            matrix:
+                os: [ubuntu-latest, windows-latest, macos-latest]
+                python: [3.8.10]
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: 10
+        steps:
+            - name: Checkout source repository
+              uses: actions/checkout@v2
+              with:
+                fetch-depth: 0
+                clean: false
+
+            - name: checkout to current branch
+              run: git checkout ${{ env.BRANCH }}
+
+            - name: Install non-python dependencies on Ubuntu
+              if: runner.os == 'Linux'
+              run: |
+                sudo apt-get update -y
+                sudo apt-get install libbluetooth-dev -y
+            - name: Set up Python ${{ matrix.python }}
+              uses: s-weigand/setup-conda@v1
+              with:
+                  python-version: ${{ matrix.python }}
+                  conda-channels: anaconda, conda-forge
+            - run: |
+                conda install -c conda-forge liblsl
+                pip install -e .[test]
+                python -m pytest --import-mode=append

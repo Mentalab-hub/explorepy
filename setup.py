@@ -33,6 +33,12 @@ def read(*names, **kwargs):
 
 
 my_req = ['numpy', 'scipy', 'pyedflib==0.1.25', 'click==7.0', 'appdirs==1.4.3', 'sentry_sdk==1.0.0']
+
+test_requirements = ["pytest==6.2.5",
+                     "flake8==4.0.1",
+                     "isort==5.10.1"]
+extras = {"test": test_requirements}
+
 ext_modules_list = []
 current_platform = sys.platform
 
@@ -110,7 +116,7 @@ setup(
         'Mentalab', 'Explorepy', 'EEG signal',
     ],
     install_requires=my_req,
-    extras_require={},
+    extras_require=extras,
     entry_points='''
         [console_scripts]
         explorepy=explorepy.cli:cli
