@@ -431,7 +431,7 @@ It is possible to extract BIN files from a device via USB. To convert these bina
 
 Event markers
 """""""""""""
-Event markers can be used to time synch data. The following table describes all type of event markers
+Event markers can be used to time synch data. The following table describes all types of event markers
 available for Explore device.
 
 .. list-table:: Event markers table
