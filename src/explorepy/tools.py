@@ -136,7 +136,7 @@ def create_marker_recorder(filename, do_overwrite):
                         file_type='csv', do_overwrite=do_overwrite)
 
 
-def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite):
+def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, timestamp=''):
     """ Create meta file recorder
 
     Args:
@@ -145,16 +145,17 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite):
         adc_mask (str): channel mask
         device_name (str): device name
         do_overwrite (str): overwrite if the file already exists
+        timestamp (datetime): The time at which this recording starts. Defaults to None
 
     Returns:
         FileRecorder: file recorder object
     """
-    header = ['Timestamp', 'Device', 'sr', 'adcMask', 'ExGUnits']
+    header = ['DateTime', 'Device', 'sr', 'adcMask', 'ExGUnits']
     exg_unit = 'mV'
     if EXG_UNITS:
         exg_unit = EXG_UNITS[0]  # we only need the first channel's units as this will correspond with the rest
     return FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=exg_unit,
-                        adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite)
+                        adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite, timestamp=timestamp)
 
 
 class HeartRateEstimator:
@@ -527,8 +528,9 @@ class FileRecorder:
 
     def write_meta(self):
         """Writes meta data in the file"""
-        channels = ['ch' + str(i) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-        self._csv_obj.writerow([self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit])
+        channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
+        self._csv_obj.writerow(row)
         self._file_obj.flush()
 
 
