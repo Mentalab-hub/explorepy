@@ -190,6 +190,9 @@ class StreamProcessor:
 
         Args:
             cmd (explorepy.command.Command): Command to be sent
+
+        Returns:
+            bool: True for success, False otherwise.
         """
         if not self.is_connected:
             raise ConnectionError("No Explore device is connected!")
