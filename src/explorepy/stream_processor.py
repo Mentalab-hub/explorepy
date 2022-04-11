@@ -60,7 +60,7 @@ class StreamProcessor:
             topic (enum 'Topics'): Topic type
         """
         logger.debug(f"Subscribe {callback.__name__} to {topic}")
-        self.subscribers.setdefault(topic, set()).add(callback)
+        self.subscribers[topic].add(callback)
 
     def unsubscribe(self, callback, topic):
         """Unsubscribe a function from a topic
@@ -70,7 +70,7 @@ class StreamProcessor:
             topic (enum 'Topics'): Topic type
         """
         logger.debug(f"Unsubscribe {callback} from {topic}")
-        self.subscribers.setdefault(topic, set()).discard(callback)
+        self.subscribers[topic].discard(callback)
 
     def start(self, device_name=None, mac_address=None):
         """Start streaming from Explore device
