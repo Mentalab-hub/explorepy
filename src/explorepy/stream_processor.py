@@ -5,6 +5,7 @@ This module is responsible for processing incoming stream from Explore device an
 import logging
 import time
 from enum import Enum
+from threading import Lock
 
 from explorepy.command import (
     DeviceConfiguration,
@@ -33,6 +34,7 @@ from explorepy.tools import (
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 logger = logging.getLogger(__name__)
+lock = Lock()
 
 
 class StreamProcessor:
@@ -59,8 +61,9 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        logger.debug(f"Subscribe {callback.__name__} to {topic}")
-        self.subscribers[topic].add(callback)
+        with lock:
+            logger.debug(f"Subscribe {callback.__name__} to {topic}")
+            self.subscribers[topic].add(callback)
 
     def unsubscribe(self, callback, topic):
         """Unsubscribe a function from a topic
@@ -69,8 +72,9 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        logger.debug(f"Unsubscribe {callback} from {topic}")
-        self.subscribers[topic].discard(callback)
+        with lock:
+            logger.debug(f"Unsubscribe {callback} from {topic}")
+            self.subscribers[topic].discard(callback)
 
     def start(self, device_name=None, mac_address=None):
         """Start streaming from Explore device
@@ -151,8 +155,9 @@ class StreamProcessor:
             packet (explorepy.packet.Packet): Data packet
         """
         if self.subscribers:
-            for callback in self.subscribers[topic]:
-                callback(packet)
+            with lock:
+                for callback in self.subscribers[topic]:
+                    callback(packet)
 
     def add_filter(self, cutoff_freq, filter_type):
         """Add filter to the stream
