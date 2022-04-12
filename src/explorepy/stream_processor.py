@@ -51,6 +51,7 @@ class StreamProcessor:
         self.is_connected = False
         self._is_imp_mode = False
         self.physical_orn = PhysicalOrientation()
+        self._last_packet_time = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -114,12 +115,14 @@ class StreamProcessor:
         Args:
             packet (explorepy.packet.Packet): Data packet
         """
+        received_time = get_local_time()
         if isinstance(packet, Orientation):
             self.dispatch(topic=TOPICS.raw_orn, packet=packet)
             if self.physical_orn.status == "READY":
                 packet = self.physical_orn.calculate(packet=packet)
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
+            self.update_last_time_point(received_time)
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=packet)
@@ -142,6 +145,13 @@ class StreamProcessor:
             self.imp_calib_info = packet.get_info()
         elif not packet:
             self.is_connected = False
+
+    def update_last_time_point(self, received_time):
+        if received_time > self._last_packet_time:
+            self._last_packet_time = received_time
+
+    def _get_marker_time_deviation(self):
+        return get_local_time() - self._last_packet_time
 
     def dispatch(self, topic, packet):
         """Dispatch a packet to subscribers
@@ -235,7 +245,9 @@ class StreamProcessor:
         if not 0 <= code <= 65535:
             raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
 
-        self.process(SoftwareMarker.create(get_local_time(), code))
+        marker = SoftwareMarker.create(get_local_time(), code)
+        marker.time_deviation = self._get_marker_time_deviation()
+        self.process(marker)
 
     def compare_device_info(self, new_device_info):
         """Compare a device info dict with the current version
