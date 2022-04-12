@@ -9,6 +9,7 @@ import os.path
 import socket
 from collections import namedtuple
 from contextlib import closing
+from threading import Lock
 
 import numpy as np
 import pyedflib
@@ -28,6 +29,7 @@ from explorepy.filters import ExGFilter
 
 
 logger = logging.getLogger(__name__)
+lock = Lock()
 
 EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
@@ -421,6 +423,8 @@ class FileRecorder:
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
             self._data = np.zeros((self._n_chan, 0))
+            self._annotations_buffer = []
+            self._timestamps = np.zeros((0,))
         elif file_type == 'csv':
             self._file_name = filename + '.csv'
             self._create_csv(do_overwrite=do_overwrite)
@@ -449,7 +453,9 @@ class FileRecorder:
         assert self._file_obj is not None, "Usage Error: File object has not been created yet."
         if self.file_type == 'edf':
             if self._data.shape[1] > 0:
-                self._file_obj.writeSamples(list(self._data))
+                with lock:
+                    self._file_obj.writeSamples(list(self._data))
+                    self._write_edf_anno()
             self._file_obj.close()
             self._file_obj = None
         elif self.file_type == 'csv':
@@ -499,13 +505,25 @@ class FileRecorder:
             if data.shape[0] != self._n_chan:
                 raise ValueError('Input first dimension must be {}'.format(self._n_chan))
             self._data = np.concatenate((self._data, data), axis=1)
-
-            if self._data.shape[1] > self._fs:
-                self._file_obj.writeSamples(list(self._data[:, :self._fs]))
-                self._data = self._data[:, self._fs:]
+            self._timestamps = np.hstack((self._timestamps, data[0, :]))
+            with lock:
+                if self._data.shape[1] > self._fs:
+                    self._file_obj.writeSamples(list(self._data[:, :self._fs]))
+                    self._write_edf_anno()
+                    self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
             self._csv_obj.writerows(data.T.tolist())
             self._file_obj.flush()
+
+    def _write_edf_anno(self):
+        """write annotations in EDF file"""
+        for ts, code in list(self._annotations_buffer):
+            # correct clock deviations
+            idx = np.argmax(self._timestamps > ts) - 1
+            if idx != -1:
+                timestamp = idx / self.fs
+                self._file_obj.writeAnnotation(timestamp, 0.001, code)
+                self._annotations_buffer.remove((ts, code))  # remove the written annotation from original buffer
 
     def set_marker(self, packet):
         """Writes a marker event in the file
@@ -523,8 +541,9 @@ class FileRecorder:
         elif self.file_type == 'edf':
             if self._rec_time_offset is None:
                 self._rec_time_offset = timestamp[0]
-            timestamp = timestamp - np.float64(self._rec_time_offset)
-            self._file_obj.writeAnnotation(timestamp[0], 0.001, code[0])
+            # timestamp = timestamp - np.float64(self._rec_time_offset)
+            self._annotations_buffer.append((timestamp[0], code[0]))
+            # self._file_obj.writeAnnotation(timestamp[0], 0.001, code[0])
 
     def write_meta(self):
         """Writes meta data in the file"""
