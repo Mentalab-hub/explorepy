@@ -5,6 +5,7 @@ This module is responsible for processing incoming stream from Explore device an
 import logging
 import time
 from enum import Enum
+from threading import Lock
 
 from explorepy.command import (
     DeviceConfiguration,
@@ -33,6 +34,7 @@ from explorepy.tools import (
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 logger = logging.getLogger(__name__)
+lock = Lock()
 
 
 class StreamProcessor:
@@ -51,7 +53,8 @@ class StreamProcessor:
         self.is_connected = False
         self._is_imp_mode = False
         self.physical_orn = PhysicalOrientation()
-        self._last_packet_time = 0
+        self._last_packet_timestamp = 0
+        self._last_packet_rcv_time = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -95,7 +98,7 @@ class StreamProcessor:
         """Open the binary file and read until it gets device info packet
         Args:
             bin_file (str): Path to binary file
-            """
+        """
         self.parser = Parser(callback=self.process, mode='file')
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
@@ -122,7 +125,7 @@ class StreamProcessor:
                 packet = self.physical_orn.calculate(packet=packet)
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
-            self.update_last_time_point(received_time)
+            self._update_last_time_point(packet, received_time)
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=packet)
@@ -146,12 +149,32 @@ class StreamProcessor:
         elif not packet:
             self.is_connected = False
 
-    def update_last_time_point(self, received_time):
-        if received_time > self._last_packet_time:
-            self._last_packet_time = received_time
+    def _update_last_time_point(self, packet, received_time):
+        """Update the last PCB time point and the local time the last packet is received.
 
-    def _get_marker_time_deviation(self):
-        return get_local_time() - self._last_packet_time
+        The goal is to keep track of the PCB clock (i.e. the PCB timestamp of the last packet that has been received)
+        and the local (client) time it has been received by the computer.
+
+        Args:
+            packet (explorepy.packet.EEG): ExG data packet
+            received_time (float): Local time of receiving the packet
+        """
+        if 'sampling_rate' in self.device_info:
+            timestamp, _ = packet.get_data(exg_fs=self.device_info['sampling_rate'])
+            timestamp = timestamp[-1]
+            with lock:
+                if timestamp > self._last_packet_timestamp:
+                    self._last_packet_timestamp = timestamp
+                    self._last_packet_rcv_time = received_time
+
+    def _get_sw_marker_time(self):
+        """Returns a timestamp to be used in software marker
+
+        This method gives an estimation of a timestamp relative to Explore internal clock. This timestamp can be used
+        for generating a software marker.
+        """
+        with lock:
+            return self._last_packet_timestamp + get_local_time() - self._last_packet_rcv_time
 
     def dispatch(self, topic, packet):
         """Dispatch a packet to subscribers
@@ -180,11 +203,10 @@ class StreamProcessor:
                                       n_chan=self.device_info['adc_mask'].count(1)))
 
     def remove_filters(self):
-        '''
+        """
         Remove all filters from the stream
-        '''
+        """
         logger.info("Removing all filters.")
-        # logger.info(f"Removing the {filter_type} filter.")
         while not self.device_info:
             logger.warning('No device info is available. Waiting for device info packet...')
             time.sleep(.2)
@@ -245,8 +267,7 @@ class StreamProcessor:
         if not 0 <= code <= 65535:
             raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
 
-        marker = SoftwareMarker.create(get_local_time(), code)
-        marker.time_deviation = self._get_marker_time_deviation()
+        marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
         self.process(marker)
 
     def compare_device_info(self, new_device_info):
