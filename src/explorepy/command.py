@@ -63,7 +63,7 @@ class DeviceConfiguration:
             command (explorepy.command.Command): Command to be executed
 
         Returns:
-              bool: If the command has been successfully executed.
+              bool: True if the command has been successfully executed.
         """
         self._last_ack_message = None
         self._last_status_message = None

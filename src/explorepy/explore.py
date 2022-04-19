@@ -92,6 +92,13 @@ class Explore:
         r"""Disconnects from the device
         """
         self.is_connected = False
+        self.device_name = None
+        if self.lsl:
+            self.stop_lsl()
+
+        if self.recorders:
+            self.stop_recording()
+
         self.stream_processor.stop()
         logger.debug("Device has been disconnected.")
 
@@ -383,28 +390,45 @@ class Explore:
         self.stream_processor.set_marker(code=code)
 
     def format_memory(self):
-        """Format memory of the device"""
+        """Format memory of the device
+
+        Returns:
+            bool: True for success, False otherwise.
+        """
         self._check_connection()
         cmd = MemoryFormat()
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def set_sampling_rate(self, sampling_rate):
         """Set sampling rate
 
         Args:
             sampling_rate (int): Desired sampling rate. Options: 250, 500, 1000
+
+        Returns:
+            bool: True for success, False otherwise
         """
         self._check_connection()
         if sampling_rate not in [250, 500, 1000]:
             raise ValueError("Sampling rate must be 250, 500 or 1000.")
         cmd = SetSPS(sampling_rate)
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def reset_soft(self):
-        """Reset the device to the default settings"""
+        """Reset the device to the default settings
+
+        Note:
+            The Bluetooth will be disconnected by the Explore device after resetting.
+
+        Returns:
+            bool: True for success, False otherwise
+        """
         self._check_connection()
         cmd = SoftReset()
-        self.stream_processor.configure_device(cmd)
+        if self.stream_processor.configure_device(cmd):
+            self.disconnect()
+            return True
+        return False
 
     def set_channels(self, channel_mask):
         """Set the channel mask of the device
@@ -421,12 +445,15 @@ class Explore:
             >>> explore = Explore()
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.set_channels(channel_mask='0111')  # disable channel 4 - mask:0111
+
+        Returns:
+            bool: True for success, False otherwise
         """
         channel_mask_int = self._convert_chan_mask(channel_mask)
 
         self._check_connection()
         cmd = SetCh(channel_mask_int)
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def disable_module(self, module_name):
         """Disable module
@@ -439,12 +466,15 @@ class Explore:
             >>> explore = Explore()
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.disable_module('ORN')
+
+        Returns:
+            bool: True for success, False otherwise
         """
         if module_name not in ['ORN', 'ENV', 'EXG']:
             raise ValueError('Module name must be one of ORN, ENV or EXG.')
         self._check_connection()
         cmd = ModuleDisable(module_name)
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def enable_module(self, module_name):
         """Enable module
@@ -457,12 +487,15 @@ class Explore:
             >>> explore = Explore()
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.enable_module('ORN')
+
+        Returns:
+            bool: True for success, False otherwise
         """
         if module_name not in ['ORN', 'ENV', 'EXG']:
             raise ValueError('Module name must be one of ORN, ENV or EXG.')
         self._check_connection()
         cmd = ModuleEnable(module_name)
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def calibrate_orn(self, do_overwrite=False):
         """Calibrate orientation module
