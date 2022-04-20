@@ -59,6 +59,7 @@ class Explore:
         self.recorders = {}
         self.lsl = {}
         self.device_name = None
+        self.is_measuring_imp = False
 
     def connect(self, device_name=None, mac_address=None):
         r"""
@@ -93,11 +94,16 @@ class Explore:
         """
         self.is_connected = False
         self.device_name = None
+
         if self.lsl:
             self.stop_lsl()
 
         if self.recorders:
             self.stop_recording()
+
+        if self.is_measuring_imp:
+            self.stream_processor.disable_imp()
+            self.is_measuring_imp = False
 
         self.stream_processor.stop()
         logger.debug("Device has been disconnected.")
@@ -373,11 +379,13 @@ class Explore:
         self.stream_processor.imp_initialize(notch_freq=50)
 
         try:
+            self.is_measuring_imp = True
             dashboard = explorepy.Dashboard(explore=self, mode='impedance')
             dashboard.start_server()
             dashboard.start_loop()
         except KeyboardInterrupt:
             self.stream_processor.disable_imp()
+            self.is_measuring_imp = False
 
     def set_marker(self, code):
         """Sets a digital event marker while streaming
