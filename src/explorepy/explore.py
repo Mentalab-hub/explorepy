@@ -59,7 +59,16 @@ class Explore:
         self.recorders = {}
         self.lsl = {}
         self.device_name = None
-        self.is_measuring_imp = False
+
+    @property
+    def is_measuring_imp(self):
+        """Return impedance status"""
+        return self.stream_processor._is_imp_mode
+    
+    @is_measuring_imp.setter
+    def is_measuring_imp(self, value: bool):
+        """Set impedance status value"""
+        self.stream_processor._is_imp_mode = value
 
     def connect(self, device_name=None, mac_address=None):
         r"""
