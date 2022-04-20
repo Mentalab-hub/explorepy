@@ -65,11 +65,6 @@ class Explore:
         """Return impedance status"""
         return self.stream_processor._is_imp_mode
 
-    @is_measuring_imp.setter
-    def is_measuring_imp(self, value: bool):
-        """Set impedance status value"""
-        self.stream_processor._is_imp_mode = value
-
     def connect(self, device_name=None, mac_address=None):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
