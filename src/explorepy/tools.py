@@ -424,7 +424,7 @@ class FileRecorder:
             self._init_edf_channels()
             self._data = np.zeros((self._n_chan, 0))
             self._annotations_buffer = []
-            self._timestamps = np.zeros((0,))
+            self._timestamps = []
         elif file_type == 'csv':
             self._file_name = filename + '.csv'
             self._create_csv(do_overwrite=do_overwrite)
@@ -505,7 +505,7 @@ class FileRecorder:
             if data.shape[0] != self._n_chan:
                 raise ValueError('Input first dimension must be {}'.format(self._n_chan))
             self._data = np.concatenate((self._data, data), axis=1)
-            self._timestamps = np.hstack((self._timestamps, data[0, :]))
+            self._timestamps += list(data[0, :])
             with lock:
                 if self._data.shape[1] > self._fs:
                     self._file_obj.writeSamples(list(self._data[:, :self._fs]))
