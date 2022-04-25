@@ -541,9 +541,7 @@ class FileRecorder:
         elif self.file_type == 'edf':
             if self._rec_time_offset is None:
                 self._rec_time_offset = timestamp[0]
-            # timestamp = timestamp - np.float64(self._rec_time_offset)
             self._annotations_buffer.append((timestamp[0], code[0]))
-            # self._file_obj.writeAnnotation(timestamp[0], 0.001, code[0])
 
     def write_meta(self):
         """Writes meta data in the file"""
