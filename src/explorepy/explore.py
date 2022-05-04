@@ -63,7 +63,10 @@ class Explore:
     @property
     def is_measuring_imp(self):
         """Return impedance status"""
-        return self.stream_processor._is_imp_mode
+        imp_mode = False
+        if self.stream_processor:
+            imp_mode = self.stream_processor._is_imp_mode
+        return imp_mode
 
     def connect(self, device_name=None, mac_address=None):
         r"""
