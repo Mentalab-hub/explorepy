@@ -60,6 +60,14 @@ class Explore:
         self.lsl = {}
         self.device_name = None
 
+    @property
+    def is_measuring_imp(self):
+        """Return impedance status"""
+        imp_mode = False
+        if self.stream_processor:
+            imp_mode = self.stream_processor._is_imp_mode
+        return imp_mode
+
     def connect(self, device_name=None, mac_address=None):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
@@ -93,11 +101,16 @@ class Explore:
         """
         self.is_connected = False
         self.device_name = None
+
         if self.lsl:
             self.stop_lsl()
 
         if self.recorders:
             self.stop_recording()
+
+        if self.is_measuring_imp:
+            self.stream_processor.disable_imp()
+            self.is_measuring_imp = False
 
         self.stream_processor.stop()
         logger.debug("Device has been disconnected.")
