@@ -386,13 +386,11 @@ class Explore:
         self.stream_processor.imp_initialize(notch_freq=50)
 
         try:
-            self.is_measuring_imp = True
             dashboard = explorepy.Dashboard(explore=self, mode='impedance')
             dashboard.start_server()
             dashboard.start_loop()
         except KeyboardInterrupt:
             self.stream_processor.disable_imp()
-            self.is_measuring_imp = False
 
     def set_marker(self, code):
         """Sets a digital event marker while streaming
