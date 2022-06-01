@@ -32,7 +32,7 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy', 'pyedflib==0.1.25', 'click==7.0', 'appdirs==1.4.3', 'sentry_sdk==1.0.0']
+my_req = ['numpy', 'scipy', 'pyedflib==0.1.25', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.0.0']
 
 test_requirements = ["pytest==6.2.5",
                      "flake8==4.0.1",
@@ -44,7 +44,8 @@ current_platform = sys.platform
 
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pylsl')
-    my_req.append('bokeh==2.4.3')
+    my_req.append('Jinja2==3.0.0')
+    my_req.append('bokeh==2.2.3')
     libPath = "lib"
     if current_platform == 'win32' or current_platform == 'win64':
         windows_lib_path = os.path.join(libPath, 'windows')
