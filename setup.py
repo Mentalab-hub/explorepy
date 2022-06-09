@@ -81,7 +81,7 @@ if not os.environ.get('READTHEDOCS'):
         os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
-    version='1.6.0',
+    version='1.6.1',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description='%s\n%s' % (
