@@ -2,20 +2,39 @@
 """Stream Processor module
 This module is responsible for processing incoming stream from Explore device and publishing data to subscribers.
 """
-from enum import Enum
-import time
-import struct
 import logging
+import time
+from enum import Enum
+from threading import Lock
 
-from explorepy.parser import Parser
-from explorepy.packet import DeviceInfo, CommandRCV, CommandStatus, EEG, Orientation, \
-    Environment, EventMarker, CalibrationInfo
+from explorepy.command import (
+    DeviceConfiguration,
+    ZMeasurementDisable,
+    ZMeasurementEnable
+)
 from explorepy.filters import ExGFilter
-from explorepy.command import DeviceConfiguration, ZMeasurementEnable, ZMeasurementDisable
-from explorepy.tools import ImpedanceMeasurement, PhysicalOrientation, get_local_time
+from explorepy.packet import (
+    EEG,
+    CalibrationInfo,
+    CommandRCV,
+    CommandStatus,
+    DeviceInfo,
+    Environment,
+    EventMarker,
+    Orientation,
+    SoftwareMarker
+)
+from explorepy.parser import Parser
+from explorepy.tools import (
+    ImpedanceMeasurement,
+    PhysicalOrientation,
+    get_local_time
+)
+
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 logger = logging.getLogger(__name__)
+lock = Lock()
 
 
 class StreamProcessor:
@@ -34,6 +53,8 @@ class StreamProcessor:
         self.is_connected = False
         self._is_imp_mode = False
         self.physical_orn = PhysicalOrientation()
+        self._last_packet_timestamp = 0
+        self._last_packet_rcv_time = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -42,8 +63,9 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        logger.debug(f"Subscribe {callback.__name__} to {topic}")
-        self.subscribers.setdefault(topic, set()).add(callback)
+        with lock:
+            logger.debug(f"Subscribe {callback.__name__} to {topic}")
+            self.subscribers[topic].add(callback)
 
     def unsubscribe(self, callback, topic):
         """Unsubscribe a function from a topic
@@ -52,8 +74,9 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        logger.debug(f"Unsubscribe {callback} from {topic}")
-        self.subscribers.setdefault(topic, set()).discard(callback)
+        with lock:
+            logger.debug(f"Unsubscribe {callback} from {topic}")
+            self.subscribers[topic].discard(callback)
 
     def start(self, device_name=None, mac_address=None):
         """Start streaming from Explore device
@@ -77,7 +100,7 @@ class StreamProcessor:
         """Open the binary file and read until it gets device info packet
         Args:
             bin_file (str): Path to binary file
-            """
+        """
         self.parser = Parser(callback=self.process, mode='file')
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
@@ -97,12 +120,14 @@ class StreamProcessor:
         Args:
             packet (explorepy.packet.Packet): Data packet
         """
+        received_time = get_local_time()
         if isinstance(packet, Orientation):
             self.dispatch(topic=TOPICS.raw_orn, packet=packet)
             if self.physical_orn.status == "READY":
                 packet = self.physical_orn.calculate(packet=packet)
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
+            self._update_last_time_point(packet, received_time)
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=packet)
@@ -126,6 +151,33 @@ class StreamProcessor:
         elif not packet:
             self.is_connected = False
 
+    def _update_last_time_point(self, packet, received_time):
+        """Update the last PCB time point and the local time the last packet is received.
+
+        The goal is to keep track of the PCB clock (i.e. the PCB timestamp of the last packet that has been received)
+        and the local (client) time it has been received by the computer.
+
+        Args:
+            packet (explorepy.packet.EEG): ExG data packet
+            received_time (float): Local time of receiving the packet
+        """
+        if 'sampling_rate' in self.device_info:
+            timestamp, _ = packet.get_data(exg_fs=self.device_info['sampling_rate'])
+            timestamp = timestamp[-1]
+            with lock:
+                if timestamp > self._last_packet_timestamp:
+                    self._last_packet_timestamp = timestamp
+                    self._last_packet_rcv_time = received_time
+
+    def _get_sw_marker_time(self):
+        """Returns a timestamp to be used in software marker
+
+        This method gives an estimation of a timestamp relative to Explore internal clock. This timestamp can be used
+        for generating a software marker.
+        """
+        with lock:
+            return self._last_packet_timestamp + get_local_time() - self._last_packet_rcv_time
+
     def dispatch(self, topic, packet):
         """Dispatch a packet to subscribers
 
@@ -134,8 +186,9 @@ class StreamProcessor:
             packet (explorepy.packet.Packet): Data packet
         """
         if self.subscribers:
-            for callback in self.subscribers[topic]:
-                callback(packet)
+            with lock:
+                for callback in self.subscribers[topic]:
+                    callback(packet)
 
     def add_filter(self, cutoff_freq, filter_type):
         """Add filter to the stream
@@ -151,13 +204,12 @@ class StreamProcessor:
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
                                       n_chan=self.device_info['adc_mask'].count(1)))
-    
+
     def remove_filters(self):
-        '''
+        """
         Remove all filters from the stream
-        '''
-        logger.info(f"Removing all filters.")
-        # logger.info(f"Removing the {filter_type} filter.")
+        """
+        logger.info("Removing all filters.")
         while not self.device_info:
             logger.warning('No device info is available. Waiting for device info packet...')
             time.sleep(.2)
@@ -173,6 +225,9 @@ class StreamProcessor:
 
         Args:
             cmd (explorepy.command.Command): Command to be sent
+
+        Returns:
+            bool: True for success, False otherwise.
         """
         if not self.is_connected:
             raise ConnectionError("No Explore device is connected!")
@@ -207,19 +262,19 @@ class StreamProcessor:
             self.physical_orn.status = "READY"
         else:
             self.physical_orn.status = "NOT READY"
-            logger.info('Calibration coefficients for physical orientation do not exist. If you need physical orientation,'
-                        ' calibrate the device first.')
+            logger.debug('Calibration coefficients for physical orientation do not exist. '
+                         'If you need physical orientation, calibrate the device first.')
 
     def set_marker(self, code):
         """Set a marker in the stream"""
-        logger.info(f"Setting a marker with code: {code}")
+        logger.info(f"Setting a software marker with code: {code}")
         if not isinstance(code, int):
             raise TypeError('Marker code must be an integer!')
-        if 0 <= code <= 7:
-            raise ValueError('Marker code value is not valid')
+        if not 0 <= code <= 65535:
+            raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
 
-        self.process(EventMarker(timestamp=get_local_time(),
-                                 payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')))
+        marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
+        self.process(marker)
 
     def compare_device_info(self, new_device_info):
         """Compare a device info dict with the current version

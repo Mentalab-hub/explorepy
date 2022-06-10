@@ -1,26 +1,40 @@
 # -*- coding: utf-8 -*-
 """Some useful tools such as file recorder, heart rate estimation, etc. used in explorepy"""
-import datetime
-import os.path
-import csv
-import copy
-import socket
-from contextlib import closing
-import numpy as np
-from scipy import signal
-import pyedflib
-from pylsl import StreamInfo, StreamOutlet, local_clock
 import configparser
-from appdirs import user_cache_dir, user_config_dir
+import copy
+import csv
+import datetime
 import logging
+import os.path
+import socket
+from collections import namedtuple
+from contextlib import closing
+from threading import Lock
+
+import numpy as np
+import pyedflib
+from appdirs import (
+    user_cache_dir,
+    user_config_dir
+)
+from pylsl import (
+    StreamInfo,
+    StreamOutlet,
+    local_clock
+)
+from scipy import signal
 
 import explorepy
 from explorepy.filters import ExGFilter
 
+
 logger = logging.getLogger(__name__)
+lock = Lock()
 
 EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
+EXG_MAX_LIM = 400000
+EXG_MIN_LIM = -400000
 ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
 ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
 
@@ -35,53 +49,71 @@ def get_local_time():
 
 
 def bt_scan():
-    """"Scan for bluetooth devices
-    Scans for available explore devices.
-    Prints out MAC address and name of each found device
+    """ Scan for nearby Explore devices
 
-    Args:
+    This function searches for nearby bluetooth devices and returns a list of advertising Explore devices.
+
+    Note:
+        In Windows, this function returns all the paired devices and unpaired advertising devices. The 'is_paired'
+        attribute shows if the device is paired. If a device is paired, it will be in the returned list regardless if
+        it is currently advertising or not.
 
     Returns:
-
+            list[namedtuple]: list of nearby devices
     """
+    NearbyDeviceInfo = namedtuple("NearbyDeviceInfo", ["name", "address", "is_paired"])
     logger.info("Searching for nearby devices...")
     explore_devices = []
     print('\n')
-    if explorepy.get_bt_interface() == 'sdk':
-        device_manager = explorepy.exploresdk.ExploreSDK_Create()
-        nearby_devices = device_manager.PerformDeviceSearch()
-        for bt_device in nearby_devices:
-            if "Explore" in bt_device.name:
-                print("Device found: %s - %s" % (bt_device.name, bt_device.address))
-                explore_devices.append((bt_device.name, bt_device.address))
-    else:
-        import bluetooth
-        nearby_devices = bluetooth.discover_devices(lookup_names=True)
-        for address, name in nearby_devices:
-            if "Explore" in name:
-                print("Device found: %s - %s" % (name, address))
-                explore_devices.append((address, name))
+    device_manager = explorepy.exploresdk.ExploreSDK_Create()
+    nearby_devices = device_manager.PerformDeviceSearch()
+    for bt_device in nearby_devices:
+        if "Explore" in bt_device.name:
+            print("Device found: %s - %s - Paired: %s" % (bt_device.name, bt_device.address, bt_device.authenticated))
+            explore_devices.append(NearbyDeviceInfo(bt_device.name, bt_device.address, bt_device.authenticated))
 
     if not nearby_devices:
-        print("No Devices found")
+        logger.info("No Explore device was found!")
 
     return explore_devices
 
 
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
+    """ Create ExG recorder
+
+    Args:
+        filename (str): file name
+        file_type (str): file type
+        adc_mask (str): channel mask
+        fs (int): sampling rate
+        do_overwrite (bool): overwrite if the file already exists
+
+    Returns:
+        FileRecorder: file recorder object
+    """
     exg_ch = ['TimeStamp'] + EXG_CHANNELS
-    exg_ch = [exg_ch[0]] + [exg_ch[i+1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_max = [21600.] + [4e5 for i in range(8)]
+    exg_max = [21600.] + [EXG_MAX_LIM for i in range(8)]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_min = [0.] + [-4e5 for i in range(8)]
+    exg_min = [0.] + [EXG_MIN_LIM for i in range(8)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
                         file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
 
 
 def create_orn_recorder(filename, file_type, do_overwrite):
+    """ Create orientation data recorder
+
+    Args:
+        filename (str): file name
+        file_type (str): file type
+        do_overwrite (bool): overwrite if the file already exists
+
+    Returns:
+        FileRecorder: file recorder object
+    """
     orn_ch = ['TimeStamp'] + ORN_CHANNELS
     orn_unit = ['s'] + ORN_UNITS
     orn_max = [21600., 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
@@ -91,10 +123,41 @@ def create_orn_recorder(filename, file_type, do_overwrite):
 
 
 def create_marker_recorder(filename, do_overwrite):
+    """ Create marker recorder
+
+    Args:
+        filename (str): file name
+        do_overwrite (str): overwrite if the file already exists
+
+    Returns:
+        FileRecorder: file recorder object
+    """
     marker_ch = ['TimeStamp', 'Code']
     marker_unit = ['s', '-']
     return FileRecorder(filename=filename, ch_label=marker_ch, fs=0, ch_unit=marker_unit,
                         file_type='csv', do_overwrite=do_overwrite)
+
+
+def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, timestamp=''):
+    """ Create meta file recorder
+
+    Args:
+        filename (str): file name
+        fs (int): sampling rate
+        adc_mask (str): channel mask
+        device_name (str): device name
+        do_overwrite (str): overwrite if the file already exists
+        timestamp (datetime): The time at which this recording starts. Defaults to None
+
+    Returns:
+        FileRecorder: file recorder object
+    """
+    header = ['DateTime', 'Device', 'sr', 'adcMask', 'ExGUnits']
+    exg_unit = 'mV'
+    if EXG_UNITS:
+        exg_unit = EXG_UNITS[0]  # we only need the first channel's units as this will correspond with the rest
+    return FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=exg_unit,
+                        adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite, timestamp=timestamp)
 
 
 class HeartRateEstimator:
@@ -149,18 +212,18 @@ class HeartRateEstimator:
         if len(self.r_peaks_buffer) < 7:
             logger.warning('Few peaks to get heart rate! Noisy signal!')
             return 'NA'
-        else:
-            r_times = [item[1] for item in self.r_peaks_buffer]
-            rr_intervals = np.diff(r_times, 1)
-            if True in (rr_intervals > 3.):
-                logger.warning('Missing peaks! Noisy signal!')
-                return 'NA'
-            else:
-                estimated_heart_rate = int(1. / np.mean(rr_intervals) * 60)
-                if estimated_heart_rate > 140 or estimated_heart_rate < 40:
-                    logger.warning('Estimated heart rate <40 or >140! Potentially due to noisy signal!')
-                    estimated_heart_rate = 'NA'
-                return estimated_heart_rate
+
+        r_times = [item[1] for item in self.r_peaks_buffer]
+        rr_intervals = np.diff(r_times, 1)
+        if True in (rr_intervals > 3.):
+            logger.warning('Missing peaks! Noisy signal!')
+            return 'NA'
+
+        estimated_heart_rate = int(1. / np.mean(rr_intervals) * 60)
+        if estimated_heart_rate > 140 or estimated_heart_rate < 40:
+            logger.warning('Estimated heart rate <40 or >140! Potentially due to noisy signal!')
+            estimated_heart_rate = 'NA'
+        return estimated_heart_rate
 
     def _push_r_peak(self, val, time):
         self.r_peaks_buffer.append((val, time))
@@ -318,7 +381,7 @@ class FileRecorder:
 
     """
 
-    def __init__(self, filename, ch_label, fs, ch_unit, ch_min=None, ch_max=None,
+    def __init__(self, filename, ch_label, fs, ch_unit, timestamp=None, adc_mask=None, ch_min=None, ch_max=None,
                  device_name='Explore', file_type='edf', do_overwrite=False):
         """
 
@@ -327,6 +390,8 @@ class FileRecorder:
             ch_label (list): List of channel labels.
             fs (int): Sampling rate (must be identical for all channels)
             ch_unit (list): List of channels unit (e.g. 'uV', 'mG', 's', etc.)
+            timestamp (datetime): The time at which this recording starts
+            adc_mask (str): Channel mask
             ch_min (list): List of minimum value of each channel. Only needed in edf mode (can be None in csv mode)
             ch_max (list): List of maximum value of each channel. Only needed in edf mode (can be None in csv mode)
             device_name (str): Recording device name
@@ -340,8 +405,10 @@ class FileRecorder:
 
         self._file_obj = None
         self.file_type = file_type
+        self.timestamp = timestamp
         self._ch_label = ch_label
         self._ch_unit = ch_unit
+        self.adc_mask = adc_mask
         self._ch_max = ch_max
         self._ch_min = ch_min
         self._n_chan = len(ch_label)
@@ -356,6 +423,8 @@ class FileRecorder:
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
             self._data = np.zeros((self._n_chan, 0))
+            self._annotations_buffer = []
+            self._timestamps = []
         elif file_type == 'csv':
             self._file_name = filename + '.csv'
             self._create_csv(do_overwrite=do_overwrite)
@@ -384,7 +453,9 @@ class FileRecorder:
         assert self._file_obj is not None, "Usage Error: File object has not been created yet."
         if self.file_type == 'edf':
             if self._data.shape[1] > 0:
-                self._file_obj.writeSamples(list(self._data))
+                with lock:
+                    self._file_obj.writeSamples(list(self._data))
+                    self._write_edf_anno()
             self._file_obj.close()
             self._file_obj = None
         elif self.file_type == 'csv':
@@ -396,15 +467,15 @@ class FileRecorder:
 
         ch_info_list = []
         for ch in zip(self._ch_label, self._ch_unit, self._ch_max, self._ch_min):
-            ch_info_list.append({'label':        ch[0],
-                                 'dimension':    ch[1],
-                                 'sample_rate':  self._fs,
+            ch_info_list.append({'label': ch[0],
+                                 'dimension': ch[1],
+                                 'sample_rate': self._fs,
                                  'physical_max': ch[2],
                                  'physical_min': ch[3],
-                                 'digital_max':  8388607,
-                                 'digital_min':  -8388608,
-                                 'prefilter':    '',
-                                 'transducer':   ''
+                                 'digital_max': 8388607,
+                                 'digital_min': -8388608,
+                                 'prefilter': '',
+                                 'transducer': ''
                                  })
         for i, ch_info in enumerate(ch_info_list):
             self._file_obj.setSignalHeader(i, ch_info)
@@ -420,27 +491,39 @@ class FileRecorder:
             packet (explorepy.packet.Packet): ExG or Orientation packet
 
         """
-        time_vector, signal = packet.get_data(self._fs)
+        time_vector, sig = packet.get_data(self._fs)
 
         if len(time_vector) == 1:
-            data = np.array(time_vector + signal)[:, np.newaxis]
+            data = np.array(time_vector + sig)[:, np.newaxis]
         else:
             if self._rec_time_offset is None:
                 self._rec_time_offset = time_vector[0]
-            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(signal)), axis=0)
+            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
         data = np.round(data, 4)
 
         if self.file_type == 'edf':
             if data.shape[0] != self._n_chan:
                 raise ValueError('Input first dimension must be {}'.format(self._n_chan))
             self._data = np.concatenate((self._data, data), axis=1)
-
-            if self._data.shape[1] > self._fs:
-                self._file_obj.writeSamples(list(self._data[:, :self._fs]))
-                self._data = self._data[:, self._fs:]
+            self._timestamps += list(data[0, :])
+            with lock:
+                if self._data.shape[1] > self._fs:
+                    self._file_obj.writeSamples(list(self._data[:, :self._fs]))
+                    self._write_edf_anno()
+                    self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
             self._csv_obj.writerows(data.T.tolist())
             self._file_obj.flush()
+
+    def _write_edf_anno(self):
+        """write annotations in EDF file"""
+        for ts, code in list(self._annotations_buffer):
+            # correct clock deviations
+            idx = np.argmax(self._timestamps > ts) - 1
+            if idx != -1:
+                timestamp = idx / self.fs
+                self._file_obj.writeAnnotation(timestamp, 0.001, code)
+                self._annotations_buffer.remove((ts, code))  # remove the written annotation from original buffer
 
     def set_marker(self, packet):
         """Writes a marker event in the file
@@ -449,14 +532,23 @@ class FileRecorder:
             packet (explorepy.packet.EventMarker): Event marker packet
 
         """
+        timestamp, code = packet.get_data()
+        timestamp[0] = round(timestamp[0], 4)
         if self.file_type == 'csv':
-            self.write_data(packet=packet)
+            data = timestamp + code
+            self._csv_obj.writerow(data)
+            self._file_obj.flush()
         elif self.file_type == 'edf':
-            timestamp, code = packet.get_data()
             if self._rec_time_offset is None:
                 self._rec_time_offset = timestamp[0]
-            timestamp = timestamp-np.float64(self._rec_time_offset)
-            self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
+            self._annotations_buffer.append((timestamp[0], code[0]))
+
+    def write_meta(self):
+        """Writes meta data in the file"""
+        channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
+        self._csv_obj.writerow(row)
+        self._file_obj.flush()
 
 
 class LslServer:
@@ -466,12 +558,12 @@ class LslServer:
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
 
-        info_exg = StreamInfo(name=device_info["device_name"]+"_ExG",
+        info_exg = StreamInfo(name=device_info["device_name"] + "_ExG",
                               type='ExG',
                               channel_count=n_chan,
                               nominal_srate=self.exg_fs,
                               channel_format='float32',
-                              source_id=device_info["device_name"]+"_ExG")
+                              source_id=device_info["device_name"] + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(device_info['adc_mask']):
@@ -481,12 +573,12 @@ class LslServer:
                     .append_child_value("unit", EXG_UNITS[i])\
                     .append_child_value("type", "ExG")
 
-        info_orn = StreamInfo(name=device_info["device_name"]+"_ORN",
+        info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
                               type='ORN',
                               channel_count=9,
                               nominal_srate=orn_fs,
                               channel_format='float32',
-                              source_id=device_info["device_name"]+"_ORN")
+                              source_id=device_info["device_name"] + "_ORN")
         info_orn.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for chan, unit in zip(ORN_CHANNELS, ORN_UNITS):
@@ -495,18 +587,19 @@ class LslServer:
                 .append_child_value("unit", unit) \
                 .append_child_value("type", "ORN")
 
-        info_marker = StreamInfo(name=device_info["device_name"]+"_Marker",
+        info_marker = StreamInfo(name=device_info["device_name"] + "_Marker",
                                  type='Markers',
                                  channel_count=1,
                                  nominal_srate=0,
-                                 channel_format='int32',
-                                 source_id=device_info["device_name"]+"_Markers")
+                                 channel_format='string',
+                                 source_id=device_info["device_name"] + "_Markers")
 
-        logger.info("LSL Streams have been created with names/source IDs as the following:\n" +
-                    "\t\t\t\t\t" + device_info["device_name"]+"_ExG\n" +
-                    "\t\t\t\t\t" + device_info["device_name"] + "_ORN\n" +
-                    "\t\t\t\t\t" + device_info["device_name"] + "_Markers\n"
-                    )
+        logger.info(
+            f"LSL Streams have been created with names/source IDs as the following:\n"
+            f"\t\t\t\t\t {device_info['device_name']}_ExG\n"
+            f"\t\t\t\t\t {device_info['device_name']}_ORN\n"
+            f"\t\t\t\t\t {device_info['device_name']}_Markers\n"
+        )
         self.orn_outlet = StreamOutlet(info_orn)
         self.exg_outlet = StreamOutlet(info_exg)
         self.marker_outlet = StreamOutlet(info_marker)
@@ -555,10 +648,8 @@ class ImpedanceMeasurement:
         self._add_filters()
 
     def _add_filters(self):
-        bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, \
-                  self._device_info['sampling_rate'] / 4 + 1.5
-        noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, \
-                     self._device_info['sampling_rate'] / 4 + 5.5
+        bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, self._device_info['sampling_rate'] / 4 + 1.5
+        noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, self._device_info['sampling_rate'] / 4 + 5.5
 
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
                                            filter_type='notch',
@@ -581,7 +672,9 @@ class ImpedanceMeasurement:
         temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
         self._calib_param['noise_level'] = self._filters['base_noise'].\
             apply(input_data=temp_packet, in_place=False).get_ptp()
-        self._filters['demodulation'].apply(input_data=temp_packet, in_place=True).calculate_impedance(self._calib_param)
+        self._filters['demodulation'].apply(
+            input_data=temp_packet, in_place=True
+        ).calculate_impedance(self._calib_param)
         return temp_packet
 
 
@@ -628,7 +721,7 @@ class PhysicalOrientation:
     def read_calibre_data(self, device_name):
         config = configparser.ConfigParser()
         calibre_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
-        if os.path.isfile(calibre_file) :
+        if os.path.isfile(calibre_file):
             config.read(calibre_file)
             try:
                 calibre_coef = config[device_name]
@@ -696,16 +789,16 @@ class PhysicalOrientation:
 
     @staticmethod
     def init_dir():
-        if not (os.path.isfile(user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini")):
+        if not os.path.isfile(user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"):
             os.makedirs(user_config_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
             calibre_out_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
-            with open (calibre_out_file, "w") as f_coef:
+            with open(calibre_out_file, "w") as f_coef:
                 config = configparser.ConfigParser()
-                config['DEFAULT'] = {'description': 'configuration data for Explore devices'}
+                config['DEFAULT'] = {'description': 'configurations for Explorepy'}
                 config.write(f_coef)
                 f_coef.close()
 
-        if not (os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab"))):
+        if not os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab")):
             os.makedirs(user_cache_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
 
     @staticmethod
@@ -726,7 +819,7 @@ class PhysicalOrientation:
             kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
             ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
             kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
-            k = np.sort(np.array([kx, ky, kz]))
+            # k = np.sort(np.array([kx, ky, kz]))  # Not used here but might be needed in the future
             kx = 1 / kx
             ky = 1 / ky
             kz = 1 / kz
@@ -765,10 +858,7 @@ class PhysicalOrientation:
             config.read(calibre_file)
             if config.has_section(device_name):
                 return True
-            else:
-                return False
-        else:
-            return False
+        return False
 
 
 def find_free_port():
@@ -777,8 +867,8 @@ def find_free_port():
     Returns:
         int: Port number
     """
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(('localhost', 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        port_number = s.getsockname()[1]
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as free_socket:
+        free_socket.bind(('localhost', 0))
+        free_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        port_number = free_socket.getsockname()[1]
         return port_number

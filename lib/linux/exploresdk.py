@@ -290,6 +290,20 @@ class ExploreReadBufferException(object):
 # Register ExploreReadBufferException in _exploresdk:
 _exploresdk.ExploreReadBufferException_swigregister(ExploreReadBufferException)
 
+class ExploreBtSocketException(object):
+    thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
+    __repr__ = _swig_repr
+
+    def __init__(self, message: "std::string"):
+        _exploresdk.ExploreBtSocketException_swiginit(self, _exploresdk.new_ExploreBtSocketException(message))
+
+    def what(self) -> "char const *":
+        return _exploresdk.ExploreBtSocketException_what(self)
+    __swig_destroy__ = _exploresdk.delete_ExploreBtSocketException
+
+# Register ExploreBtSocketException in _exploresdk:
+_exploresdk.ExploreBtSocketException_swigregister(ExploreBtSocketException)
+
 class ExploreIOException(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr

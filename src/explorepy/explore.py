@@ -13,18 +13,39 @@ Examples:
     >>> explore.visualize(bp_freq=(1, 40), notch_freq=50)
 """
 
-import os
-import time
-from appdirs import user_cache_dir
-from threading import Timer
 import logging
-import numpy as np
+import os
 import re
+import time
+from datetime import datetime
+from threading import Timer
+
+import numpy as np
+from appdirs import user_cache_dir
 
 import explorepy
-from explorepy.tools import create_exg_recorder, create_orn_recorder, create_marker_recorder, LslServer, PhysicalOrientation
-from explorepy.command import MemoryFormat, SetSPS, SoftReset, SetCh, ModuleDisable, ModuleEnable
-from explorepy.stream_processor import StreamProcessor, TOPICS
+from explorepy.command import (
+    MemoryFormat,
+    ModuleDisable,
+    ModuleEnable,
+    SetCh,
+    SetChTest,
+    SetSPS,
+    SoftReset
+)
+from explorepy.stream_processor import (
+    TOPICS,
+    StreamProcessor
+)
+from explorepy.tools import (
+    LslServer,
+    PhysicalOrientation,
+    create_exg_recorder,
+    create_marker_recorder,
+    create_meta_recorder,
+    create_orn_recorder
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +59,14 @@ class Explore:
         self.recorders = {}
         self.lsl = {}
         self.device_name = None
+
+    @property
+    def is_measuring_imp(self):
+        """Return impedance status"""
+        imp_mode = False
+        if self.stream_processor:
+            imp_mode = self.stream_processor._is_imp_mode
+        return imp_mode
 
     def connect(self, device_name=None, mac_address=None):
         r"""
@@ -71,6 +100,18 @@ class Explore:
         r"""Disconnects from the device
         """
         self.is_connected = False
+        self.device_name = None
+
+        if self.lsl:
+            self.stop_lsl()
+
+        if self.recorders:
+            self.stop_recording()
+
+        if self.is_measuring_imp:
+            self.stream_processor.disable_imp()
+            self.is_measuring_imp = False
+
         self.stream_processor.stop()
         logger.debug("Device has been disconnected.")
 
@@ -113,6 +154,7 @@ class Explore:
         exg_out_file = file_name + "_ExG"
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
+        meta_out_file = file_name + "_Meta"
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=file_type,
@@ -125,13 +167,25 @@ class Explore:
 
         if file_type == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
+            self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+                                                          fs=self.stream_processor.device_info['sampling_rate'],
+                                                          adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                          device_name=self.device_name,
+                                                          do_overwrite=do_overwrite,
+                                                          timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            self.recorders['meta'].write_meta()
+            self.recorders['meta'].stop()
+
         elif file_type == 'edf':
             self.recorders['marker'] = self.recorders['exg']
+            logger.warning("Markers' timing might not be precise in EDF files. We recommend recording in CSV format "
+                           "if you are setting markers during the recording.")
 
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
         logger.info("Recording...")
+
         self.recorders['timer'] = Timer(duration, self.stop_recording)
 
         self.recorders['timer'].start()
@@ -157,6 +211,7 @@ class Explore:
                 self.recorders['marker'].stop()
             if self.recorders['timer'].is_alive():
                 self.recorders['timer'].cancel()
+
             self.recorders = {}
             logger.info('Recording stopped.')
         else:
@@ -180,9 +235,11 @@ class Explore:
         assert os.path.isfile(bin_file), "Error: File does not exist!"
         assert extension == '.BIN', "File type error! File extension must be BIN."
         out_full_path = os.path.join(os.getcwd(), out_dir)
-        exg_out_file = out_full_path + filename + '_exg'
-        orn_out_file = out_full_path + filename + '_orn'
-        marker_out_file = out_full_path + filename + '_marker'
+        exg_out_file = out_full_path + filename + '_ExG'
+        orn_out_file = out_full_path + filename + '_ORN'
+        marker_out_file = out_full_path + filename + '_Marker'
+        meta_out_file = out_full_path + filename + '_Meta'
+
         self.stream_processor = StreamProcessor()
         self.stream_processor.read_device_info(bin_file=bin_file)
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
@@ -196,6 +253,13 @@ class Explore:
 
         if self.recorders['file_type'] == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
+            self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
+                                                          fs=self.stream_processor.device_info['sampling_rate'],
+                                                          adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                          device_name=self.device_name,
+                                                          do_overwrite=do_overwrite)
+            self.recorders['meta'].write_meta()
+            self.recorders['meta'].stop()
         else:
             self.recorders['marker'] = self.recorders['exg']
 
@@ -207,6 +271,7 @@ class Explore:
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
                 new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
+                new_meta_name = meta_out_file + "_" + str(np.round(packet.timestamp, 0))
                 logger.warning("Creating a new file: " + new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
@@ -216,15 +281,33 @@ class Explore:
                                                             fs=self.stream_processor.device_info['sampling_rate'],
                                                             adc_mask=self.stream_processor.device_info['adc_mask'],
                                                             do_overwrite=do_overwrite)
-                self.recorders['marker'] = self.recorders['exg']
+
+                if self.recorders['file_type'] == 'edf':
+                    self.recorders['marker'] = self.recorders['exg']
+
                 self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+
+                if self.recorders['file_type'] == 'csv':
+                    self.recorders['meta'] = create_meta_recorder(
+                        filename=new_meta_name,
+                        fs=self.stream_processor.device_info['sampling_rate'],
+                        adc_mask=self.stream_processor.device_info['adc_mask'],
+                        device_name=self.device_name,
+                        do_overwrite=do_overwrite)
+                    self.recorders['meta'].write_meta()
+                    self.recorders['meta'].stop()
 
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
         self.stream_processor.open_file(bin_file=bin_file)
         logger.info("Converting...")
         while self.stream_processor.is_connected:
             time.sleep(.1)
+
+        if self.recorders['file_type'] == 'csv':
+            self.recorders["marker"].stop()
+        self.recorders["exg"].stop()
+        self.recorders["orn"].stop()
         logger.info('Conversion finished.')
 
     def push2lsl(self, duration=None, block=False):
@@ -294,10 +377,7 @@ class Explore:
 
     def measure_imp(self):
         """
-        Visualization of the electrode impedances
-
-        Args:
-            notch_freq (int): Notch frequency for filtering the line noise (50 or 60 Hz)
+        Visualization of the electrode impedance
         """
         self._check_connection()
         assert self.stream_processor.device_info['sampling_rate'] == 250, \
@@ -316,43 +396,59 @@ class Explore:
         """Sets a digital event marker while streaming
 
         Args:
-            code (int): Marker code. It must be an integer larger than 7
-                        (codes from 0 to 7 are reserved for hardware markers).
+            code (int): Marker code (must be in range of 0-65535)
 
         """
         self._check_connection()
         self.stream_processor.set_marker(code=code)
 
     def format_memory(self):
-        """Format memory of the device"""
+        """Format memory of the device
+
+        Returns:
+            bool: True for success, False otherwise.
+        """
         self._check_connection()
         cmd = MemoryFormat()
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def set_sampling_rate(self, sampling_rate):
         """Set sampling rate
 
         Args:
             sampling_rate (int): Desired sampling rate. Options: 250, 500, 1000
+
+        Returns:
+            bool: True for success, False otherwise
         """
         self._check_connection()
         if sampling_rate not in [250, 500, 1000]:
             raise ValueError("Sampling rate must be 250, 500 or 1000.")
         cmd = SetSPS(sampling_rate)
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def reset_soft(self):
-        """Reset the device to the default settings"""
+        """Reset the device to the default settings
+
+        Note:
+            The Bluetooth will be disconnected by the Explore device after resetting.
+
+        Returns:
+            bool: True for success, False otherwise
+        """
         self._check_connection()
         cmd = SoftReset()
-        self.stream_processor.configure_device(cmd)
+        if self.stream_processor.configure_device(cmd):
+            self.disconnect()
+            return True
+        return False
 
     def set_channels(self, channel_mask):
         """Set the channel mask of the device
 
-        The channels can be disabled/enabled by calling this function and passing either bytes or binary string representing the mask.
-        For example in a 4 channel device, if you want to disable channel 4, the adc mask should be b'0111' (LSB is channel 1).
-        The inputs to this function can be b'0111' '0111'.
+        The channels can be disabled/enabled by calling this function and passing either bytes or binary string
+         representing the mask. For example in a 4 channel device, if you want to disable channel 4, the adc mask
+         should be b'0111' (LSB is channel 1). The inputs to this function can be b'0111' '0111'.
 
         Args:
             channel_mask (bytes str): Bytes or String representing the binary channel mask
@@ -362,21 +458,15 @@ class Explore:
             >>> explore = Explore()
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.set_channels(channel_mask='0111')  # disable channel 4 - mask:0111
-        """
-        c = re.compile('[^01]')
 
-        if (isinstance(channel_mask, str) and len(c.findall(channel_mask))==0) or (isinstance(channel_mask, bytes)):
-            channel_mask_int = int(channel_mask, 2)
-        # elif isinstance(channel_mask, int):
-        #     channel_mask_int = channel_mask
-        else:
-            # raise TypeError("Input must be an integer or a binary string!")
-            raise TypeError("Input must be bytes or binary string!")
+        Returns:
+            bool: True for success, False otherwise
+        """
+        channel_mask_int = self._convert_chan_mask(channel_mask)
 
         self._check_connection()
-        # cmd = SetCh(channel_mask)
         cmd = SetCh(channel_mask_int)
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def disable_module(self, module_name):
         """Disable module
@@ -389,12 +479,15 @@ class Explore:
             >>> explore = Explore()
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.disable_module('ORN')
+
+        Returns:
+            bool: True for success, False otherwise
         """
         if module_name not in ['ORN', 'ENV', 'EXG']:
             raise ValueError('Module name must be one of ORN, ENV or EXG.')
         self._check_connection()
         cmd = ModuleDisable(module_name)
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def enable_module(self, module_name):
         """Enable module
@@ -407,18 +500,21 @@ class Explore:
             >>> explore = Explore()
             >>> explore.connect(device_name='Explore_2FA2')
             >>> explore.enable_module('ORN')
+
+        Returns:
+            bool: True for success, False otherwise
         """
         if module_name not in ['ORN', 'ENV', 'EXG']:
             raise ValueError('Module name must be one of ORN, ENV or EXG.')
         self._check_connection()
         cmd = ModuleEnable(module_name)
-        self.stream_processor.configure_device(cmd)
+        return self.stream_processor.configure_device(cmd)
 
     def calibrate_orn(self, do_overwrite=False):
         """Calibrate orientation module
 
-        This method calibrates orientation sensors in order to get the real physical orientation in addition to raw sensor
-        data. While running this function you would need to move and rotate the device. This function will store
+        This method calibrates orientation sensors in order to get the real physical orientation in addition to raw
+        sensor data. While running this function you would need to move and rotate the device. This function will store
         calibration info in the configuration file which will be used later during streaming to calculate physical
         orientation from raw sensor data.
 
@@ -426,14 +522,31 @@ class Explore:
             do_overwrite: to overwrite the calibration data if already exists or not
 
         """
-        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not(do_overwrite)), \
+        assert not (PhysicalOrientation.check_calibre_data(device_name=self.device_name) and not do_overwrite), \
             "Calibration data already exists!"
         PhysicalOrientation.init_dir()
-        logger.info("Start recording for 100 seconds, please move the device around during this time, in all directions")
+        logger.info("Start recording for 100 seconds, "
+                    "please move the device around during this time, in all directions")
         file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '//temp_' + self.device_name
         self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
         time.sleep(105)
         PhysicalOrientation.calibrate(cache_dir=file_name, device_name=self.device_name)
+
+    def _activate_test_sig(self, channel_mask):
+        """ Activate the internal ADS test signals
+        """
+        channel_mask_int = self._convert_chan_mask(channel_mask)
+        self._check_connection()
+        cmd = SetChTest(channel_mask_int)
+        self.stream_processor.configure_device(cmd)
+
+    def _convert_chan_mask(self, mask):
+        c = re.compile('[^01]')
+
+        if (isinstance(mask, str) and len(c.findall(mask)) == 0) or (isinstance(mask, bytes)):
+            return int(mask, 2)
+        else:
+            raise TypeError("Input must be bytes or binary string!")
 
     def _check_connection(self):
         assert self.is_connected, "Explore device is not connected. Please connect the device first."

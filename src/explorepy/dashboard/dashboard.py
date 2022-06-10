@@ -1,25 +1,51 @@
 # -*- coding: utf-8 -*-
 """Dashboard module"""
-import os
-from functools import partial
-from datetime import datetime
 import logging
+import os
+from datetime import datetime
+from functools import partial
+
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
-from bokeh.layouts import widgetbox, row, column, Spacer
-from bokeh.models import ColumnDataSource, ResetTool, Panel, Tabs, SingleIntervalTicker, widgets, \
-    Toggle, TextInput, RadioGroup, Div, Button, CheckboxGroup, BoxZoomTool
+from bokeh.core.property.validation import (
+    validate,
+    without_property_validation
+)
+from bokeh.layouts import (
+    Spacer,
+    column,
+    row,
+    widgetbox
+)
+from bokeh.models import (
+    BoxZoomTool,
+    Button,
+    CheckboxGroup,
+    ColumnDataSource,
+    Div,
+    Panel,
+    RadioGroup,
+    ResetTool,
+    SingleIntervalTicker,
+    Tabs,
+    TextInput,
+    Toggle,
+    widgets
+)
+from bokeh.palettes import Category20
 from bokeh.plotting import figure
 from bokeh.server.server import Server
-from bokeh.palettes import Category20
-from bokeh.core.property.validation import validate, without_property_validation
-from bokeh.transform import dodge
 from bokeh.themes import Theme
-from tornado import gen
+from bokeh.transform import dodge
 from jinja2 import Template
+from scipy.ndimage import gaussian_filter1d
+from tornado import gen
 
-from explorepy.tools import HeartRateEstimator, find_free_port
 from explorepy.stream_processor import TOPICS
+from explorepy.tools import (
+    HeartRateEstimator,
+    find_free_port
+)
+
 
 logger = logging.getLogger(__name__)
 ORN_SRATE = 20  # Hz
@@ -105,10 +131,10 @@ class Dashboard:
         self.fft_source = ColumnDataSource(data=init_data)
 
         # Init impedance measurement source
-        init_data = {'channel':   self.chan_key_list,
+        init_data = {'channel': self.chan_key_list,
                      'impedance': ['NA' for i in range(self.n_chan)],
-                     'row':       ['1' for i in range(self.n_chan)],
-                     'color':     ['black' for i in range(self.n_chan)]}
+                     'row': ['1' for i in range(self.n_chan)],
+                     'color': ['black' for i in range(self.n_chan)]}
         self.imp_source = ColumnDataSource(data=init_data)
 
         # Init timer source
@@ -161,12 +187,12 @@ class Dashboard:
             # Baseline correction
             if self.baseline_widget.active:
                 samples_avg = exg.mean(axis=1)
-                if self._baseline_corrector["baseline"] is None:
+                baseline = self._baseline_corrector["baseline"]
+                ma_len = self._baseline_corrector["MA_length"]
+                if baseline is None:
                     self._baseline_corrector["baseline"] = samples_avg
                 else:
-                    self._baseline_corrector["baseline"] -= (
-                            (self._baseline_corrector["baseline"] - samples_avg) / self._baseline_corrector["MA_length"] *
-                            exg.shape[1])
+                    self._baseline_corrector["baseline"] -= ((baseline - samples_avg) / ma_len * exg.shape[1])
                 exg -= self._baseline_corrector["baseline"][:, np.newaxis]
             else:
                 self._baseline_corrector["baseline"] = None
@@ -243,17 +269,20 @@ class Dashboard:
              packet (explorepy.packet.EEG): ExG packet
         """
         if self.mode == "impedance":
-            imp = packet.get_impedances()
+            imp = packet.get_impedances() / 2
             color = []
             imp_status = []
             for value in imp:
-                if value > 500:
+                if value > 250:
                     color.append("black")
                     imp_status.append("Open")
-                elif value > 100:
+                elif value > 50:
+                    color.append("black")
+                    imp_status.append(str(round(value, 0)) + " K\u03A9")
+                elif value > 30:
                     color.append("red")
                     imp_status.append(str(round(value, 0)) + " K\u03A9")
-                elif value > 50:
+                elif value > 20:
                     color.append("orange")
                     imp_status.append(str(round(value, 0)) + " K\u03A9")
                 elif value > 10:
@@ -267,9 +296,9 @@ class Dashboard:
                     imp_status.append("<5K\u03A9")  # As the ADS is not precise in low values.
 
             data = {"impedance": imp_status,
-                    'channel':   self.chan_key_list,
-                    'row':       ['1' for i in range(self.n_chan)],
-                    'color':     color
+                    'channel': self.chan_key_list,
+                    'row': ['1' for i in range(self.n_chan)],
+                    'color': color
                     }
             self.doc.add_next_tick_callback(partial(self._update_imp, new_data=data))
         else:
@@ -530,8 +559,8 @@ class Dashboard:
         plot.circle(x='channel', y="row", size=50, source=self.imp_source, fill_alpha=0.6, color="color",
                     line_color='color', line_width=2)
 
-        text_props = {"source":          self.imp_source, "text_align": "center",
-                      "text_color":      "white", "text_baseline": "middle", "text_font": "helvetica",
+        text_props = {"source": self.imp_source, "text_align": "center",
+                      "text_color": "white", "text_baseline": "middle", "text_font": "helvetica",
                       "text_font_style": "bold"}
 
         x = dodge("channel", -0.1, range=plot.x_range)
@@ -670,7 +699,7 @@ class Dashboard:
 
     def _init_set_marker(self):
         self.marker_button = Button(label=u"Set", button_type="default", width=80, height=31, disabled=True)
-        self.event_code_input = TextInput(value="8", title="Event code:", width=80, disabled=True)
+        self.event_code_input = TextInput(value="0", title="Event code:", width=80, disabled=True)
         self.event_code_input.on_change('value', self._check_marker_value)
         self.marker_button.on_click(self._set_marker)
         return column([Spacer(width=170, height=5),
@@ -686,10 +715,10 @@ class Dashboard:
     def _check_marker_value(self, attr, old, new):
         try:
             code = int(self.event_code_input.value)
-            if code < 7 or code > 65535:
-                raise ValueError('Value must be an integer between 8 and 65535')
+            if code < 0 or code > 65535:
+                raise ValueError('Value must be an integer between 0 and 65535')
         except ValueError:
-            self.event_code_input.value = "7<val<65535"
+            self.event_code_input.value = "0<=val<=65535"
 
     @gen.coroutine
     @without_property_validation
@@ -724,8 +753,8 @@ if __name__ == '__main__':
     explore = Explore()
     explore.stream_processor = StreamProcessor()
     explore.stream_processor.device_info = {'firmware_version': '0.0.0',
-                                            'adc_mask':         [1 for i in range(8)],
-                                            'sampling_rate':    250}
+                                            'adc_mask': [1 for i in range(8)],
+                                            'sampling_rate': 250}
 
     dashboard = Dashboard(explore=explore)
     dashboard.start_server()

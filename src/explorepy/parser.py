@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 """Parser module"""
-from threading import Thread
-import struct
 import asyncio
 import logging
+import struct
+from threading import Thread
 
 import explorepy
-from explorepy.packet import PACKET_CLASS_DICT, DeviceInfo
-from explorepy._exceptions import *
+from explorepy._exceptions import FletcherError
+from explorepy.packet import (
+    PACKET_CLASS_DICT,
+    TIMESTAMP_SCALE,
+    DeviceInfo
+)
 from explorepy.tools import get_local_time
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +31,11 @@ class Parser:
         self.device_configurator = None
         self.callback = callback
 
-        self._time_offset = None
+        if self.mode == 'file':
+            self._time_offset = 0
+        else:
+            self._time_offset = None
+
         self._do_streaming = False
         self.is_waiting = False
         self._stream_thread = None
@@ -130,33 +139,29 @@ class Parser:
 
         # Timestamp conversion
         if self._time_offset is None:
-            self._time_offset = get_local_time() - timestamp/10000
+            self._time_offset = get_local_time() - timestamp / TIMESTAMP_SCALE
             timestamp = 0
-        else:
-            timestamp = timestamp/10000 + self._time_offset
 
         payload_data = self.stream_interface.read(payload - 4)
         packet = self._parse_packet(pid, timestamp, payload_data)
         return packet
 
-    @staticmethod
-    def _parse_packet(pid, timestamp, bin_data):
+    def _parse_packet(self, pid, timestamp, bin_data):
         """Generates the packets according to the pid
 
         Args:
             pid (int): Packet ID
             timestamp (int): Timestamp
-            bin_data: Binary dat
+            bin_data: Binary data
 
         Returns:
             Packet
         """
 
         if pid in PACKET_CLASS_DICT:
-                packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
+            packet = PACKET_CLASS_DICT[pid](timestamp, bin_data, self._time_offset)
         else:
             logger.debug("Unknown Packet ID:" + str(pid))
-            # raise ValueError("Unknown Packet ID:" + str(pid))
             packet = None
         return packet
 

@@ -1,21 +1,27 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import (
+    absolute_import,
+    print_function
+)
 
 import io
-import re
 import os
+import re
 import sys
 from glob import glob
-from os.path import basename
-from os.path import dirname
-from os.path import join
-from os.path import splitext
+from os.path import (
+    basename,
+    dirname,
+    join,
+    splitext
+)
 
-from setuptools import find_packages
-from setuptools import setup
-from setuptools import Extension
+from setuptools import (
+    Extension,
+    find_packages,
+    setup
+)
 
 
 def read(*names, **kwargs):
@@ -26,12 +32,19 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy', 'pyedflib==0.1.22', 'click==7.0', 'appdirs==1.4.3', 'sentry_sdk==1.0.0']
+my_req = ['numpy', 'scipy', 'pyedflib==0.1.25', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.0.0']
+
+test_requirements = ["pytest==6.2.5",
+                     "flake8==4.0.1",
+                     "isort==5.10.1"]
+extras = {"test": test_requirements}
+
 ext_modules_list = []
 current_platform = sys.platform
 
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pylsl')
+    my_req.append('Jinja2==3.0.0')
     my_req.append('bokeh==2.2.3')
     libPath = "lib"
     if current_platform == 'win32' or current_platform == 'win64':
@@ -68,7 +81,7 @@ if not os.environ.get('READTHEDOCS'):
         os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
-    version='1.6.0',
+    version='1.6.1',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description='%s\n%s' % (
@@ -104,7 +117,7 @@ setup(
         'Mentalab', 'Explorepy', 'EEG signal',
     ],
     install_requires=my_req,
-    extras_require={},
+    extras_require=extras,
     entry_points='''
         [console_scripts]
         explorepy=explorepy.cli:cli

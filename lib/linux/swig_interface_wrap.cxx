@@ -2663,26 +2663,27 @@ SWIGINTERN PyObject *SWIG_PyStaticMethod_New(PyObject *SWIGUNUSEDPARM(self), PyO
 /* -------- TYPES TABLE (BEGIN) -------- */
 
 #define SWIGTYPE_p_BTSerialPortBinding swig_types[0]
-#define SWIGTYPE_p_ExploreException swig_types[1]
-#define SWIGTYPE_p_ExploreIOException swig_types[2]
-#define SWIGTYPE_p_ExploreReadBufferException swig_types[3]
-#define SWIGTYPE_p_ExploreSDK swig_types[4]
-#define SWIGTYPE_p_allocator_type swig_types[5]
-#define SWIGTYPE_p_char swig_types[6]
-#define SWIGTYPE_p_device swig_types[7]
-#define SWIGTYPE_p_difference_type swig_types[8]
-#define SWIGTYPE_p_int swig_types[9]
-#define SWIGTYPE_p_p_PyObject swig_types[10]
-#define SWIGTYPE_p_size_type swig_types[11]
-#define SWIGTYPE_p_std__allocatorT_device_t swig_types[12]
-#define SWIGTYPE_p_std__exception swig_types[13]
-#define SWIGTYPE_p_std__invalid_argument swig_types[14]
-#define SWIGTYPE_p_std__time_t swig_types[15]
-#define SWIGTYPE_p_std__vectorT_device_std__allocatorT_device_t_t swig_types[16]
-#define SWIGTYPE_p_swig__SwigPyIterator swig_types[17]
-#define SWIGTYPE_p_value_type swig_types[18]
-static swig_type_info *swig_types[20];
-static swig_module_info swig_module = {swig_types, 19, 0, 0, 0, 0};
+#define SWIGTYPE_p_ExploreBtSocketException swig_types[1]
+#define SWIGTYPE_p_ExploreException swig_types[2]
+#define SWIGTYPE_p_ExploreIOException swig_types[3]
+#define SWIGTYPE_p_ExploreReadBufferException swig_types[4]
+#define SWIGTYPE_p_ExploreSDK swig_types[5]
+#define SWIGTYPE_p_allocator_type swig_types[6]
+#define SWIGTYPE_p_char swig_types[7]
+#define SWIGTYPE_p_device swig_types[8]
+#define SWIGTYPE_p_difference_type swig_types[9]
+#define SWIGTYPE_p_int swig_types[10]
+#define SWIGTYPE_p_p_PyObject swig_types[11]
+#define SWIGTYPE_p_size_type swig_types[12]
+#define SWIGTYPE_p_std__allocatorT_device_t swig_types[13]
+#define SWIGTYPE_p_std__exception swig_types[14]
+#define SWIGTYPE_p_std__invalid_argument swig_types[15]
+#define SWIGTYPE_p_std__time_t swig_types[16]
+#define SWIGTYPE_p_std__vectorT_device_std__allocatorT_device_t_t swig_types[17]
+#define SWIGTYPE_p_swig__SwigPyIterator swig_types[18]
+#define SWIGTYPE_p_value_type swig_types[19]
+static swig_type_info *swig_types[21];
+static swig_module_info swig_module = {swig_types, 20, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -5831,6 +5832,9 @@ SWIGINTERN PyObject *_wrap_delete_BTSerialPortBinding(PyObject *SWIGUNUSEDPARM(s
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -5884,6 +5888,9 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Create(PyObject *SWIGUNUSEDPARM(s
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -5928,6 +5935,9 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Connect(PyObject *SWIGUNUSEDPARM(
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -5970,6 +5980,9 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Close(PyObject *SWIGUNUSEDPARM(se
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6027,6 +6040,9 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Read(PyObject *SWIGUNUSEDPARM(sel
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -6079,6 +6095,9 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_Write(PyObject *SWIGUNUSEDPARM(se
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -6122,6 +6141,9 @@ SWIGINTERN PyObject *_wrap_BTSerialPortBinding_IsDataAvailable(PyObject *SWIGUNU
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6176,6 +6198,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_iterator(PyObject *SWIGUNUSEDPARM(self),
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -6219,6 +6244,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___nonzero__(PyObject *SWIGUNUSEDPARM(sel
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6264,6 +6292,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___bool__(PyObject *SWIGUNUSEDPARM(self),
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -6307,6 +6338,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___len__(PyObject *SWIGUNUSEDPARM(self), 
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6373,6 +6407,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___getslice__(PyObject *SWIGUNUSEDPARM(se
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -6435,6 +6472,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___setslice____SWIG_0(PyObject *SWIGUNUSE
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6511,6 +6551,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___setslice____SWIG_1(PyObject *SWIGUNUSE
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6640,6 +6683,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___delslice__(PyObject *SWIGUNUSEDPARM(se
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -6695,6 +6741,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___delitem____SWIG_0(PyObject *SWIGUNUSED
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -6749,6 +6798,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___getitem____SWIG_0(PyObject *SWIGUNUSED
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -6817,6 +6869,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___setitem____SWIG_0(PyObject *SWIGUNUSED
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -6873,6 +6928,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___setitem____SWIG_1(PyObject *SWIGUNUSED
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -6926,6 +6984,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___delitem____SWIG_1(PyObject *SWIGUNUSED
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7025,6 +7086,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___getitem____SWIG_1(PyObject *SWIGUNUSED
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7135,6 +7199,9 @@ SWIGINTERN PyObject *_wrap_vectordevice___setitem____SWIG_2(PyObject *SWIGUNUSED
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7251,6 +7318,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_pop(PyObject *SWIGUNUSEDPARM(self), PyOb
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -7304,6 +7374,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_append(PyObject *SWIGUNUSEDPARM(self), P
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -7337,6 +7410,9 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_0(PyObject *SWIGUNUSEDPARM(sel
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7385,6 +7461,9 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_1(PyObject *SWIGUNUSEDPARM(sel
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -7431,6 +7510,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_empty(PyObject *SWIGUNUSEDPARM(self), Py
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -7474,6 +7556,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_size(PyObject *SWIGUNUSEDPARM(self), PyO
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7528,6 +7613,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_swap(PyObject *SWIGUNUSEDPARM(self), PyO
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -7571,6 +7659,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_begin(PyObject *SWIGUNUSEDPARM(self), Py
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7617,6 +7708,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_end(PyObject *SWIGUNUSEDPARM(self), PyOb
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -7661,6 +7755,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_rbegin(PyObject *SWIGUNUSEDPARM(self), P
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7707,6 +7804,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_rend(PyObject *SWIGUNUSEDPARM(self), PyO
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -7750,6 +7850,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_clear(PyObject *SWIGUNUSEDPARM(self), Py
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7795,6 +7898,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_get_allocator(PyObject *SWIGUNUSEDPARM(s
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -7836,6 +7942,9 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_2(PyObject *SWIGUNUSEDPARM(sel
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7879,6 +7988,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_pop_back(PyObject *SWIGUNUSEDPARM(self),
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7928,6 +8040,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_resize__SWIG_0(PyObject *SWIGUNUSEDPARM(
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -7984,6 +8099,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_erase__SWIG_0(PyObject *SWIGUNUSEDPARM(s
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8055,6 +8173,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_erase__SWIG_1(PyObject *SWIGUNUSEDPARM(s
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8158,6 +8279,9 @@ SWIGINTERN PyObject *_wrap_new_vectordevice__SWIG_3(PyObject *SWIGUNUSEDPARM(sel
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8267,6 +8391,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_push_back(PyObject *SWIGUNUSEDPARM(self)
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -8310,6 +8437,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_front(PyObject *SWIGUNUSEDPARM(self), Py
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8355,6 +8485,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_back(PyObject *SWIGUNUSEDPARM(self), PyO
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8418,6 +8551,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_assign(PyObject *SWIGUNUSEDPARM(self), P
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -8477,6 +8613,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_resize__SWIG_1(PyObject *SWIGUNUSEDPARM(
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8595,6 +8734,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_insert__SWIG_0(PyObject *SWIGUNUSEDPARM(
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -8669,6 +8811,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_insert__SWIG_1(PyObject *SWIGUNUSEDPARM(
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8778,6 +8923,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_reserve(PyObject *SWIGUNUSEDPARM(self), 
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -8822,6 +8970,9 @@ SWIGINTERN PyObject *_wrap_vectordevice_capacity(PyObject *SWIGUNUSEDPARM(self),
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -8864,6 +9015,9 @@ SWIGINTERN PyObject *_wrap_delete_vectordevice(PyObject *SWIGUNUSEDPARM(self), P
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -8922,6 +9076,9 @@ SWIGINTERN PyObject *_wrap_new_ExploreException(PyObject *SWIGUNUSEDPARM(self), 
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -8966,6 +9123,9 @@ SWIGINTERN PyObject *_wrap_ExploreException_what(PyObject *SWIGUNUSEDPARM(self),
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -9008,6 +9168,9 @@ SWIGINTERN PyObject *_wrap_delete_ExploreException(PyObject *SWIGUNUSEDPARM(self
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9066,6 +9229,9 @@ SWIGINTERN PyObject *_wrap_new_ExploreReadBufferException(PyObject *SWIGUNUSEDPA
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -9110,6 +9276,9 @@ SWIGINTERN PyObject *_wrap_ExploreReadBufferException_what(PyObject *SWIGUNUSEDP
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -9153,6 +9322,9 @@ SWIGINTERN PyObject *_wrap_delete_ExploreReadBufferException(PyObject *SWIGUNUSE
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -9174,6 +9346,159 @@ SWIGINTERN PyObject *ExploreReadBufferException_swigregister(PyObject *SWIGUNUSE
 }
 
 SWIGINTERN PyObject *ExploreReadBufferException_swiginit(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  return SWIG_Python_InitShadowInstance(args);
+}
+
+SWIGINTERN PyObject *_wrap_new_ExploreBtSocketException(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  std::string arg1 ;
+  PyObject *swig_obj[1] ;
+  ExploreBtSocketException *result = 0 ;
+  
+  if (!args) SWIG_fail;
+  swig_obj[0] = args;
+  {
+    std::string *ptr = (std::string *)0;
+    int res = SWIG_AsPtr_std_string(swig_obj[0], &ptr);
+    if (!SWIG_IsOK(res) || !ptr) {
+      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "new_ExploreBtSocketException" "', argument " "1"" of type '" "std::string""'"); 
+    }
+    arg1 = *ptr;
+    if (SWIG_IsNewObj(res)) delete ptr;
+  }
+  {
+    try {
+      {
+        SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+        result = (ExploreBtSocketException *)new ExploreBtSocketException(arg1);
+        SWIG_PYTHON_THREAD_END_ALLOW;
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_MemoryError, e.what());
+    }
+    catch(const ExploreIOException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_ExploreBtSocketException, SWIG_POINTER_NEW |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_ExploreBtSocketException_what(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ExploreBtSocketException *arg1 = (ExploreBtSocketException *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject *swig_obj[1] ;
+  char *result = 0 ;
+  
+  if (!args) SWIG_fail;
+  swig_obj[0] = args;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_ExploreBtSocketException, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "ExploreBtSocketException_what" "', argument " "1"" of type '" "ExploreBtSocketException const *""'"); 
+  }
+  arg1 = reinterpret_cast< ExploreBtSocketException * >(argp1);
+  {
+    try {
+      {
+        SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+        result = (char *)((ExploreBtSocketException const *)arg1)->what();
+        SWIG_PYTHON_THREAD_END_ALLOW;
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_MemoryError, e.what());
+    }
+    catch(const ExploreIOException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
+  resultobj = SWIG_FromCharPtr((const char *)result);
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_delete_ExploreBtSocketException(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  ExploreBtSocketException *arg1 = (ExploreBtSocketException *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject *swig_obj[1] ;
+  
+  if (!args) SWIG_fail;
+  swig_obj[0] = args;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_ExploreBtSocketException, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_ExploreBtSocketException" "', argument " "1"" of type '" "ExploreBtSocketException *""'"); 
+  }
+  arg1 = reinterpret_cast< ExploreBtSocketException * >(argp1);
+  {
+    try {
+      {
+        SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+        delete arg1;
+        SWIG_PYTHON_THREAD_END_ALLOW;
+      }
+    } catch(const ExploreException& e) {
+      SWIG_exception(SWIG_ValueError, e.what());
+    }
+    catch(const ExploreReadBufferException& e) {
+      SWIG_exception(SWIG_MemoryError, e.what());
+    }
+    catch(const ExploreIOException& e) {
+      SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
+    catch(const std::exception& e) {
+      SWIG_exception(SWIG_UnknownError, "Standard exception");
+    } catch(...) {
+      SWIG_exception(SWIG_RuntimeError, "Unknown exception");
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *ExploreBtSocketException_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *obj;
+  if (!SWIG_Python_UnpackTuple(args, "swigregister", 1, 1, &obj)) return NULL;
+  SWIG_TypeNewClientData(SWIGTYPE_p_ExploreBtSocketException, SWIG_NewClientData(obj));
+  return SWIG_Py_Void();
+}
+
+SWIGINTERN PyObject *ExploreBtSocketException_swiginit(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   return SWIG_Python_InitShadowInstance(args);
 }
 
@@ -9209,6 +9534,9 @@ SWIGINTERN PyObject *_wrap_new_ExploreIOException(PyObject *SWIGUNUSEDPARM(self)
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9254,6 +9582,9 @@ SWIGINTERN PyObject *_wrap_ExploreIOException_what(PyObject *SWIGUNUSEDPARM(self
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -9296,6 +9627,9 @@ SWIGINTERN PyObject *_wrap_delete_ExploreIOException(PyObject *SWIGUNUSEDPARM(se
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9792,6 +10126,9 @@ SWIGINTERN PyObject *_wrap_new_device(PyObject *SWIGUNUSEDPARM(self), PyObject *
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -9834,6 +10171,9 @@ SWIGINTERN PyObject *_wrap_delete_device(PyObject *SWIGUNUSEDPARM(self), PyObjec
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9889,6 +10229,9 @@ SWIGINTERN PyObject *_wrap_delete_ExploreSDK(PyObject *SWIGUNUSEDPARM(self), PyO
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -9922,6 +10265,9 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_Create(PyObject *SWIGUNUSEDPARM(self), PyO
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -9973,6 +10319,9 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_PerformDeviceSearch__SWIG_0(PyObject *SWIG
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -10014,6 +10363,9 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_PerformDeviceSearch__SWIG_1(PyObject *SWIG
     }
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
+    }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
     }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
@@ -10110,6 +10462,9 @@ SWIGINTERN PyObject *_wrap_ExploreSDK_SdpSearch(PyObject *SWIGUNUSEDPARM(self), 
     catch(const ExploreIOException& e) {
       SWIG_exception(SWIG_IOError, e.what());
     }
+    catch(const ExploreBtSocketException& e) {
+      SWIG_exception(SWIG_TypeError, e.what());
+    }
     catch(const std::exception& e) {
       SWIG_exception(SWIG_UnknownError, "Standard exception");
     } catch(...) {
@@ -10203,6 +10558,11 @@ static PyMethodDef SwigMethods[] = {
 	 { "delete_ExploreReadBufferException", _wrap_delete_ExploreReadBufferException, METH_O, NULL},
 	 { "ExploreReadBufferException_swigregister", ExploreReadBufferException_swigregister, METH_O, NULL},
 	 { "ExploreReadBufferException_swiginit", ExploreReadBufferException_swiginit, METH_VARARGS, NULL},
+	 { "new_ExploreBtSocketException", _wrap_new_ExploreBtSocketException, METH_O, NULL},
+	 { "ExploreBtSocketException_what", _wrap_ExploreBtSocketException_what, METH_O, NULL},
+	 { "delete_ExploreBtSocketException", _wrap_delete_ExploreBtSocketException, METH_O, NULL},
+	 { "ExploreBtSocketException_swigregister", ExploreBtSocketException_swigregister, METH_O, NULL},
+	 { "ExploreBtSocketException_swiginit", ExploreBtSocketException_swiginit, METH_VARARGS, NULL},
 	 { "new_ExploreIOException", _wrap_new_ExploreIOException, METH_O, NULL},
 	 { "ExploreIOException_what", _wrap_ExploreIOException_what, METH_O, NULL},
 	 { "delete_ExploreIOException", _wrap_delete_ExploreIOException, METH_O, NULL},
@@ -10247,10 +10607,14 @@ static void *_p_ExploreExceptionTo_p_std__exception(void *x, int *SWIGUNUSEDPARM
 static void *_p_ExploreReadBufferExceptionTo_p_std__exception(void *x, int *SWIGUNUSEDPARM(newmemory)) {
     return (void *)((std::exception *)  ((ExploreReadBufferException *) x));
 }
+static void *_p_ExploreBtSocketExceptionTo_p_std__exception(void *x, int *SWIGUNUSEDPARM(newmemory)) {
+    return (void *)((std::exception *)  ((ExploreBtSocketException *) x));
+}
 static void *_p_ExploreIOExceptionTo_p_std__exception(void *x, int *SWIGUNUSEDPARM(newmemory)) {
     return (void *)((std::exception *)  ((ExploreIOException *) x));
 }
 static swig_type_info _swigt__p_BTSerialPortBinding = {"_p_BTSerialPortBinding", "BTSerialPortBinding *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_ExploreBtSocketException = {"_p_ExploreBtSocketException", "ExploreBtSocketException *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_ExploreException = {"_p_ExploreException", "ExploreException *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_ExploreIOException = {"_p_ExploreIOException", "ExploreIOException *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_ExploreReadBufferException = {"_p_ExploreReadBufferException", "ExploreReadBufferException *", 0, 0, (void*)0, 0};
@@ -10272,6 +10636,7 @@ static swig_type_info _swigt__p_value_type = {"_p_value_type", "value_type *", 0
 
 static swig_type_info *swig_type_initial[] = {
   &_swigt__p_BTSerialPortBinding,
+  &_swigt__p_ExploreBtSocketException,
   &_swigt__p_ExploreException,
   &_swigt__p_ExploreIOException,
   &_swigt__p_ExploreReadBufferException,
@@ -10293,6 +10658,7 @@ static swig_type_info *swig_type_initial[] = {
 };
 
 static swig_cast_info _swigc__p_BTSerialPortBinding[] = {  {&_swigt__p_BTSerialPortBinding, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_ExploreBtSocketException[] = {  {&_swigt__p_ExploreBtSocketException, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_ExploreException[] = {  {&_swigt__p_ExploreException, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_ExploreIOException[] = {  {&_swigt__p_ExploreIOException, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_ExploreReadBufferException[] = {  {&_swigt__p_ExploreReadBufferException, 0, 0, 0},{0, 0, 0, 0}};
@@ -10305,7 +10671,7 @@ static swig_cast_info _swigc__p_int[] = {  {&_swigt__p_int, 0, 0, 0},{0, 0, 0, 0
 static swig_cast_info _swigc__p_p_PyObject[] = {  {&_swigt__p_p_PyObject, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_size_type[] = {  {&_swigt__p_size_type, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_std__allocatorT_device_t[] = {  {&_swigt__p_std__allocatorT_device_t, 0, 0, 0},{0, 0, 0, 0}};
-static swig_cast_info _swigc__p_std__exception[] = {  {&_swigt__p_std__exception, 0, 0, 0},  {&_swigt__p_ExploreException, _p_ExploreExceptionTo_p_std__exception, 0, 0},  {&_swigt__p_ExploreReadBufferException, _p_ExploreReadBufferExceptionTo_p_std__exception, 0, 0},  {&_swigt__p_ExploreIOException, _p_ExploreIOExceptionTo_p_std__exception, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_std__exception[] = {  {&_swigt__p_std__exception, 0, 0, 0},  {&_swigt__p_ExploreException, _p_ExploreExceptionTo_p_std__exception, 0, 0},  {&_swigt__p_ExploreReadBufferException, _p_ExploreReadBufferExceptionTo_p_std__exception, 0, 0},  {&_swigt__p_ExploreBtSocketException, _p_ExploreBtSocketExceptionTo_p_std__exception, 0, 0},  {&_swigt__p_ExploreIOException, _p_ExploreIOExceptionTo_p_std__exception, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_std__invalid_argument[] = {  {&_swigt__p_std__invalid_argument, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_std__time_t[] = {  {&_swigt__p_std__time_t, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_std__vectorT_device_std__allocatorT_device_t_t[] = {  {&_swigt__p_std__vectorT_device_std__allocatorT_device_t_t, 0, 0, 0},{0, 0, 0, 0}};
@@ -10314,6 +10680,7 @@ static swig_cast_info _swigc__p_value_type[] = {  {&_swigt__p_value_type, 0, 0, 
 
 static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_BTSerialPortBinding,
+  _swigc__p_ExploreBtSocketException,
   _swigc__p_ExploreException,
   _swigc__p_ExploreIOException,
   _swigc__p_ExploreReadBufferException,

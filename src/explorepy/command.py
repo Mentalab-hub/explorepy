@@ -2,11 +2,12 @@
 """
 A module providing classes for Explore device configuration
 """
+import abc
+import logging
 import time
 from datetime import datetime
-import abc
 from enum import Enum
-import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ class OpcodeID(Enum):
     CMD_ZM_DISABLE = b'\xA6'
     CMD_ZM_ENABLE = b'\xA7'
     CMD_SOFT_RESET = b'\xA8'
+    CMD_TEST_SIG = b'\xAA'
 
 
 class Result(Enum):
@@ -61,7 +63,7 @@ class DeviceConfiguration:
             command (explorepy.command.Command): Command to be executed
 
         Returns:
-              bool: If the command has been successfully executed.
+              bool: True if the command has been successfully executed.
         """
         self._last_ack_message = None
         self._last_status_message = None
@@ -152,8 +154,9 @@ class Command:
     def translate(self):
         """Translates the command to binary array understandable by Explore device. """
         self.get_time()
-        return self.pid.value + self.cnt + self.payload_length + self.host_ts + self.opcode.value +\
-               self.param + self.fletcher
+        result = [self.pid.value, self.cnt, self.payload_length,
+                  self.host_ts, self.opcode.value, self.param, self.fletcher]
+        return b''.join(result)
 
     def get_time(self):
         """Gets the current machine time based on unix format and fills the corresponding field.
@@ -328,6 +331,25 @@ class SoftReset(Command2B):
 
     def __str__(self):
         return "Reset command"
+
+
+class SetChTest(Command2B):
+    """Enable test signal"""
+    def __init__(self, ch_mask):
+        """
+        Args:
+            ch_mask (int): ExG channel mask on which the test signal should be activated.
+                            It should be integers between 1 and 255 (equivalent of binary representation of the mask).
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_TEST_SIG
+        if 0 <= ch_mask <= 255:
+            self.param = bytes([ch_mask])
+        else:
+            raise ValueError("Invalid input")
+
+    def __str__(self):
+        return "Test signal activation command"
 
 
 COMMAND_CLASS_DICT = {
