@@ -84,6 +84,7 @@ setup(
     version='1.6.1',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
+    long_description_content_type="text/markdown",
     long_description='%s\n%s' % (
         re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
         re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
