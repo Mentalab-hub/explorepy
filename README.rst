@@ -37,9 +37,9 @@
 
 .. end-badges
 
-==================
+=========================
 ``explorepy`` overview
-==================
+=========================
 
 ``explorepy`` is an open-source Python API designed to collect and process ExG data using Mentalab's Explore device. Amongst other things, ``explorepy`` provides the following features:
 
