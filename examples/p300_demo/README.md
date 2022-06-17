@@ -44,7 +44,7 @@ there are 5 trials in each block (50 trials in total). The numbers can be change
 
 When the experiment is completed, you will find three csv files (ExG, ORN and markers) in the working directory.
 
-Running `python analysis_csv.py -f rec_file_name` in the terminal will analyse the recorded data and generates the plots.
+Running `python analysis_csv_<X_channel>.py -f rec_file_name` in the terminal will analyse the recorded data and generates the plots.
 
 Results
 -------
