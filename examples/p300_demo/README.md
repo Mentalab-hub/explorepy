@@ -14,7 +14,10 @@ Experiment setup
 `cd <YOUR-FOLDER>\explorepy-master\examples\p300_demo`).
 * Setup the cap and electrodes. Place EEG electrodes on the desired positions and the
 ground electrode on Mastoid (or any other location far enough from other electrodes).
-The default setup in the code is `ch1` to `ch8` and ground on `TP9`, `Cz`, `Pz`, `CP1`, `CP2`, `P3`, `P4`, `Oz` and `TP10` respectively.
+The default setup in the code is:
+
+8 channel: `ch1` to `ch8` and ground on `TP9`, `Cz`, `Pz`, `CP1`, `CP2`, `P3`, `P4`, `Oz` and `TP10` respectively.
+4 channel: `ch1` to `ch4` and ground on `P3`, `P4`, `CP1`, `CP2` and `TP9` respectively.
 
 Experiment
 ----------
