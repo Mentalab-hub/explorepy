@@ -49,7 +49,7 @@ Running following command in the terminal will analyse the recorded data and gen
 
 Results
 -------
-After running the analysis script, you should have a similar plot containing P300 waveforms.
+After running the analysis script, you should have a similar plot containing P300 waveforms for 8 channel devices.
 
 ![alt text](plots.jpeg "P300 plots")
 
