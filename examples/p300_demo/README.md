@@ -13,7 +13,7 @@ Experiment setup
 * In Conda terminal, navigate to `p300_demo` folder in the example directory of the Explorepy's code (e.g.
 `cd <YOUR-FOLDER>\explorepy-master\examples\p300_demo`).
 * Setup the cap and electrodes. Place EEG electrodes on the desired positions and the
-ground electrode on Mastoid (or any other location far enough from other electrodes). TP10 and TP9 is used as ground location for for  8 channel and 4 channel analysis in this example. Please refer to channel specific Python scripts(analysis_csv_X_channel.py) for channel locations.
+ground electrode on Mastoid (or any other location far enough from other electrodes). TP10 and TP9 is used as ground location for  8 channel and 4 channel analysis in this example. Please refer to channel specific Python scripts(analysis_csv_X_channel.py) for channel locations.
 
 Experiment
 ----------
@@ -43,13 +43,13 @@ there are 5 trials in each block (50 trials in total). The numbers can be change
 
 When the experiment is completed, you will find three csv files (ExG, ORN and markers) in the working directory.
 
-Running following command in the terminal will analyse the recorded data and generates the plots:
-8 channel: `python analysis_csv_8_channel.py -f rec_file_name`
+Running following command in the terminal will analyse the recorded data and generates the plots:\
+8 channel: `python analysis_csv_8_channel.py -f rec_file_name`\
 4 channel: `python analysis_csv_4_channel.py -f rec_file_name`
 
 Results
 -------
-After running the analysis script, you should have a similar plot containing P300 waveforms.
+After running the analysis script, you should have a similar plot containing P300 waveforms for 8 channel devices.
 
 ![alt text](plots.jpeg "P300 plots")
 
