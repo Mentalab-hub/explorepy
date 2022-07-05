@@ -35,6 +35,9 @@ htmlcov
 tests/
 src/explorepy/example.py
 
+!tests/test_filters.py
+!tests/__init__.py
+
 
 
 
