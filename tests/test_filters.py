@@ -4,7 +4,6 @@ import numpy as np
 from scipy.signal import butter
 
 class TestExGFilter(unittest.TestCase):
-
     def test_no_frequencies_passed(self):
         with self.assertRaises(Exception):
             ExGFilter(None, 'notch', 50, 4, 5)
@@ -17,28 +16,36 @@ class TestExGFilter(unittest.TestCase):
         with self.assertRaises(Exception):
             ExGFilter([5, 20], 'lowpass', 50, 4, 5)
 
-    def test_refactored_equal_nonrefactored_lowpass(self):
-        e1 = ExGFilter(5, 'lowpass', 50, 4, 5)
-        e2 = ExGFilter(5, 'lowpass', 50, 4, 5, use_new=True)
-        np.testing.assert_equal(e1.filter_param, e2.filter_param)
-
-    def test_refactored_equal_nonrefactored_notch(self):
-        e1 = ExGFilter(5, 'notch', 50, 4, 5)
-        e2 = ExGFilter(5, 'notch', 50, 4, 5, use_new=True)
-        np.testing.assert_equal(e1.filter_param, e2.filter_param)
-
-    def test_refactored_equal_nonrefactored_highpass(self):
-        e1 = ExGFilter(5, 'highpass', 50, 4, 5)
-        e2 = ExGFilter(5, 'highpass', 50, 4, 5, use_new=True)
-        np.testing.assert_equal(e1.filter_param, e2.filter_param)
-
-    def test_refactored_equal_nonrefactored_bandpass(self):
-        e1 = ExGFilter((5, 10), 'bandpass', 50, 4, 5)
-        e2 = ExGFilter((5, 10), 'bandpass', 50, 4, 5, use_new=True)
-        np.testing.assert_equal(e1.filter_param, e2.filter_param)
-
+# TODO add tests for highpass, bandpass and notch filters
 
 class TestExGLowpassFilter(unittest.TestCase):
+
+    # Tests if in_place changing of ndarray works
+    def test_apply_in_place_ndarray(self):
+        f = ExGFilter(10, 'lowpass', 50, 1, 5)
+        unfiltered_data = np.array([200, 200, 200, 200, 200])
+        f.apply(unfiltered_data, in_place=True)
+        np.testing.assert_raises(AssertionError,
+                                 np.testing.assert_array_equal,
+                                 unfiltered_data,
+                                 np.array([200, 200, 200, 200, 200]))
+
+    def test_negative_sampling_rate(self):
+        with self.assertRaises(Exception):
+            ExGFilter(10, 'lowpass', -20, 4, 5)
+
+    def test_negative_order(self):
+        with self.assertRaises(Exception):
+            ExGFilter(10, 'lowpass', 50, 4, -5)
+
+    def test_negative_cutoff(self):
+        with self.assertRaises(Exception):
+            ExGFilter(-10, 'lowpass', 50, 4, 5)
+
+    def test_no_channels(self):
+        with self.assertRaises(Exception):
+            ExGFilter(10, 'lowpass', 50, 0, 5)
+
     # Tests if a cutoff that's too high gets clipped to nyquist-1/nyquist
     def test_lowpass_coefficients_cutoff_too_high(self):
         test_params = {'cutoff': 50, 'sampling_rate': 50, 'order': 2, 'n_channels': 4}
