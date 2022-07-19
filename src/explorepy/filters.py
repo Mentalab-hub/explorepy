@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class ExGFilter:
     """Filter class for ExG signals"""
-    def __init__(self, cutoff_freq, filter_type, s_rate, n_chan, order=5, refactored=False):
+    def __init__(self, cutoff_freq, filter_type, s_rate, n_chan, order=5):
         """
         Args:
             cutoff_freq (Union[float, tuple]): cutoff frequency (frequencies) for the filter
@@ -47,7 +47,8 @@ class ExGFilter:
         else:
             raise ValueError('Unknown filter type: {}'.format(filter_type))
 
-    def get_lowpass_coeffs(self, cutoff, nyquist, n_channels, order):
+    @staticmethod
+    def get_lowpass_coeffs(cutoff, nyquist, n_channels, order):
         hc_freq = cutoff / nyquist
         if hc_freq >= 1.0:
             logger.error("High cutoff frequency cannot be larger than or equal to the nyquist frequency. Setting"
@@ -58,7 +59,8 @@ class ExGFilter:
         zi = np.zeros((n_channels, order))
         return a, b, zi
 
-    def get_highpass_coeffs(self, cutoff, nyquist, n_channels, order):
+    @staticmethod
+    def get_highpass_coeffs(cutoff, nyquist, n_channels, order):
         lc_freq = cutoff / nyquist
         if lc_freq <= 0.003:
             logger.warning('Transient band for low cutoff frequency is too narrow. Low cutoff frequency is set to'
@@ -68,7 +70,8 @@ class ExGFilter:
         zi = np.zeros((n_channels, order))
         return a, b, zi
 
-    def get_bandpass_coeffs(self, low, high, nyquist, n_channels, order):
+    @staticmethod
+    def get_bandpass_coeffs(low, high, nyquist, n_channels, order):
         if low >= high:
             logger.error("High cutoff frequency must be larger than low cutoff frequency. Applying a bandpass "
                          "filter with [1, 40]Hz frequency band instead. ")
@@ -90,7 +93,8 @@ class ExGFilter:
         zi = np.zeros((n_channels, order * 2))
         return a, b, zi
 
-    def get_notch_coeffs(self, cutoff, nyquist, n_channels, order):
+    @staticmethod
+    def get_notch_coeffs(cutoff, nyquist, n_channels, order):
         lc_freq = (cutoff - 2) / nyquist
         hc_freq = (cutoff + 2) / nyquist
         b, a = iirfilter(5, [lc_freq, hc_freq], btype='bandstop', ftype='butter')
