@@ -19,23 +19,23 @@ class TestBasePacket(TestCase):
         with self.assertRaises(Exception):
             Packet(12345, b'\x00\x00\x00\x00')
 
-    @patch.multiple(EEG, __abstractmethods__=set())
+    @patch.multiple(Packet, __abstractmethods__=set())
     def test_int24to32(self):
         res = Packet.int24to32([10, 20, 30, 40, 50, 60])
         np.testing.assert_array_equal(res, [1971210, 3945000])
 
-    @patch.multiple(EEG, __abstractmethods__=set())
+    @patch.multiple(Packet, __abstractmethods__=set())
     def test_int24to32_signed(self):
         # [111111111111111111111111, 111111111111111111111111]
         res = Packet.int24to32([255, 255, 255, 255, 255, 255])
         np.testing.assert_array_equal(res, [-1, -1])
 
-    @patch.multiple(EEG, __abstractmethods__=set())
+    @patch.multiple(Packet, __abstractmethods__=set())
     def test_int24to32_zero(self):
         res = Packet.int24to32([0, 0, 0, 0, 0, 0])
         np.testing.assert_array_equal(res, [0, 0])
 
-    @patch.multiple(EEG, __abstractmethods__=set())
+    @patch.multiple(Packet, __abstractmethods__=set())
     def test_int24to32_min(self):
         # [100000000000000000000000, 100000000000000000000000]
         res = Packet.int24to32([0, 0, 128, 0, 0, 128])
@@ -44,16 +44,28 @@ class TestBasePacket(TestCase):
 
 class TestEEGPacket(TestCase):
 
+    @classmethod
+    @patch.multiple(EEG, __abstractmethods__=set())
+    def setUpClass(cls):
+        cls.p = EEG(12345, b'\x00\x00\x00\x00')
+
     def test_is_abstract(self):
         with self.assertRaises(Exception):
             EEG(12345, b'\x00\x00\x00\x00')
 
-    @patch.multiple(EEG, __abstractmethods__=set())
+    def test_calculate_impedance_no_data(self):
+        imp_calib_info = {'slope': 0, 'offset': 0, 'noise_level': 0}
+        with self.assertRaises(Exception):
+            self.p.calculate_impedance(imp_calib_info)
+
     def test_ptp(self):
-        p = EEG(12345, b'\x00\x00\x00\x00')
-        p.data = np.array([[40, 3333, 78910, -30],[20, -1000, 10, 30],[10, 2345, 77016, 11],[15, 1234, 70000, 2]])
-        res = p.get_ptp()
+        self.p.data = np.array([[40, 3333, 78910, -30],[20, -1000, 10, 30],[10, 2345, 77016, 11],[15, 1234, 70000, 2]])
+        res = self.p.get_ptp()
         np.testing.assert_array_equal(res, [78940, 1030, 77006, 69998])
+
+    def test_ptp_no_data(self):
+        with self.assertRaises(Exception):
+            self.p.get_ptp()
 
 
 # The data part of the packet has 507 - 12 bytes of data, with 3 bytes per channel, 4 channels, 1 status msg
