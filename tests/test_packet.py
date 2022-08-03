@@ -53,6 +53,18 @@ class TestEEGPacket(TestCase):
         with self.assertRaises(Exception):
             EEG(12345, b'\x00\x00\x00\x00')
 
+    def test_calculate_impedance(self):
+        # TODO figure out how calculate_impedance works
+        # Where does the calibration info even come from?
+        # The noise level doesn't come from the same place as slope and offset, and there are
+        # a million steps to retrieving the info for some reason, none of which are documented
+        pass
+
+    def test_get_data(self):
+        # TODO figure out how get_data works
+        # what is exg_fs and why is it's function not documented?!
+        pass
+
     def test_calculate_impedance_no_data(self):
         imp_calib_info = {'slope': 0, 'offset': 0, 'noise_level': 0}
         with self.assertRaises(Exception):
