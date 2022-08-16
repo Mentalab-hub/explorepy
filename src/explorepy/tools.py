@@ -519,7 +519,7 @@ class FileRecorder:
         """write annotations in EDF file"""
         for ts, code in list(self._annotations_buffer):
             # correct clock deviations
-            idx = np.argmax(self._timestamps > ts) - 1
+            idx = np.argmax(np.array(self._timestamps) > ts) - 1
             if idx != -1:
                 timestamp = idx / self.fs
                 self._file_obj.writeAnnotation(timestamp, 0.001, code)
@@ -553,6 +553,7 @@ class FileRecorder:
 
 class LslServer:
     """Class for LabStreamingLayer integration"""
+
     def __init__(self, device_info):
         n_chan = device_info['adc_mask'].count(1)
         self.exg_fs = device_info['sampling_rate']
@@ -634,6 +635,7 @@ class LslServer:
 
 class ImpedanceMeasurement:
     """Impedance measurement class"""
+
     def __init__(self, device_info, calib_param, notch_freq):
         """
         Args:
@@ -682,6 +684,7 @@ class PhysicalOrientation:
     """
     Movement sensors modules
     """
+
     def __init__(self):
         self.ED_prv = None
         self.theta = 0.
