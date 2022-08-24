@@ -107,7 +107,7 @@ class Parser:
                     self.stop_streaming()
                     print("Press Ctrl+c to exit...")
                 self._is_reconnecting = False
-            except (IOError, ValueError, FletcherError) as error:
+            except (IOError, ValueError, MemoryError, FletcherError) as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 if self.mode == 'device':
                     if str(error) != 'connection has been closed':
