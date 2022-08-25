@@ -27,7 +27,6 @@ from scipy import signal
 import explorepy
 from explorepy.filters import ExGFilter
 
-
 logger = logging.getLogger(__name__)
 lock = Lock()
 
@@ -569,9 +568,9 @@ class LslServer:
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(device_info['adc_mask']):
             if mask == 1:
-                channels.append_child("channel")\
-                    .append_child_value("name", EXG_CHANNELS[i])\
-                    .append_child_value("unit", EXG_UNITS[i])\
+                channels.append_child("channel") \
+                    .append_child_value("name", EXG_CHANNELS[i]) \
+                    .append_child_value("unit", EXG_UNITS[i]) \
                     .append_child_value("type", "ExG")
 
         info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
@@ -672,7 +671,7 @@ class ImpedanceMeasurement:
         """Compute electrode impedances
         """
         temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
-        self._calib_param['noise_level'] = self._filters['base_noise'].\
+        self._calib_param['noise_level'] = self._filters['base_noise']. \
             apply(input_data=temp_packet, in_place=False).get_ptp()
         self._filters['demodulation'].apply(
             input_data=temp_packet, in_place=True
@@ -875,3 +874,6 @@ def find_free_port():
         free_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         port_number = free_socket.getsockname()[1]
         return port_number
+
+
+

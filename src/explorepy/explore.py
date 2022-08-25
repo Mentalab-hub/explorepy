@@ -20,6 +20,7 @@ import time
 from datetime import datetime
 from threading import Timer
 
+from mne import io, export
 import numpy as np
 from appdirs import user_cache_dir
 
@@ -560,3 +561,8 @@ class Explore:
             logger.warning("Duration has not been set by the user. The duration is 3 hours by default.")
             duration = 3 * 60 * 60  # 3 hours
         return duration
+    def generate_eeglab_dataset(file_name):
+        """Generates an eeglab dataset from edf file
+        """
+        export.export_raw('test.bdf.set', io.read_raw_bdf("test.bdf").drop_channels(ch_names='TimeStamp'), fmt='eeglab',
+                          overwrite=True, physical_range=[-400000, 400000])
