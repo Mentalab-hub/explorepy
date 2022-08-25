@@ -418,7 +418,7 @@ class FileRecorder:
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
                 raise ValueError('ch_label, ch_unit, ch_min and ch_max must have the same length!')
-            self._file_name = filename + '.edf'
+            self._file_name = filename + '.bdf'
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
             self._data = np.zeros((self._n_chan, 0))
