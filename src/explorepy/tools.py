@@ -13,13 +13,24 @@ from threading import Lock
 
 import numpy as np
 import pyedflib
-from appdirs import user_cache_dir, user_config_dir
-from mne import export, io
-from pylsl import StreamInfo, StreamOutlet, local_clock
+from appdirs import (
+    user_cache_dir,
+    user_config_dir
+)
+from mne import (
+    export,
+    io
+)
+from pylsl import (
+    StreamInfo,
+    StreamOutlet,
+    local_clock
+)
 from scipy import signal
 
 import explorepy
 from explorepy.filters import ExGFilter
+
 
 logger = logging.getLogger(__name__)
 lock = Lock()
