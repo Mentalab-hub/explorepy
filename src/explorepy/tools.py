@@ -17,12 +17,12 @@ from appdirs import (
     user_cache_dir,
     user_config_dir
 )
-from mne import io, export
 from pylsl import (
     StreamInfo,
     StreamOutlet,
     local_clock
 )
+from mne import io, export
 from scipy import signal
 
 import explorepy
@@ -880,6 +880,8 @@ def find_free_port():
 def generate_eeglab_dataset(file_name):
     """Generates an EEGLab dataset from edf file
     """
-    export.export_raw(file_name + '.set', io.read_raw_bdf(file_name).drop_channels(ch_names='TimeStamp'),
+    raw_data = io.read_raw_bdf(file_name)
+    raw_data = raw_data.drop_channels(raw_data.ch_names[0])
+    export.export_raw(file_name + '.set', raw_data,
                       fmt='eeglab',
                       overwrite=True, physical_range=[-400000, 400000])
