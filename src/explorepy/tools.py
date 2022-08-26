@@ -17,9 +17,7 @@ from appdirs import (
     user_cache_dir,
     user_config_dir
 )
-from mne import (
-    io, export
-)
+from mne import io, export
 from pylsl import (
     StreamInfo,
     StreamOutlet,
