@@ -882,6 +882,6 @@ def find_free_port():
 def generate_eeglab_dataset(file_name):
     """Generates an EEGLab dataset from edf file
     """
-    export.export_raw('file_name' + '.set', io.read_raw_bdf(file_name).drop_channels(ch_names='TimeStamp'),
+    export.export_raw(file_name + '.set', io.read_raw_bdf(file_name).drop_channels(ch_names='TimeStamp'),
                       fmt='eeglab',
                       overwrite=True, physical_range=[-400000, 400000])
