@@ -874,5 +874,6 @@ def generate_eeglab_dataset(file_name):
     """Generates an EEGLab dataset from edf file
     """
     raw_data = io.read_raw_edf(file_name)
-    raw_data = raw_data.drop_channels(raw_data.ch_names[-1])
+    if 'TimeStamp' in raw_data.ch_names:
+        raw_data = raw_data.drop_channels('TimeStamp')
     export.export_raw(file_name + '.set',raw_data,fmt = 'eeglab',overwrite = True, physical_range = [-400000, 400000])
