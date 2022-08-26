@@ -17,6 +17,9 @@ from appdirs import (
     user_cache_dir,
     user_config_dir
 )
+from mne import (
+    io, export
+)
 from pylsl import (
     StreamInfo,
     StreamOutlet,
@@ -876,4 +879,8 @@ def find_free_port():
         return port_number
 
 
-
+def generate_eeglab_dataset(file_name):
+    """Generates an EEGLab dataset from edf file
+    """
+    export.export_raw('file_name' + '.set', io.read_raw_bdf(file_name).drop_channels(ch_names='TimeStamp'), fmt='eeglab',
+                      overwrite=True, physical_range=[-400000, 400000])
