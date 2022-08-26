@@ -874,7 +874,6 @@ def generate_eeglab_dataset(file_name):
     """Generates an EEGLab dataset from edf(bdf+) file
     """
     raw_data = io.read_raw_bdf(file_name)
-    dd = raw_data.get_data(units="uV")
     raw_data = raw_data.drop_channels(raw_data.ch_names[0])
     export.export_raw(file_name + '.set', raw_data,
                       fmt='eeglab',
