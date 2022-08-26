@@ -17,12 +17,14 @@ from appdirs import (
     user_cache_dir,
     user_config_dir
 )
+from mne import (
+    io, export
+)
 from pylsl import (
     StreamInfo,
     StreamOutlet,
     local_clock
 )
-from mne import io, export
 from scipy import signal
 
 import explorepy
