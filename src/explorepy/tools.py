@@ -412,7 +412,7 @@ class FileRecorder:
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
                 raise ValueError('ch_label, ch_unit, ch_min and ch_max must have the same length!')
-            self._file_name = filename + '.bdf'
+            self._file_name = filename + '.edf'
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
             self._data = np.zeros((self._n_chan, 0))
@@ -873,8 +873,6 @@ def find_free_port():
 def generate_eeglab_dataset(file_name):
     """Generates an EEGLab dataset from edf file
     """
-    raw_data = io.read_raw_bdf(file_name)
-    raw_data = raw_data.drop_channels(raw_data.ch_names[0])
-    export.export_raw(file_name + '.set', raw_data,
-                      fmt='eeglab',
-                      overwrite=True, physical_range=[-400000, 400000])
+    raw_data = io.read_raw_edf(file_name)
+    raw_data = raw_data.drop_channels(raw_data.ch_names[-1])
+    export.export_raw(file_name + '.set',raw_data,fmt = 'eeglab',overwrite = True, physical_range = [-400000, 400000])
