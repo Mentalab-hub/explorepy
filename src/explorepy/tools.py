@@ -17,6 +17,10 @@ from appdirs import (
     user_cache_dir,
     user_config_dir
 )
+from mne import (
+    export,
+    io
+)
 from pylsl import (
     StreamInfo,
     StreamOutlet,
@@ -419,7 +423,7 @@ class FileRecorder:
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
                 raise ValueError('ch_label, ch_unit, ch_min and ch_max must have the same length!')
-            self._file_name = filename + '.edf'
+            self._file_name = filename + '.bdf'
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
             self._data = np.zeros((self._n_chan, 0))
@@ -569,9 +573,9 @@ class LslServer:
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(device_info['adc_mask']):
             if mask == 1:
-                channels.append_child("channel")\
-                    .append_child_value("name", EXG_CHANNELS[i])\
-                    .append_child_value("unit", EXG_UNITS[i])\
+                channels.append_child("channel") \
+                    .append_child_value("name", EXG_CHANNELS[i]) \
+                    .append_child_value("unit", EXG_UNITS[i]) \
                     .append_child_value("type", "ExG")
 
         info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
@@ -672,7 +676,7 @@ class ImpedanceMeasurement:
         """Compute electrode impedances
         """
         temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
-        self._calib_param['noise_level'] = self._filters['base_noise'].\
+        self._calib_param['noise_level'] = self._filters['base_noise']. \
             apply(input_data=temp_packet, in_place=False).get_ptp()
         self._filters['demodulation'].apply(
             input_data=temp_packet, in_place=True
@@ -875,3 +879,13 @@ def find_free_port():
         free_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         port_number = free_socket.getsockname()[1]
         return port_number
+
+
+def generate_eeglab_dataset(file_name, output_name):
+    """Generates an EEGLab dataset from edf(bdf+) file
+    """
+    raw_data = io.read_raw_bdf(file_name)
+    raw_data = raw_data.drop_channels(raw_data.ch_names[0])
+    export.export_raw(output_name, raw_data,
+                      fmt='eeglab',
+                      overwrite=True, physical_range=[-400000, 400000])
