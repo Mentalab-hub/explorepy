@@ -164,12 +164,4 @@ Solution: Ensure the Bluetooth module of your computer's operating system is on 
 
 ---------------------
 
-**7. DeviceNotFoundError: No device found with the name: Explore_####**
-
-Solution: Ensure your Explore device is on and in advertising mode (blinking in blue at 1Hz).
-
-You may also get this error if your computer's Bluetooth module is off.
-
----------------------
-
 If your issue persists, please send a screenshot and brief error description to support@mentalab.com, and we will quickly help you solve it.
