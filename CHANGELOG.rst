@@ -3,16 +3,16 @@ Changelog
 =========
 1.6.2 (7.09.2022)
 ------------------
-*Change EDF file extension
-*Add dataset export feature for EEGLab
-*Bugfix recording
+* Change EDF file extension
+* Add dataset export feature for EEGLab
+* Bugfix recording
 
 
 1.6.1 (14.06.2022)
 ------------------
-*Improve EDF file timing with PyEDFlib
-*Fix Bokeh import error
-*Add custom analysis script for 4 channel P300 experiment
+* Improve EDF file timing with PyEDFlib
+* Fix Bokeh import error
+* Add custom analysis script for 4 channel P300 experiment
 
 
 1.6.0 (23.11.2021)
