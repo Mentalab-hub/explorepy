@@ -196,15 +196,17 @@ class EEG32(EEG):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        data = Packet.int24to32(bin_data)
+        data = np.asarray([int.from_bytes(bin_data[x:x + 3],
+                                          byteorder='little',
+                                          signed=True) for x in range(4, len(bin_data), 3)])
         n_chan = -1
         v_ref = 2.4
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
-        #status bits might change as we need to use 4 bytes for 32 channel status
-        self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
+        # status bits might change as we need to use 4 bytes for 32 channel status
+        self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]), hex(bin_data[3]))
 
     def _check_fletcher(self, fletcher):
         if not fletcher == b'\xaf\xbe\xad\xde':
