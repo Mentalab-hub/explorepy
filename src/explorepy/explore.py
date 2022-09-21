@@ -132,7 +132,9 @@ class Explore:
         time.sleep(duration)
         self.stream_processor.unsubscribe(callback=callback, topic=TOPICS.raw_ExG)
 
-    def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False):
+    def record_data(
+        self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False, exg_ch_names=None
+    ):
         r"""Records the data in real-time
 
         Args:
@@ -141,6 +143,7 @@ class Explore:
             duration (float): Duration of recording in seconds (if None records endlessly).
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
             block (bool): Record in blocking mode if 'block' is True
+            exg_ch_names (list): list of channel names. If None, default names are used.
         """
         self._check_connection()
 
@@ -160,7 +163,8 @@ class Explore:
                                                     file_type=file_type,
                                                     fs=self.stream_processor.device_info['sampling_rate'],
                                                     adc_mask=self.stream_processor.device_info['adc_mask'],
-                                                    do_overwrite=do_overwrite)
+                                                    do_overwrite=do_overwrite,
+                                                    exg_ch=exg_ch_names)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=file_type,
                                                     do_overwrite=do_overwrite)
