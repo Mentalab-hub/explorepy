@@ -35,7 +35,7 @@ from explorepy.filters import ExGFilter
 logger = logging.getLogger(__name__)
 lock = Lock()
 
-EXG_CHANNELS = [ 'ch'+ str(i) for i in range(1, 33)]
+EXG_CHANNELS = ['ch'+ str(i) for i in range(1, 33)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
