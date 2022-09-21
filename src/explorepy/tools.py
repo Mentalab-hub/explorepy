@@ -5,16 +5,18 @@ import copy
 import csv
 import datetime
 import logging
-import numpy as np
 import os.path
-import pyedflib
 import socket
+from collections import namedtuple
+from contextlib import closing
+from threading import Lock
+
+import numpy as np
+import pyedflib
 from appdirs import (
     user_cache_dir,
     user_config_dir
 )
-from collections import namedtuple
-from contextlib import closing
 from mne import (
     export,
     io
@@ -25,10 +27,10 @@ from pylsl import (
     local_clock
 )
 from scipy import signal
-from threading import Lock
 
 import explorepy
 from explorepy.filters import ExGFilter
+
 
 logger = logging.getLogger(__name__)
 lock = Lock()
