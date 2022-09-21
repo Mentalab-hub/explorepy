@@ -5,18 +5,16 @@ import copy
 import csv
 import datetime
 import logging
-import os.path
-import socket
-from collections import namedtuple
-from contextlib import closing
-from threading import Lock
-
 import numpy as np
+import os.path
 import pyedflib
+import socket
 from appdirs import (
     user_cache_dir,
     user_config_dir
 )
+from collections import namedtuple
+from contextlib import closing
 from mne import (
     export,
     io
@@ -27,15 +25,15 @@ from pylsl import (
     local_clock
 )
 from scipy import signal
+from threading import Lock
 
 import explorepy
 from explorepy.filters import ExGFilter
 
-
 logger = logging.getLogger(__name__)
 lock = Lock()
 
-EXG_CHANNELS = ['ch'+ str(i) for i in range(1, 33)]
+EXG_CHANNELS = ['ch' + str(i) for i in range(1, 33)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
