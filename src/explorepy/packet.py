@@ -207,7 +207,8 @@ class EEG32(EEG):
         ADL in integer = actual data length / 24
         n_packet = ADL in integer / number of channels of explore device
         """
-        n_packet = 5
+        # n_packet will be 5 in the future
+        n_packet = 4
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
