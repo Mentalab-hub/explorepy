@@ -99,7 +99,8 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=
     """
     if exg_ch is None:
         exg_ch = ['TimeStamp'] + EXG_CHANNELS
-        exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+        # TODO uncomment when adc_mask is implemented
+        # exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     else:
         exg_ch = ['TimeStamp'] + exg_ch
     exg_unit = ['s'] + EXG_UNITS
