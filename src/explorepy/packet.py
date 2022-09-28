@@ -24,7 +24,7 @@ class PACKET_ID(IntEnum):
     INFO = 99
     EEG94 = 144
     EEG98 = 146
-    EEG32 = 148
+    EEG32 = 148  # 148
     EEG99S = 30
     EEG99 = 62
     EEG94R = 208
