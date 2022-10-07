@@ -35,7 +35,8 @@ from explorepy.filters import ExGFilter
 logger = logging.getLogger(__name__)
 lock = Lock()
 
-EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+MAX_CHANNELS = 32
+EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
@@ -96,13 +97,14 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
         FileRecorder: file recorder object
     """
     exg_ch = ['TimeStamp'] + EXG_CHANNELS
-    exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    # TODO uncomment when adc mask is implemented
+    # exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_unit = ['s'] + EXG_UNITS
-    exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_max = [21600.] + [EXG_MAX_LIM for i in range(8)]
-    exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_min = [0.] + [EXG_MIN_LIM for i in range(8)]
-    exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    # exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    exg_max = [21600.] + [EXG_MAX_LIM for i in range(MAX_CHANNELS)]
+    # exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    exg_min = [0.] + [EXG_MIN_LIM for i in range(MAX_CHANNELS)]
+    # exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
                         file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
 
@@ -419,7 +421,6 @@ class FileRecorder:
         self._device_name = device_name
         self._fs = int(fs)
         self._rec_time_offset = None
-
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
                 raise ValueError('ch_label, ch_unit, ch_min and ch_max must have the same length!')
@@ -549,7 +550,9 @@ class FileRecorder:
 
     def write_meta(self):
         """Writes meta data in the file"""
-        channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        # TODO uncomment when adc_mask is implemented
+        # channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        channels = ['ch' + str(i + 1) for i in range(MAX_CHANNELS)]
         row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
         self._csv_obj.writerow(row)
         self._file_obj.flush()
