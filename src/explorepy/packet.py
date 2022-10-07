@@ -24,7 +24,7 @@ class PACKET_ID(IntEnum):
     INFO = 99
     EEG94 = 144
     EEG98 = 146
-    EEG32 = 148  # 148
+    EEG32 = 148
     EEG99S = 30
     EEG99 = 62
     EEG94R = 208
@@ -207,6 +207,7 @@ class EEG32(EEG):
         ADL in integer = actual data length / 24
         n_packet = ADL in integer / number of channels of explore device
         """
+        # n_packet will be 5 in the future
         n_packet = 4
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.

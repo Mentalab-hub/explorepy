@@ -425,7 +425,6 @@ class FileRecorder:
         self._device_name = device_name
         self._fs = int(fs)
         self._rec_time_offset = None
-
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
                 raise ValueError('ch_label, ch_unit, ch_min and ch_max must have the same length!')
@@ -555,7 +554,9 @@ class FileRecorder:
 
     def write_meta(self):
         """Writes meta data in the file"""
-        channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        # TODO uncomment when adc_mask is implemented
+        # channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        channels = ['ch' + str(i + 1) for i in range(MAX_CHANNELS)]
         row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
         self._csv_obj.writerow(row)
         self._file_obj.flush()
