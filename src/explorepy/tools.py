@@ -83,7 +83,7 @@ def bt_scan():
     return explore_devices
 
 
-def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
+def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=None):
     """ Create ExG recorder
 
     Args:
@@ -92,13 +92,17 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
         adc_mask (str): channel mask
         fs (int): sampling rate
         do_overwrite (bool): overwrite if the file already exists
+        exg_ch (list): list of channel labels
 
     Returns:
         FileRecorder: file recorder object
     """
-    exg_ch = ['TimeStamp'] + EXG_CHANNELS
-    # TODO uncomment when adc mask is implemented
-    # exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    if exg_ch is None:
+        exg_ch = ['TimeStamp'] + EXG_CHANNELS
+        # TODO uncomment when adc_mask is implemented
+        # exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    else:
+        exg_ch = ['TimeStamp'] + exg_ch
     exg_unit = ['s'] + EXG_UNITS
     # exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_max = [21600.] + [EXG_MAX_LIM for i in range(MAX_CHANNELS)]
