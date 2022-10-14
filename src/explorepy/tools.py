@@ -16,6 +16,7 @@ import logging
 
 import explorepy
 from explorepy.filters import ExGFilter
+from explorepy.packet import EEG
 
 logger = logging.getLogger(__name__)
 
@@ -348,6 +349,8 @@ class FileRecorder:
         self._device_name = device_name
         self._fs = int(fs)
         self._rec_time_offset = None
+        self.rec_data_struct_eeg = []
+        self.rec_data_struct_marker = []
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
@@ -439,7 +442,11 @@ class FileRecorder:
                 self._file_obj.writeSamples(list(self._data[:, :self._fs]))
                 self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
-            self._csv_obj.writerows(data.T.tolist())
+            list_data = data.T.tolist()
+            self._csv_obj.writerows(list_data)
+            if isinstance (packet, EEG):
+                print("size of rec data eeg {}".format(len(self.rec_data_struct_eeg)))
+                self.rec_data_struct_eeg.extend(list_data)
             self._file_obj.flush()
 
     def set_marker(self, packet):
@@ -449,15 +456,25 @@ class FileRecorder:
             packet (explorepy.packet.EventMarker): Event marker packet
 
         """
+        timestamp, code = packet.get_data()
+        timestamp[0] = round(timestamp[0], 4)
         if self.file_type == 'csv':
-            self.write_data(packet=packet)
-        elif self.file_type == 'edf':
+            data = timestamp + code
+            self.rec_data_struct_marker.extend(data)
+            self._csv_obj.writerow(data)
+            self._file_obj.flush()
+        if self.file_type == 'edf':
             timestamp, code = packet.get_data()
             if self._rec_time_offset is None:
                 self._rec_time_offset = timestamp[0]
             timestamp = timestamp-np.float64(self._rec_time_offset)
             self._file_obj.writeAnnotation(timestamp[0], 0.001, str(int(code[0])))
 
+    def get_recorded_data(self):
+        if len(self.rec_data_struct_eeg) > 0:
+            return self.rec_data_struct_eeg
+        else:
+            return self.rec_data_struct_marker
 
 class LslServer:
     """Class for LabStreamingLayer integration"""

@@ -38,6 +38,7 @@ class Explore:
         self.recorders = {}
         self.lsl = {}
         self.device_name = None
+        self.recorded_data_dictionary = {}
 
     def connect(self, device_name=None, mac_address=None):
         r"""
@@ -113,6 +114,7 @@ class Explore:
         exg_out_file = file_name + "_ExG"
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
+        self.recorded_data_dictionary.clear()
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=file_type,
@@ -157,10 +159,15 @@ class Explore:
                 self.recorders['marker'].stop()
             if self.recorders['timer'].is_alive():
                 self.recorders['timer'].cancel()
+            self.recorded_data_dictionary = {'exg': self.recorders['exg'].get_recorded_data(), 'marker': self.recorders['marker'].get_recorded_data()}
             self.recorders = {}
             logger.info('Recording stopped.')
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
+
+    def get_last_recorded_data(self):
+        """ Retrieves last recorded data structure"""
+        return self.recorded_data_dictionary
 
     def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False):
         """Convert a binary file to EDF or CSV file
