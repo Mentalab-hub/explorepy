@@ -199,7 +199,7 @@ class EEG32(EEG):
     def _convert(self, bin_data):
         data = Packet.int24to32(bin_data)
         n_chan = -1
-        v_ref = 2.4
+        v_ref = 4.0
         # v_ref = 2.4
         """
         Explanation for calculation of n_packet variable:
@@ -613,7 +613,7 @@ class CalibrationInfo(Packet):
         slope = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
         self.slope = slope * 10.0
         offset = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=2)
-        self.offset = offset * 0.001
+        self.offset = offset * 0.01
 
     def get_info(self):
         """Get calibration info"""
