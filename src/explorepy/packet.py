@@ -9,7 +9,6 @@ import numpy as np
 
 from explorepy._exceptions import FletcherError
 
-
 logger = logging.getLogger(__name__)
 
 TIMESTAMP_SCALE = 10000
@@ -33,7 +32,7 @@ class PACKET_ID(IntEnum):
     PUSHMARKER = 194
     CALIBINFO = 195
     TRIGGER_OUT = 177  # Trigger-out of Explore device
-    TRIGGER_IN = 178   # Trigger-in to Explore device
+    TRIGGER_IN = 178  # Trigger-in to Explore device
 
 
 EXG_UNIT = 1e-6
@@ -137,6 +136,7 @@ class EEG(Packet):
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -162,6 +162,7 @@ class EEG94(EEG):
 
 class EEG98(EEG):
     """EEG packet for 8 channel device"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -184,6 +185,7 @@ class EEG98(EEG):
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
+
 class EEG32(EEG):
     """EEG packet for 32 channel device"""
 
@@ -205,6 +207,7 @@ class EEG32(EEG):
         n_packet = ADL in integer / number of channels of explore device
         """
         # n_packet will be 5 in the future
+
         n_packet = 4
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
@@ -220,8 +223,10 @@ class EEG32(EEG):
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
+
 class EEG99s(EEG):
     """EEG packet for 8 channel device"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -247,6 +252,7 @@ class EEG99s(EEG):
 
 class EEG99(EEG):
     """EEG packet for 8 channel device"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -271,6 +277,7 @@ class EEG99(EEG):
 
 class Orientation(Packet):
     """Orientation data packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -312,6 +319,7 @@ class Orientation(Packet):
 
 class Environment(Packet):
     """Environment data packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -365,6 +373,7 @@ class Environment(Packet):
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -411,6 +420,7 @@ class EventMarker(Packet):
 
 class PushButtonMarker(EventMarker):
     """Push Button Marker packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -423,6 +433,7 @@ class PushButtonMarker(EventMarker):
 
 class SoftwareMarker(EventMarker):
     """Software marker packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -450,6 +461,7 @@ class SoftwareMarker(EventMarker):
 
 class TriggerIn(EventMarker):
     """Trigger in packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super(TriggerIn, self).__init__(timestamp, payload, time_offset)
         self._time_offset = time_offset
@@ -471,6 +483,7 @@ class TriggerIn(EventMarker):
 
 class TriggerOut(EventMarker):
     """Trigger-out packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super(TriggerOut, self).__init__(timestamp, payload, time_offset)
         self._time_offset = time_offset
@@ -499,6 +512,7 @@ class TriggerOut(EventMarker):
 
 class Disconnect(Packet):
     """Disconnect packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._check_fletcher(payload)
@@ -516,6 +530,7 @@ class Disconnect(Packet):
 
 class DeviceInfo(Packet):
     """Device information packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super(DeviceInfo, self).__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -538,7 +553,7 @@ class DeviceInfo(Packet):
                     sampling_rate=self.sampling_rate)
 
     def __str__(self):
-        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.sampling_rate)\
+        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.sampling_rate) \
                + " Hz" + " - ADC mask: " + str(self.adc_mask)
 
     def get_data(self):
@@ -548,6 +563,7 @@ class DeviceInfo(Packet):
 
 class CommandRCV(Packet):
     """Command Status packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super(CommandRCV, self).__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -566,6 +582,7 @@ class CommandRCV(Packet):
 
 class CommandStatus(Packet):
     """Command Status packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super(CommandStatus, self).__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
@@ -585,6 +602,7 @@ class CommandStatus(Packet):
 
 class CalibrationInfo(Packet):
     """Calibration Info packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         super(CalibrationInfo, self).__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
