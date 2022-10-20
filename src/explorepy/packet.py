@@ -352,7 +352,7 @@ class TimeStamp(Packet):
         return "Host timestamp: " + str(self.host_timestamp)
 
 
-class EventMarker(Packet):
+class SoftwareMarker(Packet):
     """Marker packet"""
 
     def __init__(self, timestamp, payload):
