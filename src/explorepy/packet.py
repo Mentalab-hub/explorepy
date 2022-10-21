@@ -16,6 +16,7 @@ TIMESTAMP_SCALE = 10000
 
 class PACKET_ID(IntEnum):
     """Packet ID enum"""
+
     ORN = 13
     ENV = 19
     TS = 27
@@ -42,6 +43,7 @@ EXG_UNIT = 1e-6
 
 class Packet:
     """An abstract base class for Explore packet"""
+
     __metadata__ = abc.ABCMeta
 
     def __init__(self, timestamp, payload, time_offset=0):
@@ -78,13 +80,17 @@ class Packet:
             np.ndarray of int values
         """
         assert len(bin_data) % 3 == 0, "Packet length error!"
-        return np.asarray([int.from_bytes(bin_data[x:x + 3],
-                                          byteorder='little',
-                                          signed=True) for x in range(0, len(bin_data), 3)])
+        return np.asarray(
+            [
+                int.from_bytes(bin_data[x : x + 3], byteorder="little", signed=True)
+                for x in range(0, len(bin_data), 3)
+            ]
+        )
 
 
 class EEG(Packet):
     """EEG packet class"""
+
     __metadata__ = abc.ABCMeta
 
     def __init__(self, timestamp, payload, time_offset=0):
@@ -99,11 +105,11 @@ class EEG(Packet):
             imp_calib_info (dict): dictionary of impedance calibration info including slope, offset and noise level
 
         """
-        scale = imp_calib_info['slope']
-        offset = imp_calib_info['offset']
+        scale = imp_calib_info["slope"]
+        offset = imp_calib_info["offset"]
         self.imp_data = np.round(
-            (self.get_ptp() - imp_calib_info['noise_level']) * scale / 1.e6 - offset,
-            decimals=0
+            (self.get_ptp() - imp_calib_info["noise_level"]) * scale / 1.0e6 - offset,
+            decimals=0,
         )
 
     def get_data(self, exg_fs=None):
@@ -114,7 +120,9 @@ class EEG(Packet):
         """
         if exg_fs:
             n_sample = self.data.shape[1]
-            time_vector = np.linspace(self.timestamp, self.timestamp + (n_sample - 1) / exg_fs, n_sample)
+            time_vector = np.linspace(
+                self.timestamp, self.timestamp + (n_sample - 1) / exg_fs, n_sample
+            )
             return time_vector, self.data
         return self.timestamp, self.data
 
@@ -150,16 +158,21 @@ class EEG94(EEG):
         v_ref = 2.4
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        gain = EXG_UNIT * ((2**23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.data_status = data[0, :]
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.data_status[-1])
+        return (
+            "EEG: "
+            + str(self.data[:, -1])
+            + "\tEEG STATUS: "
+            + str(self.data_status[-1])
+        )
 
 
 class EEG98(EEG):
@@ -176,13 +189,13 @@ class EEG98(EEG):
         v_ref = 2.4
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        gain = EXG_UNIT * ((2**23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
@@ -202,13 +215,13 @@ class EEG98_USBC(EEG):
         v_ref = 4.0
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        gain = EXG_UNIT * ((2**23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
@@ -228,13 +241,13 @@ class EEG99s(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        gain = EXG_UNIT * ((2**23) - 1) * 6.0
         self.data = np.round(data * v_ref / gain, 2)
         self.status = data[0, :]
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
@@ -254,12 +267,12 @@ class EEG99(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        gain = EXG_UNIT * ((2**23) - 1) * 6.0
         self.data = np.round(data * v_ref / gain, 2)
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1])
@@ -276,23 +289,36 @@ class Orientation(Packet):
         self.rot_axis = None
 
     def _convert(self, bin_data):
-        data = np.copy(np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder('<'))).astype(np.float)
+        data = np.copy(
+            np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder("<"))
+        ).astype(np.float)
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
-        self.mag = 1.52 * np.multiply(data[6:], np.array([-1, 1, 1]))  # Unit [mgauss/LSB]
+        self.mag = 1.52 * np.multiply(
+            data[6:], np.array([-1, 1, 1])
+        )  # Unit [mgauss/LSB]
         self.theta = None
         self.rot_axis = None
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
+        return (
+            "Acc: "
+            + str(self.acc)
+            + "\tGyro: "
+            + str(self.gyro)
+            + "\tMag: "
+            + str(self.mag)
+        )
 
     def get_data(self, srate=None):
         """Get orientation timestamp and data"""
-        return [self.timestamp], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
+        return [
+            self.timestamp
+        ], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
 
     def compute_angle(self, matrix=None):
         """Compute physical angle"""
@@ -317,43 +343,54 @@ class Environment(Packet):
 
     def _convert(self, bin_data):
         self.temperature = bin_data[0]
-        self.light = (1000 / 4095) * np.frombuffer(bin_data[1:3],
-                                                   dtype=np.dtype(np.uint16).newbyteorder('<'))  # Unit Lux
-        self.battery = (16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(bin_data[3:5],
-                                                                   dtype=np.dtype(np.uint16).newbyteorder(
-                                                                       '<'))  # Unit Volt
+        self.light = (1000 / 4095) * np.frombuffer(
+            bin_data[1:3], dtype=np.dtype(np.uint16).newbyteorder("<")
+        )  # Unit Lux
+        self.battery = (
+            (16.8 / 6.8)
+            * (1.8 / 2457)
+            * np.frombuffer(bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder("<"))
+        )  # Unit Volt
         self.battery_percentage = self._volt_to_percent(self.battery)
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(
-            self.battery)
+        return (
+            "Temperature: "
+            + str(self.temperature)
+            + "\tLight: "
+            + str(self.light)
+            + "\tBattery: "
+            + str(self.battery)
+        )
 
     def get_data(self):
         """Get environment data"""
-        return {'battery': [self.battery_percentage],
-                'temperature': [self.temperature],
-                'light': [self.light]}
+        return {
+            "battery": [self.battery_percentage],
+            "temperature": [self.temperature],
+            "light": [self.light],
+        }
 
     @staticmethod
     def _volt_to_percent(voltage):
         if voltage < 3.1:
             percentage = 1
         elif voltage < 3.5:
-            percentage = 1 + (voltage - 3.1) / .4 * 10
+            percentage = 1 + (voltage - 3.1) / 0.4 * 10
         elif voltage < 3.8:
-            percentage = 10 + (voltage - 3.5) / .3 * 40
+            percentage = 10 + (voltage - 3.5) / 0.3 * 40
         elif voltage < 3.9:
-            percentage = 40 + (voltage - 3.8) / .1 * 20
-        elif voltage < 4.:
-            percentage = 60 + (voltage - 3.9) / .1 * 15
+            percentage = 40 + (voltage - 3.8) / 0.1 * 20
+        elif voltage < 4.0:
+            percentage = 60 + (voltage - 3.9) / 0.1 * 15
         elif voltage < 4.1:
-            percentage = 75 + (voltage - 4.) / .1 * 15
+            percentage = 75 + (voltage - 4.0) / 0.1 * 15
         elif voltage < 4.2:
-            percentage = 90 + (voltage - 4.1) / .1 * 10
+            percentage = 90 + (voltage - 4.1) / 0.1 * 10
         elif voltage > 4.2:
             percentage = 100
 
@@ -371,11 +408,13 @@ class TimeStamp(Packet):
         self.raw_data = None
 
     def _convert(self, bin_data):
-        self.host_timestamp = np.frombuffer(bin_data, dtype=np.dtype(np.uint64).newbyteorder('<'))
+        self.host_timestamp = np.frombuffer(
+            bin_data, dtype=np.dtype(np.uint64).newbyteorder("<")
+        )
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xff\xff\xff\xff':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xff\xff\xff\xff":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
         return "Host timestamp: " + str(self.host_timestamp)
@@ -383,6 +422,7 @@ class TimeStamp(Packet):
 
 class EventMarker(Packet):
     """Abstract class for event markers"""
+
     __metadata__ = abc.ABCMeta
 
     def __init__(self, timestamp, payload, time_offset=0):
@@ -395,8 +435,8 @@ class EventMarker(Packet):
         pass
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def get_data(self, srate=None):
         """Get marker data
@@ -405,7 +445,9 @@ class EventMarker(Packet):
         return [self.timestamp], [self._label_prefix + str(self.code)]
 
     def __str__(self):
-        return f"{self.__class__.__name__}, Timestamp: {self.timestamp}, Code: {self.code}"
+        return (
+            f"{self.__class__.__name__}, Timestamp: {self.timestamp}, Code: {self.code}"
+        )
 
 
 class PushButtonMarker(EventMarker):
@@ -415,10 +457,12 @@ class PushButtonMarker(EventMarker):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
-        self._label_prefix = 'pb_'
+        self._label_prefix = "pb_"
 
     def _convert(self, bin_data):
-        self.code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
+        self.code = np.frombuffer(
+            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<")
+        )[0]
 
 
 class SoftwareMarker(EventMarker):
@@ -428,14 +472,16 @@ class SoftwareMarker(EventMarker):
         super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
-        self._label_prefix = 'sw_'
+        self._label_prefix = "sw_"
 
     def _convert(self, bin_data):
-        self.code = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'))[0]
+        self.code = np.frombuffer(
+            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<")
+        )[0]
 
     @staticmethod
     def create(local_time, code):
-        """ Create a software marker
+        """Create a software marker
 
         Args:
             local_time (double): Local time from LSL
@@ -444,9 +490,10 @@ class SoftwareMarker(EventMarker):
         Returns:
             SoftwareMarker
         """
-        return SoftwareMarker(local_time * TIMESTAMP_SCALE,
-                              payload=bytearray(struct.pack('<H', code) + b'\xaf\xbe\xad\xde')
-                              )
+        return SoftwareMarker(
+            local_time * TIMESTAMP_SCALE,
+            payload=bytearray(struct.pack("<H", code) + b"\xaf\xbe\xad\xde"),
+        )
 
 
 class TriggerIn(EventMarker):
@@ -457,17 +504,31 @@ class TriggerIn(EventMarker):
         self._time_offset = time_offset
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
-        self._label_prefix = 'in_'
+        self._label_prefix = "in_"
 
     def _convert(self, bin_data):
-        precise_ts = np.asscalar(np.frombuffer(bin_data,
-                                               dtype=np.dtype(np.uint32).newbyteorder('<'),
-                                               count=1,
-                                               offset=0))
+        precise_ts = np.asscalar(
+            np.frombuffer(
+                bin_data, dtype=np.dtype(np.uint32).newbyteorder("<"), count=1, offset=0
+            )
+        )
         self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
-        code = np.asscalar(np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=4))
+        code = np.asscalar(
+            np.frombuffer(
+                bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=4
+            )
+        )
         self.code = code
-        mac_address = hex(int(np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=6)))
+        mac_address = hex(
+            int(
+                np.frombuffer(
+                    bin_data,
+                    dtype=np.dtype(np.uint16).newbyteorder("<"),
+                    count=1,
+                    offset=6,
+                )
+            )
+        )
         self.mac_address = mac_address
 
 
@@ -479,16 +540,21 @@ class TriggerOut(EventMarker):
         self._time_offset = time_offset
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
-        self._label_prefix = 'out_'
+        self._label_prefix = "out_"
 
     def _convert(self, bin_data):
-        precise_ts = np.asscalar(np.frombuffer(bin_data,
-                                               dtype=np.dtype(np.uint32).newbyteorder('<'),
-                                               count=1,
-                                               offset=0))
+        precise_ts = np.asscalar(
+            np.frombuffer(
+                bin_data, dtype=np.dtype(np.uint32).newbyteorder("<"), count=1, offset=0
+            )
+        )
 
         self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
-        code = np.asscalar(np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=4))
+        code = np.asscalar(
+            np.frombuffer(
+                bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=4
+            )
+        )
         """
         if label == 240:
             label = "Sync"
@@ -496,7 +562,16 @@ class TriggerOut(EventMarker):
             label = "ADS_Start"
         """
         self.code = code
-        mac_address = hex(int(np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=6)))
+        mac_address = hex(
+            int(
+                np.frombuffer(
+                    bin_data,
+                    dtype=np.dtype(np.uint16).newbyteorder("<"),
+                    count=1,
+                    offset=6,
+                )
+            )
+        )
         self.mac_address = mac_address
 
 
@@ -511,8 +586,8 @@ class Disconnect(Packet):
         """Disconnect packet has no data"""
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
         return "Device has been disconnected!"
@@ -527,28 +602,39 @@ class DeviceInfo(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        fw_num = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
-        self.firmware_version = '.'.join([char for char in str(fw_num)[1:-1]])
+        fw_num = np.frombuffer(
+            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=0
+        )
+        self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
         self.sampling_rate = 16000 / (2 ** bin_data[2])
-        self.adc_mask = [int(bit) for bit in format(bin_data[3], '#010b')[2:]]
+        self.adc_mask = [int(bit) for bit in format(bin_data[3], "#010b")[2:]]
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def get_info(self):
         """Get device information as a dictionary"""
-        return dict(firmware_version=self.firmware_version,
-                    adc_mask=self.adc_mask,
-                    sampling_rate=self.sampling_rate)
+        return dict(
+            firmware_version=self.firmware_version,
+            adc_mask=self.adc_mask,
+            sampling_rate=self.sampling_rate,
+        )
 
     def __str__(self):
-        return "Firmware version: " + self.firmware_version + " - sampling rate: " + str(self.sampling_rate) \
-               + " Hz" + " - ADC mask: " + str(self.adc_mask)
+        return (
+            "Firmware version: "
+            + self.firmware_version
+            + " - sampling rate: "
+            + str(self.sampling_rate)
+            + " Hz"
+            + " - ADC mask: "
+            + str(self.adc_mask)
+        )
 
     def get_data(self):
         """Get firmware version"""
-        return {'firmware_version': [self.firmware_version]}
+        return {"firmware_version": [self.firmware_version]}
 
 
 class CommandRCV(Packet):
@@ -563,11 +649,14 @@ class CommandRCV(Packet):
         self.opcode = bin_data[0]
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "an acknowledge message for command with this opcode has been received: " + str(self.opcode)
+        return (
+            "an acknowledge message for command with this opcode has been received: "
+            + str(self.opcode)
+        )
 
 
 class CommandStatus(Packet):
@@ -583,11 +672,16 @@ class CommandStatus(Packet):
         self.status = bin_data[5]
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode)
+        return (
+            "Command status: "
+            + str(self.status)
+            + "\tfor command with opcode: "
+            + str(self.opcode)
+        )
 
 
 class CalibrationInfo(Packet):
@@ -599,22 +693,30 @@ class CalibrationInfo(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        slope = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
+        slope = np.frombuffer(
+            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=0
+        )
         self.slope = slope * 10.0
-        offset = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=2)
+        offset = np.frombuffer(
+            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=2
+        )
         self.offset = offset * 0.001
 
     def get_info(self):
         """Get calibration info"""
-        return {'slope': self.slope,
-                'offset': self.offset}
+        return {"slope": self.slope, "offset": self.offset}
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset)
+        return (
+            "calibration info: slope = "
+            + str(self.slope)
+            + "\toffset = "
+            + str(self.offset)
+        )
 
 
 class CalibrationInfo_USBC(CalibrationInfo):
@@ -626,22 +728,31 @@ class CalibrationInfo_USBC(CalibrationInfo):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        slope = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=0)
+        slope = np.frombuffer(
+            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=0
+        )
         self.slope = slope * 10.0
-        offset = np.frombuffer(bin_data, dtype=np.dtype(np.uint16).newbyteorder('<'), count=1, offset=2)
+        offset = np.frombuffer(
+            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=2
+        )
         self.offset = offset * 0.001
 
     def get_info(self):
         """Get calibration info"""
-        return {'slope': self.slope,
-                'offset': self.offset}
+        return {"slope": self.slope, "offset": self.offset}
 
     def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset)
+        return (
+            "calibration info: slope = "
+            + str(self.slope)
+            + "\toffset = "
+            + str(self.offset)
+        )
+
 
 PACKET_CLASS_DICT = {
     PACKET_ID.ORN: Orientation,
@@ -662,5 +773,5 @@ PACKET_CLASS_DICT = {
     PACKET_ID.CALIBINFO_USBC: CalibrationInfo_USBC,
     PACKET_ID.PUSHMARKER: PushButtonMarker,
     PACKET_ID.TRIGGER_IN: TriggerIn,
-    PACKET_ID.TRIGGER_OUT: TriggerOut
+    PACKET_ID.TRIGGER_OUT: TriggerOut,
 }
