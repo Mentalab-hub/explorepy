@@ -82,7 +82,7 @@ class Packet:
         assert len(bin_data) % 3 == 0, "Packet length error!"
         return np.asarray(
             [
-                int.from_bytes(bin_data[x : x + 3], byteorder="little", signed=True)
+                int.from_bytes(bin_data[x: x + 3], byteorder="little", signed=True)
                 for x in range(0, len(bin_data), 3)
             ]
         )
