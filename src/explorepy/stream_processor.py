@@ -26,6 +26,7 @@ from explorepy.packet import (
 )
 from explorepy.parser import Parser
 from explorepy.tools import (
+    MAX_CHANNELS,
     ImpedanceMeasurement,
     PhysicalOrientation,
     get_local_time
@@ -203,7 +204,8 @@ class StreamProcessor:
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
-                                      n_chan=self.device_info['adc_mask'].count(1)))
+                                    #   n_chan=self.device_info['adc_mask'].count(1)))
+                                      n_chan=MAX_CHANNELS))
 
     def remove_filters(self):
         """

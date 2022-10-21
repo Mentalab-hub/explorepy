@@ -31,7 +31,6 @@ from scipy import signal
 import explorepy
 from explorepy.filters import ExGFilter
 
-
 logger = logging.getLogger(__name__)
 lock = Lock()
 
@@ -667,17 +666,20 @@ class ImpedanceMeasurement:
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
                                            filter_type='notch',
                                            s_rate=self._device_info['sampling_rate'],
-                                           n_chan=self._device_info['adc_mask'].count(1))
+                                           # n_chan=self._device_info['adc_mask'].count(1))
+                                           n_chan=MAX_CHANNELS)
 
         self._filters['demodulation'] = ExGFilter(cutoff_freq=bp_freq,
                                                   filter_type='bandpass',
                                                   s_rate=self._device_info['sampling_rate'],
-                                                  n_chan=self._device_info['adc_mask'].count(1))
+                                                  #   n_chan=self._device_info['adc_mask'].count(1))
+                                                  n_chan=MAX_CHANNELS)
 
         self._filters['base_noise'] = ExGFilter(cutoff_freq=noise_freq,
                                                 filter_type='bandpass',
                                                 s_rate=self._device_info['sampling_rate'],
-                                                n_chan=self._device_info['adc_mask'].count(1))
+                                                # n_chan=self._device_info['adc_mask'].count(1))
+                                                n_chan=MAX_CHANNELS)
 
     def measure_imp(self, packet):
         """Compute electrode impedances
