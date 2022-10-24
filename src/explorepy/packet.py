@@ -80,12 +80,10 @@ class Packet:
             np.ndarray of int values
         """
         assert len(bin_data) % 3 == 0, "Packet length error!"
-        return np.asarray(
-            [
-                int.from_bytes(bin_data[x: x + 3], byteorder="little", signed=True)
-                for x in range(0, len(bin_data), 3)
-            ]
-        )
+        return np.asarray([
+            int.from_bytes(bin_data[x:x + 3], byteorder="little", signed=True)
+            for x in range(0, len(bin_data), 3)
+        ])
 
 
 class EEG(Packet):
@@ -120,9 +118,9 @@ class EEG(Packet):
         """
         if exg_fs:
             n_sample = self.data.shape[1]
-            time_vector = np.linspace(
-                self.timestamp, self.timestamp + (n_sample - 1) / exg_fs, n_sample
-            )
+            time_vector = np.linspace(self.timestamp,
+                                      self.timestamp + (n_sample - 1) / exg_fs,
+                                      n_sample)
             return time_vector, self.data
         return self.timestamp, self.data
 
@@ -167,12 +165,7 @@ class EEG94(EEG):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return (
-            "EEG: "
-            + str(self.data[:, -1])
-            + "\tEEG STATUS: "
-            + str(self.data_status[-1])
-        )
+        return ("EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.data_status[-1]))
 
 
 class EEG98(EEG):
@@ -198,7 +191,8 @@ class EEG98(EEG):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
+            self.status)
 
 
 class EEG98_USBC(EEG):
@@ -224,7 +218,8 @@ class EEG98_USBC(EEG):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
+            self.status)
 
 
 class EEG99s(EEG):
@@ -250,7 +245,8 @@ class EEG99s(EEG):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
+            self.status)
 
 
 class EEG99(EEG):
@@ -290,13 +286,12 @@ class Orientation(Packet):
 
     def _convert(self, bin_data):
         data = np.copy(
-            np.frombuffer(bin_data, dtype=np.dtype(np.int16).newbyteorder("<"))
-        ).astype(np.float)
+            np.frombuffer(bin_data, dtype=np.dtype(
+                np.int16).newbyteorder("<"))).astype(np.float)
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
-        self.mag = 1.52 * np.multiply(
-            data[6:], np.array([-1, 1, 1])
-        )  # Unit [mgauss/LSB]
+        self.mag = 1.52 * np.multiply(data[6:], np.array(
+            [-1, 1, 1]))  # Unit [mgauss/LSB]
         self.theta = None
         self.rot_axis = None
 
@@ -305,20 +300,12 @@ class Orientation(Packet):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return (
-            "Acc: "
-            + str(self.acc)
-            + "\tGyro: "
-            + str(self.gyro)
-            + "\tMag: "
-            + str(self.mag)
-        )
+        return ("Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag))
 
     def get_data(self, srate=None):
         """Get orientation timestamp and data"""
-        return [
-            self.timestamp
-        ], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
+        return [self.timestamp
+                ], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
 
     def compute_angle(self, matrix=None):
         """Compute physical angle"""
@@ -327,7 +314,8 @@ class Orientation(Packet):
         nx = matrix[2][1] - matrix[1][2]
         ny = matrix[0][2] - matrix[2][0]
         nz = matrix[1][0] - matrix[0][1]
-        rot_axis = 1 / np.sqrt((3 - trace) * (1 + trace)) * np.array([nx, ny, nz])
+        rot_axis = 1 / np.sqrt(
+            (3 - trace) * (1 + trace)) * np.array([nx, ny, nz])
         self.theta = theta
         self.rot_axis = rot_axis
         return [theta, rot_axis]
@@ -344,13 +332,11 @@ class Environment(Packet):
     def _convert(self, bin_data):
         self.temperature = bin_data[0]
         self.light = (1000 / 4095) * np.frombuffer(
-            bin_data[1:3], dtype=np.dtype(np.uint16).newbyteorder("<")
-        )  # Unit Lux
-        self.battery = (
-            (16.8 / 6.8)
-            * (1.8 / 2457)
-            * np.frombuffer(bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder("<"))
-        )  # Unit Volt
+            bin_data[1:3], dtype=np.dtype(
+                np.uint16).newbyteorder("<"))  # Unit Lux
+        self.battery = ((16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(
+            bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder("<"))
+                        )  # Unit Volt
         self.battery_percentage = self._volt_to_percent(self.battery)
 
     def _check_fletcher(self, fletcher):
@@ -358,14 +344,7 @@ class Environment(Packet):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return (
-            "Temperature: "
-            + str(self.temperature)
-            + "\tLight: "
-            + str(self.light)
-            + "\tBattery: "
-            + str(self.battery)
-        )
+        return ("Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(self.battery))
 
     def get_data(self):
         """Get environment data"""
@@ -408,9 +387,9 @@ class TimeStamp(Packet):
         self.raw_data = None
 
     def _convert(self, bin_data):
-        self.host_timestamp = np.frombuffer(
-            bin_data, dtype=np.dtype(np.uint64).newbyteorder("<")
-        )
+        self.host_timestamp = np.frombuffer(bin_data,
+                                            dtype=np.dtype(
+                                                np.uint64).newbyteorder("<"))
 
     def _check_fletcher(self, fletcher):
         if not fletcher == b"\xff\xff\xff\xff":
@@ -460,9 +439,9 @@ class PushButtonMarker(EventMarker):
         self._label_prefix = "pb_"
 
     def _convert(self, bin_data):
-        self.code = np.frombuffer(
-            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<")
-        )[0]
+        self.code = np.frombuffer(bin_data,
+                                  dtype=np.dtype(
+                                      np.uint16).newbyteorder("<"))[0]
 
 
 class SoftwareMarker(EventMarker):
@@ -475,9 +454,9 @@ class SoftwareMarker(EventMarker):
         self._label_prefix = "sw_"
 
     def _convert(self, bin_data):
-        self.code = np.frombuffer(
-            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<")
-        )[0]
+        self.code = np.frombuffer(bin_data,
+                                  dtype=np.dtype(
+                                      np.uint16).newbyteorder("<"))[0]
 
     @staticmethod
     def create(local_time, code):
@@ -508,16 +487,16 @@ class TriggerIn(EventMarker):
 
     def _convert(self, bin_data):
         precise_ts = np.asscalar(
-            np.frombuffer(
-                bin_data, dtype=np.dtype(np.uint32).newbyteorder("<"), count=1, offset=0
-            )
-        )
+            np.frombuffer(bin_data,
+                          dtype=np.dtype(np.uint32).newbyteorder("<"),
+                          count=1,
+                          offset=0))
         self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
         code = np.asscalar(
-            np.frombuffer(
-                bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=4
-            )
-        )
+            np.frombuffer(bin_data,
+                          dtype=np.dtype(np.uint16).newbyteorder("<"),
+                          count=1,
+                          offset=4))
         self.code = code
         mac_address = hex(
             int(
@@ -526,9 +505,7 @@ class TriggerIn(EventMarker):
                     dtype=np.dtype(np.uint16).newbyteorder("<"),
                     count=1,
                     offset=6,
-                )
-            )
-        )
+                )))
         self.mac_address = mac_address
 
 
@@ -544,17 +521,17 @@ class TriggerOut(EventMarker):
 
     def _convert(self, bin_data):
         precise_ts = np.asscalar(
-            np.frombuffer(
-                bin_data, dtype=np.dtype(np.uint32).newbyteorder("<"), count=1, offset=0
-            )
-        )
+            np.frombuffer(bin_data,
+                          dtype=np.dtype(np.uint32).newbyteorder("<"),
+                          count=1,
+                          offset=0))
 
         self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
         code = np.asscalar(
-            np.frombuffer(
-                bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=4
-            )
-        )
+            np.frombuffer(bin_data,
+                          dtype=np.dtype(np.uint16).newbyteorder("<"),
+                          count=1,
+                          offset=4))
         """
         if label == 240:
             label = "Sync"
@@ -569,9 +546,7 @@ class TriggerOut(EventMarker):
                     dtype=np.dtype(np.uint16).newbyteorder("<"),
                     count=1,
                     offset=6,
-                )
-            )
-        )
+                )))
         self.mac_address = mac_address
 
 
@@ -602,11 +577,12 @@ class DeviceInfo(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        fw_num = np.frombuffer(
-            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=0
-        )
+        fw_num = np.frombuffer(bin_data,
+                               dtype=np.dtype(np.uint16).newbyteorder("<"),
+                               count=1,
+                               offset=0)
         self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
-        self.sampling_rate = 16000 / (2 ** bin_data[2])
+        self.sampling_rate = 16000 / (2**bin_data[2])
         self.adc_mask = [int(bit) for bit in format(bin_data[3], "#010b")[2:]]
 
     def _check_fletcher(self, fletcher):
@@ -622,15 +598,8 @@ class DeviceInfo(Packet):
         )
 
     def __str__(self):
-        return (
-            "Firmware version: "
-            + self.firmware_version
-            + " - sampling rate: "
-            + str(self.sampling_rate)
-            + " Hz"
-            + " - ADC mask: "
-            + str(self.adc_mask)
-        )
+        return ("Firmware version: " + self.firmware_version +\
+                " - sampling rate: " + str(self.sampling_rate) + " Hz" + " - ADC mask: " + str(self.adc_mask))
 
     def get_data(self):
         """Get firmware version"""
@@ -654,9 +623,7 @@ class CommandRCV(Packet):
 
     def __str__(self):
         return (
-            "an acknowledge message for command with this opcode has been received: "
-            + str(self.opcode)
-        )
+            "an acknowledge message for command with this opcode has been received: " + str(self.opcode))
 
 
 class CommandStatus(Packet):
@@ -676,12 +643,7 @@ class CommandStatus(Packet):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return (
-            "Command status: "
-            + str(self.status)
-            + "\tfor command with opcode: "
-            + str(self.opcode)
-        )
+        return ("Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode))
 
 
 class CalibrationInfo(Packet):
@@ -693,13 +655,15 @@ class CalibrationInfo(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        slope = np.frombuffer(
-            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=0
-        )
+        slope = np.frombuffer(bin_data,
+                              dtype=np.dtype(np.uint16).newbyteorder("<"),
+                              count=1,
+                              offset=0)
         self.slope = slope * 10.0
-        offset = np.frombuffer(
-            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=2
-        )
+        offset = np.frombuffer(bin_data,
+                               dtype=np.dtype(np.uint16).newbyteorder("<"),
+                               count=1,
+                               offset=2)
         self.offset = offset * 0.001
 
     def get_info(self):
@@ -711,30 +675,28 @@ class CalibrationInfo(Packet):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return (
-            "calibration info: slope = "
-            + str(self.slope)
-            + "\toffset = "
-            + str(self.offset)
-        )
+        return ("calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset))
 
 
 class CalibrationInfo_USBC(CalibrationInfo):
     """Calibration Info packet"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super(CalibrationInfo_USBC, self).__init__(timestamp, payload, time_offset)
+        super(CalibrationInfo_USBC, self).__init__(timestamp, payload,
+                                                   time_offset)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        slope = np.frombuffer(
-            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=0
-        )
+        slope = np.frombuffer(bin_data,
+                              dtype=np.dtype(np.uint16).newbyteorder("<"),
+                              count=1,
+                              offset=0)
         self.slope = slope * 10.0
-        offset = np.frombuffer(
-            bin_data, dtype=np.dtype(np.uint16).newbyteorder("<"), count=1, offset=2
-        )
+        offset = np.frombuffer(bin_data,
+                               dtype=np.dtype(np.uint16).newbyteorder("<"),
+                               count=1,
+                               offset=2)
         self.offset = offset * 0.001
 
     def get_info(self):
@@ -746,12 +708,7 @@ class CalibrationInfo_USBC(CalibrationInfo):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return (
-            "calibration info: slope = "
-            + str(self.slope)
-            + "\toffset = "
-            + str(self.offset)
-        )
+        return ("calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset))
 
 
 PACKET_CLASS_DICT = {
