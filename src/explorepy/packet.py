@@ -344,7 +344,8 @@ class Environment(Packet):
             raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
-        return ("Temperature: " + str(self.temperature) + "\tLight: " + str(self.light) + "\tBattery: " + str(self.battery))
+        return "Temperature: " + str(self.temperature) + "\tLight: " + str(
+            self.light) + "\tBattery: " + str(self.battery)
 
     def get_data(self):
         """Get environment data"""
@@ -598,8 +599,8 @@ class DeviceInfo(Packet):
         )
 
     def __str__(self):
-        return ("Firmware version: " + self.firmware_version +\
-                " - sampling rate: " + str(self.sampling_rate) + " Hz" + " - ADC mask: " + str(self.adc_mask))
+        return "Firmware version: {} - sampling rate: {} - ADC mask: {}".format(
+            self.firmware_version, self.sampling_rate, self.adc_mask)
 
     def get_data(self):
         """Get firmware version"""
