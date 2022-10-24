@@ -335,7 +335,7 @@ class Environment(Packet):
             bin_data[1:3], dtype=np.dtype(
                 np.uint16).newbyteorder("<"))  # Unit Lux
         self.battery = ((16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(
-            bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder("<")) )  # Unit Volt
+            bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder("<")))  # Unit Volt
         self.battery_percentage = self._volt_to_percent(self.battery)
 
     def _check_fletcher(self, fletcher):
