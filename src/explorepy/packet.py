@@ -9,6 +9,7 @@ import numpy as np
 
 from explorepy._exceptions import FletcherError
 
+
 logger = logging.getLogger(__name__)
 
 TIMESTAMP_SCALE = 10000

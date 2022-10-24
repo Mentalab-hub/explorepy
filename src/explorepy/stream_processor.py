@@ -16,13 +16,14 @@ from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
     CalibrationInfo,
+    CalibrationInfo_USBC,
     CommandRCV,
     CommandStatus,
     DeviceInfo,
     Environment,
     EventMarker,
     Orientation,
-    SoftwareMarker, CalibrationInfo_USBC
+    SoftwareMarker
 )
 from explorepy.parser import Parser
 from explorepy.tools import (
