@@ -199,7 +199,6 @@ class EEG32(EEG):
         data = Packet.int24to32(bin_data)
         n_chan = -1
         v_ref = 4.0
-        # v_ref = 2.4
         """
         Explanation for calculation of n_packet variable:
         Actual data length(ADL) = max size 545 - 12 miscellaneous bytes(pid + count + timestamp + fletcher)
@@ -213,7 +212,6 @@ class EEG32(EEG):
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
-        self.data[25] = 0
         # status bits will change in future releases as we need to use 4 bytes for 32 channel status
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
