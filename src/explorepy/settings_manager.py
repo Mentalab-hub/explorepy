@@ -65,8 +65,6 @@ class SettingsManager:
         self.load_current_settings()
         for key, value in device_info_dict_update.items():
             self.settings_dict[key] = value
-        for k, v in self.settings_dict.items():
-            print("key: {}, value {}".format(k, v))
         if "board_id" in device_info_dict_update:
             if self.settings_dict["board_id"] == "PCB_304_801_XXX":
                 self.settings_dict[self.channel_count_key] = 32
