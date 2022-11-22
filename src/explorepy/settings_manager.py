@@ -13,7 +13,8 @@ class SettingsManager:
 
         if not os.path.exists(self.full_file_path):
             with open(self.full_file_path, 'w'): pass
-        self.channel_mask_key = "channel_mask"
+        self.hardware_channel_mask_key = "hardware_masK"
+        self.software_channel_mask_key = "software_masK"
         self.channel_count_key = "channel_count"
         self.mac_address_key = "mac_address"
 
@@ -32,10 +33,15 @@ class SettingsManager:
             yaml.safe_dump(self.settings_dict, fp, default_flow_style=False)
             fp.close()
     
-    def set_channel_mask(self, value):
-        ''' Setter method for Explore Desktop'''
+    def set_hardware_channel_mask(self, value):
+        ''' Setter method for hardware channel mask for Explore Desktop'''
         self.load_current_settings()
-        self.settings_dict[self.channel_mask_key] = value
+        self.settings_dict[self.hardware_channel_mask_key] = value
+    
+    def set_software_channel_mask(self, value):
+        ''' Setter method for software mask for Explore Desktop'''
+        self.load_current_settings()
+        self.settings_dict[self.software_channel_mask_key] = value
     
     def set_channel_count(self, channel_number):
         ''' Setter method to set channel count for Explore Desktop'''
@@ -59,6 +65,7 @@ class SettingsManager:
         for key, value in enumerate(device_info_dict_update.items()):
             self.settings_dict[key] = value  
         self.write_settings()
+            
 
 
 

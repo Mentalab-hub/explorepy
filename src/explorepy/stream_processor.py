@@ -58,6 +58,7 @@ class StreamProcessor:
         self.physical_orn = PhysicalOrientation()
         self._last_packet_timestamp = 0
         self._last_packet_rcv_time = 0
+        self.is_bt_streaming = True
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -104,14 +105,16 @@ class StreamProcessor:
         Args:
             bin_file (str): Path to binary file
         """
+        self.is_bt_streaming = False
         self.parser = Parser(callback=self.process, mode='file')
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
 
     def read_device_info(self, bin_file):
+        self.is_bt_streaming = False
         self.parser = Parser(callback=self.process, mode='file')
         self.parser.read_device_info(bin_file)
-
+        
     def stop(self):
         """Stop streaming"""
         self.is_connected = False
@@ -140,8 +143,9 @@ class StreamProcessor:
         elif isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2):
             self.old_device_info = self.device_info.copy()
             self.device_info.update(packet.get_info())
-            settings_manager = SettingsManager(self.device_info["device_name"])
-            settings_manager.update_device_settings(packet.get_info())
+            if self.is_bt_streaming:
+                settings_manager = SettingsManager(self.device_info["device_name"])
+                settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
