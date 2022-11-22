@@ -27,6 +27,7 @@ from explorepy.packet import (
     SoftwareMarker
 )
 from explorepy.parser import Parser
+from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
     ImpedanceMeasurement,
     PhysicalOrientation,
@@ -139,6 +140,8 @@ class StreamProcessor:
         elif isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2):
             self.old_device_info = self.device_info.copy()
             self.device_info.update(packet.get_info())
+            settings_manager = SettingsManager(self.device_info["device_name"])
+            settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)

@@ -1,35 +1,52 @@
 from appdirs import(
     user_config_dir
 ) 
+import os
 import yaml
 
 class SettingsManager:
-    def __init__(self):
+    def __init__(self, name):
         self.log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
-        self.file_name = "channels.yaml"
-        self.channel_mask_key = "channel_mask"
-        self.settings_dict = {}
+        self.file_name = name + ".yaml"
+        self.full_file_path = os.path.join(self.log_path, self.file_name)
+        os.makedirs(self.log_path, exist_ok=True)
 
-    def get_settings_dictionary(self):
-        stream = open(self.log_path + "/" + self.file_name, 'a+')
+        if not os.path.exists(self.full_file_path):
+            with open(self.full_file_path, 'w'): pass
+        self.channel_mask_key = "channel_mask"
+        self.channel_count_key = "channel_count"
+
+    def load_current_settings(self):
+        self.settings_dict = {}
+        stream = open(self.full_file_path, 'r')
         self.settings_dict = yaml.load(stream, Loader=yaml.SafeLoader)
-        return self.settings_dict
+        if self.settings_dict is None:
+            self.settings_dict = {}
 
     def get_file_path(self):
         return (self.log_path + self.file_name)
     
     def write_settings(self):
-        with open(self.log_path + "/" + self.file_name, 'w') as fp:
-            yaml.dump(self.get_settings_dictionary, fp)
+        with open(self.full_file_path, 'w+') as fp:
+            yaml.safe_dump(self.settings_dict, fp, default_flow_style=False)
+            fp.close()
     
     def set_channel_mask(self, value):
-        self.get_settings_dictionary()[self.channel_mask_key] = value
+        ''' Setter method for Explore Desktop'''
+        self.load_current_settings()
+        self.settings_dict[self.channel_mask_key] = value
+    
+    def set_channel_count(self, channel_number):
+        ''' Setter method to set channel count for Explore Desktop'''
+        self.load_current_settings()
+        if self.channel_count_key not in self.settings_dict:
+            self.settings_dict[self.channel_count_key] = channel_number
+        self.write_settings()
     
     def update_device_settings(self, device_info_dict_update):
-        settings_dict = self.get_settings_dictionary()
+        self.load_current_settings()
         for key, value in enumerate(device_info_dict_update.items()):
-            self.get_settings_dictionary[key] = value
-
+            self.settings_dict[key] = value  
         self.write_settings()
 
 
