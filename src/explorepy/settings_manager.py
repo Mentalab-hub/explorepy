@@ -1,6 +1,6 @@
 from appdirs import(
     user_config_dir
-) 
+)
 import os
 import yaml
 
@@ -17,6 +17,7 @@ class SettingsManager:
         self.software_channel_mask_key = "software_masK"
         self.channel_count_key = "channel_count"
         self.mac_address_key = "mac_address"
+        self.board_id_key = "board_id"
 
     def load_current_settings(self):
         self.settings_dict = {}
@@ -27,29 +28,29 @@ class SettingsManager:
 
     def get_file_path(self):
         return (self.log_path + self.file_name)
-    
+
     def write_settings(self):
         with open(self.full_file_path, 'w+') as fp:
             yaml.safe_dump(self.settings_dict, fp, default_flow_style=False)
             fp.close()
-    
+
     def set_hardware_channel_mask(self, value):
         ''' Setter method for hardware channel mask for Explore Desktop'''
         self.load_current_settings()
         self.settings_dict[self.hardware_channel_mask_key] = value
-    
+
     def set_software_channel_mask(self, value):
         ''' Setter method for software mask for Explore Desktop'''
         self.load_current_settings()
         self.settings_dict[self.software_channel_mask_key] = value
-    
+
     def set_channel_count(self, channel_number):
         ''' Setter method to set channel count for Explore Desktop'''
         self.load_current_settings()
         if self.channel_count_key not in self.settings_dict:
             self.settings_dict[self.channel_count_key] = channel_number
         self.write_settings()
-    
+
     def get_mac_address(self):
         '''Returns string representation of device mac address'''
         self.load_current_settings()
@@ -62,15 +63,20 @@ class SettingsManager:
 
     def update_device_settings(self, device_info_dict_update):
         self.load_current_settings()
-        for key, value in enumerate(device_info_dict_update.items()):
-            self.settings_dict[key] = value  
+        for key, value in device_info_dict_update.items():
+            self.settings_dict[key] = value
+        for k, v in self.settings_dict.items():
+            print("key: {}, value {}".format(k, v))
+        if "board_id" in device_info_dict_update:
+            if self.settings_dict["board_id"] == "PCB_304_801_XXX":
+                self.settings_dict[self.channel_count_key] = 32
+                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
+                del self.settings_dict["adc_mask"]
         self.write_settings()
-            
 
 
 
-        
 
-    
-    
+
+
 

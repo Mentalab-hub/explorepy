@@ -655,7 +655,7 @@ class DeviceInfoV2(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        self.board_id = bin_data[:16].decode('utf-8')
+        self.board_id = bin_data[:15].decode('utf-8')
         
     
         fw_num = np.frombuffer(bin_data,
@@ -664,7 +664,7 @@ class DeviceInfoV2(Packet):
                                offset=16)
         self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
         self.sampling_rate = 16000 / (2**bin_data[18])
-        self.adc_mask = [int(bit) for bit in format(bin_data[19], "#010b")[4:]]
+        self.adc_mask = [int(bit) for bit in format(bin_data[19], "#010b")[2:]]
         self.is_memory_available = bin_data[20]
 
     def _check_fletcher(self, fletcher):
