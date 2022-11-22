@@ -15,6 +15,7 @@ class SettingsManager:
             with open(self.full_file_path, 'w'): pass
         self.channel_mask_key = "channel_mask"
         self.channel_count_key = "channel_count"
+        self.mac_address_key = "mac_address"
 
     def load_current_settings(self):
         self.settings_dict = {}
@@ -43,6 +44,16 @@ class SettingsManager:
             self.settings_dict[self.channel_count_key] = channel_number
         self.write_settings()
     
+    def get_mac_address(self):
+        '''Returns string representation of device mac address'''
+        self.load_current_settings()
+        return self.settings_dict.get(self.mac_address_key)
+
+    def set_mac_address(self, mac_address):
+        self.load_current_settings()
+        self.settings_dict[self.mac_address_key] = mac_address
+        self.write_settings()
+
     def update_device_settings(self, device_info_dict_update):
         self.load_current_settings()
         for key, value in enumerate(device_info_dict_update.items()):

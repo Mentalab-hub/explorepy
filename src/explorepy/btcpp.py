@@ -3,7 +3,7 @@
 import logging
 import time
 
-from explorepy import exploresdk
+from explorepy import exploresdk, settings_manager
 from explorepy._exceptions import (
     DeviceNotFoundError,
     InputError
@@ -36,12 +36,16 @@ class SDKBtClient:
         Returns:
             socket (bluetooth.socket)
         """
+        config_manager = settings_manager.SettingsManager(self.device_name)
+        mac_address = config_manager.get_mac_address()
 
-        if self.mac_address is None:
+        if  mac_address is None:
             self._find_mac_address()
+            config_manager.set_mac_address(self.mac_address)
         else:
+            self.mac_address = mac_address
             self.device_name = "Explore_" + str(self.mac_address[-5:-3]) + str(self.mac_address[-2:])
-
+        
         for _ in range(5):
             try:
                 self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
