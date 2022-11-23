@@ -30,7 +30,7 @@ from scipy import signal
 
 import explorepy
 from explorepy.filters import ExGFilter
-
+from explorepy.settings_manager import SettingsManager
 
 logger = logging.getLogger(__name__)
 lock = Lock()
@@ -656,21 +656,24 @@ class ImpedanceMeasurement:
     def _add_filters(self):
         bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, self._device_info['sampling_rate'] / 4 + 1.5
         noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, self._device_info['sampling_rate'] / 4 + 5.5
+        settings_manager = SettingsManager(self._device_info["device_name"])
+        settings_manager.load_current_settings()
+        n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
 
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
                                            filter_type='notch',
                                            s_rate=self._device_info['sampling_rate'],
-                                           n_chan=self._device_info['adc_mask'].count(1))
+                                           n_chan=n_chan)
 
         self._filters['demodulation'] = ExGFilter(cutoff_freq=bp_freq,
                                                   filter_type='bandpass',
                                                   s_rate=self._device_info['sampling_rate'],
-                                                  n_chan=self._device_info['adc_mask'].count(1))
+                                                  n_chan=n_chan)
 
         self._filters['base_noise'] = ExGFilter(cutoff_freq=noise_freq,
                                                 filter_type='bandpass',
                                                 s_rate=self._device_info['sampling_rate'],
-                                                n_chan=self._device_info['adc_mask'].count(1))
+                                                n_chan=n_chan)
 
     def measure_imp(self, packet):
         """Compute electrode impedances

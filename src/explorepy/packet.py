@@ -22,9 +22,12 @@ class PACKET_ID(IntEnum):
     ENV = 19
     TS = 27
     DISCONNECT = 111
+    # New info packet containing memory and board ID
+    INFO_V2 = 97
     INFO = 99
     EEG94 = 144
     EEG98 = 146
+    EEG32 = 148
     EEG98_USBC = 150
     EEG99S = 30
     EEG99 = 62
@@ -273,6 +276,42 @@ class EEG99(EEG):
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1])
+
+    
+class EEG32(EEG):
+    """EEG packet for 32 channel device"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        data = Packet.int24to32(bin_data)
+        n_chan = -1
+        v_ref = 2.4
+        """
+        Explanation for calculation of n_packet variable:
+        Actual data length(ADL) = max size 545 - 12 miscellaneous bytes(pid + count + timestamp + fletcher)
+        One BT packet will hold multiple samples from sensors
+        ADL in integer = actual data length / 24
+        n_packet = ADL in integer / number of channels of explore device
+        """
+        # n_packet will be 5 in the future
+
+        n_packet = 4
+        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
+        self.data = np.round(data[1:, :] * v_ref / gain, 2)
+        # status bits will change in future releases as we need to use 4 bytes for 32 channel status
+        self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
+
+    def _check_fletcher(self, fletcher):
+        if not fletcher == b'\xaf\xbe\xad\xde':
+            raise FletcherError('Fletcher value is incorrect!')
+
+    def __str__(self):
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
 
 class Orientation(Packet):
@@ -582,6 +621,7 @@ class DeviceInfo(Packet):
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
                                count=1,
                                offset=0)
+                               
         self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
         self.sampling_rate = 16000 / (2**bin_data[2])
         self.adc_mask = [int(bit) for bit in format(bin_data[3], "#010b")[2:]]
@@ -601,6 +641,49 @@ class DeviceInfo(Packet):
     def __str__(self):
         return "Firmware version: {} - sampling rate: {} - ADC mask: {}".format(
             self.firmware_version, self.sampling_rate, self.adc_mask)
+
+    def get_data(self):
+        """Get firmware version"""
+        return {"firmware_version": [self.firmware_version]}
+
+class DeviceInfoV2(Packet):
+    """Device information packet containing additional information board id and memory info"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super(DeviceInfoV2, self).__init__(timestamp, payload, time_offset)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        self.board_id = bin_data[:15].decode('utf-8')
+        
+    
+        fw_num = np.frombuffer(bin_data,
+                               dtype=np.dtype(np.uint16).newbyteorder("<"),
+                               count=1,
+                               offset=16)
+        self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
+        self.sampling_rate = 16000 / (2**bin_data[18])
+        self.adc_mask = [int(bit) for bit in format(bin_data[19], "#010b")[2:]]
+        self.is_memory_available = bin_data[20]
+
+    def _check_fletcher(self, fletcher):
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
+
+    def get_info(self):
+        """Get device information as a dictionary"""
+        return dict(
+            firmware_version=self.firmware_version,
+            adc_mask=self.adc_mask,
+            sampling_rate=self.sampling_rate,
+            board_id=self.board_id,
+            memory_info=self.is_memory_available
+        )
+
+    def __str__(self):
+        return "Firmware version: {} - sampling rate: {} - ADC mask: {}".format(
+            self.firmware_version, self.sampling_rate, self.adc_mask, self.board_id, self.is_memory_available)
 
     def get_data(self):
         """Get firmware version"""
@@ -718,6 +801,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.TS: TimeStamp,
     PACKET_ID.DISCONNECT: Disconnect,
     PACKET_ID.INFO: DeviceInfo,
+    PACKET_ID.INFO_V2 : DeviceInfoV2,
     PACKET_ID.EEG94: EEG94,
     PACKET_ID.EEG98: EEG98,
     PACKET_ID.EEG99S: EEG99s,
@@ -725,6 +809,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.EEG94R: EEG94,
     PACKET_ID.EEG98R: EEG98,
     PACKET_ID.EEG98_USBC: EEG98_USBC,
+    PACKET_ID.EEG32: EEG32,
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
     PACKET_ID.CALIBINFO: CalibrationInfo,
