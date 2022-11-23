@@ -15,11 +15,13 @@ class SettingsManager:
         if not os.path.exists(self.full_file_path):
             with open(self.full_file_path, 'w'):
                 pass
-        self.hardware_channel_mask_key = "hardware_masK"
-        self.software_channel_mask_key = "software_masK"
+        self.hardware_channel_mask_key = "hardware_mask"
+        self.software_channel_mask_key = "software_mask"
+        self.channel_name_key = "channel_name"
         self.channel_count_key = "channel_count"
         self.mac_address_key = "mac_address"
         self.board_id_key = "board_id"
+        self.sr_key = "sampling_rate"
 
     def load_current_settings(self):
         self.settings_dict = {}
@@ -45,6 +47,7 @@ class SettingsManager:
         ''' Setter method for software mask for Explore Desktop'''
         self.load_current_settings()
         self.settings_dict[self.software_channel_mask_key] = value
+        self.write_settings()
 
     def set_channel_count(self, channel_number):
         ''' Setter method to set channel count for Explore Desktop'''
@@ -72,4 +75,16 @@ class SettingsManager:
                 self.settings_dict[self.channel_count_key] = 32
                 self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
                 del self.settings_dict["adc_mask"]
+        self.write_settings()
+
+    def set_sampling_rate(self, value):
+        """Setter method for sampling rate value"""
+        self.load_current_settings()
+        self.settings_dict[self.sr_key] = value
+        self.write_settings()
+
+    def set_chan_names(self, value):
+        """Setter method for channel names for Explore Desktop"""
+        self.load_current_settings()
+        self.settings_dict[self.channel_name_key] = value
         self.write_settings()
