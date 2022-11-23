@@ -209,10 +209,14 @@ class StreamProcessor:
         while not self.device_info:
             logger.warning('No device info is available. Waiting for device info packet...')
             time.sleep(.2)
+
+        settings_manager = SettingsManager(self.device_info["device_name"])
+        settings_manager.load_current_settings()
+        n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
-                                      n_chan=self.device_info['adc_mask'].count(1)))
+                                      n_chan=n_chan))
 
     def remove_filters(self):
         """

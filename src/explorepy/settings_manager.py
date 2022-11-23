@@ -1,8 +1,9 @@
-from appdirs import(
+from appdirs import (
     user_config_dir
 )
 import os
 import yaml
+
 
 class SettingsManager:
     def __init__(self, name):
@@ -12,7 +13,8 @@ class SettingsManager:
         os.makedirs(self.log_path, exist_ok=True)
 
         if not os.path.exists(self.full_file_path):
-            with open(self.full_file_path, 'w'): pass
+            with open(self.full_file_path, 'w'):
+                pass
         self.hardware_channel_mask_key = "hardware_masK"
         self.software_channel_mask_key = "software_masK"
         self.channel_count_key = "channel_count"
@@ -71,10 +73,3 @@ class SettingsManager:
                 self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
                 del self.settings_dict["adc_mask"]
         self.write_settings()
-
-
-
-
-
-
-
