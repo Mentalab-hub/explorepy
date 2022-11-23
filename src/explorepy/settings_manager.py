@@ -75,6 +75,9 @@ class SettingsManager:
                 self.settings_dict[self.channel_count_key] = 32
                 self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
                 del self.settings_dict["adc_mask"]
+        else:
+            self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
+
         self.write_settings()
 
     def set_sampling_rate(self, value):
