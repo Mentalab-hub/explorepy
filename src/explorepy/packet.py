@@ -210,7 +210,7 @@ class EEG98_USBC(EEG):
     def _convert(self, bin_data):
         data = Packet.int24to32(bin_data)
         n_chan = -1
-        v_ref = 4.0
+        v_ref = 2.4
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
         gain = EXG_UNIT * ((2**23) - 1) * 6.0
@@ -277,7 +277,7 @@ class EEG99(EEG):
     def __str__(self):
         return "EEG: " + str(self.data[:, -1])
 
-    
+
 class EEG32(EEG):
     """EEG packet for 32 channel device"""
 
@@ -621,7 +621,7 @@ class DeviceInfo(Packet):
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
                                count=1,
                                offset=0)
-                               
+
         self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
         self.sampling_rate = 16000 / (2**bin_data[2])
         self.adc_mask = [int(bit) for bit in format(bin_data[3], "#010b")[2:]]
@@ -656,8 +656,8 @@ class DeviceInfoV2(Packet):
 
     def _convert(self, bin_data):
         self.board_id = bin_data[:15].decode('utf-8')
-        
-    
+
+
         fw_num = np.frombuffer(bin_data,
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
                                count=1,
