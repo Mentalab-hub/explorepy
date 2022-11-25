@@ -17,6 +17,7 @@ class SettingsManager:
                 pass
         self.hardware_channel_mask_key = "hardware_mask"
         self.software_channel_mask_key = "software_mask"
+        self.adc_mask_key = "adc_mask"
         self.channel_name_key = "channel_name"
         self.channel_count_key = "channel_count"
         self.mac_address_key = "mac_address"
@@ -43,10 +44,11 @@ class SettingsManager:
         self.load_current_settings()
         self.settings_dict[self.hardware_channel_mask_key] = value
 
-    def set_software_channel_mask(self, value):
-        ''' Setter method for software mask for Explore Desktop'''
+    def set_adc_mask(self, value):
+        ''' method to save virtual adc mask for ONLY 32 channel board '''
         self.load_current_settings()
         self.settings_dict[self.software_channel_mask_key] = value
+        self.settings_dict[self.adc_mask_key] = value
         self.write_settings()
 
     def set_channel_count(self, channel_number):
@@ -74,10 +76,12 @@ class SettingsManager:
             if self.settings_dict["board_id"] == "PCB_304_801_XXX":
                 self.settings_dict[self.channel_count_key] = 32
                 self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
-                del self.settings_dict["adc_mask"]
-        else:
-            self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
+                if self.software_channel_mask_key not in self.settings_dict:
+                    self.settings_dict[self.software_channel_mask_key] = self.settings_dict.get(self.hardware_channel_mask_key)
+                self.settings_dict[self.adc_mask_key] =  self.settings_dict.get(self.software_channel_mask_key)
 
+        if self.channel_count_key not in self.settings_dict:
+            self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
         self.write_settings()
 
     def set_sampling_rate(self, value):
@@ -91,3 +95,7 @@ class SettingsManager:
         self.load_current_settings()
         self.settings_dict[self.channel_name_key] = value
         self.write_settings()
+
+    def __str__(self):
+        self.load_current_settings()
+        return self.settings_dict
