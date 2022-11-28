@@ -46,7 +46,7 @@ class SettingsManager:
         self.write_settings()
 
     def set_software_channel_mask(self, value):
-        ''' Setter method for hardware channel mask for Explore Desktop'''
+        ''' Setter method for software channel mask for Explore Desktop'''
         self.load_current_settings()
         self.settings_dict[self.software_channel_mask_key] = value
         self.write_settings()
