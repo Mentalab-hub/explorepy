@@ -31,11 +31,13 @@ from scipy import signal
 import explorepy
 from explorepy.filters import ExGFilter
 from explorepy.settings_manager import SettingsManager
+from explorepy.packet import EEG
 
 logger = logging.getLogger(__name__)
 lock = Lock()
 
-EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+MAX_CHANNELS = 32
+EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
@@ -99,12 +101,12 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
     exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_max = [21600.] + [EXG_MAX_LIM for i in range(8)]
+    exg_max = [21600.] + [EXG_MAX_LIM for i in range(MAX_CHANNELS)]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_min = [0.] + [EXG_MIN_LIM for i in range(8)]
+    exg_min = [0.] + [EXG_MIN_LIM for i in range(MAX_CHANNELS)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
-                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
+                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max, adc_mask=adc_mask)
 
 
 def create_orn_recorder(filename, file_type, do_overwrite):
@@ -516,6 +518,8 @@ class FileRecorder:
                     self._write_edf_anno()
                     self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
+            if isinstance(packet, EEG):
+                data = data[[i for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]]
             self._csv_obj.writerows(data.T.tolist())
             self._file_obj.flush()
 

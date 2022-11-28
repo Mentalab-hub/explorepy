@@ -114,7 +114,7 @@ class StreamProcessor:
         self.is_bt_streaming = False
         self.parser = Parser(callback=self.process, mode='file')
         self.parser.read_device_info(bin_file)
-        
+
     def stop(self):
         """Stop streaming"""
         self.is_connected = False

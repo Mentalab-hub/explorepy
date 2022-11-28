@@ -45,7 +45,9 @@ from explorepy.tools import (
     create_meta_recorder,
     create_orn_recorder
 )
-
+from explorepy.settings_manager import (
+    SettingsManager
+)
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +161,7 @@ class Explore:
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=file_type,
                                                     fs=self.stream_processor.device_info['sampling_rate'],
-                                                    adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                    adc_mask=SettingsManager(self.device_name).get_adc_mask(),
                                                     do_overwrite=do_overwrite)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=file_type,
@@ -169,7 +171,7 @@ class Explore:
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                           fs=self.stream_processor.device_info['sampling_rate'],
-                                                          adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                          adc_mask=SettingsManager(self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
                                                           do_overwrite=do_overwrite,
                                                           timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -424,8 +426,13 @@ class Explore:
         self._check_connection()
         if sampling_rate not in [250, 500, 1000]:
             raise ValueError("Sampling rate must be 250, 500 or 1000.")
+        if SettingsManager(self.device_name).get_channel_count() > 8:
+            SettingsManager(self.device_name).set_sampling_rate(sampling_rate)
+            return True
         cmd = SetSPS(sampling_rate)
-        return self.stream_processor.configure_device(cmd)
+        if self.stream_processor.configure_device(cmd):
+            SettingsManager(self.device_name).set_sampling_rate(sampling_rate)
+            return True
 
     def reset_soft(self):
         """Reset the device to the default settings
@@ -462,11 +469,15 @@ class Explore:
         Returns:
             bool: True for success, False otherwise
         """
+        if SettingsManager(self.device_name).get_channel_count() > 8:
+            SettingsManager(self.device_name).set_adc_mask(channel_mask)
+            return True
         channel_mask_int = self._convert_chan_mask(channel_mask)
-
         self._check_connection()
         cmd = SetCh(channel_mask_int)
-        return self.stream_processor.configure_device(cmd)
+        if self.stream_processor.configure_device(cmd):
+            SettingsManager(self.device_name).set_adc_mask(channel_mask)
+            return True
 
     def disable_module(self, module_name):
         """Disable module
