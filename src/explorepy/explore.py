@@ -426,9 +426,6 @@ class Explore:
         self._check_connection()
         if sampling_rate not in [250, 500, 1000]:
             raise ValueError("Sampling rate must be 250, 500 or 1000.")
-        if SettingsManager(self.device_name).get_channel_count() > 8:
-            SettingsManager(self.device_name).set_sampling_rate(sampling_rate)
-            return True
         cmd = SetSPS(sampling_rate)
         if self.stream_processor.configure_device(cmd):
             SettingsManager(self.device_name).set_sampling_rate(sampling_rate)
