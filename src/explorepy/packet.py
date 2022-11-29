@@ -781,7 +781,7 @@ class CalibrationInfo_USBC(CalibrationInfo):
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
                                count=1,
                                offset=2)
-        self.offset = offset * 0.001
+        self.offset = offset * 0.01
 
     def get_info(self):
         """Get calibration info"""
