@@ -9,7 +9,6 @@ import numpy as np
 
 from explorepy._exceptions import FletcherError
 
-
 logger = logging.getLogger(__name__)
 
 TIMESTAMP_SCALE = 10000
@@ -160,7 +159,7 @@ class EEG94(EEG):
         v_ref = 2.4
         n_packet = 33
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2**23) - 1) * 6.0
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.data_status = data[0, :]
 
@@ -186,7 +185,7 @@ class EEG98(EEG):
         v_ref = 2.4
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2**23) - 1) * 6.0
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
@@ -213,7 +212,7 @@ class EEG98_USBC(EEG):
         v_ref = 2.4
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2**23) - 1) * 6.0
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
 
@@ -240,7 +239,7 @@ class EEG99s(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2**23) - 1) * 6.0
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data * v_ref / gain, 2)
         self.status = data[0, :]
 
@@ -267,7 +266,7 @@ class EEG99(EEG):
         v_ref = 4.5
         n_packet = 16
         data = data.reshape((n_packet, n_chan)).astype(np.float).T
-        gain = EXG_UNIT * ((2**23) - 1) * 6.0
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data * v_ref / gain, 2)
 
     def _check_fletcher(self, fletcher):
@@ -623,7 +622,7 @@ class DeviceInfo(Packet):
                                offset=0)
 
         self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
-        self.sampling_rate = 16000 / (2**bin_data[2])
+        self.sampling_rate = 16000 / (2 ** bin_data[2])
         self.adc_mask = [int(bit) for bit in format(bin_data[3], "#010b")[2:]]
 
     def _check_fletcher(self, fletcher):
@@ -646,6 +645,7 @@ class DeviceInfo(Packet):
         """Get firmware version"""
         return {"firmware_version": [self.firmware_version]}
 
+
 class DeviceInfoV2(Packet):
     """Device information packet containing additional information board id and memory info"""
 
@@ -657,13 +657,12 @@ class DeviceInfoV2(Packet):
     def _convert(self, bin_data):
         self.board_id = bin_data[:15].decode('utf-8')
 
-
         fw_num = np.frombuffer(bin_data,
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
                                count=1,
                                offset=16)
         self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
-        self.sampling_rate = 16000 / (2**bin_data[18])
+        self.sampling_rate = 16000 / (2 ** bin_data[18])
         self.adc_mask = [int(bit) for bit in format(bin_data[19], "#010b")[2:]]
         self.is_memory_available = bin_data[20]
 
@@ -683,7 +682,7 @@ class DeviceInfoV2(Packet):
 
     def __str__(self):
         return "Firmware version: {} - sampling rate: {} - ADC mask: {}".format(
-            self.firmware_version, self.sampling_rate, self.adc_mask, self.board_id, self.is_memory_available)
+            self.firmware_version, self.sampling_rate, self.adc_mask)
 
     def get_data(self):
         """Get firmware version"""
@@ -801,7 +800,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.TS: TimeStamp,
     PACKET_ID.DISCONNECT: Disconnect,
     PACKET_ID.INFO: DeviceInfo,
-    PACKET_ID.INFO_V2 : DeviceInfoV2,
+    PACKET_ID.INFO_V2: DeviceInfoV2,
     PACKET_ID.EEG94: EEG94,
     PACKET_ID.EEG98: EEG98,
     PACKET_ID.EEG99S: EEG99s,
