@@ -421,6 +421,7 @@ class FileRecorder:
         self._device_name = device_name
         self._fs = int(fs)
         self._rec_time_offset = None
+        self.rec_data_struct_eeg = []
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
@@ -518,8 +519,12 @@ class FileRecorder:
                     self._write_edf_anno()
                     self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
-            if isinstance(packet, EEG) and len(self.adc_mask) == 32:
-                data = data[[i for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]]
+            if isinstance(packet, EEG):
+                if len(self.adc_mask) == 32:
+                    data = data[[i for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]]
+                list_data = data.T.tolist()
+                self.rec_data_struct_eeg.extend(list_data)
+                print(len(self.rec_data_struct_eeg))
             self._csv_obj.writerows(data.T.tolist())
             self._file_obj.flush()
 
@@ -557,6 +562,9 @@ class FileRecorder:
         row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
         self._csv_obj.writerow(row)
         self._file_obj.flush()
+
+    def get_recorded_data(self):
+        return self.rec_data_struct_eeg
 
 
 class LslServer:

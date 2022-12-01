@@ -61,6 +61,7 @@ class Explore:
         self.recorders = {}
         self.lsl = {}
         self.device_name = None
+        self.last_recorded_data = []
 
     @property
     def is_measuring_imp(self):
@@ -157,6 +158,7 @@ class Explore:
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
         meta_out_file = file_name + "_Meta"
+        self.last_recorded_data.clear()
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=file_type,
@@ -213,7 +215,7 @@ class Explore:
                 self.recorders['marker'].stop()
             if self.recorders['timer'].is_alive():
                 self.recorders['timer'].cancel()
-
+            self.last_recorded_data = self.recorders['exg'].get_recorded_data()
             self.recorders = {}
             logger.info('Recording stopped.')
         else:
@@ -558,6 +560,10 @@ class Explore:
 
     def _check_connection(self):
         assert self.is_connected, "Explore device is not connected. Please connect the device first."
+
+    def get_last_recorded_data(self):
+        """ Retrieves last recorded data structure"""
+        return self.last_recorded_data
 
     @staticmethod
     def _check_duration(duration):
