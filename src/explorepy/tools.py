@@ -518,7 +518,7 @@ class FileRecorder:
                     self._write_edf_anno()
                     self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
-            if isinstance(packet, EEG):
+            if isinstance(packet, EEG) and len(self.adc_mask) == 32:
                 data = data[[i for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]]
             self._csv_obj.writerows(data.T.tolist())
             self._file_obj.flush()
