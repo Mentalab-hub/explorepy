@@ -571,6 +571,7 @@ class LslServer:
     """Class for LabStreamingLayer integration"""
 
     def __init__(self, device_info):
+        # reading adc_mask from device setting file- make sure adc_mask field in yaml file is always updated
         self.adc_mask = SettingsManager(self.device_name).get_adc_mask()
         n_chan = adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
