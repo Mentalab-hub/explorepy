@@ -473,7 +473,6 @@ class Explore:
         self._check_connection()
         cmd = SetCh(channel_mask_int)
         if self.stream_processor.configure_device(cmd):
-            SettingsManager(self.device_name).set_adc_mask(channel_mask)
             return True
 
     def disable_module(self, module_name):
