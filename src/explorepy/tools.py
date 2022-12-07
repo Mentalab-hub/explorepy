@@ -578,7 +578,8 @@ class LslServer:
 
     def __init__(self, device_info):
 
-        n_chan = device_info['adc_mask'].count(1)
+        self.adc_mask = SettingsManager(device_info["device_name"]).get_adc_mask()
+        n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
 
@@ -590,7 +591,7 @@ class LslServer:
                               source_id=device_info["device_name"] + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
-        for i, mask in enumerate(device_info['adc_mask']):
+        for i, mask in enumerate(self.adc_mask):
             if mask == 1:
                 channels.append_child("channel") \
                     .append_child_value("name", EXG_CHANNELS[i]) \
@@ -635,6 +636,9 @@ class LslServer:
             packet (explorepy.packet.EEG): ExG packet
         """
         _, exg_data = packet.get_data(self.exg_fs)
+        if isinstance(packet, EEG):
+            indices = [i for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+            exg_data = exg_data[indices]
         self.exg_outlet.push_chunk(exg_data.T.tolist())
 
     def push_orn(self, packet):
