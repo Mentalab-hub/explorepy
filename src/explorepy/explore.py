@@ -134,7 +134,9 @@ class Explore:
         time.sleep(duration)
         self.stream_processor.unsubscribe(callback=callback, topic=TOPICS.raw_ExG)
 
-    def record_data(self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False):
+    def record_data(
+        self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False, exg_ch_names=None
+    ):
         r"""Records the data in real-time
 
         Args:
@@ -143,6 +145,7 @@ class Explore:
             duration (float): Duration of recording in seconds (if None records endlessly).
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
             block (bool): Record in blocking mode if 'block' is True
+            exg_ch_names (list): list of channel names. If None, default names are used.
         """
         self._check_connection()
 
@@ -162,7 +165,8 @@ class Explore:
                                                     file_type=file_type,
                                                     fs=self.stream_processor.device_info['sampling_rate'],
                                                     adc_mask=SettingsManager(self.device_name).get_adc_mask(),
-                                                    do_overwrite=do_overwrite)
+                                                    do_overwrite=do_overwrite,
+                                                    exg_ch=exg_ch_names)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=file_type,
                                                     do_overwrite=do_overwrite)
@@ -211,7 +215,7 @@ class Explore:
             self.recorders['orn'].stop()
             if self.recorders['exg'].file_type == 'csv':
                 self.recorders['marker'].stop()
-            if self.recorders['timer'].is_alive():
+            if 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
                 self.recorders['timer'].cancel()
 
             self.recorders = {}
@@ -219,7 +223,7 @@ class Explore:
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
 
-    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False):
+    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False):
         """Convert a binary file to EDF or CSV file
 
         Args:
@@ -236,11 +240,14 @@ class Explore:
         filename, extension = os.path.splitext(full_filename)
         assert os.path.isfile(bin_file), "Error: File does not exist!"
         assert extension == '.BIN', "File type error! File extension must be BIN."
-        out_full_path = os.path.join(os.getcwd(), out_dir)
-        exg_out_file = out_full_path + filename + '_ExG'
-        orn_out_file = out_full_path + filename + '_ORN'
-        marker_out_file = out_full_path + filename + '_Marker'
-        meta_out_file = out_full_path + filename + '_Meta'
+        if out_dir_is_full:
+            out_full_path = out_dir
+        else:
+            out_full_path = os.path.join(os.getcwd(), out_dir)
+        exg_out_file = os.path.join(out_full_path, filename + '_ExG')
+        orn_out_file = os.path.join(out_full_path, filename + '_ORN')
+        marker_out_file = os.path.join(out_full_path, filename + '_Marker')
+        meta_out_file = os.path.join(out_full_path, filename + '_Meta')
 
         self.stream_processor = StreamProcessor()
         self.stream_processor.read_device_info(bin_file=bin_file)
