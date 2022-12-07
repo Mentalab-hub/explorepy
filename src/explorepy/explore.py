@@ -217,7 +217,6 @@ class Explore:
                 self.recorders['marker'].stop()
             if 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
                 self.recorders['timer'].cancel()
-
             self.recorders = {}
             logger.info('Recording stopped.')
         else:

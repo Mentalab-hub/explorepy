@@ -12,6 +12,7 @@ from contextlib import closing
 from threading import Lock
 
 import numpy as np
+import pandas
 import pyedflib
 from appdirs import (
     user_cache_dir,
@@ -471,6 +472,13 @@ class FileRecorder:
             self._file_obj = None
         elif self.file_type == 'csv':
             self._file_obj.close()
+            # sort CSV rows
+            if "ExG" in self._file_name:
+                path = os.path.join(os.getcwd(), self._file_name)
+                data = pandas.read_csv(path, delimiter=",")
+                data = data.sort_values(by=['TimeStamp'])
+                pandas.DataFrame(data).to_csv(path, index=False)
+
 
     def _init_edf_channels(self):
         self._file_obj.setEquipment(self._device_name)
@@ -569,6 +577,7 @@ class LslServer:
     """Class for LabStreamingLayer integration"""
 
     def __init__(self, device_info):
+
         n_chan = device_info['adc_mask'].count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
