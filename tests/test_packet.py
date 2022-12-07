@@ -44,11 +44,10 @@ class TestBasePacket(TestCase):
 class TestEEGPacket(TestCase):
 
     @classmethod
-    @patch.multiple(EEG, __abstractmethods__=set())
     def setUpClass(cls):
         cls.p = EEG(12345, b'\xaf\xbe\xad\xde')
         cls.p.data = np.array(
-            [[40, 3333, 78910, -30], [20, -1000, 10, 30], [10, 2345, 77016, 11], [15, 1234, 70000, 2]])
+            [[40, 3333, 78910, -30, 0], [20, -1000, 10, 30, 0], [10, 2345, 77016, 11, 45], [15, 1234, 70000, 2, 44]])
 
     # Technically redundant because setUpClass will raise an exception if EEG isn't abstract
     def test_is_abstract(self):
