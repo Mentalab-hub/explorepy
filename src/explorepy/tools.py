@@ -667,7 +667,7 @@ class ImpedanceMeasurement:
         noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, self._device_info['sampling_rate'] / 4 + 5.5
         settings_manager = SettingsManager(self._device_info["device_name"])
         settings_manager.load_current_settings()
-        n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
+        n_chan = sum(settings_manager.settings_dict[settings_manager.adc_mask_key])
 
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
                                            filter_type='notch',
