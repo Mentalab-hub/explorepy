@@ -212,7 +212,8 @@ class StreamProcessor:
 
         settings_manager = SettingsManager(self.device_info["device_name"])
         settings_manager.load_current_settings()
-        n_chan = sum(settings_manager.settings_dict[settings_manager.adc_mask_key])
+        n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
+
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
