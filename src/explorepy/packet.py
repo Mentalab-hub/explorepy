@@ -21,7 +21,7 @@ class PACKET_ID(IntEnum):
     ENV = 19
     TS = 27
     DISCONNECT = 111
-    # New info packet containing memory and board ID
+    # New info packet containing memory and board ID: this applies to all Explore+ systems
     INFO_V2 = 97
     INFO = 99
     EEG94 = 144
