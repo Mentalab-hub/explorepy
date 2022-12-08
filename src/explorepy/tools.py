@@ -521,6 +521,9 @@ class FileRecorder:
         data = np.round(data, 4)
 
         if self.file_type == 'edf':
+            if isinstance(packet, EEG):
+                indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+                data = data[indices]
             if data.shape[0] != self._n_chan:
                 raise ValueError('Input first dimension must be {}'.format(self._n_chan))
             self._data = np.concatenate((self._data, data), axis=1)
