@@ -114,7 +114,7 @@ class StreamProcessor:
         self.is_bt_streaming = False
         self.parser = Parser(callback=self.process, mode='file')
         self.parser.read_device_info(bin_file)
-        
+
     def stop(self):
         """Stop streaming"""
         self.is_connected = False
@@ -213,6 +213,7 @@ class StreamProcessor:
         settings_manager = SettingsManager(self.device_info["device_name"])
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
+
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],

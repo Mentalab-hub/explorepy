@@ -12,6 +12,7 @@ from contextlib import closing
 from threading import Lock
 
 import numpy as np
+import pandas
 import pyedflib
 from appdirs import (
     user_cache_dir,
@@ -31,11 +32,13 @@ from scipy import signal
 import explorepy
 from explorepy.filters import ExGFilter
 from explorepy.settings_manager import SettingsManager
+from explorepy.packet import EEG
 
 logger = logging.getLogger(__name__)
 lock = Lock()
 
-EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+MAX_CHANNELS = 32
+EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
@@ -82,7 +85,7 @@ def bt_scan():
     return explore_devices
 
 
-def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
+def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=None):
     """ Create ExG recorder
 
     Args:
@@ -91,20 +94,25 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
         adc_mask (str): channel mask
         fs (int): sampling rate
         do_overwrite (bool): overwrite if the file already exists
+        exg_ch (list): list of channel labels
 
     Returns:
         FileRecorder: file recorder object
     """
-    exg_ch = ['TimeStamp'] + EXG_CHANNELS
-    exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    if exg_ch is None:
+        exg_ch = ['TimeStamp'] + EXG_CHANNELS
+        exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    else:
+        exg_ch = ['TimeStamp'] + exg_ch
+
     exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_max = [21600.] + [EXG_MAX_LIM for i in range(8)]
+    exg_max = [21600.] + [EXG_MAX_LIM for i in range(MAX_CHANNELS)]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_min = [0.] + [EXG_MIN_LIM for i in range(8)]
+    exg_min = [0.] + [EXG_MIN_LIM for i in range(MAX_CHANNELS)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
-                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
+                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max, adc_mask=adc_mask)
 
 
 def create_orn_recorder(filename, file_type, do_overwrite):
@@ -464,6 +472,13 @@ class FileRecorder:
             self._file_obj = None
         elif self.file_type == 'csv':
             self._file_obj.close()
+            # sort CSV rows
+            if "ExG" in self._file_name:
+                path = os.path.join(os.getcwd(), self._file_name)
+                data = pandas.read_csv(path, delimiter=",")
+                data = data.sort_values(by=['TimeStamp'])
+                pandas.DataFrame(data).to_csv(path, index=False)
+
 
     def _init_edf_channels(self):
         self._file_obj.setEquipment(self._device_name)
@@ -506,6 +521,9 @@ class FileRecorder:
         data = np.round(data, 4)
 
         if self.file_type == 'edf':
+            if isinstance(packet, EEG):
+                indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+                data = data[indices]
             if data.shape[0] != self._n_chan:
                 raise ValueError('Input first dimension must be {}'.format(self._n_chan))
             self._data = np.concatenate((self._data, data), axis=1)
@@ -516,6 +534,9 @@ class FileRecorder:
                     self._write_edf_anno()
                     self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
+            if isinstance(packet, EEG):
+                indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+                data = data[indices]
             self._csv_obj.writerows(data.T.tolist())
             self._file_obj.flush()
 
@@ -559,7 +580,9 @@ class LslServer:
     """Class for LabStreamingLayer integration"""
 
     def __init__(self, device_info):
-        n_chan = device_info['adc_mask'].count(1)
+
+        self.adc_mask = SettingsManager(device_info["device_name"]).get_adc_mask()
+        n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
 
@@ -571,7 +594,7 @@ class LslServer:
                               source_id=device_info["device_name"] + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
-        for i, mask in enumerate(device_info['adc_mask']):
+        for i, mask in enumerate(self.adc_mask):
             if mask == 1:
                 channels.append_child("channel") \
                     .append_child_value("name", EXG_CHANNELS[i]) \
@@ -616,6 +639,9 @@ class LslServer:
             packet (explorepy.packet.EEG): ExG packet
         """
         _, exg_data = packet.get_data(self.exg_fs)
+        if isinstance(packet, EEG):
+            indices = [i for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+            exg_data = exg_data[indices]
         self.exg_outlet.push_chunk(exg_data.T.tolist())
 
     def push_orn(self, packet):
