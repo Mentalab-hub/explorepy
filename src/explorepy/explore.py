@@ -222,7 +222,7 @@ class Explore:
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
 
-    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False):
+    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False, adc_mask=None):
         """Convert a binary file to EDF or CSV file
 
         Args:
@@ -250,10 +250,16 @@ class Explore:
 
         self.stream_processor = StreamProcessor()
         self.stream_processor.read_device_info(bin_file=bin_file)
+        self.mask = self.stream_processor.device_info['adc_mask']
+        if 'board_id' in self.stream_processor.device_info:
+            if 'PCB_304_801_XXX' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for i in range(0, 32)]
+        
+        
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],
                                                     fs=self.stream_processor.device_info['sampling_rate'],
-                                                    adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                    adc_mask=self.mask,
                                                     do_overwrite=do_overwrite)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=self.recorders['file_type'],
@@ -263,7 +269,7 @@ class Explore:
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                           fs=self.stream_processor.device_info['sampling_rate'],
-                                                          adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                          adc_mask=self.mask,
                                                           device_name=self.device_name,
                                                           do_overwrite=do_overwrite)
             self.recorders['meta'].write_meta()

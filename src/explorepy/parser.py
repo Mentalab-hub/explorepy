@@ -10,7 +10,8 @@ from explorepy._exceptions import FletcherError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
     TIMESTAMP_SCALE,
-    DeviceInfo
+    DeviceInfo,
+    DeviceInfoV2
 )
 from explorepy.tools import get_local_time
 
@@ -69,7 +70,7 @@ class Parser:
     def read_device_info(self, filename):
         self.stream_interface = FileHandler(filename)
         packet = None
-        while not isinstance(packet, DeviceInfo):
+        while not (isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2)):
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
