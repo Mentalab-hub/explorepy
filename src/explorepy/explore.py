@@ -222,7 +222,7 @@ class Explore:
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
 
-    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False, adc_mask=None):
+    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False):
         """Convert a binary file to EDF or CSV file
 
         Args:
