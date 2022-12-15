@@ -655,7 +655,7 @@ class DeviceInfoV2(Packet):
         self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
-        self.board_id = bin_data[:15].decode('utf-8')
+        self.board_id = bin_data[:15].decode('utf-8', errors='ignore')
 
         fw_num = np.frombuffer(bin_data,
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
