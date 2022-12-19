@@ -31,8 +31,9 @@ from scipy import signal
 
 import explorepy
 from explorepy.filters import ExGFilter
-from explorepy.settings_manager import SettingsManager
 from explorepy.packet import EEG
+from explorepy.settings_manager import SettingsManager
+
 
 logger = logging.getLogger(__name__)
 lock = Lock()

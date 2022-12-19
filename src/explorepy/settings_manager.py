@@ -1,8 +1,7 @@
-from appdirs import (
-    user_config_dir
-)
 import os
+
 import yaml
+from appdirs import user_config_dir
 
 
 class SettingsManager:

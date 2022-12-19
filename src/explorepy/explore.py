@@ -32,6 +32,7 @@ from explorepy.command import (
     SetSPS,
     SoftReset
 )
+from explorepy.settings_manager import SettingsManager
 from explorepy.stream_processor import (
     TOPICS,
     StreamProcessor
@@ -44,9 +45,7 @@ from explorepy.tools import (
     create_meta_recorder,
     create_orn_recorder
 )
-from explorepy.settings_manager import (
-    SettingsManager
-)
+
 
 logger = logging.getLogger(__name__)
 
