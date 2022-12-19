@@ -54,7 +54,7 @@ Quick installation
 ==================
 For Windows users, the best way to install ``explorepy`` is to download the latest ``explorepy`` version from the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_. Please note that dependencies will install automatically from the release page.
 
-For other operating systems, or to build the package manually on Windows, please refer to the information below. Please not that ``explorepy`` currently dop 
+For other operating systems, or to build the package manually on Windows, please refer to the information below. MAC OSX is currently not supported. 
 
 
 Requirements
