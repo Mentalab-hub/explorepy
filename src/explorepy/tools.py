@@ -111,7 +111,7 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_min = [0.] + [EXG_MIN_LIM for i in range(MAX_CHANNELS)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
+    return FileRecorder(filename, exg_ch, fs=fs, ch_unit=exg_unit,
                         file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max, adc_mask=adc_mask)
 
 
@@ -478,7 +478,6 @@ class FileRecorder:
                 data = pandas.read_csv(path, delimiter=",")
                 data = data.sort_values(by=['TimeStamp'])
                 pandas.DataFrame(data).to_csv(path, index=False)
-
 
     def _init_edf_channels(self):
         self._file_obj.setEquipment(self._device_name)
