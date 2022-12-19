@@ -33,7 +33,7 @@ def read(*names, **kwargs):
 
 
 my_req = [
-    'numpy', 'scipy', 'pyedflib==0.1.25', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.0.0', 'mne', 'eeglabio'
+    'numpy', 'scipy', 'pyedflib==0.1.25', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.0.0', 'mne', 'eeglabio, pandas'
 ]
 
 test_requirements = ["pytest==6.2.5",
