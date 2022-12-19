@@ -54,13 +54,13 @@ Quick installation
 ==================
 For Windows users, the best way to install ``explorepy`` is to download the latest ``explorepy`` version from the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_. Please note that dependencies will install automatically from the release page.
 
-For other operating systems, or to build the package manually on Windows, please refer to the information below.
+For other operating systems, or to build the package manually on Windows, please refer to the information below. Please not that ``explorepy`` currently dop 
 
 
 Requirements
 ------------
 
-* Python 3.6 to Python 3.9.
+* Python 3.7 to Python 3.10.
 * Visual Studio 2015 community edition (Windows only. For package building).
 * Bluetooth header files (Linux only. Use: ``sudo apt-get install libbluetooth-dev``).
 
@@ -112,19 +112,6 @@ You can also visualize the data in real-time.
     import explorepy
     explorer = explorepy.Explore()
     explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
-    explorer.visualize(bp_freq=(.5, 30), notch_freq=50)
-
-EEG:
-
-.. image:: /images/Dashboard_EEG.jpg
-  :width: 800
-  :alt: EEG Dashboard
-
-ECG with heart beat detection:
-
-.. image:: /images/Dashboard_ECG.jpg
-  :width: 800
-  :alt: ECG Dashboard
 
 Documentation
 =============
@@ -149,6 +136,8 @@ Authors
 =======
 - `Mohamad Atayi`_
 - `Salman Rahman`_
+- `Andrea Escartin`_
+- `Alex Platt`_
 - `Andreas Gutsche`_
 - `Masooma Fazelian`_
 - `Philipp Jakovleski`_
@@ -158,6 +147,8 @@ Authors
 
 .. _Mohamad Atayi: https://github.com/bmeatayi
 .. _Salman Rahman: https://github.com/salman2135
+.. _Andrea Escartin: https://github.com/andrea-escartin
+.. _Alex Platt: https://github.com/Nujanauss
 .. _Andreas Gutsche: https://github.com/andyman410
 .. _Masooma Fazelian: https://github.com/fazelian
 .. _Philipp Jakovleski: https://github.com/philippjak

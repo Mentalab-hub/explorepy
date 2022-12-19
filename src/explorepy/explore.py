@@ -365,7 +365,7 @@ class Explore:
             logger.debug("Tried to stop LSL while no LSL server is running!")
 
     def visualize(self, bp_freq=(1, 30), notch_freq=50):
-        r"""Visualization of the signal in the dashboard
+        r"""Visualization of the signal in the dashboard: only works for 4 and 8 channel devices
 
         Args:
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
