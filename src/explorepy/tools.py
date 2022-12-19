@@ -111,8 +111,7 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_min = [0.] + [EXG_MIN_LIM for i in range(MAX_CHANNELS)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    return FileRecorder(filename, exg_ch, fs=fs, ch_unit=exg_unit,
-                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max, adc_mask=adc_mask)
+    return FileRecorder(filename, exg_ch, fs, exg_unit, None, adc_mask, exg_min, exg_max, file_type, do_overwrite)
 
 
 def create_orn_recorder(filename, file_type, do_overwrite):
@@ -258,7 +257,6 @@ class HeartRateEstimator:
             List of detected peaks indices
         """
         assert len(ecg_sig.shape) == 1, "Signal must be a vector"
-
         # Preprocessing
         ecg_filtered = self.bp_filter.apply(ecg_sig).squeeze()
         ecg_sig = np.concatenate((self.prev_samples, ecg_sig))
