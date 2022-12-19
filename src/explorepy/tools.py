@@ -252,7 +252,7 @@ class HeartRateEstimator:
         Args:
             time_vector (np.array): One-dimensional time vector
             ecg_sig (np.array): One-dimensional ECG signal
-
+            
         Returns:
             List of detected peaks indices
         """
