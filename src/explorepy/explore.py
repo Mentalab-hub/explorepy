@@ -475,7 +475,8 @@ class Explore:
         Returns:
             bool: True for success, False otherwise
         """
-        SettingsManager(self.device_name).set_adc_mask(channel_mask)
+        mask_list = [int(i) for i in channel_mask]
+        SettingsManager(self.device_name).set_adc_mask(mask_list)
         return True
 
     def disable_module(self, module_name):
