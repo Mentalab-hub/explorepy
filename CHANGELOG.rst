@@ -1,7 +1,7 @@
 
 Changelog
 =========
-1.6.4 (19.12.2022)
+1.7.0 (21.12.2022)
 ------------------
 * Add suppport for new explore+ 32 ch device
 * Sorted timestamps in CSV
