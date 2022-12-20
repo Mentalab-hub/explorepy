@@ -175,7 +175,7 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, time
 
 class HeartRateEstimator:
     def __init__(self, fs=250, smoothing_win=20):
-        """Real-time heart Rate Estimator class This class provides the tools for heart rate estimation. It basically detects
+        """Real-time heart Rate Estimator class This class provides the tools for heart rate estimation. It basically detects  # noqa: E501
         R-peaks in ECG signal using the method explained in Hamilton 2002 [2].
 
         Args:
