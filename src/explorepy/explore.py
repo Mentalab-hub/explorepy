@@ -28,6 +28,7 @@ from explorepy.command import (
     MemoryFormat,
     ModuleDisable,
     ModuleEnable,
+    SetCh,
     SetChTest,
     SetSPS,
     SoftReset
@@ -475,9 +476,14 @@ class Explore:
         Returns:
             bool: True for success, False otherwise
         """
-        mask_list = [int(i) for i in channel_mask]
-        SettingsManager(self.device_name).set_adc_mask(mask_list)
-        return True
+        if SettingsManager(self.device_name).get_channel_count() > 8:
+            SettingsManager(self.device_name).set_adc_mask(channel_mask)
+            return True
+        channel_mask_int = self._convert_chan_mask(channel_mask)
+        self._check_connection()
+        cmd = SetCh(channel_mask_int)
+        if self.stream_processor.configure_device(cmd):
+            return True
 
     def disable_module(self, module_name):
         """Disable module
