@@ -1,6 +1,18 @@
 
 Changelog
 =========
+1.7.0 (21.12.2022)
+------------------
+* Add suppport for new explore+ 32 ch device
+* Sorted timestamps in CSV
+* Settings file to preserve experiment settings
+
+
+1.6.3 (25.10.2022)
+------------------
+* Add new 8 channel Explore+ device 
+
+
 1.6.2 (7.09.2022)
 ------------------
 * Change EDF file extension

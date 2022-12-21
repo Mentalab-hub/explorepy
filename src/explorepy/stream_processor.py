@@ -20,12 +20,14 @@ from explorepy.packet import (
     CommandRCV,
     CommandStatus,
     DeviceInfo,
+    DeviceInfoV2,
     Environment,
     EventMarker,
     Orientation,
     SoftwareMarker
 )
 from explorepy.parser import Parser
+from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
     ImpedanceMeasurement,
     PhysicalOrientation,
@@ -56,6 +58,7 @@ class StreamProcessor:
         self.physical_orn = PhysicalOrientation()
         self._last_packet_timestamp = 0
         self._last_packet_rcv_time = 0
+        self.is_bt_streaming = True
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -102,11 +105,13 @@ class StreamProcessor:
         Args:
             bin_file (str): Path to binary file
         """
+        self.is_bt_streaming = False
         self.parser = Parser(callback=self.process, mode='file')
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
 
     def read_device_info(self, bin_file):
+        self.is_bt_streaming = False
         self.parser = Parser(callback=self.process, mode='file')
         self.parser.read_device_info(bin_file)
 
@@ -135,9 +140,12 @@ class StreamProcessor:
                 self.dispatch(topic=TOPICS.imp, packet=packet_imp)
             self.apply_filters(packet=packet)
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
-        elif isinstance(packet, DeviceInfo):
+        elif isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2):
             self.old_device_info = self.device_info.copy()
             self.device_info.update(packet.get_info())
+            if self.is_bt_streaming:
+                settings_manager = SettingsManager(self.device_info["device_name"])
+                settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
@@ -201,10 +209,15 @@ class StreamProcessor:
         while not self.device_info:
             logger.warning('No device info is available. Waiting for device info packet...')
             time.sleep(.2)
+
+        settings_manager = SettingsManager(self.device_info["device_name"])
+        settings_manager.load_current_settings()
+        n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
+
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
-                                      n_chan=self.device_info['adc_mask'].count(1)))
+                                      n_chan=n_chan))
 
     def remove_filters(self):
         """
