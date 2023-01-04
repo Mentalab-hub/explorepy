@@ -21,7 +21,7 @@ def custom_filter(exg, lf, hf, fs, type):
         (numpy ndarray): Filtered signal (N_chan, N_sample)
     """
     N = 4
-    b, a = signal.butter(N, [lf / fs, hf / fs], type)
+    b, a = signal.butter(N, [lf / (fs/2), hf / (fs/2)], type)
     return signal.filtfilt(b, a, exg)
 
 

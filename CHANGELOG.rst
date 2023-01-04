@@ -1,6 +1,32 @@
 
 Changelog
 =========
+1.7.0 (21.12.2022)
+------------------
+* Add suppport for new explore+ 32 ch device
+* Sorted timestamps in CSV
+* Settings file to preserve experiment settings
+
+
+1.6.3 (25.10.2022)
+------------------
+* Add new 8 channel Explore+ device 
+
+
+1.6.2 (7.09.2022)
+------------------
+* Change EDF file extension
+* Add dataset export feature for EEGLab
+* Bugfix recording
+
+
+1.6.1 (14.06.2022)
+------------------
+* Improve EDF file timing with PyEDFlib
+* Fix Bokeh import error
+* Add custom analysis script for 4 channel P300 experiment
+
+
 1.6.0 (23.11.2021)
 ------------------
 * Remove dependency on Pybluez
