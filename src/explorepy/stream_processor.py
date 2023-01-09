@@ -213,6 +213,8 @@ class StreamProcessor:
         settings_manager = SettingsManager(self.device_info["device_name"])
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
+        # print(f"{n_chan=}")
+        n_chan = 32 if n_chan == 16 else n_chan
 
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
