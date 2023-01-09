@@ -97,6 +97,15 @@ class SettingsManager:
                     hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
                     self.settings_dict[self.software_channel_mask_key] = hardware_adc
                 self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
+        
+        if "board_id" in device_info_dict_update:
+            if self.settings_dict["board_id"] == "PCB_305_801_XXX":
+                self.settings_dict[self.channel_count_key] = 16
+                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(16)]
+                if self.software_channel_mask_key not in self.settings_dict:
+                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
+                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
+                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
 
         if self.channel_count_key not in self.settings_dict:
             self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
