@@ -22,7 +22,7 @@ from .explore import Explore  # noqa
 
 
 __all__ = ["Explore", "Dashboard", "command", "exploresdk", "tools", "log_config"]
-__version__ = '1.6.1'
+__version__ = '1.7.0'
 
 this = sys.modules[__name__]
 this._bt_interface = 'sdk'

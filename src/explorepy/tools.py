@@ -12,10 +12,15 @@ from contextlib import closing
 from threading import Lock
 
 import numpy as np
+import pandas
 import pyedflib
 from appdirs import (
     user_cache_dir,
     user_config_dir
+)
+from mne import (
+    export,
+    io
 )
 from pylsl import (
     StreamInfo,
@@ -26,12 +31,15 @@ from scipy import signal
 
 import explorepy
 from explorepy.filters import ExGFilter
+from explorepy.packet import EEG
+from explorepy.settings_manager import SettingsManager
 
 
 logger = logging.getLogger(__name__)
 lock = Lock()
 
-EXG_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+MAX_CHANNELS = 32
+EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
@@ -78,7 +86,7 @@ def bt_scan():
     return explore_devices
 
 
-def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
+def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=None):
     """ Create ExG recorder
 
     Args:
@@ -87,20 +95,25 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite):
         adc_mask (str): channel mask
         fs (int): sampling rate
         do_overwrite (bool): overwrite if the file already exists
+        exg_ch (list): list of channel labels
 
     Returns:
         FileRecorder: file recorder object
     """
-    exg_ch = ['TimeStamp'] + EXG_CHANNELS
-    exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    if exg_ch is None:
+        exg_ch = ['TimeStamp'] + EXG_CHANNELS
+        exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    else:
+        exg_ch = ['TimeStamp'] + exg_ch
+
     exg_unit = ['s'] + EXG_UNITS
     exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_max = [21600.] + [EXG_MAX_LIM for i in range(8)]
+    exg_max = [21600.] + [EXG_MAX_LIM for i in range(MAX_CHANNELS)]
     exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
-    exg_min = [0.] + [EXG_MIN_LIM for i in range(8)]
+    exg_min = [0.] + [EXG_MIN_LIM for i in range(MAX_CHANNELS)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
-                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max)
+                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max, adc_mask=adc_mask)  # noqa: E501
 
 
 def create_orn_recorder(filename, file_type, do_overwrite):
@@ -162,7 +175,7 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, time
 
 class HeartRateEstimator:
     def __init__(self, fs=250, smoothing_win=20):
-        """Real-time heart Rate Estimator class This class provides the tools for heart rate estimation. It basically detects
+        """Real-time heart Rate Estimator class This class provides the tools for heart rate estimation. It basically detects  # noqa: E501
         R-peaks in ECG signal using the method explained in Hamilton 2002 [2].
 
         Args:
@@ -241,12 +254,10 @@ class HeartRateEstimator:
         Args:
             time_vector (np.array): One-dimensional time vector
             ecg_sig (np.array): One-dimensional ECG signal
-
         Returns:
             List of detected peaks indices
         """
         assert len(ecg_sig.shape) == 1, "Signal must be a vector"
-
         # Preprocessing
         ecg_filtered = self.bp_filter.apply(ecg_sig).squeeze()
         ecg_sig = np.concatenate((self.prev_samples, ecg_sig))
@@ -419,7 +430,7 @@ class FileRecorder:
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
                 raise ValueError('ch_label, ch_unit, ch_min and ch_max must have the same length!')
-            self._file_name = filename + '.edf'
+            self._file_name = filename + '.bdf'
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
             self._data = np.zeros((self._n_chan, 0))
@@ -460,6 +471,12 @@ class FileRecorder:
             self._file_obj = None
         elif self.file_type == 'csv':
             self._file_obj.close()
+            # sort CSV rows
+            if "ExG" in self._file_name:
+                path = os.path.join(os.getcwd(), self._file_name)
+                data = pandas.read_csv(path, delimiter=",")
+                data = data.sort_values(by=['TimeStamp'])
+                pandas.DataFrame(data).to_csv(path, index=False)
 
     def _init_edf_channels(self):
         self._file_obj.setEquipment(self._device_name)
@@ -502,6 +519,9 @@ class FileRecorder:
         data = np.round(data, 4)
 
         if self.file_type == 'edf':
+            if isinstance(packet, EEG):
+                indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+                data = data[indices]
             if data.shape[0] != self._n_chan:
                 raise ValueError('Input first dimension must be {}'.format(self._n_chan))
             self._data = np.concatenate((self._data, data), axis=1)
@@ -512,6 +532,9 @@ class FileRecorder:
                     self._write_edf_anno()
                     self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
+            if isinstance(packet, EEG):
+                indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+                data = data[indices]
             self._csv_obj.writerows(data.T.tolist())
             self._file_obj.flush()
 
@@ -519,7 +542,7 @@ class FileRecorder:
         """write annotations in EDF file"""
         for ts, code in list(self._annotations_buffer):
             # correct clock deviations
-            idx = np.argmax(self._timestamps > ts) - 1
+            idx = np.argmax(np.array(self._timestamps) > ts) - 1
             if idx != -1:
                 timestamp = idx / self.fs
                 self._file_obj.writeAnnotation(timestamp, 0.001, code)
@@ -553,8 +576,11 @@ class FileRecorder:
 
 class LslServer:
     """Class for LabStreamingLayer integration"""
+
     def __init__(self, device_info):
-        n_chan = device_info['adc_mask'].count(1)
+
+        self.adc_mask = SettingsManager(device_info["device_name"]).get_adc_mask()
+        n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
 
@@ -566,11 +592,11 @@ class LslServer:
                               source_id=device_info["device_name"] + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
-        for i, mask in enumerate(device_info['adc_mask']):
+        for i, mask in enumerate(self.adc_mask):
             if mask == 1:
-                channels.append_child("channel")\
-                    .append_child_value("name", EXG_CHANNELS[i])\
-                    .append_child_value("unit", EXG_UNITS[i])\
+                channels.append_child("channel") \
+                    .append_child_value("name", EXG_CHANNELS[i]) \
+                    .append_child_value("unit", EXG_UNITS[i]) \
                     .append_child_value("type", "ExG")
 
         info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
@@ -611,6 +637,9 @@ class LslServer:
             packet (explorepy.packet.EEG): ExG packet
         """
         _, exg_data = packet.get_data(self.exg_fs)
+        if isinstance(packet, EEG):
+            indices = [i for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+            exg_data = exg_data[indices]
         self.exg_outlet.push_chunk(exg_data.T.tolist())
 
     def push_orn(self, packet):
@@ -634,6 +663,7 @@ class LslServer:
 
 class ImpedanceMeasurement:
     """Impedance measurement class"""
+
     def __init__(self, device_info, calib_param, notch_freq):
         """
         Args:
@@ -650,27 +680,30 @@ class ImpedanceMeasurement:
     def _add_filters(self):
         bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, self._device_info['sampling_rate'] / 4 + 1.5
         noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, self._device_info['sampling_rate'] / 4 + 5.5
+        settings_manager = SettingsManager(self._device_info["device_name"])
+        settings_manager.load_current_settings()
+        n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
 
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
                                            filter_type='notch',
                                            s_rate=self._device_info['sampling_rate'],
-                                           n_chan=self._device_info['adc_mask'].count(1))
+                                           n_chan=n_chan)
 
         self._filters['demodulation'] = ExGFilter(cutoff_freq=bp_freq,
                                                   filter_type='bandpass',
                                                   s_rate=self._device_info['sampling_rate'],
-                                                  n_chan=self._device_info['adc_mask'].count(1))
+                                                  n_chan=n_chan)
 
         self._filters['base_noise'] = ExGFilter(cutoff_freq=noise_freq,
                                                 filter_type='bandpass',
                                                 s_rate=self._device_info['sampling_rate'],
-                                                n_chan=self._device_info['adc_mask'].count(1))
+                                                n_chan=n_chan)
 
     def measure_imp(self, packet):
         """Compute electrode impedances
         """
         temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
-        self._calib_param['noise_level'] = self._filters['base_noise'].\
+        self._calib_param['noise_level'] = self._filters['base_noise']. \
             apply(input_data=temp_packet, in_place=False).get_ptp()
         self._filters['demodulation'].apply(
             input_data=temp_packet, in_place=True
@@ -682,6 +715,7 @@ class PhysicalOrientation:
     """
     Movement sensors modules
     """
+
     def __init__(self):
         self.ED_prv = None
         self.theta = 0.
@@ -872,3 +906,13 @@ def find_free_port():
         free_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         port_number = free_socket.getsockname()[1]
         return port_number
+
+
+def generate_eeglab_dataset(file_name, output_name):
+    """Generates an EEGLab dataset from edf(bdf+) file
+    """
+    raw_data = io.read_raw_bdf(file_name)
+    raw_data = raw_data.drop_channels(raw_data.ch_names[0])
+    export.export_raw(output_name, raw_data,
+                      fmt='eeglab',
+                      overwrite=True, physical_range=[-400000, 400000])
