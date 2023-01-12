@@ -160,7 +160,7 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, time
         adc_mask (str): channel mask
         device_name (str): device name
         do_overwrite (str): overwrite if the file already exists
-        timestamp (TimeOffset): Clock diff between device timestamp and machine timestamp when the first packet is received in ExplorePy
+        timestamp (TimeOffset): Clock diff between device timestamp and machine timestamp when the first packet is received in ExplorePy # noqa: E501
 
     Returns:
         FileRecorder: file recorder object

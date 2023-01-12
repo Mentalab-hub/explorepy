@@ -97,7 +97,6 @@ class SettingsManager:
                     hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
                     self.settings_dict[self.software_channel_mask_key] = hardware_adc
                 self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
-        
         if "board_id" in device_info_dict_update:
             if self.settings_dict["board_id"] == "PCB_305_801_XXX":
                 self.settings_dict[self.channel_count_key] = 16
