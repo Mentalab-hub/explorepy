@@ -169,7 +169,8 @@ class Explore:
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=file_type,
                                                     do_overwrite=do_overwrite)
-
+        
+        print(str(self.stream_processor.parser._time_offset))
         if file_type == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
@@ -177,7 +178,10 @@ class Explore:
                                                           adc_mask=SettingsManager(self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
                                                           do_overwrite=do_overwrite,
-                                                          timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                                                          # TODO: make sure older timestamp in meta file was not used in any other software!
+                                                          
+                                                          timestamp=str(self.stream_processor.parser._time_offset))
+                                                          #timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
@@ -253,6 +257,8 @@ class Explore:
         if 'board_id' in self.stream_processor.device_info:
             if 'PCB_304_801_XXX' in self.stream_processor.device_info['board_id']:
                 self.mask = [1 for i in range(0, 32)]
+            if 'PCB_305_801_XXX' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for i in range(0, 16)]
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],
@@ -577,3 +583,4 @@ class Explore:
             logger.warning("Duration has not been set by the user. The duration is 3 hours by default.")
             duration = 3 * 60 * 60  # 3 hours
         return duration
+
