@@ -1,16 +1,19 @@
 import os
+import shutil
 
 import yaml
-from appdirs import user_config_dir
+from appdirs import user_config_dir, user_data_dir
+from pathlib import Path
 
-
+log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
+data_path = user_config_dir(appname="Mentalab", appauthor="explorepy", version='archive')
 class SettingsManager:
     def __init__(self, name):
         self.settings_dict = None
-        self.log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
+
         self.file_name = name + ".yaml"
-        self.full_file_path = os.path.join(self.log_path, self.file_name)
-        os.makedirs(self.log_path, exist_ok=True)
+        self.full_file_path = os.path.join(log_path, self.file_name)
+        os.makedirs(log_path, exist_ok=True)
 
         if not os.path.exists(self.full_file_path):
             with open(self.full_file_path, 'w'):
@@ -125,3 +128,11 @@ class SettingsManager:
     def __str__(self):
         self.load_current_settings()
         return self.settings_dict
+
+    def save_current_session(self):
+        full_d_path = os.path.join(data_path, self.file_name)
+        os.makedirs(data_path, exist_ok=True)
+        if not os.path.exists(full_d_path):
+            with open(full_d_path, 'w'):
+                pass
+        shutil.copyfile(Path(self.full_file_path), Path(full_d_path))

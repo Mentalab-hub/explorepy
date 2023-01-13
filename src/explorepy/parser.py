@@ -2,7 +2,9 @@
 """Parser module"""
 import asyncio
 import logging
+import shutil
 import struct
+from pathlib import Path
 from threading import Thread
 
 import explorepy
@@ -13,6 +15,7 @@ from explorepy.packet import (
     DeviceInfo,
     DeviceInfoV2
 )
+from explorepy.settings_manager import SettingsManager
 from explorepy.tools import get_local_time
 
 
@@ -27,6 +30,7 @@ class Parser:
             callback (function): function to be called when new packet is received
             mode (str): Parsing mode either from an Explore device or a binary file {'device', 'file'}
         """
+        self.device_name = None
         self.mode = mode
         self.stream_interface = None
         self.device_configurator = None
@@ -44,6 +48,7 @@ class Parser:
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
+        self.device_name = device_name
         if explorepy.get_bt_interface() == 'sdk':
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
@@ -101,6 +106,8 @@ class Parser:
             except ConnectionAbortedError as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 logger.warning("Device has been disconnected! Scanning for the last connected device...")
+                # saves current settings file
+                SettingsManager(self.device_name).save_current_session()
                 self._is_reconnecting = True
                 if self.stream_interface.reconnect() is None:
                     logger.warning("Could not find the device! "
