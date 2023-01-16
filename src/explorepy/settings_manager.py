@@ -1,9 +1,10 @@
 import os
 import shutil
+from pathlib import Path
 
 import yaml
 from appdirs import user_config_dir
-from pathlib import Path
+
 
 log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
 data_path = user_config_dir(appname="Mentalab", appauthor="explorepy", version='archive')

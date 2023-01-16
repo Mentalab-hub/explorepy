@@ -34,6 +34,7 @@ from explorepy.filters import ExGFilter
 from explorepy.packet import EEG
 from explorepy.settings_manager import SettingsManager
 
+
 logger = logging.getLogger(__name__)
 lock = Lock()
 
