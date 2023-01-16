@@ -2,11 +2,13 @@ import os
 import shutil
 
 import yaml
-from appdirs import user_config_dir, user_data_dir
+from appdirs import user_config_dir
 from pathlib import Path
 
 log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
 data_path = user_config_dir(appname="Mentalab", appauthor="explorepy", version='archive')
+
+
 class SettingsManager:
     def __init__(self, name):
         self.settings_dict = None

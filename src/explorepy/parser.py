@@ -2,9 +2,7 @@
 """Parser module"""
 import asyncio
 import logging
-import shutil
 import struct
-from pathlib import Path
 from threading import Thread
 
 import explorepy

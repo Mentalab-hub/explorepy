@@ -168,6 +168,8 @@ class Explore:
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=file_type,
                                                     do_overwrite=do_overwrite)
+
+        #  TODO: make sure older timestamp in meta file was not used in any other software!
         if file_type == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
@@ -175,8 +177,7 @@ class Explore:
                                                           adc_mask=SettingsManager(self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
                                                           do_overwrite=do_overwrite,
-                                                          # TODO: make sure older timestamp in meta file was not used in any other software!
-                                                          timestamp=str(self.stream_processor.parser._time_offset)) # noqa: E501
+                                                          timestamp=str(self.stream_processor.parser._time_offset))  # noqa: E501
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
