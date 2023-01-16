@@ -1,11 +1,22 @@
-import sys
-import time
+# import sys
+# import time
+# import pytest
 import unittest
 from unittest import TestCase
 from unittest.mock import patch
+
 import numpy as np
-from explorepy.packet import Packet, EEG, EEG94, EEG98, EEG99, EEG99s
-from explorepy.packet import Orientation, EventMarker
+
+from explorepy.packet import (
+    EEG,
+    EEG94,
+    EEG98,
+    EEG99,
+    EEG99s,
+    EventMarker,
+    Orientation,
+    Packet
+)
 
 
 class TestBasePacket(TestCase):
@@ -219,7 +230,7 @@ class TestEnvironmentPacket(TestCase):
 
 
 class TestTimestampPacket(TestCase):
-    #why does timestamp have a raw data var?
+    # why does timestamp have a raw data var?
 
     def test_convert(self):
         self.fail()

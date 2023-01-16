@@ -39,7 +39,7 @@ class ExGFilter:
         if filter_type == "lowpass":
             return self.get_lowpass_coeffs(cutoff, nyquist, n_channels, order)
         elif filter_type == "highpass":
-            return  self.get_highpass_coeffs(cutoff, nyquist, n_channels, order)
+            return self.get_highpass_coeffs(cutoff, nyquist, n_channels, order)
         elif filter_type == "bandpass":
             return self.get_bandpass_coeffs(cutoff[0], cutoff[1], nyquist, n_channels, order)
         elif filter_type == "notch":
@@ -75,7 +75,9 @@ class ExGFilter:
         if low >= high:
             logger.error("High cutoff frequency must be larger than low cutoff frequency. Applying a bandpass "
                          "filter with [1, 40]Hz frequency band instead. ")
-            cutoff_freq = (1, 40)
+            # cutoff_freq = (1, 40)
+            low = 1
+            high = 40
         lc_freq = low / nyquist
         hc_freq = high / nyquist
 

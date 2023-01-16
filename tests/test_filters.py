@@ -1,7 +1,10 @@
 import unittest
-from explorepy.filters import ExGFilter
+
 import numpy as np
 from scipy.signal import butter
+
+from explorepy.filters import ExGFilter
+
 
 class TestExGFilter(unittest.TestCase):
     def test_no_frequencies_passed(self):
@@ -16,8 +19,8 @@ class TestExGFilter(unittest.TestCase):
         with self.assertRaises(Exception):
             ExGFilter.get_filter_coeffs([5, 20], 'lowpass', 50, 4, 5)
 
-# TODO add tests for highpass, bandpass and notch filters
 
+# TODO add tests for highpass, bandpass and notch filters
 class TestExGApply(unittest.TestCase):
 
     # Set up a common filter for every test
@@ -48,6 +51,7 @@ class TestExGApply(unittest.TestCase):
 
     def test_apply_raw(self):
         pass
+
 
 class TestExGLowpassFilter(unittest.TestCase):
     # TODO figure out how to test whether the filter result makes sense...?
@@ -87,11 +91,12 @@ class TestExGLowpassFilter(unittest.TestCase):
         b, a = butter(N=test_params['order'], Wn=test_params['cutoff'], fs=test_params['sampling_rate'],
                       btype='lowpass')
         filter_coeffs = ExGFilter.get_lowpass_coeffs(test_params['cutoff'],
-                                      test_params['sampling_rate'] / 2.0,
-                                      test_params['n_channels'],
-                                      test_params['order'])
+                                                     test_params['sampling_rate'] / 2.0,
+                                                     test_params['n_channels'],
+                                                     test_params['order'])
         np.testing.assert_array_equal(filter_coeffs[0], a)
         np.testing.assert_array_equal(filter_coeffs[1], b)
+
 
 if __name__ == '__main__':
     unittest.main()
