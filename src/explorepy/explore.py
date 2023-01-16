@@ -579,4 +579,3 @@ class Explore:
             logger.warning("Duration has not been set by the user. The duration is 3 hours by default.")
             duration = 3 * 60 * 60  # 3 hours
         return duration
-
