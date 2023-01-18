@@ -1,0 +1,22 @@
+FROM ubuntu:latest
+USER root
+ENV PATH="/miniconda/bin:${PATH}"
+ARG PATH="/miniconda/bin:${PATH}"
+RUN apt-get update \
+    && apt-get install git -y \
+    && apt-get install -y lsb-release \
+    && apt-get install gcc -y \
+    && apt-get install g++ -y \
+    && apt-get install wget -y \
+    && apt-get install libbluetooth-dev -y
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py39_22.11.1-1-Linux-x86_64.sh -O miniconda.sh\
+    && bash miniconda.sh -b -p /miniconda \
+    && rm -f miniconda.sh
+RUN conda init bash \
+    && conda config --add channels anaconda \
+    && conda config --add channels conda-forge \
+    && conda install -y -c conda-forge liblsl
+RUN conda --version && python --version
+RUN useradd -ms /bin/bash test
+USER test
+WORKDIR /home/test
