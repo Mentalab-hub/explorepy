@@ -252,9 +252,9 @@ class Explore:
         self.mask = self.stream_processor.device_info['adc_mask']
         if 'board_id' in self.stream_processor.device_info:
             if 'PCB_304_801_XXX' in self.stream_processor.device_info['board_id']:
-                self.mask = [1 for i in range(0, 32)]
+                self.mask = [1 for _ in range(0, 32)]
             if 'PCB_305_801_XXX' in self.stream_processor.device_info['board_id']:
-                self.mask = [1 for i in range(0, 16)]
+                self.mask = [1 for _ in range(0, 16)]
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],
