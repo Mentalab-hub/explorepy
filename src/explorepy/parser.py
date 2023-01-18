@@ -9,9 +9,7 @@ import explorepy
 from explorepy._exceptions import FletcherError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
-    TIMESTAMP_SCALE,
-    DeviceInfo,
-    DeviceInfoV2
+    TIMESTAMP_SCALE
 )
 from explorepy.settings_manager import SettingsManager
 from explorepy.tools import get_local_time
