@@ -73,17 +73,16 @@ class Parser:
     def read_device_info(self, filename):
         self.stream_interface = FileHandler(filename)
         packet = None
-        while not (isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2)):
-            try:
-                packet = self._generate_packet()
-                self.callback(packet=packet)
-            except (IOError, ValueError, FletcherError) as error:
-                logger.error('Conversion ended incomplete. The binary file is corrupted.')
-                raise error
-            except EOFError:
-                logger.info('Reached end of the file')
-            finally:
-                self.stream_interface.disconnect()
+        try:
+            packet = self._generate_packet()
+            self.callback(packet=packet)
+        except (IOError, ValueError, FletcherError) as error:
+            logger.error('Conversion ended incomplete. The binary file is corrupted.')
+            raise error
+        except EOFError:
+            logger.info('Reached end of the file')
+        finally:
+            self.stream_interface.disconnect()
 
     def _stream(self, new_thread=True):
         self._do_streaming = True
@@ -139,6 +138,7 @@ class Parser:
             packet object
         """
         pid = struct.unpack('B', self.stream_interface.read(1))[0]
+        print("PID: {}".format(pid))
         self.stream_interface.read(1)[0]  # read cnt
         payload = struct.unpack('<H', self.stream_interface.read(2))[0]
         timestamp = struct.unpack('<I', self.stream_interface.read(4))[0]

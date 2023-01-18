@@ -67,9 +67,8 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        with lock:
-            logger.debug(f"Subscribe {callback.__name__} to {topic}")
-            self.subscribers[topic].add(callback)
+        logger.debug(f"Subscribe {callback.__name__} to {topic}")
+        self.subscribers[topic].add(callback)
 
     def unsubscribe(self, callback, topic):
         """Unsubscribe a function from a topic
@@ -78,9 +77,8 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        with lock:
-            logger.debug(f"Unsubscribe {callback} from {topic}")
-            self.subscribers[topic].discard(callback)
+        logger.debug(f"Unsubscribe {callback} from {topic}")
+        self.subscribers[topic].discard(callback)
 
     def start(self, device_name=None, mac_address=None):
         """Start streaming from Explore device
