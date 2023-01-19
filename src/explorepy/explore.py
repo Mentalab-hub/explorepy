@@ -17,7 +17,6 @@ import logging
 import os
 import re
 import time
-from datetime import datetime
 from threading import Timer
 
 import numpy as np
@@ -170,6 +169,7 @@ class Explore:
                                                     file_type=file_type,
                                                     do_overwrite=do_overwrite)
 
+        #  TODO: make sure older timestamp in meta file was not used in any other software!
         if file_type == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
@@ -177,7 +177,7 @@ class Explore:
                                                           adc_mask=SettingsManager(self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
                                                           do_overwrite=do_overwrite,
-                                                          timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                                                          timestamp=str(self.stream_processor.parser._time_offset))  # noqa: E501
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
@@ -252,7 +252,9 @@ class Explore:
         self.mask = self.stream_processor.device_info['adc_mask']
         if 'board_id' in self.stream_processor.device_info:
             if 'PCB_304_801_XXX' in self.stream_processor.device_info['board_id']:
-                self.mask = [1 for i in range(0, 32)]
+                self.mask = [1 for _ in range(0, 32)]
+            if 'PCB_305_801_XXX' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for _ in range(0, 16)]
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],
