@@ -1,10 +1,9 @@
 pipeline {
     agent {
-        // Equivalent to "docker build -f Dockerfile.build --build-arg version=1.0.2 ./build/
+        // tests on ubuntu:latest docker image with necessary python dependencies
         dockerfile {
             filename 'DockerfileLinux'
             dir 'dockerfiles'
-            label 'test-linux'
         }
     }
     stages {
@@ -15,10 +14,15 @@ pipeline {
                 timeout(time: 10, unit: 'MINUTES') {
                     sh '''
                         pip3 install -e .[test]
-                        python3 -m pytest --import-mode=append
+                        python3 -m pytest --import-mode=append --junitxml=test-results.xml
                     '''
                 }
             }
+        }
+    }
+    post {
+        always {
+            junit 'test-results.xml'
         }
     }
 }
