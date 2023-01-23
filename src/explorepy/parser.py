@@ -136,7 +136,6 @@ class Parser:
             packet object
         """
         pid = struct.unpack('B', self.stream_interface.read(1))[0]
-        print("PID: {}".format(pid))
         self.stream_interface.read(1)[0]  # read cnt
         payload = struct.unpack('<H', self.stream_interface.read(2))[0]
         timestamp = struct.unpack('<I', self.stream_interface.read(4))[0]
