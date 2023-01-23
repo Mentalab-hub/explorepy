@@ -930,12 +930,14 @@ def compare_recover_from_bin(file_name_csv, file_name_device):
             file_name_device_csv (str): Name of converted csv file
         """
     bin_df = pandas.read_csv(file_name_device + '_ExG.csv')
-    csv_df = pandas.read_csv(file_name_csv + + '_ExG.csv')
+    csv_df = pandas.read_csv(file_name_csv + '_ExG.csv')
     meta_df = pandas.read_csv(file_name_csv + "_Meta.csv")
     timestamp_key = 'TimeStamp'
     sampling_rate = meta_df['sr'][0]
     timestamps = bin_df[timestamp_key]
-    timestamps = timestamps + meta_df["TimeOffset"][0]
+    offset_ = meta_df["TimeOffset"][0]
+    offset_ = round(offset_, 4)
+    timestamps = timestamps + offset_
 
     index_list = []
     time_period = 1 / sampling_rate
@@ -948,4 +950,6 @@ def compare_recover_from_bin(file_name_csv, file_name_device):
             index_list.append(i)
 
     recovered_df = bin_df.loc[index_list[0]: index_list[1] + 1]
+    recovered_df['TimeStamp'] = (recovered_df['TimeStamp'] + offset_)
+    recovered_df['TimeStamp'] = recovered_df['TimeStamp'].astype(float).round(4)
     recovered_df.to_csv(file_name_csv + '_recovered_ExG.csv', index=False)

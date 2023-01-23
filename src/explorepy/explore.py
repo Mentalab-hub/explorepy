@@ -284,8 +284,8 @@ class Explore:
         def device_info_callback(packet):
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
-                new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
-                new_meta_name = meta_out_file + "_" + str(np.round(packet.timestamp, 0))
+                new_file_name = exg_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_ExG'
+                new_meta_name = meta_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_Meta'
                 logger.warning("Creating a new file: " + new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
