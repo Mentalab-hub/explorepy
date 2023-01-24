@@ -934,22 +934,12 @@ def compare_recover_from_bin(file_name_csv, file_name_device):
     meta_df = pandas.read_csv(file_name_csv + "_Meta.csv")
     timestamp_key = 'TimeStamp'
     sampling_rate = meta_df['sr'][0]
-    timestamps = bin_df[timestamp_key]
     offset_ = meta_df["TimeOffset"][0]
     offset_ = round(offset_, 4)
-    timestamps = timestamps + offset_
 
-    index_list = []
     time_period = 1 / sampling_rate
-    for i, v in enumerate(timestamps):
-        if len(index_list) == 2:
-            break
-        if abs(timestamps[i] - csv_df[timestamp_key][0]) <= time_period and len(index_list) == 0:
-            index_list.append(i)
-        if abs(timestamps[i] - csv_df[timestamp_key][len(csv_df[timestamp_key]) - 1]) <= time_period:
-            index_list.append(i)
 
-    recovered_df = bin_df.loc[index_list[0]: index_list[1] + 1]
-    recovered_df['TimeStamp'] = (recovered_df['TimeStamp'] + offset_)
-    recovered_df['TimeStamp'] = recovered_df['TimeStamp'].astype(float).round(4)
-    recovered_df.to_csv(file_name_csv + '_recovered_ExG.csv', index=False)
+    start = csv_df[timestamp_key][0] - offset_ - time_period
+    stop = csv_df[timestamp_key][len(csv_df[timestamp_key])-1] - offset_ + time_period
+    bin_df = bin_df[(bin_df[timestamp_key] >= start) & (bin_df[timestamp_key] <= stop)]
+    bin_df.to_csv(file_name_csv + '_recovered_ExG.csv', index = False)
