@@ -24,7 +24,7 @@ from explorepy.packet import (
     Environment,
     EventMarker,
     Orientation,
-    SoftwareMarker
+    SoftwareMarker, ExternalMarker
 )
 from explorepy.parser import Parser
 from explorepy.settings_manager import SettingsManager
@@ -33,7 +33,6 @@ from explorepy.tools import (
     PhysicalOrientation,
     get_local_time
 )
-
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 logger = logging.getLogger(__name__)
@@ -288,6 +287,13 @@ class StreamProcessor:
             raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
 
         marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
+        self.process(marker)
+
+    def set_ext_marker(self, time_lsl, marker_string):
+        """Set an external marker in the stream"""
+        logger.info(f"Setting a software marker with code: {marker_string}")
+
+        marker = ExternalMarker.create(time_lsl, marker_string)
         self.process(marker)
 
     def compare_device_info(self, new_device_info):
