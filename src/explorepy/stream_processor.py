@@ -23,8 +23,9 @@ from explorepy.packet import (
     DeviceInfoV2,
     Environment,
     EventMarker,
+    ExternalMarker,
     Orientation,
-    SoftwareMarker, ExternalMarker
+    SoftwareMarker
 )
 from explorepy.parser import Parser
 from explorepy.settings_manager import SettingsManager
@@ -33,6 +34,7 @@ from explorepy.tools import (
     PhysicalOrientation,
     get_local_time
 )
+
 
 TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
 logger = logging.getLogger(__name__)
