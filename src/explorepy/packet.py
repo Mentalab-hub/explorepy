@@ -515,6 +515,36 @@ class SoftwareMarker(EventMarker):
         )
 
 
+class ExternalMarker(EventMarker):
+    """External marker packet"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+        self._label_prefix = "ext_"
+
+    def _convert(self, bin_data):
+        self.code = bin_data[:15].decode('utf-8', errors='ignore')
+
+    @staticmethod
+    def create(lsl_time, marker_string):
+        """Create a software marker
+
+        Args:
+            lsl_time (double): Local time from LSL
+            marker_string (string): Event marker code
+
+        Returns:
+            SoftwareMarker
+        """
+        byte_array = bytes(marker_string, 'utf-8')
+        return ExternalMarker(
+            lsl_time,
+            payload=bytearray(byte_array + b"\xaf\xbe\xad\xde"),
+        )
+
+
 class TriggerIn(EventMarker):
     """Trigger in packet"""
 
