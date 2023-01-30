@@ -939,7 +939,7 @@ def compare_recover_from_bin(file_name_csv, file_name_device):
     time_period = 1 / sampling_rate
 
     start = csv_df[timestamp_key][0] - offset_ - time_period
-    stop = csv_df[timestamp_key][len(csv_df[timestamp_key])-1] - offset_ + time_period
+    stop = csv_df[timestamp_key][len(csv_df[timestamp_key]) - 1] - offset_ + time_period
     bin_df = bin_df[(bin_df[timestamp_key] >= start) & (bin_df[timestamp_key] <= stop)]
-    bin_df[timestamp_key] = bin_df[timestamp_key] + offset_ 
-    bin_df.to_csv(file_name_csv + '_recovered_ExG.csv', index = False)
+    bin_df[timestamp_key] = bin_df[timestamp_key] + offset_
+    bin_df.to_csv(file_name_csv + '_recovered_ExG.csv', index=False)

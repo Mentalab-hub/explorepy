@@ -16,7 +16,6 @@ Examples:
 import logging
 import os
 import re
-import struct
 import time
 from threading import Timer
 
