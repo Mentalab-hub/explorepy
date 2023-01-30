@@ -16,6 +16,7 @@ Examples:
 import logging
 import os
 import re
+import struct
 import time
 from threading import Timer
 
@@ -284,8 +285,8 @@ class Explore:
         def device_info_callback(packet):
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
-                new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
-                new_meta_name = meta_out_file + "_" + str(np.round(packet.timestamp, 0))
+                new_file_name = exg_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_ExG'
+                new_meta_name = meta_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_Meta'
                 logger.warning("Creating a new file: " + new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
@@ -415,6 +416,16 @@ class Explore:
         """
         self._check_connection()
         self.stream_processor.set_marker(code=code)
+
+    def set_external_marker(self, time_lsl, marker_string):
+        """Sets a digital event marker while streaming
+
+        Args:
+            time_lsl (timestamp): timestamp from external marker)
+            marker_string (string): string to save as experiment marker)
+        """
+        self._check_connection()
+        self.stream_processor.set_ext_marker(time_lsl, marker_string)
 
     def format_memory(self):
         """Format memory of the device
