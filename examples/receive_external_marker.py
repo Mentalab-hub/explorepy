@@ -10,7 +10,9 @@ def modify_variable(explore_instance):
     streams = resolve_stream('type', 'Markers')
 
     # create a new inlet to read from the stream
-    inlet = StreamInlet(streams[0])
+    # adds processing flags for clocksync and thread safety
+    # Reference: https://labstreaminglayer.readthedocs.io/info/faqs.html#lsl-local-clock
+    inlet = StreamInlet(streams[0], processing_flags=1 | 8)
 
     while True:
         sample, timestamp = inlet.pull_sample()
@@ -20,7 +22,6 @@ def modify_variable(explore_instance):
 
 
 def main():
-
     # Create an Explore object
     explore = explorepy.Explore()
     explore.connect(device_name='Explore_XXXX')
