@@ -936,7 +936,6 @@ def compare_recover_from_bin(file_name_csv, file_name_device):
     sampling_rate = meta_df['sr'][0]
     offset_ = meta_df["TimeOffset"][0]
     offset_ = round(offset_, 4)
-
     time_period = 1 / sampling_rate
 
     start = csv_df[timestamp_key][0] - offset_ - time_period
