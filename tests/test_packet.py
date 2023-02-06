@@ -67,7 +67,7 @@ class TestEEGPacket:
 
     def test_get_data(self):
         tv, d = self.eeg.get_data(250)
-        assert len(tv) == 4
+        assert len(tv) == 5
         np.testing.assert_array_equal(tv, [1.2345, 1.2385, 1.2425, 1.2465])
         np.testing.assert_array_equal(d, self.eeg.data)
 
@@ -95,7 +95,8 @@ class TestEEG94Packet:
     @pytest.fixture(autouse=True)
     def setup_eeg94(self):
         # 99 bytes of data + 4 bytes fletcher (0xDEADBEAF)
-        self.data = bytes([i % 256 for i in range(495)])  # 495 bytes of dummy data, resembles 33 samples in 4+1 channels
+        self.data = bytes(
+            [i % 256 for i in range(495)])  # 495 bytes of dummy data, resembles 33 samples in 4+1 channels
         self.fletcher = b'\xaf\xbe\xad\xde'
         self.eeg94 = EEG94(12345, self.data + self.fletcher, 300)
 
@@ -106,30 +107,42 @@ class TestEEG94Packet:
         with pytest.raises(Exception):
             EEG94(12345, payload, 300)
 
-    def test_convert(self):
+    def test_convert_data(self):
         t = np.array([[15673.97, 62732.8, 109791.63],
                       [25085.74, 72144.56, 119203.39],
                       [34497.5, 81556.33, 128615.16],
                       [43909.27, 90968.1, 138026.92]])
         np.testing.assert_array_equal(self.eeg94.data[:, :3], t)
 
-    # TODO implement status message test
+    @pytest.mark.skip
+    def test_convert_status(self):
+        t = np.array([15673.97, 62732.8, 109791.63])
+        np.testing.assert_array_equal(self.eeg94.data_status[:3], t)
 
 
 class TestEEG98Packet:
 
     @pytest.fixture(autouse=True)
-    def setup_eeg98(self):
-        self.data = bytes([i % 256 for i in range(432)])
-        self.fletcher = b'\xaf\xbe\xad\xde'
-        self.eeg98 = EEG98(12345, self.data + self.fletcher, 300)
+    def setup_eeg98_real(self, eeg8_test_samples, eeg8_test_timestamp, eeg8_test_fletcher, eeg8_test_status):
+        self.real_data = eeg8_test_samples
+        self.real_timestamp = eeg8_test_timestamp
+        self.real_fletcher = eeg8_test_fletcher
+        self.real_status = eeg8_test_status
+        self.eeg98_real = EEG98(self.real_timestamp, self.real_data + self.real_fletcher, 0)
+
+    @pytest.fixture(autouse=True)
+    def setup_eeg98_fake(self):
+        self.fake_data = bytes([i % 256 for i in range(432)])
+        self.fake_timestamp = 12345
+        self.fake_fletcher = b'\xaf\xbe\xad\xde'
+        self.eeg98_fake = EEG98(self.fake_timestamp, self.fake_data + self.fake_fletcher, 0)
 
     def test_data_too_long(self):
-        payload = 2 * self.data + self.fletcher
+        payload = 2 * self.real_data + self.real_fletcher
         with pytest.raises(Exception):
             EEG98(12345, payload, 300)
 
-    def test_convert(self):
+    def test_convert_fake(self):
         t = np.array([[15673.97, 100379.86],
                       [25085.74, 109791.63],
                       [34497.5, 119203.39],
@@ -138,9 +151,20 @@ class TestEEG98Packet:
                       [62732.8, 147438.69],
                       [72144.56, 156850.45],
                       [81556.33, 166262.22]])
-        np.testing.assert_array_equal(self.eeg98.data[:, :2], t)
+        np.testing.assert_array_equal(self.eeg98_fake.data[:, :2], t)
 
-    # TODO implement status message test
+    @pytest.mark.skip
+    def test_convert_real(self):
+        t = np.array([])
+        real = self.eeg98_real.data[:, :2]
+        print(real)
+        np.testing.assert_array_equal(real, t)
+
+    def test_convert_status_real(self):
+        # Note: the only status message that is actually considered is the first one
+        # (despite there being a status message per 8 channel samples
+        # so, 16 status messages for an EEG98 packet
+        assert self.real_status == self.eeg98_real.status
 
 
 class TestEEG99Packet:
@@ -241,6 +265,7 @@ class TestTimestampPacket:
 
 
 class TestEventMarkerPacket:
+
     def test_is_abstract(self):
         with pytest.raises(Exception):
             EventMarker(12345, b'\xaf\xbe\xad\xde')
