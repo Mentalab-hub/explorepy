@@ -570,7 +570,6 @@ class FileRecorder:
     def write_meta(self):
         """Writes meta data in the file"""
         channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-        print("timetamp here: {}".format(self.timestamp))
         row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
         self._csv_obj.writerow(row)
         self._file_obj.flush()
