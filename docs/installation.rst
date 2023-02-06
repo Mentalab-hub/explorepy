@@ -4,14 +4,14 @@ Installation
 
 Minimal Requirements
 ------------
-* Python 3.6 to Python 3.10
+* Python 3.7 to Python 3.11
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
 
 Recommended Requirements
 ------------
-* Python 3.6 to Python 3.10
+* Python 3.7 to Python 3.11
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 8GB RAM
 * Intel i7 or higher CPU
