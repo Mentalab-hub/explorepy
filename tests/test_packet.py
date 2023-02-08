@@ -151,20 +151,17 @@ class TestEEG98Packet:
                       [62732.8, 147438.69],
                       [72144.56, 156850.45],
                       [81556.33, 166262.22]])
-        np.testing.assert_array_equal(self.eeg98_fake.data[:, :2], t)
+        print(self.eeg98_fake.data)
+        np.testing.assert_array_equal(self.eeg98_fake.data, t)
 
-    @pytest.mark.skip
-    def test_convert_real(self):
-        t = np.array([])
-        real = self.eeg98_real.data[:, :2]
-        print(real)
-        np.testing.assert_array_equal(real, t)
+    def test_convert_real(self, eeg8_expected_samples):
+        np.testing.assert_array_equal(self.eeg98_real.data, eeg8_expected_samples)
 
-    def test_convert_status_real(self):
+    def test_convert_status_real(self, eeg8_expected_status):
         # Note: the only status message that is actually considered is the first one
         # (despite there being a status message per 8 channel samples
         # so, 16 status messages for an EEG98 packet
-        assert self.real_status == self.eeg98_real.status
+        assert eeg8_expected_status == self.eeg98_real.status
 
 
 class TestEEG99Packet:
