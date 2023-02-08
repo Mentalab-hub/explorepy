@@ -5,9 +5,11 @@ import binascii
 
 import pytest
 
-EEG8_CHANNEL_PACKET_BIN = "eeg8_channel_packet"
-EEG8_EXPECTED_REAL_OUTPUT = "expected_eeg8_output.txt"
-EEG8_EXPECTED_FAKE_OUTPUT = "expected_fake_eeg8_output.txt"
+IN = "in"
+OUT = "out"
+EEG8_CHANNEL_PACKET_BIN = os.path.join(IN, "eeg8_channel_packet")
+EEG8_EXPECTED_REAL_OUTPUT = os.path.join(OUT, "expected_eeg8_output.txt")
+EEG8_EXPECTED_FAKE_OUTPUT = os.path.join(OUT, "expected_fake_eeg8_output.txt")
 
 
 def get_res_path(filename):
@@ -29,9 +31,21 @@ def string_to_byte_string(input_string):
     return binascii.unhexlify(input_string)
 
 
+def read_json_to_dict(source):
+    with open(get_res_path(source), "r") as expected_output_file:
+        return json.load(expected_output_file)
+
+
+def string_list_to_hex_tuple(string_list):
+    first_string = hex(int(string_list[0], 16))
+    second_string = hex(int(string_list[1], 16))
+    third_string = hex(int(string_list[2], 16))
+    return first_string, second_string, third_string
+
+
 @pytest.fixture(scope="module")
 def eeg8_test_whole_packet():
-    return read_bin_to_byte_string(get_res_path('eeg8_channel_packet'))
+    return read_bin_to_byte_string(get_res_path(EEG8_CHANNEL_PACKET_BIN))
 
 
 @pytest.fixture(scope="module")
@@ -60,8 +74,7 @@ def eeg8_test_status(eeg8_test_whole_packet):
 
 @pytest.fixture(scope="module")
 def eeg8_expected_results_whole():
-    with open(get_res_path(EEG8_EXPECTED_REAL_OUTPUT), "r") as expected_output_file:
-        return json.load(expected_output_file)
+    return read_json_to_dict(EEG8_EXPECTED_REAL_OUTPUT)
 
 
 @pytest.fixture(scope="module")
@@ -82,12 +95,7 @@ def eeg8_expected_timestamp(eeg8_expected_results_whole):
 
 @pytest.fixture(scope="module")
 def eeg8_expected_status(eeg8_expected_results_whole):
-    status_list = eeg8_expected_results_whole['status']
-    first_string = hex(int(status_list[0], 16))
-    second_string = hex(int(status_list[1], 16))
-    third_string = hex(int(status_list[2], 16))
-    as_tuple = first_string, second_string, third_string
-    return as_tuple
+    return string_list_to_hex_tuple(eeg8_expected_results_whole['status'])
 
 
 @pytest.fixture(scope="module")
