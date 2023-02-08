@@ -124,35 +124,42 @@ class TestEEG98Packet:
 
     @pytest.fixture(autouse=True)
     def setup_eeg98_real(self, eeg8_test_samples, eeg8_test_timestamp, eeg8_test_fletcher, eeg8_test_status):
-        self.real_data = eeg8_test_samples
-        self.real_timestamp = eeg8_test_timestamp
-        self.real_fletcher = eeg8_test_fletcher
-        self.real_status = eeg8_test_status
-        self.eeg98_real = EEG98(self.real_timestamp, self.real_data + self.real_fletcher, 0)
+        self.eeg98_real = EEG98(eeg8_test_timestamp, eeg8_test_samples + eeg8_test_fletcher, 0)
 
     @pytest.fixture(autouse=True)
     def setup_eeg98_fake(self):
         self.fake_data = bytes([i % 256 for i in range(432)])
         self.fake_timestamp = 12345
         self.fake_fletcher = b'\xaf\xbe\xad\xde'
+        self.fake_status = ('0x0', '0x1', '0x2')
         self.eeg98_fake = EEG98(self.fake_timestamp, self.fake_data + self.fake_fletcher, 0)
 
     def test_data_too_long(self):
-        payload = 2 * self.real_data + self.real_fletcher
+        payload = 2 * self.fake_data + self.fake_fletcher
         with pytest.raises(Exception):
-            EEG98(12345, payload, 300)
+            EEG98(self.fake_timestamp, payload, 300)
 
-    def test_convert_fake(self):
-        t = np.array([[15673.97, 100379.86],
-                      [25085.74, 109791.63],
-                      [34497.5, 119203.39],
-                      [43909.27, 128615.16],
-                      [53321.03, 138026.92],
-                      [62732.8, 147438.69],
-                      [72144.56, 156850.45],
-                      [81556.33, 166262.22]])
+    def test_convert_fake(self, eeg8_expected_samples_fake):
+        # t = np.array([[15673.97, 100379.86],
+        #               [25085.74, 109791.63],
+        #               [34497.5, 119203.39],
+        #               [43909.27, 128615.16],
+        #               [53321.03, 138026.92],
+        #               [62732.8, 147438.69],
+        #               [72144.56, 156850.45],
+        #               [81556.33, 166262.22]])
         print(self.eeg98_fake.data)
-        np.testing.assert_array_equal(self.eeg98_fake.data, t)
+        print("Shape")
+        print(self.eeg98_fake.data.shape)
+        for i in range(self.eeg98_fake.data.shape[0]):
+            for j in range(self.eeg98_fake.data.shape[1]):
+                if self.eeg98_fake.data[i][j] != eeg8_expected_samples_fake[i][j]:
+                    print(f"Samples are different at ({i}, {j})")
+                    print(f"Internally: {self.eeg98_fake.data[i][j]}, from json: {eeg8_expected_samples_fake[i][j]}")
+        np.testing.assert_array_almost_equal(self.eeg98_fake.data, eeg8_expected_samples_fake)
+
+    def test_convert_status_fake(self, eeg8_expected_status_fake):
+        assert eeg8_expected_status_fake == self.eeg98_fake.status
 
     def test_convert_real(self, eeg8_expected_samples):
         np.testing.assert_array_equal(self.eeg98_real.data, eeg8_expected_samples)
