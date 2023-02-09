@@ -32,7 +32,7 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy==1.21.4', 'scipy', 'pyedflib==0.1.25', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.0.0', 'mne', 'eeglabio', 'pandas']  # noqa: E501
+my_req = ['numpy', 'scipy', 'pyedflib', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.0.0', 'mne', 'eeglabio', 'pandas']  # noqa: E501
 test_requirements = ["pytest==6.2.5",
                      "flake8==4.0.1",
                      "isort==5.10.1"]
