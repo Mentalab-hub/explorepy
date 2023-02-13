@@ -519,7 +519,7 @@ class ExternalMarker(EventMarker):
     """External marker packet"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
+        super().__init__(timestamp * 10_000, payload, 0)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
         self._label_prefix = "ext_"
