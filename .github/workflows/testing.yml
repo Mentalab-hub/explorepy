@@ -1,12 +1,12 @@
 name: testing
 on:
-    push:
-        branches: [unit-tests]
+    pull_request:
+        branches: [master]
 jobs:
     test:
         strategy:
             matrix:
-                os: [ubuntu-latest]
+                os: [ubuntu-latest, windows-latest, macos-latest]]
                 python: [3.9.12]
         runs-on: ${{ matrix.os }}
         timeout-minutes: 10
