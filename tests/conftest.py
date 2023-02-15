@@ -20,17 +20,20 @@ from explorepy.packet import (
 IN = "in"
 OUT = "out"
 
+EEG94_IN = os.path.join(IN, "eeg94")
 EEG98_IN = os.path.join(IN, "eeg98")
 EEG98_USBC_IN = os.path.join(IN, "eeg98_usbc")
 EEG98_USBC_IN_2 = os.path.join(IN, "eeg98_usbc_2")
 EEG32_IN = os.path.join(IN, "eeg32")
 
+EEG94_OUT = os.path.join(OUT, "eeg94_out.txt")
 EEG98_OUT = os.path.join(OUT, "eeg98_out.txt")
 EEG98_USBC_OUT = os.path.join(OUT, "eeg98_usbc_out.txt")
 EEG98_USBC_OUT_2 = os.path.join(OUT, "eeg98_usbc_out_2.txt")
 EEG32_OUT = os.path.join(OUT, "eeg32_out.txt")
 
 EEG_IN_OUT_LIST = [
+    (EEG94, EEG94_IN, EEG94_OUT),
     (EEG98, EEG98_IN, EEG98_OUT),
     (EEG98_USBC, EEG98_USBC_IN, EEG98_USBC_OUT),
     (EEG98_USBC, EEG98_USBC_IN_2, EEG98_USBC_OUT_2),
@@ -76,11 +79,22 @@ def get_timestamp_from_byte_string(source):
 
 
 def eeg_in_out_list():
-    in_out_list = [
-        (EEG98, EEG98_IN, EEG98_OUT),
-        (EEG98_USBC, EEG98_USBC_IN_2, EEG98_USBC_OUT_2),
-    ]
-    return in_out_list
+    return EEG_IN_OUT_LIST
+
+
+@pytest.fixture(params=[Packet, EEG], scope="module")
+def parametrized_abstract_eeg(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    ([10, 20, 30, 40, 50, 60], [1971210, 3945000]),
+    ([255, 255, 255, 255, 255, 255], [-1, -1]),         # [111111111111111111111111, 111111111111111111111111]
+    ([0, 0, 0, 0, 0, 0], [0, 0]),
+    ([0, 0, 128, 0, 0, 128], [-8388608, -8388608])],    # [100000000000000000000000, 100000000000000000000000]
+    scope="module")
+def parametrized_int24toint32_in_out(request):
+    return request.param
 
 
 @pytest.fixture(params=eeg_in_out_list(), scope="module")
