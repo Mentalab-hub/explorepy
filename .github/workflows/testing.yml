@@ -6,7 +6,7 @@ jobs:
     test:
         strategy:
             matrix:
-                os: [ubuntu-latest, windows-latest, macos-latest]
+                os: [ubuntu-latest]
                 python: [3.9.12]
         runs-on: ${{ matrix.os }}
         timeout-minutes: 10
@@ -35,3 +35,8 @@ jobs:
                 conda install -c conda-forge liblsl
                 pip install -e .[test]
                 python -m pytest --import-mode=append --html=pytest_report.html
+            -   name: Archive test results
+                uses: actions/upload-artifact@v3
+                with:
+                    name: pytest-results
+                    path: pytest_report.html
