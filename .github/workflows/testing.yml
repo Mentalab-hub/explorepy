@@ -34,7 +34,7 @@ jobs:
               run: |
                 conda install -c conda-forge liblsl
                 pip install -e .[test]
-                python -m pytest --import-mode=append --html=pytest_report.html
+                python -m pytest --import-mode=append --html=pytest_report.html --self-contained-html
             -   name: Archive test results
                 if: success() || failure()
                 uses: actions/upload-artifact@v3
