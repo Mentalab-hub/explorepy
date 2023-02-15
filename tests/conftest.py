@@ -1,15 +1,41 @@
 import os
 import struct
 import json
-import binascii
 
 import pytest
 
+from explorepy.packet import (
+    EEG,
+    EEG94,
+    EEG98,
+    EEG98_USBC,
+    EEG32,
+    EEG99,
+    EEG99s,
+    EventMarker,
+    Orientation,
+    Packet
+)
+
 IN = "in"
 OUT = "out"
-EEG8_CHANNEL_PACKET_BIN = os.path.join(IN, "eeg8_channel_packet")
-EEG8_EXPECTED_REAL_OUTPUT = os.path.join(OUT, "expected_eeg8_output.txt")
-EEG8_EXPECTED_FAKE_OUTPUT = os.path.join(OUT, "expected_fake_eeg8_output.txt")
+
+EEG98_IN = os.path.join(IN, "eeg98")
+EEG98_USBC_IN = os.path.join(IN, "eeg98_usbc")
+EEG98_USBC_IN_2 = os.path.join(IN, "eeg98_usbc_2")
+EEG32_IN = os.path.join(IN, "eeg32")
+
+EEG98_OUT = os.path.join(OUT, "eeg98_out.txt")
+EEG98_USBC_OUT = os.path.join(OUT, "eeg98_usbc_out.txt")
+EEG98_USBC_OUT_2 = os.path.join(OUT, "eeg98_usbc_out_2.txt")
+EEG32_OUT = os.path.join(OUT, "eeg32_out.txt")
+
+EEG_IN_OUT_LIST = [
+    (EEG98, EEG98_IN, EEG98_OUT),
+    (EEG98_USBC, EEG98_USBC_IN, EEG98_USBC_OUT),
+    (EEG98_USBC, EEG98_USBC_IN_2, EEG98_USBC_OUT_2),
+    (EEG32, EEG32_IN, EEG32_OUT)
+]
 
 
 def get_res_path(filename):
@@ -28,7 +54,7 @@ def read_bin_to_byte_string(path):
 
 
 def string_to_byte_string(input_string):
-    return binascii.unhexlify(input_string)
+    return bytes.fromhex(input_string)
 
 
 def read_json_to_dict(source):
@@ -43,93 +69,31 @@ def string_list_to_hex_tuple(string_list):
     return first_string, second_string, third_string
 
 
-@pytest.fixture(scope="module")
-def eeg8_test_whole_packet():
-    return read_bin_to_byte_string(get_res_path(EEG8_CHANNEL_PACKET_BIN))
-
-
-@pytest.fixture(scope="module")
-def eeg8_test_samples(eeg8_test_whole_packet):
-    return eeg8_test_whole_packet[8:-4]
-
-
-@pytest.fixture(scope="module")
-def eeg8_test_fletcher(eeg8_test_whole_packet):
-    return eeg8_test_whole_packet[-4:]
-
-
-@pytest.fixture(scope="module")
-def eeg8_test_timestamp(eeg8_test_whole_packet):
-    timestamp_bytes = eeg8_test_whole_packet[4:8]
+def get_timestamp_from_byte_string(source):
+    timestamp_bytes = source[4:8]
     timestamp_floating_point = struct.unpack('<I', timestamp_bytes)[0]
     return timestamp_floating_point
 
 
-@pytest.fixture(scope="module")
-def eeg8_test_status(eeg8_test_whole_packet):
-    status = read_bin_to_byte_string(get_res_path(EEG8_CHANNEL_PACKET_BIN))[8:11]
-    status = (hex(status[0]), hex(status[1]), hex(status[2]))
-    return status
+def eeg_in_out_list():
+    in_out_list = [
+        (EEG98, EEG98_IN, EEG98_OUT),
+        (EEG98_USBC, EEG98_USBC_IN_2, EEG98_USBC_OUT_2),
+    ]
+    return in_out_list
 
 
-@pytest.fixture(scope="module")
-def eeg8_expected_results_whole():
-    return read_json_to_dict(EEG8_EXPECTED_REAL_OUTPUT)
-
-
-@pytest.fixture(scope="module")
-def eeg8_expected_samples(eeg8_expected_results_whole):
-    return eeg8_expected_results_whole["samples"]
-
-
-@pytest.fixture(scope="module")
-def eeg8_expected_fletcher(eeg8_expected_results_whole):
-    fletcher_string = eeg8_expected_results_whole["fletcher"]
-    return string_to_byte_string(fletcher_string)
-
-
-@pytest.fixture(scope="module")
-def eeg8_expected_timestamp(eeg8_expected_results_whole):
-    return eeg8_expected_results_whole['raw_timestamp']
-
-
-@pytest.fixture(scope="module")
-def eeg8_expected_status(eeg8_expected_results_whole):
-    return string_list_to_hex_tuple(eeg8_expected_results_whole['status'])
-
-
-@pytest.fixture(scope="module")
-def eeg8_expected_results_fake_whole():
-    with open(get_res_path(EEG8_EXPECTED_FAKE_OUTPUT), "r") as expected_output_file:
-        return json.load(expected_output_file)
-
-
-@pytest.fixture(scope="module")
-def eeg8_expected_samples_fake(eeg8_expected_results_fake_whole):
-    return eeg8_expected_results_fake_whole["samples"]
-
-
-@pytest.fixture(scope="module")
-def eeg8_expected_fletcher_fake(eeg8_expected_results_fake_whole):
-    fletcher_string = eeg8_expected_results_fake_whole["fletcher"]
-    return string_to_byte_string(fletcher_string)
-
-
-@pytest.fixture(scope="module")
-def eeg8_expected_timestamp_fake(eeg8_expected_results_fake_whole):
-    return eeg8_expected_results_fake_whole['raw_timestamp']
-
-
-@pytest.fixture(scope="module")
-def eeg8_expected_status_fake(eeg8_expected_results_fake_whole):
-    status_list = eeg8_expected_results_fake_whole['status']
-    first_string = hex(int(status_list[0], 16))
-    second_string = hex(int(status_list[1], 16))
-    third_string = hex(int(status_list[2], 16))
-    as_tuple = first_string, second_string, third_string
-    return as_tuple
-
-
-@pytest.fixture(scope="module")
-def eeg98_usbc_test_samples():
-    pass
+@pytest.fixture(params=eeg_in_out_list(), scope="module")
+def parametrized_eeg_in_out(request):
+    class_type = request.param[0]
+    path_in = request.param[1]
+    path_out = request.param[2]
+    eeg_in = read_bin_to_byte_string(get_res_path(path_in))
+    eeg_out = read_json_to_dict(get_res_path(path_out))
+    ts = get_timestamp_from_byte_string(eeg_in)
+    eeg_instance = class_type(ts, eeg_in[8:], 0)
+    data = {'eeg_class': class_type,
+            'eeg_instance': eeg_instance,
+            'eeg_in': eeg_in,
+            'eeg_out': eeg_out}
+    return data
