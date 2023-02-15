@@ -36,6 +36,7 @@ jobs:
                 pip install -e .[test]
                 python -m pytest --import-mode=append --html=pytest_report.html
             -   name: Archive test results
+                if: success() || failure()
                 uses: actions/upload-artifact@v3
                 with:
                     name: pytest-results
