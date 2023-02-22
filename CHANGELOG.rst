@@ -1,6 +1,15 @@
 
 Changelog
 =========
+
+
+1.8.0 (8.2.2023)
+------------------
+* Add suppport for new explore+ 16 ch device
+* Repair CSV from binary data
+* Save current device settings on disconnection, restore them on demand
+
+
 1.7.0 (21.12.2022)
 ------------------
 * Add suppport for new explore+ 32 ch device

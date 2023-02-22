@@ -1,16 +1,22 @@
 import os
+import shutil
+from pathlib import Path
 
 import yaml
 from appdirs import user_config_dir
 
 
+log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
+data_path = user_config_dir(appname="Mentalab", appauthor="explorepy", version='archive')
+
+
 class SettingsManager:
     def __init__(self, name):
         self.settings_dict = None
-        self.log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
+
         self.file_name = name + ".yaml"
-        self.full_file_path = os.path.join(self.log_path, self.file_name)
-        os.makedirs(self.log_path, exist_ok=True)
+        self.full_file_path = os.path.join(log_path, self.file_name)
+        os.makedirs(log_path, exist_ok=True)
 
         if not os.path.exists(self.full_file_path):
             with open(self.full_file_path, 'w'):
@@ -97,6 +103,14 @@ class SettingsManager:
                     hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
                     self.settings_dict[self.software_channel_mask_key] = hardware_adc
                 self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
+        if "board_id" in device_info_dict_update:
+            if self.settings_dict["board_id"] == "PCB_305_801_XXX":
+                self.settings_dict[self.channel_count_key] = 16
+                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(16)]
+                if self.software_channel_mask_key not in self.settings_dict:
+                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
+                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
+                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
 
         if self.channel_count_key not in self.settings_dict:
             self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
@@ -117,3 +131,11 @@ class SettingsManager:
     def __str__(self):
         self.load_current_settings()
         return self.settings_dict
+
+    def save_current_session(self):
+        full_d_path = os.path.join(data_path, self.file_name)
+        os.makedirs(data_path, exist_ok=True)
+        if not os.path.exists(full_d_path):
+            with open(full_d_path, 'w'):
+                pass
+        shutil.copyfile(Path(self.full_file_path), Path(full_d_path))

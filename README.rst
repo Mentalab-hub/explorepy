@@ -17,9 +17,9 @@
     :target: https://pypi.org/project/explorepy
 
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v1.7.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v1.8.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v1.7.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v1.8.0...master
 
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
@@ -60,7 +60,7 @@ For other operating systems, or to build the package manually on Windows, please
 Requirements
 ------------
 
-* Python 3.7 to Python 3.10.
+* Python 3.7 to Python 3.11.
 * Visual Studio 2015 community edition (Windows only. For package building).
 * Bluetooth header files (Linux only. Use: ``sudo apt-get install libbluetooth-dev``).
 
@@ -137,6 +137,7 @@ Authors
 - `Mohamad Atayi`_
 - `Salman Rahman`_
 - `Andrea Escartin`_
+- `Sonja Stefani`_
 - `Alex Platt`_
 - `Andreas Gutsche`_
 - `Masooma Fazelian`_
@@ -148,6 +149,7 @@ Authors
 .. _Mohamad Atayi: https://github.com/bmeatayi
 .. _Salman Rahman: https://github.com/salman2135
 .. _Andrea Escartin: https://github.com/andrea-escartin
+.. _Sonja Stefani: https://github.com/SonjaSt
 .. _Alex Platt: https://github.com/Nujanauss
 .. _Andreas Gutsche: https://github.com/andyman410
 .. _Masooma Fazelian: https://github.com/fazelian

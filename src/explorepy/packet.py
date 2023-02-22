@@ -185,7 +185,7 @@ class EEG98(EEG):
         n_chan = -1
         v_ref = 2.4
         n_packet = 16
-        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        data = data.reshape((n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
@@ -327,7 +327,7 @@ class Orientation(Packet):
     def _convert(self, bin_data):
         data = np.copy(
             np.frombuffer(bin_data, dtype=np.dtype(
-                np.int16).newbyteorder("<"))).astype(np.float)
+                np.int16).newbyteorder("<"))).astype(float)
         self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
         self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
         self.mag = 1.52 * np.multiply(data[6:], np.array(
@@ -512,6 +512,36 @@ class SoftwareMarker(EventMarker):
         return SoftwareMarker(
             local_time * TIMESTAMP_SCALE,
             payload=bytearray(struct.pack("<H", code) + b"\xaf\xbe\xad\xde"),
+        )
+
+
+class ExternalMarker(EventMarker):
+    """External marker packet"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp * 10_000, payload, 0)
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
+        self._label_prefix = "ext_"
+
+    def _convert(self, bin_data):
+        self.code = bin_data[:15].decode('utf-8', errors='ignore')
+
+    @staticmethod
+    def create(lsl_time, marker_string):
+        """Create a software marker
+
+        Args:
+            lsl_time (double): Local time from LSL
+            marker_string (string): Event marker code
+
+        Returns:
+            SoftwareMarker
+        """
+        byte_array = bytes(marker_string, 'utf-8')
+        return ExternalMarker(
+            lsl_time,
+            payload=bytearray(byte_array + b"\xaf\xbe\xad\xde"),
         )
 
 
