@@ -2,9 +2,7 @@ import numpy as np
 import pytest
 
 import explorepy.packet
-from explorepy.packet import (
-    Packet
-)
+from explorepy.packet import Packet
 
 
 def read_bin_to_byte_string(path):

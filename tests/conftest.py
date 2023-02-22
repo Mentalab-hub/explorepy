@@ -1,19 +1,19 @@
+import json
 import os
 import struct
-import json
 
 import numpy as np
-
 import pytest
 
 from explorepy.packet import (
     EEG,
+    EEG32,
     EEG94,
     EEG98,
     EEG98_USBC,
-    EEG32,
     Packet
 )
+
 
 IN = "in"
 OUT = "out"
