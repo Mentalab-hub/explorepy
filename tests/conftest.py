@@ -28,11 +28,25 @@ EEG98_USBC_IN = os.path.join(IN, "eeg98_usbc")
 EEG98_USBC_IN_2 = os.path.join(IN, "eeg98_usbc_2")
 EEG32_IN = os.path.join(IN, "eeg32")
 
+ORN_IN = os.path.join(IN, "orn")
+CMD_STAT_IN = os.path.join(IN, "cmd_stat")
+DEV_INFO_IN = os.path.join(IN, "device_info")
+DEV_INFO_V2_IN = os.path.join(IN, "device_info_v2")
+ENV_IN = os.path.join(IN, "env")
+PUSH_MARKER_IN = os.path.join(IN, "push_marker")
+
 EEG94_OUT = os.path.join(OUT, "eeg94_out.txt")
 EEG98_OUT = os.path.join(OUT, "eeg98_out.txt")
 EEG98_USBC_OUT = os.path.join(OUT, "eeg98_usbc_out.txt")
 EEG98_USBC_OUT_2 = os.path.join(OUT, "eeg98_usbc_out_2.txt")
 EEG32_OUT = os.path.join(OUT, "eeg32_out.txt")
+
+ORN_OUT = os.path.join(OUT, "orn_out.txt")
+CMD_STAT_OUT = os.path.join(OUT, "cmd_stat_out.txt")
+DEV_INFO_OUT = os.path.join(OUT, "device_info_out.txt")
+DEV_INFO_V2_OUT = os.path.join(OUT, "device_info_v2_out.txt")
+ENV_OUT = os.path.join(OUT, "env_out.txt")
+PUSH_MARKER_OUT = os.path.join(OUT, "push_marker_out.txt")
 
 EEG_IN_OUT_LIST = [
     (EEG94, EEG94_IN, EEG94_OUT),
@@ -123,4 +137,13 @@ def parametrized_eeg_in_out(request):
             'eeg_instance': eeg_instance,
             'eeg_in': eeg_in,
             'eeg_out': eeg_out}
+    return data
+
+
+@pytest.fixture(params=[(ORN_IN, ORN_OUT)], scope="module")
+def orientation_in_out(request):
+    data = {
+        'in': request.param[0],
+        'out': request.param[1]
+    }
     return data
