@@ -29,7 +29,8 @@ def test_is_abstract(parametrized_abstract_packets):
 
 def test_abstract_timestamp_correct(mocker, parametrized_abstract_packets):
     if explorepy.packet.TIMESTAMP_SCALE != 10000:
-        pytest.xfail(f"packet.py's TIMESTAMP_SCALE has changed. Expected: 10000, got: {explorepy.packet.TIMESTAMP_SCALE}")
+        pytest.xfail(
+            f"packet.py's TIMESTAMP_SCALE has changed. Expected: 10000, got: {explorepy.packet.TIMESTAMP_SCALE}")
     if hasattr(parametrized_abstract_packets, "__abstractmethods__"):
         if len(parametrized_abstract_packets.__abstractmethods__) != 0:
             mocker.patch.multiple(parametrized_abstract_packets, __abstractmethods__=set())
