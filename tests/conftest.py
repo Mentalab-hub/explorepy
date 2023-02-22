@@ -2,6 +2,8 @@ import os
 import struct
 import json
 
+import numpy as np
+
 import pytest
 
 from explorepy.packet import (
@@ -83,8 +85,19 @@ def eeg_in_out_list():
 
 
 @pytest.fixture(params=[Packet, EEG], scope="module")
-def parametrized_abstract_eeg(request):
+def parametrized_abstract_packets(request):
     return request.param
+
+
+@pytest.fixture(scope="function")
+def mocked_eeg_base(mocker):
+    if hasattr(EEG, "__abstractmethods__"):
+        if len(EEG.__abstractmethods__) != 0:
+            mocker.patch.multiple(EEG, __abstractmethods__=set())
+    eeg = EEG(12345, b'\xaf\xbe\xad\xde')
+    eeg.data = np.array(
+             [[40, 3333, 78910, -30, 0], [20, -1000, 10, 30, 0], [10, 2345, 77016, 11, 45], [15, 1234, 70000, 2, 44]])
+    return eeg
 
 
 @pytest.fixture(params=[
