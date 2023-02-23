@@ -7,7 +7,7 @@ jobs:
         strategy:
             matrix:
                 os: [ubuntu-latest, windows-latest, macos-latest]
-                python: [3.8.10]
+                python: [3.9.12]
         runs-on: ${{ matrix.os }}
         timeout-minutes: 10
         steps:
@@ -17,7 +17,7 @@ jobs:
                 fetch-depth: 0
                 clean: false
 
-            - name: checkout to current branch
+            - name: Checkout to current branch
               run: git checkout ${{ env.BRANCH }}
 
             - name: Install non-python dependencies on Ubuntu
@@ -30,7 +30,14 @@ jobs:
               with:
                   python-version: ${{ matrix.python }}
                   conda-channels: anaconda, conda-forge
-            - run: |
+            - name: Install liblsl from conda-forge
+              run: |
                 conda install -c conda-forge liblsl
                 pip install -e .[test]
-                python -m pytest --import-mode=append
+                python -m pytest --import-mode=append --html=pytest_report.html --self-contained-html
+            -   name: Archive test results
+                if: success() || failure()
+                uses: actions/upload-artifact@v3
+                with:
+                    name: pytest-results
+                    path: pytest_report.html
