@@ -34,6 +34,8 @@ def read(*names, **kwargs):
 
 my_req = ['numpy', 'scipy', 'pyedflib', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.0.0', 'mne', 'eeglabio', 'pandas']  # noqa: E501
 test_requirements = ["pytest==6.2.5",
+                     "pytest-mock==3.10.0",
+                     "pytest-html==3.2.0",
                      "flake8==4.0.1",
                      "isort==5.10.1"]
 extras = {"test": test_requirements}
