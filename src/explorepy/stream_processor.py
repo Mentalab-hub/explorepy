@@ -23,6 +23,7 @@ from explorepy.packet import (
     DeviceInfoV2,
     Environment,
     EventMarker,
+    ExternalMarker,
     Orientation,
     SoftwareMarker
 )
@@ -67,9 +68,8 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        with lock:
-            logger.debug(f"Subscribe {callback.__name__} to {topic}")
-            self.subscribers[topic].add(callback)
+        logger.debug(f"Subscribe {callback.__name__} to {topic}")
+        self.subscribers[topic].add(callback)
 
     def unsubscribe(self, callback, topic):
         """Unsubscribe a function from a topic
@@ -78,9 +78,8 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        with lock:
-            logger.debug(f"Unsubscribe {callback} from {topic}")
-            self.subscribers[topic].discard(callback)
+        logger.debug(f"Unsubscribe {callback} from {topic}")
+        self.subscribers[topic].discard(callback)
 
     def start(self, device_name=None, mac_address=None):
         """Start streaming from Explore device
@@ -213,6 +212,8 @@ class StreamProcessor:
         settings_manager = SettingsManager(self.device_info["device_name"])
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
+        # print(f"{n_chan=}")
+        n_chan = 32 if n_chan == 16 else n_chan
 
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
@@ -288,6 +289,13 @@ class StreamProcessor:
             raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
 
         marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
+        self.process(marker)
+
+    def set_ext_marker(self, time_lsl, marker_string):
+        """Set an external marker in the stream"""
+        logger.info(f"Setting a software marker with code: {marker_string}")
+
+        marker = ExternalMarker.create(time_lsl, marker_string)
         self.process(marker)
 
     def compare_device_info(self, new_device_info):

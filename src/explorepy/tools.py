@@ -113,7 +113,8 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=
     exg_min = [0.] + [EXG_MIN_LIM for i in range(MAX_CHANNELS)]
     exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
-                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max, adc_mask=adc_mask)  # noqa: E501
+                        file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max,
+                        adc_mask=adc_mask)  # noqa: E501
 
 
 def create_orn_recorder(filename, file_type, do_overwrite):
@@ -160,12 +161,12 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, time
         adc_mask (str): channel mask
         device_name (str): device name
         do_overwrite (str): overwrite if the file already exists
-        timestamp (datetime): The time at which this recording starts. Defaults to None
+        timestamp (TimeOffset): Clock diff between device timestamp and machine timestamp when the first packet is received in ExplorePy # noqa: E501
 
     Returns:
         FileRecorder: file recorder object
     """
-    header = ['DateTime', 'Device', 'sr', 'adcMask', 'ExGUnits']
+    header = ['TimeOffset', 'Device', 'sr', 'adcMask', 'ExGUnits']
     exg_unit = 'mV'
     if EXG_UNITS:
         exg_unit = EXG_UNITS[0]  # we only need the first channel's units as this will correspond with the rest
@@ -683,7 +684,9 @@ class ImpedanceMeasurement:
         settings_manager = SettingsManager(self._device_info["device_name"])
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
-
+        # Temporary fix for 16/32 channel filters
+        if n_chan >= 16:
+            n_chan = 32
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
                                            filter_type='notch',
                                            s_rate=self._device_info['sampling_rate'],
@@ -843,7 +846,7 @@ class PhysicalOrientation:
         with open((cache_dir + "_ORN.csv"), "r") as f_set:
             csv_reader = csv.reader(f_set, delimiter=",")
             np_set = list(csv_reader)
-            np_set = np.array(np_set[1:], dtype=np.float)
+            np_set = np.array(np_set[1:], dtype=float)
             mag_set_x = np.sort(np_set[:, -3])
             mag_set_y = np.sort(np_set[:, -2])
             mag_set_z = np.sort(np_set[:, -1])
@@ -916,3 +919,26 @@ def generate_eeglab_dataset(file_name, output_name):
     export.export_raw(output_name, raw_data,
                       fmt='eeglab',
                       overwrite=True, physical_range=[-400000, 400000])
+
+
+def compare_recover_from_bin(file_name_csv, file_name_device):
+    """Compares and recovers missing samples of csv file by comparing data from binary file
+
+            Args:
+            file_name_csv (str): Name of recorded csv file without extension
+            file_name_device_csv (str): Name of converted csv file
+        """
+    bin_df = pandas.read_csv(file_name_device + '_ExG.csv')
+    csv_df = pandas.read_csv(file_name_csv + '_ExG.csv')
+    meta_df = pandas.read_csv(file_name_csv + "_Meta.csv")
+    timestamp_key = 'TimeStamp'
+    sampling_rate = meta_df['sr'][0]
+    offset_ = meta_df["TimeOffset"][0]
+    offset_ = round(offset_, 4)
+    time_period = 1 / sampling_rate
+
+    start = csv_df[timestamp_key][0] - offset_ - time_period
+    stop = csv_df[timestamp_key][len(csv_df[timestamp_key]) - 1] - offset_ + time_period
+    bin_df = bin_df[(bin_df[timestamp_key] >= start) & (bin_df[timestamp_key] <= stop)]
+    bin_df[timestamp_key] = bin_df[timestamp_key] + offset_
+    bin_df.to_csv(file_name_csv + '_recovered_ExG.csv', index=False)

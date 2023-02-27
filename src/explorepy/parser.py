@@ -9,10 +9,9 @@ import explorepy
 from explorepy._exceptions import FletcherError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
-    TIMESTAMP_SCALE,
-    DeviceInfo,
-    DeviceInfoV2
+    TIMESTAMP_SCALE
 )
+from explorepy.settings_manager import SettingsManager
 from explorepy.tools import get_local_time
 
 
@@ -27,6 +26,7 @@ class Parser:
             callback (function): function to be called when new packet is received
             mode (str): Parsing mode either from an Explore device or a binary file {'device', 'file'}
         """
+        self.device_name = None
         self.mode = mode
         self.stream_interface = None
         self.device_configurator = None
@@ -44,6 +44,7 @@ class Parser:
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
+        self.device_name = device_name
         if explorepy.get_bt_interface() == 'sdk':
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
@@ -70,17 +71,16 @@ class Parser:
     def read_device_info(self, filename):
         self.stream_interface = FileHandler(filename)
         packet = None
-        while not (isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2)):
-            try:
-                packet = self._generate_packet()
-                self.callback(packet=packet)
-            except (IOError, ValueError, FletcherError) as error:
-                logger.error('Conversion ended incomplete. The binary file is corrupted.')
-                raise error
-            except EOFError:
-                logger.info('Reached end of the file')
-            finally:
-                self.stream_interface.disconnect()
+        try:
+            packet = self._generate_packet()
+            self.callback(packet=packet)
+        except (IOError, ValueError, FletcherError) as error:
+            logger.error('Conversion ended incomplete. The binary file is corrupted.')
+            raise error
+        except EOFError:
+            logger.info('Reached end of the file')
+        finally:
+            self.stream_interface.disconnect()
 
     def _stream(self, new_thread=True):
         self._do_streaming = True
@@ -101,6 +101,8 @@ class Parser:
             except ConnectionAbortedError as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 logger.warning("Device has been disconnected! Scanning for the last connected device...")
+                # saves current settings file
+                SettingsManager(self.device_name).save_current_session()
                 self._is_reconnecting = True
                 if self.stream_interface.reconnect() is None:
                     logger.warning("Could not find the device! "

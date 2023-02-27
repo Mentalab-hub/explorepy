@@ -1,6 +1,17 @@
 
 Changelog
 =========
+
+
+1.8.0 (27.2.2023)
+------------------
+* Add support for explore+ 16 ch device
+* Unit test integration with CI/CD
+* Repair CSV from binary data
+* Save current device settings on disconnection, restore them on demand
+* Receive external triggers from LSL
+
+
 1.7.0 (21.12.2022)
 ------------------
 * Add suppport for new explore+ 32 ch device
@@ -10,7 +21,7 @@ Changelog
 
 1.6.3 (25.10.2022)
 ------------------
-* Add new 8 channel Explore+ device 
+* Add new 8 channel Explore+ device
 
 
 1.6.2 (7.09.2022)

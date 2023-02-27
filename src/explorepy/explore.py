@@ -17,7 +17,6 @@ import logging
 import os
 import re
 import time
-from datetime import datetime
 from threading import Timer
 
 import numpy as np
@@ -170,6 +169,7 @@ class Explore:
                                                     file_type=file_type,
                                                     do_overwrite=do_overwrite)
 
+        #  TODO: make sure older timestamp in meta file was not used in any other software!
         if file_type == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
@@ -177,7 +177,7 @@ class Explore:
                                                           adc_mask=SettingsManager(self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
                                                           do_overwrite=do_overwrite,
-                                                          timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                                                          timestamp=str(self.stream_processor.parser._time_offset))  # noqa: E501
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
@@ -252,7 +252,9 @@ class Explore:
         self.mask = self.stream_processor.device_info['adc_mask']
         if 'board_id' in self.stream_processor.device_info:
             if 'PCB_304_801_XXX' in self.stream_processor.device_info['board_id']:
-                self.mask = [1 for i in range(0, 32)]
+                self.mask = [1 for _ in range(0, 32)]
+            if 'PCB_305_801_XXX' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for _ in range(0, 16)]
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],
@@ -282,8 +284,8 @@ class Explore:
         def device_info_callback(packet):
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
-                new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
-                new_meta_name = meta_out_file + "_" + str(np.round(packet.timestamp, 0))
+                new_file_name = exg_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_ExG'
+                new_meta_name = meta_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_Meta'
                 logger.warning("Creating a new file: " + new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
@@ -413,6 +415,16 @@ class Explore:
         """
         self._check_connection()
         self.stream_processor.set_marker(code=code)
+
+    def set_external_marker(self, time_lsl, marker_string):
+        """Sets a digital event marker while streaming
+
+        Args:
+            time_lsl (timestamp): timestamp from external marker)
+            marker_string (string): string to save as experiment marker)
+        """
+        self._check_connection()
+        self.stream_processor.set_ext_marker(time_lsl, marker_string)
 
     def format_memory(self):
         """Format memory of the device
