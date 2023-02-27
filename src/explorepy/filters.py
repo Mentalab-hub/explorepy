@@ -27,7 +27,8 @@ class ExGFilter:
             order (int): Filter order (default value: 5)
             n_chan (int): Number of channels
         """
-        self.s_rate = np.float(s_rate)
+        self.s_rate = float(s_rate)
+        nyq_freq = self.s_rate / 2.
         self.filter_type = filter_type
         self.filter_param = None
 
