@@ -159,7 +159,7 @@ class EEG94(EEG):
         n_chan = -1
         v_ref = 2.4
         n_packet = 33
-        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        data = data.reshape((n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.data_status = data[0, :]
@@ -212,7 +212,7 @@ class EEG98_USBC(EEG):
         n_chan = -1
         v_ref = 2.4
         n_packet = 16
-        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        data = data.reshape((n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
@@ -239,7 +239,7 @@ class EEG99s(EEG):
         n_chan = -1
         v_ref = 4.5
         n_packet = 16
-        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        data = data.reshape((n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data * v_ref / gain, 2)
         self.status = data[0, :]
@@ -266,7 +266,7 @@ class EEG99(EEG):
         n_chan = -1
         v_ref = 4.5
         n_packet = 16
-        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        data = data.reshape((n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data * v_ref / gain, 2)
 
@@ -300,7 +300,7 @@ class EEG32(EEG):
         # n_packet will be 5 in the future
 
         n_packet = 4
-        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        data = data.reshape((n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         # status bits will change in future releases as we need to use 4 bytes for 32 channel status
