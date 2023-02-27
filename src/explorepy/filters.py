@@ -28,7 +28,6 @@ class ExGFilter:
             n_chan (int): Number of channels
         """
         self.s_rate = float(s_rate)
-        nyq_freq = self.s_rate / 2.
         self.filter_type = filter_type
         self.filter_param = None
 
