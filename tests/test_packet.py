@@ -104,3 +104,11 @@ def test_check_fletcher(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
     eeg_out = parametrized_eeg_in_out['eeg_out']
     eeg._check_fletcher(bytes.fromhex(eeg_out['fletcher']))
+
+
+def test_convert_orn(orientation_in_out):
+    orn = orientation_in_out['orn_instance']
+    orn_out = orientation_in_out['orn_out']
+    np.testing.assert_array_equal(orn.acc, orn_out['acc'])
+    np.testing.assert_array_equal(orn.gyro, orn_out['gyr'])
+    np.testing.assert_array_equal(orn.mag, orn_out['mag'])

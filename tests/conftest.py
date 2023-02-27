@@ -11,6 +11,7 @@ from explorepy.packet import (
     EEG94,
     EEG98,
     EEG98_USBC,
+    Orientation,
     Packet
 )
 
@@ -141,8 +142,12 @@ def parametrized_eeg_in_out(request):
 
 @pytest.fixture(params=[(ORN_IN, ORN_OUT)], scope="module")
 def orientation_in_out(request):
+    orn_in = read_bin_to_byte_string(get_res_path(request.param[0]))
+    orn_out = read_json_to_dict(get_res_path(request.param[1]))
+    orn_instance = Orientation(get_timestamp_from_byte_string(orn_in), orn_in[8:], 0)
     data = {
-        'in': request.param[0],
-        'out': request.param[1]
+        'orn_in': orn_in,
+        'orn_instance': orn_instance,
+        'orn_out': orn_out
     }
     return data
