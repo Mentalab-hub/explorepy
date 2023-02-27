@@ -846,7 +846,7 @@ class PhysicalOrientation:
         with open((cache_dir + "_ORN.csv"), "r") as f_set:
             csv_reader = csv.reader(f_set, delimiter=",")
             np_set = list(csv_reader)
-            np_set = np.array(np_set[1:], dtype=np.float)
+            np_set = np.array(np_set[1:], dtype=float)
             mag_set_x = np.sort(np_set[:, -3])
             mag_set_y = np.sort(np_set[:, -2])
             mag_set_z = np.sort(np_set[:, -1])
