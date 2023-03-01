@@ -11,6 +11,7 @@ from explorepy.packet import (
     EEG94,
     EEG98,
     EEG98_USBC,
+    Environment,
     Orientation,
     Packet
 )
@@ -171,5 +172,18 @@ def compute_angle_in_out(request):
         'orn_instance': orn_instance,
         'axis': angle_out['axis'],
         'theta': angle_out['theta']
+    }
+    return data
+
+
+@pytest.fixture(params=[(ENV_IN, ENV_OUT)])
+def env_in_out(request):
+    env_in = read_bin_to_byte_string(get_res_path(request.param[0]))
+    env_instance = Environment(get_timestamp_from_byte_string(env_in), env_in[8:], 0)
+    env_out = read_json_to_dict(get_res_path(request.param[1]))
+    data = {
+        'env_in': env_in,
+        'env_instance': env_instance,
+        'env_out': env_out
     }
     return data

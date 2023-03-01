@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import explorepy.packet
-from explorepy.packet import Packet, Orientation
+from explorepy.packet import Packet, Environment
 
 
 EXPECTED_TIMESCALE = 10000
@@ -126,7 +126,7 @@ def test_get_data_orn(orientation_in_out):
     orn = orientation_in_out['orn_instance']
     orn_out = orientation_in_out['orn_out']
     ts, samples = orn.get_data()
-    assert [orn_out['raw_timestamp'] / 10000] == ts
+    assert [orn_out['raw_timestamp'] / EXPECTED_TIMESCALE] == ts
     ls = []
     ls.extend(orn_out['acc'])
     ls.extend(orn_out['gyr'])
@@ -140,3 +140,28 @@ def test_compute_angle(compute_angle_in_out):
     theta_out, axis_out = test_object.compute_angle(compute_angle_in_out['matrix'])
     assert theta_out == compute_angle_in_out['theta']
     np.testing.assert_array_almost_equal(axis_out, compute_angle_in_out['axis'])
+
+
+def test_check_fletcher_orn(orientation_in_out):
+    orn = orientation_in_out['orn_instance']
+    orn_out = orientation_in_out['orn_out']
+    orn._check_fletcher(bytes.fromhex(orn_out['fletcher']))
+
+
+def test_convert_env_temperature(env_in_out):
+    assert env_in_out['env_instance'].temperature == env_in_out['env_out']['temperature']
+
+
+def test_convert_env_light(env_in_out):
+    assert env_in_out['env_instance'].light == env_in_out['env_out']['light']
+
+
+def test_convert_env_battery(env_in_out):
+    assert env_in_out['env_instance'].battery == env_in_out['env_out']['battery']
+
+
+def test_volt_to_percent(env_in_out):
+    expected = env_in_out['env_out']['battery_percentage']
+    res = Environment._volt_to_percent(env_in_out['env_out']['battery'])
+    assert res == int(expected)
+
