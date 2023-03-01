@@ -165,3 +165,18 @@ def test_volt_to_percent(env_in_out):
     res = Environment._volt_to_percent(env_in_out['env_out']['battery'])
     assert res == int(expected)
 
+
+def test_get_data_env(env_in_out):
+    expected = {
+        "battery": [int(env_in_out['env_out']['battery_percentage'])],
+        "temperature": [env_in_out['env_out']['temperature']],
+        "light": [env_in_out['env_out']['light']]
+    }
+    assert env_in_out['env_instance'].get_data() == expected
+
+
+def test_check_fletcher_env(env_in_out):
+    env = env_in_out['env_instance']
+    env_out = env_in_out['env_out']
+    env._check_fletcher(bytes.fromhex(env_out['fletcher']))
+
