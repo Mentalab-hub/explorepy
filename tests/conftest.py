@@ -12,8 +12,15 @@ from explorepy.packet import (
     EEG98,
     EEG98_USBC,
     Environment,
+    EventMarker,
+    ExternalMarker,
     Orientation,
-    Packet
+    Packet,
+    PushButtonMarker,
+    SoftwareMarker,
+    TimeStamp,
+    TriggerIn,
+    TriggerOut
 )
 
 
@@ -31,7 +38,12 @@ CMD_STAT_IN = os.path.join(IN, "cmd_stat")
 DEV_INFO_IN = os.path.join(IN, "device_info")
 DEV_INFO_V2_IN = os.path.join(IN, "device_info_v2")
 ENV_IN = os.path.join(IN, "env")
+TS_IN = os.path.join(IN, "ts")  # Doesn't exist
 PUSH_MARKER_IN = os.path.join(IN, "push_marker")
+SOFTWARE_MARKER_IN = os.path.join(IN, "software_marker")  # Doesn't exist
+EXTERNAL_MARKER_IN = os.path.join(IN, "external_marker")  # Doesn't exist
+TRIGGER_IN_IN = os.path.join(IN, "trigger_in")  # Doesn't exist
+TRIGGER_OUT_IN = os.path.join(IN, "trigger_out")  # Doesn't exist
 
 MATRIX_IN = os.path.join(IN, "orn_matrix.txt")
 
@@ -46,7 +58,12 @@ CMD_STAT_OUT = os.path.join(OUT, "cmd_stat_out.txt")
 DEV_INFO_OUT = os.path.join(OUT, "device_info_out.txt")
 DEV_INFO_V2_OUT = os.path.join(OUT, "device_info_v2_out.txt")
 ENV_OUT = os.path.join(OUT, "env_out.txt")
+TS_OUT = os.path.join(OUT, "ts_out.txt")  # Doesn't exist
 PUSH_MARKER_OUT = os.path.join(OUT, "push_marker_out.txt")
+SOFTWARE_MARKER_OUT = os.path.join(OUT, "software_marker_out.txt")  # Doesn't exist
+EXTERNAL_MARKER_OUT = os.path.join(OUT, "external_marker_out.txt")
+TRIGGER_IN_OUT = os.path.join(OUT, "trigger_in_out.txt")  # Doesn't exist
+TRIGGER_OUT_OUT = os.path.join(OUT, "trigger_out_out.txt")  # Doesn't exist
 
 MATRIX_OUT = os.path.join(OUT, "axis_and_angle.txt")
 
@@ -70,7 +87,6 @@ def read_bin_to_byte_string(path):
     f = open(path, "rb")
     byte_string = f.read()
     f.close()
-
     return byte_string
 
 
@@ -100,7 +116,7 @@ def eeg_in_out_list():
     return EEG_IN_OUT_LIST
 
 
-@pytest.fixture(params=[Packet, EEG], scope="module")
+@pytest.fixture(params=[Packet, EEG, EventMarker], scope="module")
 def parametrized_abstract_packets(request):
     return request.param
 
@@ -185,5 +201,53 @@ def env_in_out(request):
         'env_in': env_in,
         'env_instance': env_instance,
         'env_out': env_out
+    }
+    return data
+
+
+@pytest.fixture(params=[(TS_IN, TS_OUT)])
+def ts_in_out(request):
+    try:
+        ts_in = read_bin_to_byte_string(get_res_path(request.param[0]))
+        ts_instance = TimeStamp(get_timestamp_from_byte_string(ts_in), ts_in[8:], 0)
+        ts_out = read_json_to_dict(get_res_path(request.param[1]))
+        data = {
+            'ts_in': ts_in,
+            'ts_instance': ts_instance,
+            'ts_out': ts_out
+        }
+        return data
+    except FileNotFoundError:
+        pytest.skip("TimeStamp input or output file not available")
+
+
+@pytest.fixture(params=[(PushButtonMarker, PUSH_MARKER_IN, PUSH_MARKER_OUT),
+                        (SoftwareMarker, SOFTWARE_MARKER_IN, SOFTWARE_MARKER_OUT),
+                        (ExternalMarker, EXTERNAL_MARKER_IN, EXTERNAL_MARKER_OUT)])
+def marker_in_out(request):
+    try:
+        marker_in = read_bin_to_byte_string(get_res_path(request.param[1]))
+        marker_instance = request.param[0](get_timestamp_from_byte_string(marker_in), marker_in[8:], 0)
+        marker_out = read_json_to_dict(get_res_path(request.param[2]))
+        data = {
+            'marker_in': marker_in,
+            'marker_instance': marker_instance,
+            'marker_out': marker_out
+        }
+        return data
+    except FileNotFoundError:
+        pytest.skip(f"Input or output file not available for {request.param[0]}")
+
+
+@pytest.fixture(params=[(TriggerIn, TRIGGER_IN_IN, TRIGGER_IN_OUT),
+                        (TriggerOut, TRIGGER_OUT_IN, TRIGGER_OUT_OUT)])
+def triggers_in_out(request):
+    triggers_in = read_bin_to_byte_string(get_res_path(request.param[1]))
+    triggers_instance = request.param[0](get_timestamp_from_byte_string(triggers_in), triggers_in[8:], 0)
+    triggers_out = read_json_to_dict(get_res_path(request.param[2]))
+    data = {
+        'triggers_in': triggers_in,
+        'triggers_instance': triggers_instance,
+        'triggers_out': triggers_out
     }
     return data

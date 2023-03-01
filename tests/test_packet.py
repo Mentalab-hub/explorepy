@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import explorepy.packet
-from explorepy.packet import Packet, Environment
+from explorepy.packet import Environment, ExternalMarker, Packet, SoftwareMarker
 
 
 EXPECTED_TIMESCALE = 10000
@@ -181,15 +181,63 @@ def test_check_fletcher_env(env_in_out):
     env._check_fletcher(bytes.fromhex(env_out['fletcher']))
 
 
-@pytest.mark.skip(reason="No timestamp packet available to test with")
 def test_convert_ts(ts_in_out):
     ts = ts_in_out['ts_instance']
     ts_out = ts_in_out['ts_out']
     assert ts.host_timestamp == ts_out['host_timestamp']
 
 
-@pytest.mark.skip(reason="No timestamp packet available to test with")
 def test_check_fletcher_ts(ts_in_out):
     ts = ts_in_out['ts_instance']
     ts_out = ts_in_out['ts_out']
     ts._check_fletcher(bytes.fromhex(ts_out['fletcher']))
+
+
+def test_convert_marker(marker_in_out):
+    marker = marker_in_out['marker_instance']
+    marker_out = marker_in_out['marker_out']
+    assert marker.code == marker_out['marker']
+
+
+def test_label_prefix_marker(marker_in_out):
+    marker = marker_in_out['marker_instance']
+    marker_out = marker_in_out['marker_out']
+    assert marker._label_prefix == marker_out['label_prefix']
+
+
+def test_check_fletcher_marker(marker_in_out):
+    marker = marker_in_out['marker_instance']
+    marker_out = marker_in_out['marker_out']
+    marker._check_fletcher(bytes.fromhex(marker_out['fletcher']))
+
+
+@pytest.mark.parametrize("input_values,valid", [((12345, 0), True),
+                                                ((0, 65535), True),
+                                                ((42.42, 65536), False),
+                                                ((12345, -1), False)])
+def test_create_software_marker(input_values, valid):
+    if not valid:
+        with pytest.raises(Exception):
+            SoftwareMarker.create(input_values[0], input_values[1])
+    else:
+        out = SoftwareMarker.create(input_values[0], input_values[1])
+        assert out.code == input_values[1]
+        assert out._label_prefix == "sw_"
+        assert out.timestamp == input_values[0]
+
+
+@pytest.mark.parametrize("input_values,valid", [((12345, "Experiment 0"), True),
+                                                ((42.42, "Short marker"), True),
+                                                ((12345, "Exp_1"), True),
+                                                ((0, -1), False),
+                                                ((0, "Marker that is way too long"), False),
+                                                ((0, ""), False)])
+def test_create_external_marker(input_values, valid):
+    if not valid:
+        with pytest.raises(Exception):
+            ExternalMarker.create(input_values[0], input_values[1])
+    else:
+        out = ExternalMarker.create(input_values[0], input_values[1])
+        assert out.code == input_values[1]
+        assert out._label_prefix == "ext_"
+        assert out.timestamp == input_values[0]
