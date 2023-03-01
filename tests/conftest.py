@@ -32,6 +32,8 @@ DEV_INFO_V2_IN = os.path.join(IN, "device_info_v2")
 ENV_IN = os.path.join(IN, "env")
 PUSH_MARKER_IN = os.path.join(IN, "push_marker")
 
+MATRIX_IN = os.path.join(IN, "orn_matrix.txt")
+
 EEG94_OUT = os.path.join(OUT, "eeg94_out.txt")
 EEG98_OUT = os.path.join(OUT, "eeg98_out.txt")
 EEG98_USBC_OUT = os.path.join(OUT, "eeg98_usbc_out.txt")
@@ -44,6 +46,8 @@ DEV_INFO_OUT = os.path.join(OUT, "device_info_out.txt")
 DEV_INFO_V2_OUT = os.path.join(OUT, "device_info_v2_out.txt")
 ENV_OUT = os.path.join(OUT, "env_out.txt")
 PUSH_MARKER_OUT = os.path.join(OUT, "push_marker_out.txt")
+
+MATRIX_OUT = os.path.join(OUT, "axis_and_angle.txt")
 
 EEG_IN_OUT_LIST = [
     (EEG94, EEG94_IN, EEG94_OUT),
@@ -149,5 +153,23 @@ def orientation_in_out(request):
         'orn_in': orn_in,
         'orn_instance': orn_instance,
         'orn_out': orn_out
+    }
+    return data
+
+
+# Note that ORN_IN is only necessary because compute_angle is not static,
+# but the instance isn't used in the method
+# compute_angle could be split into a static compute_angle function and a set_angle method
+@pytest.fixture(params=[(MATRIX_IN, MATRIX_OUT, ORN_IN)], scope="module")
+def compute_angle_in_out(request):
+    matrix_in = read_json_to_dict(get_res_path(request.param[0]))['matrix']
+    angle_out = read_json_to_dict(get_res_path(request.param[1]))
+    orn_in = read_bin_to_byte_string(get_res_path(request.param[2]))
+    orn_instance = Orientation(get_timestamp_from_byte_string(orn_in), orn_in[8:], 0)
+    data = {
+        'matrix': matrix_in,
+        'orn_instance': orn_instance,
+        'axis': angle_out['axis'],
+        'theta': angle_out['theta']
     }
     return data

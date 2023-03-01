@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import explorepy.packet
-from explorepy.packet import Packet
+from explorepy.packet import Packet, Orientation
+
+
+EXPECTED_TIMESCALE = 10000
 
 
 def read_bin_to_byte_string(path):
@@ -20,15 +23,19 @@ def get_first_status_as_tuple(status_list):
     return first_byte, second_byte, third_byte
 
 
+def xfail_on_unexpected_timescale():
+    if explorepy.packet.TIMESTAMP_SCALE != EXPECTED_TIMESCALE:
+        pytest.xfail(
+            f"packet.py's TIMESTAMP_SCALE has changed. Expected: 10000, got: {explorepy.packet.TIMESTAMP_SCALE}")
+
+
 def test_is_abstract(parametrized_abstract_packets):
     with pytest.raises(Exception):
         parametrized_abstract_packets(1234, b'\xff\xff\xff\xff', 0)
 
 
 def test_abstract_timestamp_correct(mocker, parametrized_abstract_packets):
-    if explorepy.packet.TIMESTAMP_SCALE != 10000:
-        pytest.xfail(
-            f"packet.py's TIMESTAMP_SCALE has changed. Expected: 10000, got: {explorepy.packet.TIMESTAMP_SCALE}")
+    xfail_on_unexpected_timescale()
     if hasattr(parametrized_abstract_packets, "__abstractmethods__"):
         if len(parametrized_abstract_packets.__abstractmethods__) != 0:
             mocker.patch.multiple(parametrized_abstract_packets, __abstractmethods__=set())
@@ -112,3 +119,24 @@ def test_convert_orn(orientation_in_out):
     np.testing.assert_array_equal(orn.acc, orn_out['acc'])
     np.testing.assert_array_equal(orn.gyro, orn_out['gyr'])
     np.testing.assert_array_equal(orn.mag, orn_out['mag'])
+
+
+def test_get_data_orn(orientation_in_out):
+    xfail_on_unexpected_timescale()
+    orn = orientation_in_out['orn_instance']
+    orn_out = orientation_in_out['orn_out']
+    ts, samples = orn.get_data()
+    assert [orn_out['raw_timestamp'] / 10000] == ts
+    ls = []
+    ls.extend(orn_out['acc'])
+    ls.extend(orn_out['gyr'])
+    ls.extend(orn_out['mag'])
+    np.testing.assert_array_almost_equal(samples, ls)
+
+
+def test_compute_angle(compute_angle_in_out):
+    test_object = compute_angle_in_out['orn_instance']
+    print(f"Passed matrix: {compute_angle_in_out['matrix']}")
+    theta_out, axis_out = test_object.compute_angle(compute_angle_in_out['matrix'])
+    assert theta_out == compute_angle_in_out['theta']
+    np.testing.assert_array_almost_equal(axis_out, compute_angle_in_out['axis'])
