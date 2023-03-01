@@ -180,3 +180,16 @@ def test_check_fletcher_env(env_in_out):
     env_out = env_in_out['env_out']
     env._check_fletcher(bytes.fromhex(env_out['fletcher']))
 
+
+@pytest.mark.skip(reason="No timestamp packet available to test with")
+def test_convert_ts(ts_in_out):
+    ts = ts_in_out['ts_instance']
+    ts_out = ts_in_out['ts_out']
+    assert ts.host_timestamp == ts_out['host_timestamp']
+
+
+@pytest.mark.skip(reason="No timestamp packet available to test with")
+def test_check_fletcher_ts(ts_in_out):
+    ts = ts_in_out['ts_instance']
+    ts_out = ts_in_out['ts_out']
+    ts._check_fletcher(bytes.fromhex(ts_out['fletcher']))
