@@ -123,6 +123,22 @@ def eeg_in_out_list():
     return EEG_IN_OUT_LIST
 
 
+def data_from_files(path_in, path_out, class_name, field_names, offset=0):
+    bin_in = read_bin_to_byte_string(get_res_path(path_in))
+    as_instance = class_name(get_timestamp_from_byte_string(bin_in), bin_in[8:], offset)
+    dict_out = read_json_to_dict(get_res_path(path_out))
+    data = dict()
+    if 'instance' in field_names:
+        data[field_names['instance']] = as_instance
+    if 'out' in field_names:
+        data[field_names['out']] = dict_out
+    if 'in' in field_names:
+        data[field_names['in']] = bin_in
+    if 'class_name' in field_names:
+        data[field_names['class_name']] = class_name
+    return data
+
+
 @pytest.fixture(params=[Packet, EEG, EventMarker], scope="module")
 def parametrized_abstract_packets(request):
     return request.param
@@ -288,12 +304,11 @@ def device_info_in_out(request):
 
 @pytest.fixture(params=[(DEV_INFO_V2_IN, DEV_INFO_V2_OUT)])
 def device_info_v2_in_out(request):
-    dev_info_v2_in = read_bin_to_byte_string(get_res_path(request.param[0]))
-    dev_info_v2_instance = DeviceInfoV2(get_timestamp_from_byte_string(dev_info_v2_in), dev_info_v2_in[8:], 0)
-    dev_info_v2_out = read_json_to_dict(get_res_path(request.param[1]))
-    data = {
-        'dev_info_v2_in': dev_info_v2_in,
-        'dev_info_v2_instance': dev_info_v2_instance,
-        'dev_info_v2_out': dev_info_v2_out
-    }
-    return data
+    field_names = {'instance': 'dev_info_v2_instance',
+                   'out': 'dev_info_v2_out'}
+    return data_from_files(request.param[0], request.param[1], DeviceInfoV2, field_names)
+
+
+#@pytest.fixture(params=[(CMD_RCV_IN, CMD_RCV_OUT)])
+#def cmd_rcv_in_out(request):
+#    return None
