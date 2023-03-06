@@ -17,7 +17,7 @@ from appdirs import (
 from explorepy._exceptions import DeviceNotFoundError
 
 
-_IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError]
+_IGNORED_EXC_BY_SENTRY = [DeviceNotFoundError, FileExistsError, KeyboardInterrupt]
 
 USER_SETTING_KEY = "user settings"
 SHARE_LOG_PERMISSION_KEY = "share_logs"
@@ -46,8 +46,6 @@ console_log_handler.setLevel(logging.INFO)
 explorepy_logger.addHandler(file_log_handler)
 explorepy_logger.addHandler(console_log_handler)
 logging.getLogger().addHandler(file_log_handler)
-
-ignore_errors = [KeyboardInterrupt]
 
 
 def setup_thread_excepthook():
@@ -189,7 +187,7 @@ def set_sentry_tag(tag_key, tag_value):
 sentry_sdk.init(
     "https://aefd994b53a54554b771899782581728@o522106.ingest.sentry.io/5633082",
     traces_sample_rate=1.0,
-    ignore_errors=ignore_errors
+    ignore_errors=_IGNORED_EXC_BY_SENTRY
 )
 
 setup_thread_excepthook()
