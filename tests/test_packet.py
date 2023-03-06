@@ -391,7 +391,7 @@ def test_convert_cmd_stat_status(cmd_stat_in_out):
 def test_cmd_stat_check_fletcher(cmd_stat_in_out):
     cmd_stat_instance = cmd_stat_in_out['cmd_stat_instance']
     cmd_stat_out = cmd_stat_in_out['cmd_stat_out']
-    assert cmd_stat_instance._check_fletcher(bytes.fromhex(cmd_stat_out['fletcher']))
+    cmd_stat_instance._check_fletcher(bytes.fromhex(cmd_stat_out['fletcher']))
 
 
 def test_convert_calib_info_slope(calibration_info_in_out):
@@ -427,3 +427,16 @@ def test_calib_info_usbc_convert_offset(calibration_info_usbc_in_out):
     calib_info_usbc_instance = calibration_info_usbc_in_out['calib_info_usbc_instance']
     calib_info_usbc_out = calibration_info_usbc_in_out['calib_info_usbc_out']
     assert pytest.approx(calib_info_usbc_instance.offset) == calib_info_usbc_out['offset']
+
+
+def test_calib_info_usbc_get_info(calibration_info_usbc_in_out):
+    dict_out = {
+        'slope': calibration_info_usbc_in_out['calib_info_usbc_out']['slope'],
+        'offset': calibration_info_usbc_in_out['calib_info_usbc_out']['offset']
+    }
+    assert calibration_info_usbc_in_out['calib_info_usbc_instance'].get_info() == dict_out
+
+
+def test_calib_info_usbc_check_fletcher(calibration_info_usbc_in_out):
+    fletcher_out = bytes.fromhex(calibration_info_usbc_in_out['calib_info_usbc_out']['fletcher'])
+    calibration_info_usbc_in_out['calib_info_usbc_instance']._check_fletcher(fletcher_out)
