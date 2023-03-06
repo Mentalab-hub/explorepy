@@ -170,31 +170,18 @@ def parametrized_int24toint32_in_out(request):
 
 @pytest.fixture(params=eeg_in_out_list(), scope="module")
 def parametrized_eeg_in_out(request):
-    class_type = request.param[0]
-    path_in = request.param[1]
-    path_out = request.param[2]
-    eeg_in = read_bin_to_byte_string(get_res_path(path_in))
-    eeg_out = read_json_to_dict(get_res_path(path_out))
-    ts = get_timestamp_from_byte_string(eeg_in)
-    eeg_instance = class_type(ts, eeg_in[8:], 0)
-    data = {'eeg_class': class_type,
-            'eeg_instance': eeg_instance,
-            'eeg_in': eeg_in,
-            'eeg_out': eeg_out}
-    return data
+    field_names = {'class_name': 'eeg_class',
+                   'in': 'eeg_in',
+                   'instance': 'eeg_instance',
+                   'out': 'eeg_out'}
+    return data_from_files(request.param[1], request.param[2], request.param[0], field_names)
 
 
 @pytest.fixture(params=[(ORN_IN, ORN_OUT)], scope="module")
 def orientation_in_out(request):
-    orn_in = read_bin_to_byte_string(get_res_path(request.param[0]))
-    orn_out = read_json_to_dict(get_res_path(request.param[1]))
-    orn_instance = Orientation(get_timestamp_from_byte_string(orn_in), orn_in[8:], 0)
-    data = {
-        'orn_in': orn_in,
-        'orn_instance': orn_instance,
-        'orn_out': orn_out
-    }
-    return data
+    field_names = {'instance': 'orn_instance',
+                   'out': 'orn_out'}
+    return data_from_files(request.param[0], request.param[1], Orientation, field_names)
 
 
 # Note that ORN_IN is only necessary because compute_angle is not static,
@@ -217,29 +204,17 @@ def compute_angle_in_out(request):
 
 @pytest.fixture(params=[(ENV_IN, ENV_OUT)])
 def env_in_out(request):
-    env_in = read_bin_to_byte_string(get_res_path(request.param[0]))
-    env_instance = Environment(get_timestamp_from_byte_string(env_in), env_in[8:], 0)
-    env_out = read_json_to_dict(get_res_path(request.param[1]))
-    data = {
-        'env_in': env_in,
-        'env_instance': env_instance,
-        'env_out': env_out
-    }
-    return data
+    field_names = {'instance': 'env_instance',
+                   'out': 'env_out'}
+    return data_from_files(request.param[0], request.param[1], Environment, field_names)
 
 
 @pytest.fixture(params=[(TS_IN, TS_OUT)])
 def ts_in_out(request):
     try:
-        ts_in = read_bin_to_byte_string(get_res_path(request.param[0]))
-        ts_instance = TimeStamp(get_timestamp_from_byte_string(ts_in), ts_in[8:], 0)
-        ts_out = read_json_to_dict(get_res_path(request.param[1]))
-        data = {
-            'ts_in': ts_in,
-            'ts_instance': ts_instance,
-            'ts_out': ts_out
-        }
-        return data
+        field_names = {'instance': 'ts_instance',
+                       'out': 'ts_out'}
+        return data_from_files(request.param[0], request.param[1], TimeStamp, field_names)
     except FileNotFoundError:
         pytest.skip("TimeStamp input or output file not available")
 
@@ -249,15 +224,9 @@ def ts_in_out(request):
                         (ExternalMarker, EXTERNAL_MARKER_IN, EXTERNAL_MARKER_OUT)])
 def marker_in_out(request):
     try:
-        marker_in = read_bin_to_byte_string(get_res_path(request.param[1]))
-        marker_instance = request.param[0](get_timestamp_from_byte_string(marker_in), marker_in[8:], 0)
-        marker_out = read_json_to_dict(get_res_path(request.param[2]))
-        data = {
-            'marker_in': marker_in,
-            'marker_instance': marker_instance,
-            'marker_out': marker_out
-        }
-        return data
+        field_names = {'instance': 'marker_instance',
+                       'out': 'marker_out'}
+        return data_from_files(request.param[1], request.param[2], request.param[0], field_names)
     except FileNotFoundError:
         pytest.skip(f"Input or output file not available for {request.param[0]}")
 
@@ -265,41 +234,23 @@ def marker_in_out(request):
 @pytest.fixture(params=[(TriggerIn, TRIGGER_IN_IN, TRIGGER_IN_OUT),
                         (TriggerOut, TRIGGER_OUT_IN, TRIGGER_OUT_OUT)])
 def triggers_in_out(request):
-    triggers_in = read_bin_to_byte_string(get_res_path(request.param[1]))
-    triggers_instance = request.param[0](get_timestamp_from_byte_string(triggers_in), triggers_in[8:], 0)
-    triggers_out = read_json_to_dict(get_res_path(request.param[2]))
-    data = {
-        'triggers_in': triggers_in,
-        'triggers_instance': triggers_instance,
-        'triggers_out': triggers_out
-    }
-    return data
+    field_names = {'instance': 'triggers_instance',
+                   'out': 'triggers_out'}
+    return data_from_files(request.param[1], request.param[2], request.param[0], field_names)
 
 
 @pytest.fixture(params=[(DISCONNECT_IN, DISCONNECT_OUT)])
 def disconnect_in_out(request):
-    disconnect_in = read_bin_to_byte_string(get_res_path(request.param[0]))
-    disconnect_instance = Disconnect(get_timestamp_from_byte_string(disconnect_in), disconnect_in[8:], 0)
-    disconnect_out = read_json_to_dict(get_res_path(request.param[1]))
-    data = {
-        'disconnect_in': disconnect_in,
-        'disconnect_instance': disconnect_instance,
-        'disconnect_out': disconnect_out
-    }
-    return data
+    field_names = {'instance': 'disconnect_instance',
+                   'out': 'disconnect_out'}
+    return data_from_files(request.param[0], request.param[1], Disconnect, field_names)
 
 
 @pytest.fixture(params=[(DEV_INFO_IN, DEV_INFO_OUT)])
 def device_info_in_out(request):
-    dev_info_in = read_bin_to_byte_string(get_res_path(request.param[0]))
-    dev_info_instance = DeviceInfo(get_timestamp_from_byte_string(dev_info_in), dev_info_in[8:], 0)
-    dev_info_out = read_json_to_dict(get_res_path(request.param[1]))
-    data = {
-        'dev_info_in': dev_info_in,
-        'dev_info_instance': dev_info_instance,
-        'dev_info_out': dev_info_out
-    }
-    return data
+    field_names = {'instance': 'dev_info_instance',
+                   'out': 'dev_info_out'}
+    return data_from_files(request.param[0], request.param[1], DeviceInfo, field_names)
 
 
 @pytest.fixture(params=[(DEV_INFO_V2_IN, DEV_INFO_V2_OUT)])
@@ -308,7 +259,3 @@ def device_info_v2_in_out(request):
                    'out': 'dev_info_v2_out'}
     return data_from_files(request.param[0], request.param[1], DeviceInfoV2, field_names)
 
-
-#@pytest.fixture(params=[(CMD_RCV_IN, CMD_RCV_OUT)])
-#def cmd_rcv_in_out(request):
-#    return None
