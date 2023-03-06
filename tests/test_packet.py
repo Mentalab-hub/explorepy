@@ -284,7 +284,6 @@ def test_triggers_check_fletcher(triggers_in_out):
     trigger_instance._check_fletcher(bytes.fromhex(triggers_in_out['fletcher']))
 
 
-@pytest.mark.skip(reason="No Disconnect test data available")
 def test_disconnect_check_fletcher(disconnect_in_out):
     disconnect_instance = disconnect_in_out['disconnect_instance']
     disconnect_out = disconnect_in_out['disconnect_out']
