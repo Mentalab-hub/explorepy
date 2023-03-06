@@ -2,7 +2,14 @@ import numpy as np
 import pytest
 
 import explorepy.packet
-from explorepy.packet import Environment, ExternalMarker, Packet, SoftwareMarker
+from explorepy.packet import (
+    EEG,
+    Environment,
+    EventMarker,
+    ExternalMarker,
+    Packet,
+    SoftwareMarker
+)
 
 
 EXPECTED_TIMESCALE = 10000
@@ -77,6 +84,11 @@ def test_ptp_no_data(mocked_eeg_base):
     mocked_eeg_base.data = b'\xaf\xbe\xad\xde'
     with pytest.raises(Exception):
         mocked_eeg_base.get_ptp()
+
+
+def test_is_eeg(parametrized_eeg_in_out):
+    eeg_instance = parametrized_eeg_in_out['eeg_instance']
+    assert isinstance(eeg_instance, EEG)
 
 
 def test_status(parametrized_eeg_in_out):
@@ -193,6 +205,11 @@ def test_check_fletcher_ts(ts_in_out):
     ts._check_fletcher(bytes.fromhex(ts_out['fletcher']))
 
 
+def test_marker_is_eventmarker(marker_in_out):
+    marker = marker_in_out['marker_instance']
+    assert isinstance(marker, EventMarker)
+
+
 def test_convert_marker(marker_in_out):
     marker = marker_in_out['marker_instance']
     marker_out = marker_in_out['marker_out']
@@ -211,6 +228,8 @@ def test_check_fletcher_marker(marker_in_out):
     marker._check_fletcher(bytes.fromhex(marker_out['fletcher']))
 
 
+# TODO could change these to be one "create marker"?
+# TODO possibly split in 3
 @pytest.mark.parametrize("input_values,valid", [((12345, 0), True),
                                                 ((0, 65535), True),
                                                 ((42.42, 65536), False),
@@ -226,6 +245,7 @@ def test_create_software_marker(input_values, valid):
         assert out.timestamp == input_values[0]
 
 
+# TODO possibly split in 3
 @pytest.mark.parametrize("input_values,valid", [((12345, "Experiment 0"), True),
                                                 ((42.42, "Short marker"), True),
                                                 ((12345, "Exp_1"), True),
@@ -241,3 +261,104 @@ def test_create_external_marker(input_values, valid):
         assert out.code == input_values[1]
         assert out._label_prefix == "ext_"
         assert out.timestamp == input_values[0]
+
+
+@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
+def test_triggers_is_eventmarker(triggers_in_out):
+    assert isinstance(triggers_in_out['triggers_instance'], EventMarker)
+
+
+# TODO possibly split in 3
+@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
+def test_convert_triggers(triggers_in_out):
+    trigger_instance = triggers_in_out['triggers_instance']
+    trigger_out = triggers_in_out['triggers_out']
+    assert trigger_instance.timestamp == trigger_out['timestamp']
+    assert trigger_instance.code == trigger_out['code']
+    assert trigger_instance.mac_address == trigger_out['mac_address']
+
+
+@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
+def test_triggers_check_fletcher(triggers_in_out):
+    trigger_instance = triggers_in_out['triggers_instance']
+    trigger_instance._check_fletcher(bytes.fromhex(triggers_in_out['fletcher']))
+
+
+@pytest.mark.skip(reason="No Disconnect test data available")
+def test_disconnect_check_fletcher(disconnect_in_out):
+    disconnect_instance = disconnect_in_out['disconnect_instance']
+    disconnect_out = disconnect_in_out['disconnect_out']
+    disconnect_instance._check_fletcher(disconnect_out['fletcher'])
+
+
+def test_convert_device_info_fw(device_info_in_out):
+    dev_info_instance = device_info_in_out['dev_info_instance']
+    dev_info_out = device_info_in_out['dev_info_out']
+    assert dev_info_instance.firmware_version == dev_info_out['fw_version']
+
+
+def test_convert_device_info_sr(device_info_in_out):
+    dev_info_instance = device_info_in_out['dev_info_instance']
+    dev_info_out = device_info_in_out['dev_info_out']
+    assert dev_info_instance.sampling_rate == dev_info_out['data_rate']
+
+
+def test_convert_device_info_adc_mask(device_info_in_out):
+    dev_info_instance = device_info_in_out['dev_info_instance']
+    dev_info_out = device_info_in_out['dev_info_out']
+    assert dev_info_instance.adc_mask == dev_info_out['adc_mask']
+
+
+def test_device_info_get_data(device_info_in_out):
+    dev_info_instance = device_info_in_out['dev_info_instance']
+    dev_info_out = device_info_in_out['dev_info_out']
+    assert dev_info_instance.get_data() == {'firmware_version': [dev_info_out['fw_version']]}
+
+
+def test_convert_device_info_v2_board_id(device_info_v2_in_out):
+    dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
+    dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
+    assert dev_info_v2_instance.board_id == dev_info_v2_out['board_id']
+
+
+def test_convert_device_info_v2_fw(device_info_v2_in_out):
+    dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
+    dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
+    assert dev_info_v2_instance.firmware_version == dev_info_v2_out['fw_version']
+
+
+def test_convert_device_info_v2_sr(device_info_v2_in_out):
+    dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
+    dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
+    assert dev_info_v2_instance.sampling_rate == dev_info_v2_out['data_rate']
+
+
+def test_convert_device_info_v2_adc_mask(device_info_v2_in_out):
+    dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
+    dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
+    assert dev_info_v2_instance.adc_mask == dev_info_v2_out['adc_mask']
+
+
+def test_convert_device_info_v2_memory_available(device_info_v2_in_out):
+    dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
+    dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
+    assert dev_info_v2_instance.is_memory_available == dev_info_v2_out['memory']
+
+
+def test_device_info_v2_get_info(device_info_v2_in_out):
+    dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
+    dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
+    out_dict = {
+        'firmware_version': dev_info_v2_out['fw_version'],
+        'adc_mask': dev_info_v2_out['adc_mask'],
+        'sampling_rate': dev_info_v2_out['data_rate'],
+        'board_id': dev_info_v2_out['board_id'],
+        'memory_info': dev_info_v2_out['memory']
+    }
+    assert dev_info_v2_instance.get_info() == out_dict
+
+
+def test_device_info_v2_get_data(device_info_v2_in_out):
+    dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
+    dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
+    assert dev_info_v2_instance.get_data() == {'firmware_version': [dev_info_v2_out['fw_version']]}

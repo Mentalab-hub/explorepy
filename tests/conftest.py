@@ -5,7 +5,12 @@ import struct
 import numpy as np
 import pytest
 
+import pandas as pd
+
 from explorepy.packet import (
+    DeviceInfo,
+    DeviceInfoV2,
+    Disconnect,
     EEG,
     EEG32,
     EEG94,
@@ -44,6 +49,7 @@ SOFTWARE_MARKER_IN = os.path.join(IN, "software_marker")  # Doesn't exist
 EXTERNAL_MARKER_IN = os.path.join(IN, "external_marker")  # Doesn't exist
 TRIGGER_IN_IN = os.path.join(IN, "trigger_in")  # Doesn't exist
 TRIGGER_OUT_IN = os.path.join(IN, "trigger_out")  # Doesn't exist
+DISCONNECT_IN = os.path.join(IN, "disconnect")  # Doesn't exist
 
 MATRIX_IN = os.path.join(IN, "orn_matrix.txt")
 
@@ -64,6 +70,7 @@ SOFTWARE_MARKER_OUT = os.path.join(OUT, "software_marker_out.txt")  # Doesn't ex
 EXTERNAL_MARKER_OUT = os.path.join(OUT, "external_marker_out.txt")
 TRIGGER_IN_OUT = os.path.join(OUT, "trigger_in_out.txt")  # Doesn't exist
 TRIGGER_OUT_OUT = os.path.join(OUT, "trigger_out_out.txt")  # Doesn't exist
+DISCONNECT_OUT = os.path.join(OUT, "disconnect_out.txt")  # Doesn't exist
 
 MATRIX_OUT = os.path.join(OUT, "axis_and_angle.txt")
 
@@ -249,5 +256,44 @@ def triggers_in_out(request):
         'triggers_in': triggers_in,
         'triggers_instance': triggers_instance,
         'triggers_out': triggers_out
+    }
+    return data
+
+
+@pytest.fixture(params=[(DISCONNECT_IN, DISCONNECT_OUT)])
+def disconnect_in_out(request):
+    disconnect_in = read_bin_to_byte_string(get_res_path(request.param[0]))
+    disconnect_instance = Disconnect(get_timestamp_from_byte_string(disconnect_in), disconnect_in[8:], 0)
+    disconnect_out = read_json_to_dict(get_res_path(request.param[1]))
+    data = {
+        'disconnect_in': disconnect_in,
+        'disconnect_instance': disconnect_instance,
+        'disconnect_out': disconnect_out
+    }
+    return data
+
+
+@pytest.fixture(params=[(DEV_INFO_IN, DEV_INFO_OUT)])
+def device_info_in_out(request):
+    dev_info_in = read_bin_to_byte_string(get_res_path(request.param[0]))
+    dev_info_instance = DeviceInfo(get_timestamp_from_byte_string(dev_info_in), dev_info_in[8:], 0)
+    dev_info_out = read_json_to_dict(get_res_path(request.param[1]))
+    data = {
+        'dev_info_in': dev_info_in,
+        'dev_info_instance': dev_info_instance,
+        'dev_info_out': dev_info_out
+    }
+    return data
+
+
+@pytest.fixture(params=[(DEV_INFO_V2_IN, DEV_INFO_V2_OUT)])
+def device_info_v2_in_out(request):
+    dev_info_v2_in = read_bin_to_byte_string(get_res_path(request.param[0]))
+    dev_info_v2_instance = DeviceInfoV2(get_timestamp_from_byte_string(dev_info_v2_in), dev_info_v2_in[8:], 0)
+    dev_info_v2_out = read_json_to_dict(get_res_path(request.param[1]))
+    data = {
+        'dev_info_v2_in': dev_info_v2_in,
+        'dev_info_v2_instance': dev_info_v2_instance,
+        'dev_info_v2_out': dev_info_v2_out
     }
     return data

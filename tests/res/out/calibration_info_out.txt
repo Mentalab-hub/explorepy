@@ -1,0 +1,1 @@
+{"id": 195, "count": 0, "payload_length": 12, "raw_timestamp": 880313, "raw_slope": 21975, "raw_offset": 41458, "fletcher": "afbeadde"}

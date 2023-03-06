@@ -1,0 +1,1 @@
+{"id": 192, "count": 94, "payload_length": 13, "raw_timestamp": 156788242, "received_opcode": 167, "received_time": 17712151, "fletcher": "afbeadde"}
