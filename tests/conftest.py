@@ -5,9 +5,11 @@ import struct
 import numpy as np
 import pytest
 
-import pandas as pd
-
 from explorepy.packet import (
+    CalibrationInfo,
+    CalibrationInfo_USBC,
+    CommandRCV,
+    CommandStatus,
     DeviceInfo,
     DeviceInfoV2,
     Disconnect,
@@ -50,6 +52,9 @@ EXTERNAL_MARKER_IN = os.path.join(IN, "external_marker")  # Doesn't exist
 TRIGGER_IN_IN = os.path.join(IN, "trigger_in")  # Doesn't exist
 TRIGGER_OUT_IN = os.path.join(IN, "trigger_out")  # Doesn't exist
 DISCONNECT_IN = os.path.join(IN, "disconnect")  # Doesn't exist
+CMD_RCV_IN = os.path.join(IN, "cmd_rcv")
+CALIB_INFO_IN = os.path.join(IN, "calibration_info")
+CALIB_INFO_USBC_IN = os.path.join(IN, "calibration_info_usbc")
 
 MATRIX_IN = os.path.join(IN, "orn_matrix.txt")
 
@@ -71,6 +76,9 @@ EXTERNAL_MARKER_OUT = os.path.join(OUT, "external_marker_out.txt")
 TRIGGER_IN_OUT = os.path.join(OUT, "trigger_in_out.txt")  # Doesn't exist
 TRIGGER_OUT_OUT = os.path.join(OUT, "trigger_out_out.txt")  # Doesn't exist
 DISCONNECT_OUT = os.path.join(OUT, "disconnect_out.txt")  # Doesn't exist
+CMD_RCV_OUT = os.path.join(OUT, "cmd_rcv_out.txt")
+CALIB_INFO_OUT = os.path.join(OUT, "calibration_info_out.txt")
+CALIB_INFO_USBC_OUT = os.path.join(OUT, "calibration_info_usbc_out.txt")
 
 MATRIX_OUT = os.path.join(OUT, "axis_and_angle.txt")
 
@@ -259,3 +267,38 @@ def device_info_v2_in_out(request):
                    'out': 'dev_info_v2_out'}
     return data_from_files(request.param[0], request.param[1], DeviceInfoV2, field_names)
 
+
+@pytest.fixture(params=[(CMD_RCV_IN, CMD_RCV_OUT)])
+def cmd_rcv_in_out(request):
+    field_names = {
+        'instance': 'cmd_rcv_instance',
+        'out': 'cmd_rcv_out'
+    }
+    return data_from_files(request.param[0], request.param[1], CommandRCV, field_names)
+
+
+@pytest.fixture(params=[(CMD_STAT_IN, CMD_STAT_OUT)])
+def cmd_stat_in_out(request):
+    field_names = {
+        'instance': 'cmd_stat_instance',
+        'out': 'cmd_stat_out'
+    }
+    return data_from_files(request.param[0], request.param[1], CommandStatus, field_names)
+
+
+@pytest.fixture(params=[(CALIB_INFO_IN, CALIB_INFO_OUT)])
+def calibration_info_in_out(request):
+    field_names = {
+        'instance': 'calib_info_instance',
+        'out': 'calib_info_out'
+    }
+    return data_from_files(request.param[0], request.param[1], CalibrationInfo, field_names)
+
+
+@pytest.fixture(params=[(CALIB_INFO_USBC_IN, CALIB_INFO_USBC_OUT)])
+def calibration_info_usbc_in_out(request):
+    field_names = {
+        'instance': 'calib_info_usbc_instance',
+        'out': 'calib_info_usbc_out'
+    }
+    return data_from_files(request.param[0], request.param[1], CalibrationInfo_USBC, field_names)

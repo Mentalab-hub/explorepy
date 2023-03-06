@@ -288,7 +288,7 @@ def test_triggers_check_fletcher(triggers_in_out):
 def test_disconnect_check_fletcher(disconnect_in_out):
     disconnect_instance = disconnect_in_out['disconnect_instance']
     disconnect_out = disconnect_in_out['disconnect_out']
-    disconnect_instance._check_fletcher(disconnect_out['fletcher'])
+    disconnect_instance._check_fletcher(bytes.fromhex(disconnect_out['fletcher']))
 
 
 def test_convert_device_info_fw(device_info_in_out):
@@ -362,3 +362,68 @@ def test_device_info_v2_get_data(device_info_v2_in_out):
     dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
     dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
     assert dev_info_v2_instance.get_data() == {'firmware_version': [dev_info_v2_out['fw_version']]}
+
+
+def test_convert_cmd_rcv(cmd_rcv_in_out):
+    cmd_rcv_instance = cmd_rcv_in_out['cmd_rcv_instance']
+    cmd_rcv_out = cmd_rcv_in_out['cmd_rcv_out']
+    assert cmd_rcv_instance.opcode == cmd_rcv_out['received_opcode']
+
+
+def test_cmd_rcv_check_fletcher(cmd_rcv_in_out):
+    cmd_rcv_instance = cmd_rcv_in_out['cmd_rcv_instance']
+    cmd_rcv_out = cmd_rcv_in_out['cmd_rcv_out']
+    cmd_rcv_instance._check_fletcher(bytes.fromhex(cmd_rcv_out['fletcher']))
+
+
+def test_convert_cmd_stat_opcode(cmd_stat_in_out):
+    cmd_stat_instance = cmd_stat_in_out['cmd_stat_instance']
+    cmd_stat_out = cmd_stat_in_out['cmd_stat_out']
+    assert cmd_stat_instance.opcode == cmd_stat_out['received_opcode']
+
+
+def test_convert_cmd_stat_status(cmd_stat_in_out):
+    cmd_stat_instance = cmd_stat_in_out['cmd_stat_instance']
+    cmd_stat_out = cmd_stat_in_out['cmd_stat_out']
+    assert cmd_stat_instance.status == cmd_stat_out['status']
+
+
+def test_cmd_stat_check_fletcher(cmd_stat_in_out):
+    cmd_stat_instance = cmd_stat_in_out['cmd_stat_instance']
+    cmd_stat_out = cmd_stat_in_out['cmd_stat_out']
+    assert cmd_stat_instance._check_fletcher(bytes.fromhex(cmd_stat_out['fletcher']))
+
+
+def test_convert_calib_info_slope(calibration_info_in_out):
+    calib_info_instance = calibration_info_in_out['calib_info_instance']
+    calib_info_out = calibration_info_in_out['calib_info_out']
+    assert calib_info_instance.slope == calib_info_out['slope']
+
+
+def test_convert_calib_info_offset(calibration_info_in_out):
+    calib_info_instance = calibration_info_in_out['calib_info_instance']
+    calib_info_out = calibration_info_in_out['calib_info_out']
+    assert float(calib_info_instance.offset) == calib_info_out['offset']
+
+
+def test_calib_info_get_info(calibration_info_in_out):
+    dict_out = {'slope': calibration_info_in_out['calib_info_out']['slope'],
+                'offset': calibration_info_in_out['calib_info_out']['offset']}
+    assert calibration_info_in_out['calib_info_instance'].get_info() == dict_out
+
+
+def test_calib_info_check_fletcher(calibration_info_in_out):
+    fletcher_out = bytes.fromhex(calibration_info_in_out['calib_info_out']['fletcher'])
+    calibration_info_in_out['calib_info_instance']._check_fletcher(fletcher_out)
+
+
+def test_calib_info_usbc_convert_slope(calibration_info_usbc_in_out):
+    calib_info_usbc_instance = calibration_info_usbc_in_out['calib_info_usbc_instance']
+    calib_info_usbc_out = calibration_info_usbc_in_out['calib_info_usbc_out']
+    assert calib_info_usbc_instance.slope == calib_info_usbc_out['slope']
+
+
+def test_calib_info_usbc_convert_offset(calibration_info_usbc_in_out):
+    calib_info_usbc_instance = calibration_info_usbc_in_out['calib_info_usbc_instance']
+    calib_info_usbc_out = calibration_info_usbc_in_out['calib_info_usbc_out']
+    assert pytest.approx(calib_info_usbc_instance.offset) == calib_info_usbc_out['offset']
