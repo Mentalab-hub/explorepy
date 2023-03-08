@@ -6,6 +6,11 @@ import numpy as np
 import pytest
 
 from explorepy.packet import (
+    EEG,
+    EEG32,
+    EEG94,
+    EEG98,
+    EEG98_USBC,
     CalibrationInfo,
     CalibrationInfo_USBC,
     CommandRCV,
@@ -13,11 +18,6 @@ from explorepy.packet import (
     DeviceInfo,
     DeviceInfoV2,
     Disconnect,
-    EEG,
-    EEG32,
-    EEG94,
-    EEG98,
-    EEG98_USBC,
     Environment,
     EventMarker,
     ExternalMarker,

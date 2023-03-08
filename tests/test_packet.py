@@ -288,7 +288,7 @@ def test_convert_triggers_code(triggers_in_out):
 
 
 @pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
-def test_convert_triggers_code(triggers_in_out):
+def test_convert_triggers_mac_address(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
     trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.mac_address == trigger_out['mac_address']
