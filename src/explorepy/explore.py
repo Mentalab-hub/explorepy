@@ -416,15 +416,16 @@ class Explore:
         self._check_connection()
         self.stream_processor.set_marker(code=code)
 
-    def set_external_marker(self, time_lsl, marker_string):
+    def set_external_marker(self, time_lsl, marker_string, time_correction):
         """Sets a digital event marker while streaming
 
         Args:
             time_lsl (timestamp): timestamp from external marker)
             marker_string (string): string to save as experiment marker)
+            time_offset (float): time offset between two sending and receiving devices)
         """
         self._check_connection()
-        self.stream_processor.set_ext_marker(time_lsl, marker_string)
+        self.stream_processor.set_ext_marker(time_lsl, marker_string, time_correction)
 
     def format_memory(self):
         """Format memory of the device
