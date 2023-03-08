@@ -239,6 +239,32 @@ def marker_in_out(request):
         pytest.skip(f"Input or output file not available for {request.param[0]}")
 
 
+@pytest.fixture(params=[(12345, 0),
+                        (0, 65535)])
+def sw_marker_inputs_valid(request):
+    return request.param
+
+
+@pytest.fixture(params=[(42.42, 65536),
+                        (12345, -1)])
+def sw_marker_inputs_invalid(request):
+    return request.param
+
+
+@pytest.fixture(params=[(12345, "Experiment 0"),
+                        (42.42, "Short marker"),
+                        (12345, "Exp_1")])
+def ext_marker_inputs_valid(request):
+    return request.param
+
+
+@pytest.fixture(params=[(0, -1),
+                        (0, "Marker that is way too long"),
+                        (0, "")])
+def ext_marker_inputs_invalid(request):
+    return request.param
+
+
 @pytest.fixture(params=[(TriggerIn, TRIGGER_IN_IN, TRIGGER_IN_OUT),
                         (TriggerOut, TRIGGER_OUT_IN, TRIGGER_OUT_OUT)])
 def triggers_in_out(request):

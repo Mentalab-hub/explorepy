@@ -228,39 +228,44 @@ def test_check_fletcher_marker(marker_in_out):
     marker._check_fletcher(bytes.fromhex(marker_out['fletcher']))
 
 
-# TODO could change these to be one "create marker"?
-# TODO possibly split in 3
-@pytest.mark.parametrize("input_values,valid", [((12345, 0), True),
-                                                ((0, 65535), True),
-                                                ((42.42, 65536), False),
-                                                ((12345, -1), False)])
-def test_create_software_marker(input_values, valid):
-    if not valid:
-        with pytest.raises(Exception):
-            SoftwareMarker.create(input_values[0], input_values[1])
-    else:
-        out = SoftwareMarker.create(input_values[0], input_values[1])
-        assert out.code == input_values[1]
-        assert out._label_prefix == "sw_"
-        assert out.timestamp == input_values[0]
+def test_create_software_marker_invalid(sw_marker_inputs_invalid):
+    with pytest.raises(Exception):
+        SoftwareMarker.create(sw_marker_inputs_invalid[0], sw_marker_inputs_invalid[1])
 
 
-# TODO possibly split in 3
-@pytest.mark.parametrize("input_values,valid", [((12345, "Experiment 0"), True),
-                                                ((42.42, "Short marker"), True),
-                                                ((12345, "Exp_1"), True),
-                                                ((0, -1), False),
-                                                ((0, "Marker that is way too long"), False),
-                                                ((0, ""), False)])
-def test_create_external_marker(input_values, valid):
-    if not valid:
-        with pytest.raises(Exception):
-            ExternalMarker.create(input_values[0], input_values[1])
-    else:
-        out = ExternalMarker.create(input_values[0], input_values[1])
-        assert out.code == input_values[1]
-        assert out._label_prefix == "ext_"
-        assert out.timestamp == input_values[0]
+def test_create_software_marker_code(sw_marker_inputs_valid):
+    out = SoftwareMarker.create(sw_marker_inputs_valid[0], sw_marker_inputs_valid[1])
+    assert out.code == sw_marker_inputs_valid[1]
+
+
+def test_create_software_marker_prefix(sw_marker_inputs_valid):
+    out = SoftwareMarker.create(sw_marker_inputs_valid[0], sw_marker_inputs_valid[1])
+    assert out._label_prefix == "sw_"
+
+
+def test_create_software_marker_ts(sw_marker_inputs_valid):
+    out = SoftwareMarker.create(sw_marker_inputs_valid[0], sw_marker_inputs_valid[1])
+    assert out.timestamp == sw_marker_inputs_valid[0]
+
+
+def test_create_external_marker_invalid(ext_marker_inputs_invalid):
+    with pytest.raises(Exception):
+        ExternalMarker.create(ext_marker_inputs_invalid[0], ext_marker_inputs_invalid[1])
+
+
+def test_create_external_marker_code(ext_marker_inputs_valid):
+    out = ExternalMarker.create(ext_marker_inputs_valid[0], ext_marker_inputs_valid[1])
+    assert out.code == ext_marker_inputs_valid[1]
+
+
+def test_create_external_marker_prefix(ext_marker_inputs_valid):
+    out = ExternalMarker.create(ext_marker_inputs_valid[0], ext_marker_inputs_valid[1])
+    assert out._label_prefix == "ext_"
+
+
+def test_create_external_marker_ts(ext_marker_inputs_valid):
+    out = ExternalMarker.create(ext_marker_inputs_valid[0], ext_marker_inputs_valid[1])
+    assert out.timestamp == ext_marker_inputs_valid[0]
 
 
 @pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
@@ -268,13 +273,24 @@ def test_triggers_is_eventmarker(triggers_in_out):
     assert isinstance(triggers_in_out['triggers_instance'], EventMarker)
 
 
-# TODO possibly split in 3
 @pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
-def test_convert_triggers(triggers_in_out):
+def test_convert_triggers_ts(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
     trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.timestamp == trigger_out['timestamp']
+
+
+@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
+def test_convert_triggers_code(triggers_in_out):
+    trigger_instance = triggers_in_out['triggers_instance']
+    trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.code == trigger_out['code']
+
+
+@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
+def test_convert_triggers_code(triggers_in_out):
+    trigger_instance = triggers_in_out['triggers_instance']
+    trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.mac_address == trigger_out['mac_address']
 
 
