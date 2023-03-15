@@ -45,11 +45,10 @@ class PACKET_ID(IntEnum):
 EXG_UNIT = 1e-6
 
 
-class Packet:
+class Packet(abc.ABC):
     """An abstract base class for Explore packet"""
 
-    __metadata__ = abc.ABCMeta
-
+    @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0):
         """Gets the timestamp and payload and initializes the packet object
 
@@ -93,8 +92,6 @@ class Packet:
 class EEG(Packet):
     """EEG packet class"""
 
-    __metadata__ = abc.ABCMeta
-
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self.data = None
@@ -135,15 +132,6 @@ class EEG(Packet):
     def get_ptp(self):
         """Get peak to peak value"""
         return np.ptp(self.data, axis=1)
-
-    def __str__(self):
-        pass
-
-    def _check_fletcher(self, fletcher):
-        pass
-
-    def _convert(self, bin_data):
-        pass
 
 
 class EEG94(EEG):
