@@ -57,9 +57,9 @@ int BTSerialPortBinding::Connect()
 {
 	Close();
 	int status = SOCKET_ERROR;
-	
+
 	data->s = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
-	
+
 	if (data->s != SOCKET_ERROR)
 	{
 		SOCKADDR_BTH addr = { 0 };
@@ -79,7 +79,7 @@ int BTSerialPortBinding::Connect()
 		if (status != SOCKET_ERROR)
 		{
 			addr.port = channelID;
-			
+
 			status = connect(data->s, (LPSOCKADDR)&addr, addrSize);
 			if (status != SOCKET_ERROR)
 			{
@@ -90,11 +90,18 @@ int BTSerialPortBinding::Connect()
 			{
 				int lastErrorCode = WSAGetLastError();
 				// Checking if the error is due to bluetooth socket unresponsiveness
-				int btSocketErrorCode = 10058; 
-				cout << "BT Socket error:" << BluetoothHelpers::GetWSAErrorMessage(lastErrorCode) << endl;
-				if(lastErrorCode == btSocketErrorCode) 
-					throw ExploreBtSocketException("Connection attempt not sucessful due to socket error");
-
+				int btSocketErrorCode = 10058;
+				int btDeadNetworkError = 10050;
+				switch(lastErrorCode){
+				// 10058 means device needs to be unpaired from windows BT menu, likely BT chip FW bug
+				case 10058:
+				    throw ExploreBtSocketException("Connection attempt not sucessful due to socket error");
+               // 10050 means Bluetooth radio is off and user needs to turn BT on!
+                case 10050:
+                    throw ExploreNoBluetoothException("Bluetooth radio is off!");
+                default:
+                    cout << "Unhandled BT socket error:" << BluetoothHelpers::GetWSAErrorMessage(lastErrorCode) << endl;
+				}
 			}
 		}
 	}
@@ -102,7 +109,7 @@ int BTSerialPortBinding::Connect()
 	if (status != 0)
 	{
 		string message = BluetoothHelpers::GetWSAErrorMessage(WSAGetLastError());
-		
+
 
 		if (data->s != INVALID_SOCKET)
 			closesocket(data->s);
@@ -142,9 +149,9 @@ void BTSerialPortBinding::Read(char *buffer, int* length)
 	{
 		if (FD_ISSET(data->s, &set)){
 		try{
-		
+
 		    size = recv(data->s, buffer, *length, 0);
-		
+
 		}
 		catch(const std::exception& e){
 		    cout << "INSIDE STD::EXCEPTION" << endl;
@@ -185,11 +192,11 @@ void BTSerialPortBinding::Write(const char *buffer, int length)
 
 	if (data->s == INVALID_SOCKET)
 		throw ExploreException("Attempting to write to a closed connection");
-	
-	
-	
+
+
+
 	byteWritten = send(data->s, buffer, length, 0);
-	
+
 	if(byteWritten != length)
 	{
 		throw ExploreException("Writing attempt was unsuccessful");
