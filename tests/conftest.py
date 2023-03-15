@@ -1,5 +1,5 @@
 import json
-import os
+import os.path
 import struct
 
 import numpy as np
@@ -29,7 +29,6 @@ from explorepy.packet import (
     TriggerIn,
     TriggerOut
 )
-
 
 IN = "in"
 OUT = "out"
