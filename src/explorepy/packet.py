@@ -109,7 +109,7 @@ class EEG(Packet):
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data[1:, :] * self.v_ref / gain, 2)
         # EEG32: status bits will change in future releases as we need to use 4 bytes for 32 channel status
-        self.data_status = data[0, :]
+        self.status = data[0, :]
 
     def calculate_impedance(self, imp_calib_info):
         """calculate impedance with the help of impedance calibration info
@@ -157,7 +157,7 @@ class EEG94(EEG):
         self._check_fletcher(payload[-4:])
 
     def __str__(self):
-        return ("EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.data_status[-1]))
+        return ("EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status[-1]))
 
 
 class EEG98(EEG):
