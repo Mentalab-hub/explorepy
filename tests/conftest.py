@@ -30,6 +30,7 @@ from explorepy.packet import (
     TriggerOut
 )
 
+
 IN = "in"
 OUT = "out"
 
