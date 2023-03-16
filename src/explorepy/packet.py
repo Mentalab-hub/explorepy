@@ -212,7 +212,7 @@ class EEG98_USBC(EEG):
         n_chan = -1
         v_ref = 2.4
         n_packet = 16
-        data = data.reshape((n_packet, n_chan)).astype(np.float).T
+        data = data.reshape((n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data[1:, :] * v_ref / gain, 2)
         self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
