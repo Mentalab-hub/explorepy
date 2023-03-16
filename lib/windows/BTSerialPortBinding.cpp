@@ -92,15 +92,17 @@ int BTSerialPortBinding::Connect()
 				// Checking if the error is due to bluetooth socket unresponsiveness
 				int btSocketErrorCode = 10058;
 				int btDeadNetworkError = 10050;
+				string errortext = "Bluetooth radio is off! Exception code:" + std::to_string(lastErrorCode);
 				switch(lastErrorCode){
 				// 10058 means device needs to be unpaired from windows BT menu, likely BT chip FW bug
 				case 10058:
 				    throw ExploreBtSocketException("Connection attempt not sucessful due to socket error");
                // 10050 means Bluetooth radio is off and user needs to turn BT on!
                 case 10050:
-                    throw ExploreNoBluetoothException("Bluetooth radio is off!");
+                    throw ExploreNoBluetoothException(errortext);
                 default:
                     cout << "Unhandled BT socket error:" << BluetoothHelpers::GetWSAErrorMessage(lastErrorCode) << endl;
+					throw ExploreNoBluetoothException(errortext);
 				}
 			}
 		}
