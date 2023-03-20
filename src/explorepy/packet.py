@@ -649,12 +649,12 @@ class CalibrationInfo(Packet):
         slope = np.frombuffer(bin_data,
                               dtype=np.dtype(np.uint16).newbyteorder("<"),
                               count=1,
-                              offset=0)
+                              offset=0).item()
         self.slope = slope * 10.0
         offset = np.frombuffer(bin_data,
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
                                count=1,
-                               offset=2)
+                               offset=2).item()
         self.offset = offset * 0.001
 
     def get_info(self):
@@ -678,12 +678,12 @@ class CalibrationInfo_USBC(CalibrationInfo):
         slope = np.frombuffer(bin_data,
                               dtype=np.dtype(np.uint16).newbyteorder("<"),
                               count=1,
-                              offset=0)
+                              offset=0).item()
         self.slope = slope * 10.0
         offset = np.frombuffer(bin_data,
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
                                count=1,
-                               offset=2)
+                               offset=2).item()
         self.offset = offset * 0.01
 
     def get_info(self):

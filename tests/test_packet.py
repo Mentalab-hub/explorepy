@@ -449,7 +449,7 @@ def test_calib_info_usbc_get_info(calibration_info_usbc_in_out):
         'slope': calibration_info_usbc_in_out['calib_info_usbc_out']['slope'],
         'offset': calibration_info_usbc_in_out['calib_info_usbc_out']['offset']
     }
-    assert calibration_info_usbc_in_out['calib_info_usbc_instance'].get_info() == dict_out
+    assert pytest.approx(calibration_info_usbc_in_out['calib_info_usbc_instance'].get_info()) == dict_out
 
 
 def test_calib_info_usbc_check_fletcher(calibration_info_usbc_in_out):
