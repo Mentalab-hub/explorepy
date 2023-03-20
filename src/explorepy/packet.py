@@ -448,6 +448,10 @@ class ExternalMarker(EventMarker):
         Returns:
             SoftwareMarker
         """
+        if not isinstance(marker_string, str):
+            raise ValueError("Marker label must be a string")
+        if len(marker_string) > 16 or len(marker_string) < 1:
+            raise ValueError("Marker label must be between 1 and 16 characters long")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,
