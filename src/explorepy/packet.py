@@ -356,8 +356,7 @@ class TimeStamp(Packet):
 class EventMarker(Packet):
     """Abstract class for event markers"""
 
-    __metadata__ = abc.ABCMeta
-
+    @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self.code = None
