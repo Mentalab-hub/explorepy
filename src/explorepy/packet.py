@@ -109,7 +109,20 @@ class EEG(Packet):
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
         self.data = np.round(data[1:, :] * self.v_ref / gain, 2)
         # EEG32: status bits will change in future releases as we need to use 4 bytes for 32 channel status
-        self.status = data[0, :]
+        self.status = self.int32_to_status(data[0, :])
+
+    @staticmethod
+    def int32_to_status(data):
+        data = data.astype(int)
+        ads = data & 255
+        empty = data >> 8 & 255
+        sr = (16000 / (2 ** (data >> 16 & 255))).astype(int)
+        status = {
+            "ads": ads,
+            "empty": empty,
+            "sr": sr,
+        }
+        return status
 
     def calculate_impedance(self, imp_calib_info):
         """calculate impedance with the help of impedance calibration info
