@@ -46,8 +46,6 @@ EXG_UNIT = 1e-6
 
 class Packet(abc.ABC):
     """An abstract base class for Explore packet"""
-
-    @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0):
         """Gets the timestamp and payload and initializes the packet object
 
@@ -257,10 +255,6 @@ class Orientation(Packet):
 
 class Environment(Packet):
     """Environment data packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-
     def _convert(self, bin_data):
         self.temperature = bin_data[0]
         self.light = (1000 / 4095) * np.frombuffer(
@@ -468,10 +462,6 @@ class TriggerOut(Trigger):
 
 class Disconnect(Packet):
     """Disconnect packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-
     def _convert(self, bin_data):
         """Disconnect packet has no data"""
         pass
@@ -480,10 +470,7 @@ class Disconnect(Packet):
         return "Device has been disconnected!"
 
 
-class DeviceInfoBase(Packet):
-    def __init__(self, timestamp, payload, time_offset):
-        super().__init__(timestamp, payload, time_offset)
-
+class DeviceInfo(Packet):
     def _convert(self, bin_data):
         fw_num = np.frombuffer(bin_data,
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
@@ -511,15 +498,7 @@ class DeviceInfoBase(Packet):
         return {"firmware_version": [self.firmware_version]}
 
 
-class DeviceInfo(DeviceInfoBase):
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-
-
-class DeviceInfoV2(DeviceInfoBase):
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-
+class DeviceInfoV2(DeviceInfo):
     def _convert(self, bin_data):
         self.board_id = bin_data[:15].decode('utf-8', errors='ignore')
         super()._convert(bin_data[16:])
@@ -534,10 +513,6 @@ class DeviceInfoV2(DeviceInfoBase):
 
 class CommandRCV(Packet):
     """Command Status packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super(CommandRCV, self).__init__(timestamp, payload, time_offset)
-
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
 
@@ -548,10 +523,6 @@ class CommandRCV(Packet):
 
 class CommandStatus(Packet):
     """Command Status packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super(CommandStatus, self).__init__(timestamp, payload, time_offset)
-
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
         self.status = bin_data[5]
@@ -561,9 +532,6 @@ class CommandStatus(Packet):
 
 
 class CalibrationInfoBase(Packet):
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-
     def _convert(self, bin_data, offset_multiplier=0.001):
         slope = np.frombuffer(bin_data,
                               dtype=np.dtype(np.uint16).newbyteorder("<"),
@@ -585,17 +553,11 @@ class CalibrationInfoBase(Packet):
 
 
 class CalibrationInfo(CalibrationInfoBase):
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-
     def _convert(self, bin_data):
         super()._convert(bin_data, offset_multiplier=0.001)
 
 
 class CalibrationInfo_USBC(CalibrationInfoBase):
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-
     def _convert(self, bin_data):
         super()._convert(bin_data, offset_multiplier=0.01)
 
