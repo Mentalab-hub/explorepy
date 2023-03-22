@@ -159,15 +159,16 @@ class EEG(Packet):
         """Get peak to peak value"""
         return np.ptp(self.data, axis=1)
 
+    def __str__(self):
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: ADS:" +\
+               str(self.status['ads'][-1] + ", SR: " + str(self.status['sr'][-1]))
+
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=33)
-
-    def __str__(self):
-        return ("EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status[-1]))
 
 
 class EEG98(EEG):
@@ -176,20 +177,12 @@ class EEG98(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
 
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
-            self.status)
-
 
 class EEG98_USBC(EEG):
     """EEG packet for 8 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
-
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
-            self.status)
 
 
 class EEG99(EEG):
@@ -198,18 +191,12 @@ class EEG99(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=4.5, n_packet=16)
 
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1])
-
 
 class EEG32(EEG):
     """EEG packet for 32 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=4)
-
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
 
 
 class Orientation(Packet):
@@ -232,7 +219,7 @@ class Orientation(Packet):
         self.rot_axis = None
 
     def __str__(self):
-        return ("Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag))
+        return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
     def get_data(self, srate=None):
         """Get orientation timestamp and data"""
@@ -528,7 +515,7 @@ class CommandStatus(Packet):
         self.status = bin_data[5]
 
     def __str__(self):
-        return ("Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode))
+        return "Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode)
 
 
 class CalibrationInfoBase(Packet):
@@ -549,7 +536,7 @@ class CalibrationInfoBase(Packet):
         return {"slope": self.slope, "offset": self.offset}
 
     def __str__(self):
-        return ("calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset))
+        return "calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset)
 
 
 class CalibrationInfo(CalibrationInfoBase):
