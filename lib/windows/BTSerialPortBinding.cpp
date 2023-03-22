@@ -57,6 +57,9 @@ int BTSerialPortBinding::Connect()
 {
 	Close();
 	int status = SOCKET_ERROR;
+    
+    if(!BluetoothIsConnectable(NULL)) 
+		throw ExploreNoBluetoothException("Bluetooth is off. Please turn Bluetooth service on in your machine");
 	
 	data->s = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
 	
