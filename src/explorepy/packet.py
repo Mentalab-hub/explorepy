@@ -161,7 +161,7 @@ class EEG(Packet):
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: ADS:" +\
-               str(self.status['ads'][-1] + ", SR: " + str(self.status['sr'][-1]))
+               str(self.status['ads'][-1]) + ", SR: " + str(self.status['sr'][-1])
 
 
 class EEG94(EEG):
