@@ -444,80 +444,49 @@ class ExternalMarker(EventMarker):
         )
 
 
-class TriggerIn(EventMarker):
-    """Trigger in packet"""
-
+class Trigger(EventMarker):
+    @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0):
-        super(TriggerIn, self).__init__(timestamp, payload, time_offset)
+        super().__init__(timestamp, payload, time_offset)
         self._time_offset = time_offset
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
+
+    def _convert(self, bin_data):
+        precise_ts = np.asscalar(
+            np.frombuffer(bin_data,
+                          dtype=np.dtype(np.uint32).newbyteorder("<"),
+                          count=1,
+                          offset=0))
+        self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
+        code = np.asscalar(
+            np.frombuffer(bin_data,
+                          dtype=np.dtype(np.uint16).newbyteorder("<"),
+                          count=1,
+                          offset=4))
+        self.code = code
+        mac_address = hex(
+            int(
+                np.frombuffer(
+                    bin_data,
+                    dtype=np.dtype(np.uint16).newbyteorder("<"),
+                    count=1,
+                    offset=6,
+                )))
+        self.mac_address = mac_address
+
+
+class TriggerIn(Trigger):
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
         self._label_prefix = "in_"
 
-    def _convert(self, bin_data):
-        precise_ts = np.asscalar(
-            np.frombuffer(bin_data,
-                          dtype=np.dtype(np.uint32).newbyteorder("<"),
-                          count=1,
-                          offset=0))
-        self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
-        code = np.asscalar(
-            np.frombuffer(bin_data,
-                          dtype=np.dtype(np.uint16).newbyteorder("<"),
-                          count=1,
-                          offset=4))
-        self.code = code
-        mac_address = hex(
-            int(
-                np.frombuffer(
-                    bin_data,
-                    dtype=np.dtype(np.uint16).newbyteorder("<"),
-                    count=1,
-                    offset=6,
-                )))
-        self.mac_address = mac_address
 
-
-class TriggerOut(EventMarker):
-    """Trigger-out packet"""
-
+class TriggerOut(Trigger):
     def __init__(self, timestamp, payload, time_offset=0):
-        super(TriggerOut, self).__init__(timestamp, payload, time_offset)
-        self._time_offset = time_offset
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
+        super().__init__(timestamp, payload, time_offset)
         self._label_prefix = "out_"
-
-    def _convert(self, bin_data):
-        precise_ts = np.asscalar(
-            np.frombuffer(bin_data,
-                          dtype=np.dtype(np.uint32).newbyteorder("<"),
-                          count=1,
-                          offset=0))
-
-        self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
-        code = np.asscalar(
-            np.frombuffer(bin_data,
-                          dtype=np.dtype(np.uint16).newbyteorder("<"),
-                          count=1,
-                          offset=4))
-        """
-        if label == 240:
-            label = "Sync"
-        if label == 15:
-            label = "ADS_Start"
-        """
-        self.code = code
-        mac_address = hex(
-            int(
-                np.frombuffer(
-                    bin_data,
-                    dtype=np.dtype(np.uint16).newbyteorder("<"),
-                    count=1,
-                    offset=6,
-                )))
-        self.mac_address = mac_address
-
+        
 
 class Disconnect(Packet):
     """Disconnect packet"""
