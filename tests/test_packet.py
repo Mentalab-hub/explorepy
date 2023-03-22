@@ -46,7 +46,10 @@ def test_abstract_timestamp_correct(mocker, parametrized_abstract_packets):
     if hasattr(parametrized_abstract_packets, "__abstractmethods__"):
         if len(parametrized_abstract_packets.__abstractmethods__) != 0:
             mocker.patch.multiple(parametrized_abstract_packets, __abstractmethods__=set())
-    p = parametrized_abstract_packets(12345, b'\x00\x00\x00\x00', 300)
+    if parametrized_abstract_packets == EEG:
+        p = parametrized_abstract_packets(12345, b'\x00\x00\x00\xaf\xbe\xad\xde', 300, v_ref=2.4, n_packet=1)
+    else:
+        p = parametrized_abstract_packets(12345, b'\xaf\xbe\xad\xde', 300)
     assert p.timestamp == 301.2345
 
 

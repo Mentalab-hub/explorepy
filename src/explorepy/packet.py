@@ -58,6 +58,8 @@ class Packet(abc.ABC):
                                     streaming in realtime. It will be zero while converting a binary file.
         """
         self.timestamp = timestamp / TIMESTAMP_SCALE + time_offset
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
 
     @abc.abstractmethod
     def _convert(self, bin_data):
@@ -93,11 +95,11 @@ class EEG(Packet):
 
     @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0, v_ref=None, n_packet=None):
-        super().__init__(timestamp, payload, time_offset)
         self.v_ref = v_ref
         self.n_packet = n_packet
         self.data = None
         self.imp_data = None
+        super().__init__(timestamp, payload, time_offset)
 
     def _convert(self, bin_data):
         if not self.v_ref or not self.n_packet:
@@ -165,8 +167,6 @@ class EEG94(EEG):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=33)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def __str__(self):
         return ("EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status[-1]))
@@ -177,8 +177,6 @@ class EEG98(EEG):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
@@ -190,8 +188,6 @@ class EEG98_USBC(EEG):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
@@ -203,8 +199,6 @@ class EEG99(EEG):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=4.5, n_packet=16)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1])
@@ -215,8 +209,6 @@ class EEG32(EEG):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=4)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def __str__(self):
         return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
@@ -227,8 +219,6 @@ class Orientation(Packet):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
         self.theta = None
         self.rot_axis = None
 
@@ -270,8 +260,6 @@ class Environment(Packet):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
         self.temperature = bin_data[0]
@@ -322,8 +310,6 @@ class TimeStamp(Packet):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
         self.raw_data = None
 
     def _convert(self, bin_data):
@@ -344,9 +330,9 @@ class EventMarker(Packet):
 
     @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
         self.code = None
         self._label_prefix = None
+        super().__init__(timestamp, payload, time_offset)
 
     @abc.abstractmethod
     def _convert(self, bin_data):
@@ -369,8 +355,6 @@ class PushButtonMarker(EventMarker):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
         self._label_prefix = "pb_"
 
     def _convert(self, bin_data):
@@ -384,8 +368,6 @@ class SoftwareMarker(EventMarker):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
         self._label_prefix = "sw_"
 
     def _convert(self, bin_data):
@@ -415,8 +397,6 @@ class ExternalMarker(EventMarker):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp * 10_000, payload, 0)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
         self._label_prefix = "ext_"
 
     def _convert(self, bin_data):
@@ -447,10 +427,8 @@ class ExternalMarker(EventMarker):
 class Trigger(EventMarker):
     @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
         self._time_offset = time_offset
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
+        super().__init__(timestamp, payload, time_offset)
 
     def _convert(self, bin_data):
         precise_ts = np.asscalar(
@@ -493,10 +471,10 @@ class Disconnect(Packet):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._check_fletcher(payload)
 
     def _convert(self, bin_data):
         """Disconnect packet has no data"""
+        pass
 
     def __str__(self):
         return "Device has been disconnected!"
@@ -505,8 +483,6 @@ class Disconnect(Packet):
 class DeviceInfoBase(Packet):
     def __init__(self, timestamp, payload, time_offset):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
         fw_num = np.frombuffer(bin_data,
@@ -561,8 +537,6 @@ class CommandRCV(Packet):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super(CommandRCV, self).__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
@@ -577,8 +551,6 @@ class CommandStatus(Packet):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super(CommandStatus, self).__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
@@ -591,8 +563,6 @@ class CommandStatus(Packet):
 class CalibrationInfoBase(Packet):
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
 
     def _convert(self, bin_data, offset_multiplier=0.001):
         slope = np.frombuffer(bin_data,
