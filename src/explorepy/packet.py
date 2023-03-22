@@ -199,19 +199,6 @@ class EEG98_USBC(EEG):
             self.status)
 
 
-class EEG99s(EEG):
-    """EEG packet for 8 channel device"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset, v_ref=4.5, n_packet=16)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
-            self.status)
-
-
 class EEG99(EEG):
     """EEG packet for 8 channel device"""
 
