@@ -486,7 +486,7 @@ class TriggerOut(Trigger):
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self._label_prefix = "out_"
-        
+
 
 class Disconnect(Packet):
     """Disconnect packet"""
@@ -502,11 +502,9 @@ class Disconnect(Packet):
         return "Device has been disconnected!"
 
 
-class DeviceInfo(Packet):
-    """Device information packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super(DeviceInfo, self).__init__(timestamp, payload, time_offset)
+class DeviceInfoBase(Packet):
+    def __init__(self, timestamp, payload, time_offset):
+        super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -537,43 +535,25 @@ class DeviceInfo(Packet):
         return {"firmware_version": [self.firmware_version]}
 
 
-class DeviceInfoV2(Packet):
-    """Device information packet containing additional information board id and memory info"""
-
+class DeviceInfo(DeviceInfoBase):
     def __init__(self, timestamp, payload, time_offset=0):
-        super(DeviceInfoV2, self).__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
+        super().__init__(timestamp, payload, time_offset)
+
+
+class DeviceInfoV2(DeviceInfoBase):
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
 
     def _convert(self, bin_data):
         self.board_id = bin_data[:15].decode('utf-8', errors='ignore')
-
-        fw_num = np.frombuffer(bin_data,
-                               dtype=np.dtype(np.uint16).newbyteorder("<"),
-                               count=1,
-                               offset=16)
-        self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
-        self.sampling_rate = 16000 / (2 ** bin_data[18])
-        self.adc_mask = [int(bit) for bit in format(bin_data[19], "#010b")[2:]]
+        super()._convert(bin_data[16:])
         self.is_memory_available = bin_data[20]
 
     def get_info(self):
-        """Get device information as a dictionary"""
-        return dict(
-            firmware_version=self.firmware_version,
-            adc_mask=self.adc_mask,
-            sampling_rate=self.sampling_rate,
-            board_id=self.board_id,
-            memory_info=self.is_memory_available
-        )
-
-    def __str__(self):
-        return "Firmware version: {} - sampling rate: {} - ADC mask: {}".format(
-            self.firmware_version, self.sampling_rate, self.adc_mask)
-
-    def get_data(self):
-        """Get firmware version"""
-        return {"firmware_version": [self.firmware_version]}
+        as_dict = super().get_info()
+        as_dict['board_id'] = self.board_id
+        as_dict['memory_info'] = self.is_memory_available
+        return as_dict
 
 
 class CommandRCV(Packet):
@@ -608,15 +588,13 @@ class CommandStatus(Packet):
         return ("Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode))
 
 
-class CalibrationInfo(Packet):
-    """Calibration Info packet"""
-
+class CalibrationInfoBase(Packet):
     def __init__(self, timestamp, payload, time_offset=0):
-        super(CalibrationInfo, self).__init__(timestamp, payload, time_offset)
+        super().__init__(timestamp, payload, time_offset)
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
-    def _convert(self, bin_data):
+    def _convert(self, bin_data, offset_multiplier=0.001):
         slope = np.frombuffer(bin_data,
                               dtype=np.dtype(np.uint16).newbyteorder("<"),
                               count=1,
@@ -626,7 +604,7 @@ class CalibrationInfo(Packet):
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
                                count=1,
                                offset=2).item()
-        self.offset = offset * 0.001
+        self.offset = offset * offset_multiplier
 
     def get_info(self):
         """Get calibration info"""
@@ -636,33 +614,20 @@ class CalibrationInfo(Packet):
         return ("calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset))
 
 
-class CalibrationInfo_USBC(CalibrationInfo):
-    """Calibration Info packet"""
-
+class CalibrationInfo(CalibrationInfoBase):
     def __init__(self, timestamp, payload, time_offset=0):
-        super(CalibrationInfo_USBC, self).__init__(timestamp, payload,
-                                                   time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
+        super().__init__(timestamp, payload, time_offset)
 
     def _convert(self, bin_data):
-        slope = np.frombuffer(bin_data,
-                              dtype=np.dtype(np.uint16).newbyteorder("<"),
-                              count=1,
-                              offset=0).item()
-        self.slope = slope * 10.0
-        offset = np.frombuffer(bin_data,
-                               dtype=np.dtype(np.uint16).newbyteorder("<"),
-                               count=1,
-                               offset=2).item()
-        self.offset = offset * 0.01
+        super()._convert(bin_data, offset_multiplier=0.001)
 
-    def get_info(self):
-        """Get calibration info"""
-        return {"slope": self.slope, "offset": self.offset}
 
-    def __str__(self):
-        return ("calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset))
+class CalibrationInfo_USBC(CalibrationInfoBase):
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
+
+    def _convert(self, bin_data):
+        super()._convert(bin_data, offset_multiplier=0.01)
 
 
 PACKET_CLASS_DICT = {
