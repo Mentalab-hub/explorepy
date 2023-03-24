@@ -62,11 +62,11 @@ class SDKBtClient:
                     self.is_connected = False
                     logger.warning("Could not connect; Retrying in 2s...")
                     time.sleep(2)
-            
+
             except SystemError as error:
                 self.is_connected = False
                 logger.debug(
-                    "Got an exception while connecting to the device: {} of type: {}".format(error, type(error))
+                    "Got an exception while connecting to the device: {} of type: {}".format(error, type(error)))
 
             except TypeError as error:
                 self.is_connected = False
