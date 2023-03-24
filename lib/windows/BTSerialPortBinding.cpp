@@ -10,6 +10,7 @@
 #include <ws2bth.h>
 #include <string>
 #include <stdlib.h>
+#include <bluetoothapis.h>
 #include "ExploreException.h"
 #include "BTSerialPortBinding.h"
 #include "BluetoothHelpers.h"
