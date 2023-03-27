@@ -288,11 +288,6 @@ class Environment(Packet):
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self.raw_data = None
-
     def _convert(self, bin_data):
         self.host_timestamp = np.frombuffer(bin_data,
                                             dtype=np.dtype(
