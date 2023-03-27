@@ -10,6 +10,7 @@
 #include <ws2bth.h>
 #include <string>
 #include <stdlib.h>
+#include <bluetoothapis.h>
 #include "ExploreException.h"
 #include "BTSerialPortBinding.h"
 #include "BluetoothHelpers.h"
@@ -57,9 +58,12 @@ int BTSerialPortBinding::Connect()
 {
 	Close();
 	int status = SOCKET_ERROR;
-	
+
+    if(!BluetoothIsConnectable(NULL))
+		throw ExploreNoBluetoothException("Bluetooth is off. Please turn Bluetooth service on in your machine");
+
 	data->s = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
-	
+
 	if (data->s != SOCKET_ERROR)
 	{
 		SOCKADDR_BTH addr = { 0 };
@@ -79,7 +83,7 @@ int BTSerialPortBinding::Connect()
 		if (status != SOCKET_ERROR)
 		{
 			addr.port = channelID;
-			
+
 			status = connect(data->s, (LPSOCKADDR)&addr, addrSize);
 			if (status != SOCKET_ERROR)
 			{
@@ -90,9 +94,9 @@ int BTSerialPortBinding::Connect()
 			{
 				int lastErrorCode = WSAGetLastError();
 				// Checking if the error is due to bluetooth socket unresponsiveness
-				int btSocketErrorCode = 10058; 
+				int btSocketErrorCode = 10058;
 				cout << "BT Socket error:" << BluetoothHelpers::GetWSAErrorMessage(lastErrorCode) << endl;
-				if(lastErrorCode == btSocketErrorCode) 
+				if(lastErrorCode == btSocketErrorCode)
 					throw ExploreBtSocketException("Connection attempt not sucessful due to socket error");
 
 			}
@@ -102,7 +106,7 @@ int BTSerialPortBinding::Connect()
 	if (status != 0)
 	{
 		string message = BluetoothHelpers::GetWSAErrorMessage(WSAGetLastError());
-		
+
 
 		if (data->s != INVALID_SOCKET)
 			closesocket(data->s);
@@ -142,9 +146,9 @@ void BTSerialPortBinding::Read(char *buffer, int* length)
 	{
 		if (FD_ISSET(data->s, &set)){
 		try{
-		
+
 		    size = recv(data->s, buffer, *length, 0);
-		
+
 		}
 		catch(const std::exception& e){
 		    cout << "INSIDE STD::EXCEPTION" << endl;
@@ -185,11 +189,11 @@ void BTSerialPortBinding::Write(const char *buffer, int length)
 
 	if (data->s == INVALID_SOCKET)
 		throw ExploreException("Attempting to write to a closed connection");
-	
-	
-	
+
+
+
 	byteWritten = send(data->s, buffer, length, 0);
-	
+
 	if(byteWritten != length)
 	{
 		throw ExploreException("Writing attempt was unsuccessful");

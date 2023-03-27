@@ -407,13 +407,13 @@ class Trigger(EventMarker):
         super().__init__(timestamp, payload, time_offset)
 
     def _convert(self, bin_data):
-        precise_ts = np.asscalar(
+        precise_ts = np.ndarray.item(
             np.frombuffer(bin_data,
                           dtype=np.dtype(np.uint32).newbyteorder("<"),
                           count=1,
                           offset=0))
         self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
-        code = np.asscalar(
+        code = np.ndarray.item(
             np.frombuffer(bin_data,
                           dtype=np.dtype(np.uint16).newbyteorder("<"),
                           count=1,
