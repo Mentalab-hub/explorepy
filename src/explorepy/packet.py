@@ -160,7 +160,7 @@ class EEG(Packet):
         return np.ptp(self.data, axis=1)
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: ADS:" +\
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: ADS: " +\
                str(self.status['ads'][-1]) + ", SR: " + str(self.status['sr'][-1])
 
 
