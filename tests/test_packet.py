@@ -318,6 +318,7 @@ def test_convert_device_info_adc_mask(device_info_in_out):
     assert dev_info_instance.adc_mask == dev_info_out['adc_mask']
 
 
+@pytest.mark.skip("get_data has been removed from DeviceInfo")
 def test_device_info_get_data(device_info_in_out):
     dev_info_instance = device_info_in_out['dev_info_instance']
     dev_info_out = device_info_in_out['dev_info_out']
@@ -367,6 +368,7 @@ def test_device_info_v2_get_info(device_info_v2_in_out):
     assert dev_info_v2_instance.get_info() == out_dict
 
 
+@pytest.mark.skip("get_data has been removed from DeviceInfoV2")
 def test_device_info_v2_get_data(device_info_v2_in_out):
     dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
     dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']

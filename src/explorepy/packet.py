@@ -474,7 +474,7 @@ class DeviceInfo(Packet):
     def __str__(self):
         return "Firmware version: {} - sampling rate: {} - ADC mask: {}".format(
             self.firmware_version, self.sampling_rate, self.adc_mask)
-    
+
 
 class DeviceInfoV2(DeviceInfo):
     def _convert(self, bin_data):
@@ -510,6 +510,7 @@ class CommandStatus(Packet):
 
 
 class CalibrationInfoBase(Packet):
+    @abc.abstractmethod
     def _convert(self, bin_data, offset_multiplier=0.001):
         slope = np.frombuffer(bin_data,
                               dtype=np.dtype(np.uint16).newbyteorder("<"),
