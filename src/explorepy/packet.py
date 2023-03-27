@@ -474,11 +474,7 @@ class DeviceInfo(Packet):
     def __str__(self):
         return "Firmware version: {} - sampling rate: {} - ADC mask: {}".format(
             self.firmware_version, self.sampling_rate, self.adc_mask)
-
-    def get_data(self):
-        """Get firmware version"""
-        return {"firmware_version": [self.firmware_version]}
-
+    
 
 class DeviceInfoV2(DeviceInfo):
     def _convert(self, bin_data):
