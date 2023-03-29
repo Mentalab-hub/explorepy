@@ -520,7 +520,7 @@ class FileRecorder:
         data = np.round(data, 4)
 
         if self.file_type == 'edf':
-            if isinstance(packet, EEG):
+            if isinstance(packet, EEG) and self._n_chan > 8:
                 indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
                 data = data[indices]
             if data.shape[0] != self._n_chan:
@@ -533,8 +533,9 @@ class FileRecorder:
                     self._write_edf_anno()
                     self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
-            if isinstance(packet, EEG):
+            if isinstance(packet, EEG) and self._n_chan > 8:
                 indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+                print(f'indices {indices}')
                 data = data[indices]
             self._csv_obj.writerows(data.T.tolist())
             self._file_obj.flush()
