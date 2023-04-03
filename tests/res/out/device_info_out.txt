@@ -1,0 +1,1 @@
+{"id": 99, "count": 0, "payload_length": 12, "raw_timestamp": 554506, "fw_version": "2.1.5", "data_rate": 250, "adc_mask": [1, 1, 1, 1, 1, 1, 1, 1], "fletcher": "afbeadde"}

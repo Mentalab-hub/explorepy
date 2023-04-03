@@ -17,7 +17,6 @@ import logging
 import os
 import re
 import time
-from datetime import datetime
 from threading import Timer
 
 import numpy as np
@@ -33,6 +32,7 @@ from explorepy.command import (
     SetSPS,
     SoftReset
 )
+from explorepy.settings_manager import SettingsManager
 from explorepy.stream_processor import (
     TOPICS,
     StreamProcessor
@@ -162,21 +162,22 @@ class Explore:
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=file_type,
                                                     fs=self.stream_processor.device_info['sampling_rate'],
-                                                    adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                    adc_mask=SettingsManager(self.device_name).get_adc_mask(),
                                                     do_overwrite=do_overwrite,
                                                     exg_ch=exg_ch_names)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=file_type,
                                                     do_overwrite=do_overwrite)
 
+        #  TODO: make sure older timestamp in meta file was not used in any other software!
         if file_type == 'csv':
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                           fs=self.stream_processor.device_info['sampling_rate'],
-                                                          adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                          adc_mask=SettingsManager(self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
                                                           do_overwrite=do_overwrite,
-                                                          timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                                                          timestamp=str(self.stream_processor.parser._time_offset))  # noqa: E501
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
@@ -213,15 +214,14 @@ class Explore:
             self.recorders['orn'].stop()
             if self.recorders['exg'].file_type == 'csv':
                 self.recorders['marker'].stop()
-            if self.recorders['timer'].is_alive():
+            if 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
                 self.recorders['timer'].cancel()
-
             self.recorders = {}
             logger.info('Recording stopped.')
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
 
-    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False):
+    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False):
         """Convert a binary file to EDF or CSV file
 
         Args:
@@ -238,18 +238,28 @@ class Explore:
         filename, extension = os.path.splitext(full_filename)
         assert os.path.isfile(bin_file), "Error: File does not exist!"
         assert extension == '.BIN', "File type error! File extension must be BIN."
-        out_full_path = os.path.join(os.getcwd(), out_dir)
-        exg_out_file = out_full_path + filename + '_ExG'
-        orn_out_file = out_full_path + filename + '_ORN'
-        marker_out_file = out_full_path + filename + '_Marker'
-        meta_out_file = out_full_path + filename + '_Meta'
+        if out_dir_is_full:
+            out_full_path = out_dir
+        else:
+            out_full_path = os.path.join(os.getcwd(), out_dir)
+        exg_out_file = os.path.join(out_full_path, filename + '_ExG')
+        orn_out_file = os.path.join(out_full_path, filename + '_ORN')
+        marker_out_file = os.path.join(out_full_path, filename + '_Marker')
+        meta_out_file = os.path.join(out_full_path, filename + '_Meta')
 
         self.stream_processor = StreamProcessor()
         self.stream_processor.read_device_info(bin_file=bin_file)
+        self.mask = self.stream_processor.device_info['adc_mask']
+        if 'board_id' in self.stream_processor.device_info:
+            if 'PCB_304_801_XXX' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for _ in range(0, 32)]
+            if 'PCB_305_801_XXX' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for _ in range(0, 16)]
+
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],
                                                     fs=self.stream_processor.device_info['sampling_rate'],
-                                                    adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                    adc_mask=self.mask,
                                                     do_overwrite=do_overwrite)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=self.recorders['file_type'],
@@ -259,7 +269,7 @@ class Explore:
             self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                           fs=self.stream_processor.device_info['sampling_rate'],
-                                                          adc_mask=self.stream_processor.device_info['adc_mask'],
+                                                          adc_mask=self.mask,
                                                           device_name=self.device_name,
                                                           do_overwrite=do_overwrite)
             self.recorders['meta'].write_meta()
@@ -274,8 +284,8 @@ class Explore:
         def device_info_callback(packet):
             new_device_info = packet.get_info()
             if not self.stream_processor.compare_device_info(new_device_info):
-                new_file_name = exg_out_file + "_" + str(np.round(packet.timestamp, 0))
-                new_meta_name = meta_out_file + "_" + str(np.round(packet.timestamp, 0))
+                new_file_name = exg_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_ExG'
+                new_meta_name = meta_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_Meta'
                 logger.warning("Creating a new file: " + new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
@@ -355,7 +365,7 @@ class Explore:
             logger.debug("Tried to stop LSL while no LSL server is running!")
 
     def visualize(self, bp_freq=(1, 30), notch_freq=50):
-        r"""Visualization of the signal in the dashboard
+        r"""Visualization of the signal in the dashboard: only works for 4 and 8 channel devices
 
         Args:
             bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
@@ -406,6 +416,16 @@ class Explore:
         self._check_connection()
         self.stream_processor.set_marker(code=code)
 
+    def set_external_marker(self, time_lsl, marker_string):
+        """Sets a digital event marker while streaming
+
+        Args:
+            time_lsl (timestamp): timestamp from external marker)
+            marker_string (string): string to save as experiment marker)
+        """
+        self._check_connection()
+        self.stream_processor.set_ext_marker(time_lsl, marker_string)
+
     def format_memory(self):
         """Format memory of the device
 
@@ -429,7 +449,9 @@ class Explore:
         if sampling_rate not in [250, 500, 1000]:
             raise ValueError("Sampling rate must be 250, 500 or 1000.")
         cmd = SetSPS(sampling_rate)
-        return self.stream_processor.configure_device(cmd)
+        if self.stream_processor.configure_device(cmd):
+            SettingsManager(self.device_name).set_sampling_rate(sampling_rate)
+            return True
 
     def reset_soft(self):
         """Reset the device to the default settings
@@ -466,11 +488,14 @@ class Explore:
         Returns:
             bool: True for success, False otherwise
         """
+        if SettingsManager(self.device_name).get_channel_count() > 8:
+            SettingsManager(self.device_name).set_adc_mask(channel_mask)
+            return True
         channel_mask_int = self._convert_chan_mask(channel_mask)
-
         self._check_connection()
         cmd = SetCh(channel_mask_int)
-        return self.stream_processor.configure_device(cmd)
+        if self.stream_processor.configure_device(cmd):
+            return True
 
     def disable_module(self, module_name):
         """Disable module

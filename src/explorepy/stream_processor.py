@@ -16,17 +16,20 @@ from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
     CalibrationInfo,
+    CalibrationInfo_USBC,
     CommandRCV,
     CommandStatus,
     DeviceInfo,
+    DeviceInfoV2,
     Environment,
     EventMarker,
+    ExternalMarker,
     Orientation,
     SoftwareMarker
 )
 from explorepy.parser import Parser
+from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
-    MAX_CHANNELS,
     ImpedanceMeasurement,
     PhysicalOrientation,
     get_local_time
@@ -56,6 +59,7 @@ class StreamProcessor:
         self.physical_orn = PhysicalOrientation()
         self._last_packet_timestamp = 0
         self._last_packet_rcv_time = 0
+        self.is_bt_streaming = True
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -64,9 +68,8 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        with lock:
-            logger.debug(f"Subscribe {callback.__name__} to {topic}")
-            self.subscribers[topic].add(callback)
+        logger.debug(f"Subscribe {callback.__name__} to {topic}")
+        self.subscribers[topic].add(callback)
 
     def unsubscribe(self, callback, topic):
         """Unsubscribe a function from a topic
@@ -75,9 +78,8 @@ class StreamProcessor:
             callback (function): Callback function to be called when there is a new packet in the topic
             topic (enum 'Topics'): Topic type
         """
-        with lock:
-            logger.debug(f"Unsubscribe {callback} from {topic}")
-            self.subscribers[topic].discard(callback)
+        logger.debug(f"Unsubscribe {callback} from {topic}")
+        self.subscribers[topic].discard(callback)
 
     def start(self, device_name=None, mac_address=None):
         """Start streaming from Explore device
@@ -102,11 +104,13 @@ class StreamProcessor:
         Args:
             bin_file (str): Path to binary file
         """
+        self.is_bt_streaming = False
         self.parser = Parser(callback=self.process, mode='file')
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
 
     def read_device_info(self, bin_file):
+        self.is_bt_streaming = False
         self.parser = Parser(callback=self.process, mode='file')
         self.parser.read_device_info(bin_file)
 
@@ -135,9 +139,12 @@ class StreamProcessor:
                 self.dispatch(topic=TOPICS.imp, packet=packet_imp)
             self.apply_filters(packet=packet)
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
-        elif isinstance(packet, DeviceInfo):
+        elif isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2):
             self.old_device_info = self.device_info.copy()
             self.device_info.update(packet.get_info())
+            if self.is_bt_streaming:
+                settings_manager = SettingsManager(self.device_info["device_name"])
+                settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
@@ -147,7 +154,7 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.env, packet=packet)
         elif isinstance(packet, EventMarker):
             self.dispatch(topic=TOPICS.marker, packet=packet)
-        elif isinstance(packet, CalibrationInfo):
+        elif isinstance(packet, CalibrationInfo) or isinstance(packet, CalibrationInfo_USBC):
             self.imp_calib_info = packet.get_info()
         elif not packet:
             self.is_connected = False
@@ -201,11 +208,17 @@ class StreamProcessor:
         while not self.device_info:
             logger.warning('No device info is available. Waiting for device info packet...')
             time.sleep(.2)
+
+        settings_manager = SettingsManager(self.device_info["device_name"])
+        settings_manager.load_current_settings()
+        n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
+        # print(f"{n_chan=}")
+        n_chan = 32 if n_chan == 16 else n_chan
+
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
                                       s_rate=self.device_info['sampling_rate'],
-                                    #   n_chan=self.device_info['adc_mask'].count(1)))
-                                      n_chan=MAX_CHANNELS))
+                                      n_chan=n_chan))
 
     def remove_filters(self):
         """
@@ -276,6 +289,13 @@ class StreamProcessor:
             raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
 
         marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
+        self.process(marker)
+
+    def set_ext_marker(self, time_lsl, marker_string):
+        """Set an external marker in the stream"""
+        logger.info(f"Setting a software marker with code: {marker_string}")
+
+        marker = ExternalMarker.create(time_lsl, marker_string)
         self.process(marker)
 
     def compare_device_info(self, new_device_info):

@@ -1,0 +1,1 @@
+{"id": 97, "count": 0, "payload_length": 29, "raw_timestamp": 350023, "board_id": "PCB_303_801_XXX", "fw_version": "3.0.1", "data_rate": 1000, "adc_mask": [1, 1, 1, 1, 1, 1, 1, 1], "memory": 200, "fletcher": "afbeadde"}

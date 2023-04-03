@@ -1,0 +1,1 @@
+{"id": 19, "count": 2, "payload_length": 13, "raw_timestamp": 154404, "temperature": 29, "light": 31.99023199023199, "battery": 4.025339366515837, "battery_percentage": 78.80090497737557, "fletcher": "afbeadde"}

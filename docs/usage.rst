@@ -10,22 +10,18 @@ Command Line Interface
 Get help for a specific command using
 ::
     explorepy <command> -h
-For example to get help about the visualize command, run: ``explorepy visualize -h``
+For example to get help about the visualize command, run: ``explorepy push2lsl -h``
 ::
 
-    Usage: explorepy visualize [OPTIONS]
+    Usage: explorepy push2lsl [OPTIONS]
 
-        Visualizing signal in a browser-based dashboard
+        Push data to lsl
 
     Options:
-      -a, --address TEXT              Explore device's MAC address
-      -n, --name TEXT                 Name of the device
-      -nf, --notchfreq [50|60]        Frequency of notch filter.
-      -lf, --lowfreq FLOAT            Low cutoff frequency of bandpass/highpass
-                                      filter.
-      -hf, --highfreq FLOAT           High cutoff frequency of bandpass/lowpass
-                                      filter.
-      -h, --help                      Show this message and exit.
+        -a, --address TEXT        Explore device's MAC address
+        -n, --name TEXT           Name of the device
+        -d, --duration <integer>  Streaming duration in seconds
+        -h, --help                Show this message and exit.
 
 
 Available Commands
@@ -144,8 +140,6 @@ Takes a binary file and converts it to two EDF files (ExG and orientation - mark
 
           EEGLAB's BIOSIG plugin has problems with some EDF files (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). To resolve this, download a precompiled MATLAB file (mexSLOAD.mex) from BIOSIG `here <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. Documentation is `here <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
 
-.. note:: If you change your device's sampling rate or channel mask during recording, ``explorepy`` will create a new CSV file for ExG data with the given file name plus the time the setting changed.
-
 .. note:: Because environmental factors, like temperature, can affect your device's sampling rate, we recommend computing the sampling rate of recorded data. If you find a deviation between the recorded sampling rate and ``explorepy``'s sampling rate, resample your signal to correct for drifts. The timestamps in the CSV/EDF file can be used to compute the resampling factor.
 
            If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF files here, as they cannot guarantee precise timing.
@@ -153,24 +147,6 @@ Takes a binary file and converts it to two EDF files (ExG and orientation - mark
 Example (overwrite):
 ::
     explorepy bin2edf -f input_file.BIN -ow
-
-visualize
-%%%%
-
-Visualizes real-time data in a browser-based dashboard. Currently, Google Chrome is supported. Visualization in IE and Edge can be slow.
-::
-
-    Options:
-      -a, --address TEXT        Explore device's MAC address
-      -n, --name TEXT           Name of the device
-      -nf, --notchfreq [50|60]  Frequency of notch filter.
-      -lf, --lowfreq FLOAT      Low cutoff frequency of bandpass/highpass filter.
-      -hf, --highfreq FLOAT     High cutoff frequency of bandpass/lowpass filter.
-      -h, --help                Show this message and exit.
-
-Example:
-::
-    explorepy visualize -n Explore_XXXX -lf .5 -hf 40 -nf 50
 
 impedance
 %%%%
@@ -363,29 +339,6 @@ This will record data in three separate files: "``test_ExG.csv``", "``test_ORN.c
 
            If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF, as it cannot guarantee precise timing.
 
-Visualization
-""""""""""""""
-
-You can visualize real-time data in a browser-based dashboard using the following code. Currently, Google Chrome is supported. Visualization in IE and Edge can be slow.
-::
-    explore.visualize(bp_freq=(1, 30), notch_freq=50)
-
-``bp_freq`` specifies the cut-off frequencies of bandpass/lowpass/highpass filters.  ``notch_freq`` sets the notch filter (either 50 or 60).
-
-In the dashboard, you can set the signal visualization mode to either EEG or ECG. EEG mode provides the spectral analysis plot of the signal. ECG mode detects heartbeats and calculates heart rate using RR-intervals.
-
-EEG:
-
-.. image:: /images/Dashboard_EEG.jpg
-  :width: 800
-  :alt: EEG Dashboard
-
-ECG with heart beat detection:
-
-.. image:: /images/Dashboard_ECG.jpg
-  :width: 800
-  :alt: ECG Dashboard
-
 
 Impedance measurement
 """""""""""""""""""""
@@ -393,10 +346,6 @@ Impedance measurement
 You can measure electrodes impedances using:
 ::
     explore.measure_imp()
-
-.. image:: /images/Dashboard_imp.jpg
-  :width: 800
-  :alt: Impedance Dashboard
 
 .. note:: Impedance values depend on the impedance of the reference electrode. The value shown for each electrode is the average of the ground and ExG electrodes' impedances.
 

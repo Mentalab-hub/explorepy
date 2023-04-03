@@ -4,14 +4,14 @@ Installation
 
 Minimal Requirements
 ------------
-* Python 3.6 to Python 3.10
+* Python 3.7 to Python 3.11
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
 
 Recommended Requirements
 ------------
-* Python 3.6 to Python 3.10
+* Python 3.7 to Python 3.11
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 8GB RAM
 * Intel i7 or higher CPU
@@ -68,6 +68,7 @@ Ubuntu
 
 Mac
 ^^^
+Please note that Mac OSX is not supported at the moment due to some bluetooth bug from Apple OS updates.
 1. Install ``XCode`` from the Mac App store. For this, you may need to upgrade to the latest version of MacOS. For older versions of MacOS, find compatible versions of ``XCode`` `here <https://en.wikipedia.org/wiki/Xcode>`_. All old ``XCode`` versions are available `here <https://developer.apple.com/download/more/>`_.
 2. Accept the license agreement: ``sudo xcodebuild -license``
 3. It is best to install Anaconda. Download  and install the `Anaconda Python 3.7 Mac installer <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and downloaded `here <https://repo.anaconda.com/archive/index.html>`_.
@@ -84,8 +85,8 @@ Quick test
 
 * Open the Conda command prompt (if you used pip) or Windows command prompt (if you used the installable file).
 * Activate the virtual environment (this step is only necessary in the Conda command prompt): ``conda activate myenv``
-* Run ``explorepy visualize -n DEVICE-NAME -lf 1 -hf 40``
-* To stop visualization press ``Ctrl+C``
+* Run ``explorepy acquire -n DEVICE-NAME``
+* To stop the command execution, press ``Ctrl+C``
 
 Troubleshooting
 ---------------
