@@ -32,7 +32,7 @@ from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
     ImpedanceMeasurement,
     PhysicalOrientation,
-    get_local_time
+    get_local_time, send_ttl_trigger
 )
 
 
@@ -296,6 +296,14 @@ class StreamProcessor:
         logger.info(f"Setting a software marker with code: {marker_string}")
 
         marker = ExternalMarker.create(time_lsl, marker_string)
+        self.process(marker)
+
+    def set_string_marker(self, marker_string):
+        """Set an external marker in the stream"""
+        logger.info(f"Setting an 8 bit marker id with code: {marker_string}")
+
+        send_ttl_trigger()
+        marker = ExternalMarker.create(self._get_sw_marker_time(), marker_string)
         self.process(marker)
 
     def compare_device_info(self, new_device_info):

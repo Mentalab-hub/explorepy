@@ -6,6 +6,10 @@ import csv
 import datetime
 import logging
 import os.path
+import time
+
+import pandas as pd
+import serial  # pyserial is necessary
 import socket
 from collections import namedtuple
 from contextlib import closing
@@ -28,12 +32,13 @@ from pylsl import (
     local_clock
 )
 from scipy import signal
-
+from serial.tools import (
+    list_ports
+)
 import explorepy
 from explorepy.filters import ExGFilter
 from explorepy.packet import EEG
 from explorepy.settings_manager import SettingsManager
-
 
 logger = logging.getLogger(__name__)
 lock = Lock()
@@ -478,6 +483,9 @@ class FileRecorder:
                 data = pandas.read_csv(path, delimiter=",")
                 data = data.sort_values(by=['TimeStamp'])
                 pandas.DataFrame(data).to_csv(path, index=False)
+            elif "Marker" in self._file_name:
+                # Merge eight bit marker information
+                merge_string_trigger_info_with_ttl(self._file_name)
 
     def _init_edf_channels(self):
         self._file_obj.setEquipment(self._device_name)
@@ -535,7 +543,6 @@ class FileRecorder:
         elif self.file_type == 'csv':
             if isinstance(packet, EEG) and self._n_chan > 8:
                 indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-                print(f'indices {indices}')
                 data = data[indices]
             self._csv_obj.writerows(data.T.tolist())
             self._file_obj.flush()
@@ -928,7 +935,7 @@ def compare_recover_from_bin(file_name_csv, file_name_device):
             Args:
             file_name_csv (str): Name of recorded csv file without extension
             file_name_device_csv (str): Name of converted csv file
-        """
+    """
     bin_df = pandas.read_csv(file_name_device + '_ExG.csv')
     csv_df = pandas.read_csv(file_name_csv + '_ExG.csv')
     meta_df = pandas.read_csv(file_name_csv + "_Meta.csv")
@@ -943,3 +950,38 @@ def compare_recover_from_bin(file_name_csv, file_name_device):
     bin_df = bin_df[(bin_df[timestamp_key] >= start) & (bin_df[timestamp_key] <= stop)]
     bin_df[timestamp_key] = bin_df[timestamp_key] + offset_
     bin_df.to_csv(file_name_csv + '_recovered_ExG.csv', index=False)
+
+
+def send_ttl_trigger():
+    """ Sends a trigger through Mentalab Triggerstick
+    """
+
+    # There are several ways to find the right USB device: pid, vid, manufacturer etc. Here the code looks for Mentalab as manufacturer
+    port = [p for p in serial.tools.list_ports.comports(False) if 'Mentalab' in p.manufacturer][0].device
+    print(f'port is {port}')
+    if port is None:
+        print('Triggerstick not found!')
+        raise LookupError('Could not find triggerstick!')
+
+
+    mySerial = serial.Serial(port=port, baudrate=9600, timeout=1)
+    mySerial.write(b'TRG\n')
+
+def merge_string_trigger_info_with_ttl(file_name):
+    """
+    Here the code looks for same close timetamps and then merge them together as 8 bit markers with prefix 'string_'
+    """
+    drop_indexes = []
+
+    df = pd.read_csv(file_name)
+    marker_info_list = df['Code']
+
+    for index, item in enumerate(marker_info_list):
+        if 'in_' in str(item) and (int(df['TimeStamp'][index + 1]) - int(df['TimeStamp'][index]) < 1) and 'ext_' in marker_info_list[index + 1] and (index <= len(marker_info_list) -1):
+            # merge two rows
+            marker_info_list[index] =  'in_' + marker_info_list[index + 1][4:]
+            drop_indexes.append(index + 1)
+    if len(drop_indexes) > 0:
+        df['Code'] = marker_info_list
+        df.drop(index=drop_indexes, inplace=True, axis= 1)
+        pandas.DataFrame(df).to_csv(os.path.join(os.getcwd(), file_name), index=False)
