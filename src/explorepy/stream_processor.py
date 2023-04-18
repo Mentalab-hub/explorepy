@@ -186,6 +186,17 @@ class StreamProcessor:
         with lock:
             return self._last_packet_timestamp + get_local_time() - self._last_packet_rcv_time
 
+    def _estimate_external_marker_time(self, external_time):
+        """Estimates a timestamp to be used in software marker
+
+        This method gives an estimation of a timestamp relative to Explore internal clock. This timestamp can be used
+        for generating a software marker.
+        """
+        with lock:
+            marker_time = self._last_packet_timestamp + external_time - self._last_packet_rcv_time
+            print('marker time{}'.format(marker_time))
+            return marker_time
+
     def dispatch(self, topic, packet):
         """Dispatch a packet to subscribers
 
@@ -295,7 +306,7 @@ class StreamProcessor:
         """Set an external marker in the stream"""
         logger.info(f"Setting a software marker with code: {marker_string}")
 
-        marker = ExternalMarker.create(time_lsl, marker_string)
+        marker = ExternalMarker.create(self._estimate_external_marker_time(time_lsl), marker_string)
         self.process(marker)
 
     def compare_device_info(self, new_device_info):
