@@ -9,5 +9,3 @@ class MockBtServer:
 
     def Close(self):
         self.is_connected = False
-
-

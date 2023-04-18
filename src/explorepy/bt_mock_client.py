@@ -5,8 +5,7 @@ import time
 
 from explorepy import (
     exploresdk,
-    settings_manager,
-    bt_mock_server
+    settings_manager
 )
 
 from explorepy.bt_mock_server import (
@@ -14,7 +13,6 @@ from explorepy.bt_mock_server import (
 )
 
 from explorepy._exceptions import (
-    DeviceNotFoundError,
     InputError
 )
 
@@ -83,7 +81,7 @@ class MockBtClient:
 
     def _find_mac_address(self):
         self.device_manager = exploresdk.ExploreSDK_Create()
-        self.mac_address = 'ABCD_EFGH_IJKL_MNOP' # dummy MAC address
+        self.mac_address = 'ABCD_EFGH_IJKL_MNOP' #  dummy MAC address
 
     def read(self, n_bytes):
         """Read n_bytes from the socket
