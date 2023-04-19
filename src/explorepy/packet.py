@@ -29,7 +29,6 @@ class PACKET_ID(IntEnum):
     EEG98 = 146
     EEG32 = 148
     EEG98_USBC = 150
-    EEG99S = 30
     EEG99 = 62
     EEG94R = 208
     EEG98R = 210
@@ -45,11 +44,8 @@ class PACKET_ID(IntEnum):
 EXG_UNIT = 1e-6
 
 
-class Packet:
+class Packet(abc.ABC):
     """An abstract base class for Explore packet"""
-
-    __metadata__ = abc.ABCMeta
-
     def __init__(self, timestamp, payload, time_offset=0):
         """Gets the timestamp and payload and initializes the packet object
 
@@ -60,14 +56,16 @@ class Packet:
                                     streaming in realtime. It will be zero while converting a binary file.
         """
         self.timestamp = timestamp / TIMESTAMP_SCALE + time_offset
+        self._convert(payload[:-4])
+        self._check_fletcher(payload[-4:])
 
     @abc.abstractmethod
     def _convert(self, bin_data):
         """Read the binary data and convert it to real values"""
 
-    @abc.abstractmethod
     def _check_fletcher(self, fletcher):
-        """Checks if the fletcher is valid"""
+        if not fletcher == b"\xaf\xbe\xad\xde":
+            raise FletcherError("Fletcher value is incorrect!")
 
     @abc.abstractmethod
     def __str__(self):
@@ -93,12 +91,37 @@ class Packet:
 class EEG(Packet):
     """EEG packet class"""
 
-    __metadata__ = abc.ABCMeta
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
+    @abc.abstractmethod
+    def __init__(self, timestamp, payload, time_offset=0, v_ref=None, n_packet=None):
+        self.v_ref = v_ref
+        self.n_packet = n_packet
         self.data = None
         self.imp_data = None
+        super().__init__(timestamp, payload, time_offset)
+
+    def _convert(self, bin_data):
+        if not self.v_ref or not self.n_packet:
+            raise ValueError("v_ref or n_packet cannot be null for conversion!")
+        data = Packet.int24to32(bin_data)
+        n_chan = -1
+        data = data.reshape((self.n_packet, n_chan)).astype(float).T
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
+        self.data = np.round(data[1:, :] * self.v_ref / gain, 2)
+        # EEG32: status bits will change in future releases as we need to use 4 bytes for 32 channel status
+        self.status = self.int32_to_status(data[0, :])
+
+    @staticmethod
+    def int32_to_status(data):
+        data = data.astype(int)
+        ads = data & 255
+        empty = data >> 8 & 255
+        sr = (16000 / (2 ** (data >> 16 & 255))).astype(int)
+        status = {
+            "ads": ads,
+            "empty": empty,
+            "sr": sr,
+        }
+        return status
 
     def calculate_impedance(self, imp_calib_info):
         """calculate impedance with the help of impedance calibration info
@@ -137,181 +160,43 @@ class EEG(Packet):
         return np.ptp(self.data, axis=1)
 
     def __str__(self):
-        pass
-
-    def _check_fletcher(self, fletcher):
-        pass
-
-    def _convert(self, bin_data):
-        pass
+        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: ADS: " +\
+               str(self.status['ads'][-1]) + ", SR: " + str(self.status['sr'][-1])
 
 
 class EEG94(EEG):
     """EEG packet for 4 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def _convert(self, bin_data):
-        data = Packet.int24to32(bin_data)
-        n_chan = -1
-        v_ref = 2.4
-        n_packet = 33
-        data = data.reshape((n_packet, n_chan)).astype(float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
-        self.data = np.round(data[1:, :] * v_ref / gain, 2)
-        self.data_status = data[0, :]
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
-    def __str__(self):
-        return ("EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.data_status[-1]))
+        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=33)
 
 
 class EEG98(EEG):
     """EEG packet for 8 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def _convert(self, bin_data):
-        data = Packet.int24to32(bin_data)
-        n_chan = -1
-        v_ref = 2.4
-        n_packet = 16
-        data = data.reshape((n_packet, n_chan)).astype(float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
-        self.data = np.round(data[1:, :] * v_ref / gain, 2)
-        self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
-            self.status)
+        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
 
 
 class EEG98_USBC(EEG):
     """EEG packet for 8 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def _convert(self, bin_data):
-        data = Packet.int24to32(bin_data)
-        n_chan = -1
-        v_ref = 2.4
-        n_packet = 16
-        data = data.reshape((n_packet, n_chan)).astype(float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
-        self.data = np.round(data[1:, :] * v_ref / gain, 2)
-        self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
-            self.status)
-
-
-class EEG99s(EEG):
-    """EEG packet for 8 channel device"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def _convert(self, bin_data):
-        data = Packet.int24to32(bin_data)
-        n_chan = -1
-        v_ref = 4.5
-        n_packet = 16
-        data = data.reshape((n_packet, n_chan)).astype(float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
-        self.data = np.round(data * v_ref / gain, 2)
-        self.status = data[0, :]
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(
-            self.status)
+        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
 
 
 class EEG99(EEG):
     """EEG packet for 8 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def _convert(self, bin_data):
-        data = Packet.int24to32(bin_data)
-        n_chan = -1
-        v_ref = 4.5
-        n_packet = 16
-        data = data.reshape((n_packet, n_chan)).astype(float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
-        self.data = np.round(data * v_ref / gain, 2)
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1])
+        super().__init__(timestamp, payload, time_offset, v_ref=4.5, n_packet=16)
 
 
 class EEG32(EEG):
     """EEG packet for 32 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def _convert(self, bin_data):
-        data = Packet.int24to32(bin_data)
-        n_chan = -1
-        v_ref = 2.4
-        """
-        Explanation for calculation of n_packet variable:
-        Actual data length(ADL) = max size 545 - 12 miscellaneous bytes(pid + count + timestamp + fletcher)
-        One BT packet will hold multiple samples from sensors
-        ADL in integer = actual data length / 24
-        n_packet = ADL in integer / number of channels of explore device
-        """
-        # n_packet will be 5 in the future
-
-        n_packet = 4
-        data = data.reshape((n_packet, n_chan)).astype(float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.
-        self.data = np.round(data[1:, :] * v_ref / gain, 2)
-        # status bits will change in future releases as we need to use 4 bytes for 32 channel status
-        self.status = (hex(bin_data[0]), hex(bin_data[1]), hex(bin_data[2]))
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b'\xaf\xbe\xad\xde':
-            raise FletcherError('Fletcher value is incorrect!')
-
-    def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: " + str(self.status)
+        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=4)
 
 
 class Orientation(Packet):
@@ -319,8 +204,6 @@ class Orientation(Packet):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
         self.theta = None
         self.rot_axis = None
 
@@ -335,12 +218,8 @@ class Orientation(Packet):
         self.theta = None
         self.rot_axis = None
 
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
     def __str__(self):
-        return ("Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag))
+        return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
 
     def get_data(self, srate=None):
         """Get orientation timestamp and data"""
@@ -363,12 +242,6 @@ class Orientation(Packet):
 
 class Environment(Packet):
     """Environment data packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
     def _convert(self, bin_data):
         self.temperature = bin_data[0]
         self.light = (1000 / 4095) * np.frombuffer(
@@ -377,10 +250,6 @@ class Environment(Packet):
         self.battery = ((16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(
             bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder("<")))  # Unit Volt
         self.battery_percentage = self._volt_to_percent(self.battery)
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
         return "Temperature: " + str(self.temperature) + "\tLight: " + str(
@@ -419,13 +288,6 @@ class Environment(Packet):
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-        self.raw_data = None
-
     def _convert(self, bin_data):
         self.host_timestamp = np.frombuffer(bin_data,
                                             dtype=np.dtype(
@@ -442,20 +304,15 @@ class TimeStamp(Packet):
 class EventMarker(Packet):
     """Abstract class for event markers"""
 
-    __metadata__ = abc.ABCMeta
-
+    @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
         self.code = None
         self._label_prefix = None
+        super().__init__(timestamp, payload, time_offset)
 
     @abc.abstractmethod
     def _convert(self, bin_data):
         pass
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
 
     def get_data(self, srate=None):
         """Get marker data
@@ -474,8 +331,6 @@ class PushButtonMarker(EventMarker):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
         self._label_prefix = "pb_"
 
     def _convert(self, bin_data):
@@ -489,8 +344,6 @@ class SoftwareMarker(EventMarker):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
         self._label_prefix = "sw_"
 
     def _convert(self, bin_data):
@@ -520,8 +373,6 @@ class ExternalMarker(EventMarker):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp * 10_000, payload, 0)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
         self._label_prefix = "ext_"
 
     def _convert(self, bin_data):
@@ -538,6 +389,10 @@ class ExternalMarker(EventMarker):
         Returns:
             SoftwareMarker
         """
+        if not isinstance(marker_string, str):
+            raise ValueError("Marker label must be a string")
+        if len(marker_string) > 16 or len(marker_string) < 1:
+            raise ValueError("Marker label must be between 1 and 16 characters long")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,
@@ -545,107 +400,59 @@ class ExternalMarker(EventMarker):
         )
 
 
-class TriggerIn(EventMarker):
-    """Trigger in packet"""
-
+class Trigger(EventMarker):
+    @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0):
-        super(TriggerIn, self).__init__(timestamp, payload, time_offset)
         self._time_offset = time_offset
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
+        super().__init__(timestamp, payload, time_offset)
+
+    def _convert(self, bin_data):
+        precise_ts = np.ndarray.item(
+            np.frombuffer(bin_data,
+                          dtype=np.dtype(np.uint32).newbyteorder("<"),
+                          count=1,
+                          offset=0))
+        self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
+        code = np.ndarray.item(
+            np.frombuffer(bin_data,
+                          dtype=np.dtype(np.uint16).newbyteorder("<"),
+                          count=1,
+                          offset=4))
+        self.code = code
+        mac_address = hex(
+            int(
+                np.frombuffer(
+                    bin_data,
+                    dtype=np.dtype(np.uint16).newbyteorder("<"),
+                    count=1,
+                    offset=6,
+                )))
+        self.mac_address = mac_address
+
+
+class TriggerIn(Trigger):
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
         self._label_prefix = "in_"
 
-    def _convert(self, bin_data):
-        precise_ts = np.ndarray.item(
-            np.frombuffer(bin_data,
-                          dtype=np.dtype(np.uint32).newbyteorder("<"),
-                          count=1,
-                          offset=0))
-        self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
-        code = np.ndarray.item(
-            np.frombuffer(bin_data,
-                          dtype=np.dtype(np.uint16).newbyteorder("<"),
-                          count=1,
-                          offset=4))
-        self.code = code
-        mac_address = hex(
-            int(
-                np.frombuffer(
-                    bin_data,
-                    dtype=np.dtype(np.uint16).newbyteorder("<"),
-                    count=1,
-                    offset=6,
-                )))
-        self.mac_address = mac_address
 
-
-class TriggerOut(EventMarker):
-    """Trigger-out packet"""
-
+class TriggerOut(Trigger):
     def __init__(self, timestamp, payload, time_offset=0):
-        super(TriggerOut, self).__init__(timestamp, payload, time_offset)
-        self._time_offset = time_offset
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
+        super().__init__(timestamp, payload, time_offset)
         self._label_prefix = "out_"
-
-    def _convert(self, bin_data):
-        precise_ts = np.ndarray.item(
-            np.frombuffer(bin_data,
-                          dtype=np.dtype(np.uint32).newbyteorder("<"),
-                          count=1,
-                          offset=0))
-
-        self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
-        code = np.ndarray.item(
-            np.frombuffer(bin_data,
-                          dtype=np.dtype(np.uint16).newbyteorder("<"),
-                          count=1,
-                          offset=4))
-        """
-        if label == 240:
-            label = "Sync"
-        if label == 15:
-            label = "ADS_Start"
-        """
-        self.code = code
-        mac_address = hex(
-            int(
-                np.frombuffer(
-                    bin_data,
-                    dtype=np.dtype(np.uint16).newbyteorder("<"),
-                    count=1,
-                    offset=6,
-                )))
-        self.mac_address = mac_address
 
 
 class Disconnect(Packet):
     """Disconnect packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._check_fletcher(payload)
-
     def _convert(self, bin_data):
         """Disconnect packet has no data"""
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
+        pass
 
     def __str__(self):
         return "Device has been disconnected!"
 
 
 class DeviceInfo(Packet):
-    """Device information packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super(DeviceInfo, self).__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
     def _convert(self, bin_data):
         fw_num = np.frombuffer(bin_data,
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
@@ -656,10 +463,6 @@ class DeviceInfo(Packet):
         self.sampling_rate = 16000 / (2 ** bin_data[2])
         self.adc_mask = [int(bit) for bit in format(bin_data[3], "#010b")[2:]]
 
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
     def get_info(self):
         """Get device information as a dictionary"""
         return dict(
@@ -672,68 +475,24 @@ class DeviceInfo(Packet):
         return "Firmware version: {} - sampling rate: {} - ADC mask: {}".format(
             self.firmware_version, self.sampling_rate, self.adc_mask)
 
-    def get_data(self):
-        """Get firmware version"""
-        return {"firmware_version": [self.firmware_version]}
 
-
-class DeviceInfoV2(Packet):
-    """Device information packet containing additional information board id and memory info"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super(DeviceInfoV2, self).__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
+class DeviceInfoV2(DeviceInfo):
     def _convert(self, bin_data):
         self.board_id = bin_data[:15].decode('utf-8', errors='ignore')
-
-        fw_num = np.frombuffer(bin_data,
-                               dtype=np.dtype(np.uint16).newbyteorder("<"),
-                               count=1,
-                               offset=16)
-        self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
-        self.sampling_rate = 16000 / (2 ** bin_data[18])
-        self.adc_mask = [int(bit) for bit in format(bin_data[19], "#010b")[2:]]
+        super()._convert(bin_data[16:])
         self.is_memory_available = bin_data[20]
 
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
     def get_info(self):
-        """Get device information as a dictionary"""
-        return dict(
-            firmware_version=self.firmware_version,
-            adc_mask=self.adc_mask,
-            sampling_rate=self.sampling_rate,
-            board_id=self.board_id,
-            memory_info=self.is_memory_available
-        )
-
-    def __str__(self):
-        return "Firmware version: {} - sampling rate: {} - ADC mask: {}".format(
-            self.firmware_version, self.sampling_rate, self.adc_mask)
-
-    def get_data(self):
-        """Get firmware version"""
-        return {"firmware_version": [self.firmware_version]}
+        as_dict = super().get_info()
+        as_dict['board_id'] = self.board_id
+        as_dict['memory_info'] = self.is_memory_available
+        return as_dict
 
 
 class CommandRCV(Packet):
     """Command Status packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super(CommandRCV, self).__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
-
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
 
     def __str__(self):
         return (
@@ -742,87 +501,44 @@ class CommandRCV(Packet):
 
 class CommandStatus(Packet):
     """Command Status packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super(CommandStatus, self).__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
         self.status = bin_data[5]
 
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
     def __str__(self):
-        return ("Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode))
+        return "Command status: " + str(self.status) + "\tfor command with opcode: " + str(self.opcode)
 
 
-class CalibrationInfo(Packet):
-    """Calibration Info packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super(CalibrationInfo, self).__init__(timestamp, payload, time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
-    def _convert(self, bin_data):
+class CalibrationInfoBase(Packet):
+    @abc.abstractmethod
+    def _convert(self, bin_data, offset_multiplier=0.001):
         slope = np.frombuffer(bin_data,
                               dtype=np.dtype(np.uint16).newbyteorder("<"),
                               count=1,
-                              offset=0)
+                              offset=0).item()
         self.slope = slope * 10.0
         offset = np.frombuffer(bin_data,
                                dtype=np.dtype(np.uint16).newbyteorder("<"),
                                count=1,
-                               offset=2)
-        self.offset = offset * 0.001
+                               offset=2).item()
+        self.offset = offset * offset_multiplier
 
     def get_info(self):
         """Get calibration info"""
         return {"slope": self.slope, "offset": self.offset}
 
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
     def __str__(self):
-        return ("calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset))
+        return "calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset)
 
 
-class CalibrationInfo_USBC(CalibrationInfo):
-    """Calibration Info packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super(CalibrationInfo_USBC, self).__init__(timestamp, payload,
-                                                   time_offset)
-        self._convert(payload[:-4])
-        self._check_fletcher(payload[-4:])
-
+class CalibrationInfo(CalibrationInfoBase):
     def _convert(self, bin_data):
-        slope = np.frombuffer(bin_data,
-                              dtype=np.dtype(np.uint16).newbyteorder("<"),
-                              count=1,
-                              offset=0)
-        self.slope = slope * 10.0
-        offset = np.frombuffer(bin_data,
-                               dtype=np.dtype(np.uint16).newbyteorder("<"),
-                               count=1,
-                               offset=2)
-        self.offset = offset * 0.01
+        super()._convert(bin_data, offset_multiplier=0.001)
 
-    def get_info(self):
-        """Get calibration info"""
-        return {"slope": self.slope, "offset": self.offset}
 
-    def _check_fletcher(self, fletcher):
-        if not fletcher == b"\xaf\xbe\xad\xde":
-            raise FletcherError("Fletcher value is incorrect!")
-
-    def __str__(self):
-        return ("calibration info: slope = " + str(self.slope) + "\toffset = " + str(self.offset))
+class CalibrationInfo_USBC(CalibrationInfoBase):
+    def _convert(self, bin_data):
+        super()._convert(bin_data, offset_multiplier=0.01)
 
 
 PACKET_CLASS_DICT = {
@@ -834,8 +550,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.INFO_V2: DeviceInfoV2,
     PACKET_ID.EEG94: EEG94,
     PACKET_ID.EEG98: EEG98,
-    PACKET_ID.EEG99S: EEG99s,
-    PACKET_ID.EEG99: EEG99s,
+    PACKET_ID.EEG99: EEG99,
     PACKET_ID.EEG94R: EEG94,
     PACKET_ID.EEG98R: EEG98,
     PACKET_ID.EEG98_USBC: EEG98_USBC,

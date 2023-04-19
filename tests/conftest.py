@@ -157,7 +157,7 @@ def mocked_eeg_base(mocker):
     if hasattr(EEG, "__abstractmethods__"):
         if len(EEG.__abstractmethods__) != 0:
             mocker.patch.multiple(EEG, __abstractmethods__=set())
-    eeg = EEG(12345, b'\xaf\xbe\xad\xde')
+    eeg = EEG(12345, b'\x00\x00\x00\xaf\xbe\xad\xde', v_ref=2.4, n_packet=1)
     eeg.data = np.array(
         [[40, 3333, 78910, -30, 0],
          [20, -1000, 10, 30, 0],
