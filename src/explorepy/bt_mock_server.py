@@ -25,11 +25,16 @@ class MockBtServer:
     EEG98_USBC_DEV_INFO_V2_PAYLOAD_LENGTH = b'\x1D\x00'
     # EEG98_USBC_DEV_INFO_V2_PCB_ls = [b'\x50', b'\x43', b'\x42', b'\x5F', b'\x33', b'\x30', b'\x33', b'\x5F',
     #                              b'\x38', b'\x30', b'\x31', b'\x5F', b'\x58', b'\x58', b'\x58', b'\x00']
-    EEG98_USBC_DEV_INFO_V2_PCB = b'\x50\x43\x42\x5F\x33\x30\x33\x5F\x38\x30\x31\x5F\x58\x58\x58\x00'
+    EEG98_USBC_DEV_INFO_V2_PCB_FW = b'\x50\x43\x42\x5F\x33\x30\x33\x5F\x38\x30\x31\x5F\x58\x58\x58\x00\x2D\x01'
     # ORN_PID_ls = [b'\x0D']
     ORN_PID = b'\x0D'
     # ORN_PAYLOAD_LENGTH_ls = [b'\x1A', b'\x00']
     ORN_PAYLOAD_LENGTH = b'\x1A\x00'
+    ORN_DATA = b'\x1C\xFF\x1A\xF7\x30\xC1\x26\x00\xAA\xFF\xB5\xFF\xBF\x00\x1E\x01\x4D\x00'
+    ENV_PID = b'\x13'
+    ENV_PAYLOAD_LENGTH = b'\x0D\x00'
+    ENV_TEMP_LIGHT_BATTERY = b'\x15\xBB\x0F\x15\x08'
+    ENV_MEMORY = b'\xC8'
     # FLETCHER_ls = [b'\xAF', b'\xBE', b'\xAD', b'\xDE']
     FLETCHER = b'\xAF\xBE\xAD\xDE'
 
@@ -47,11 +52,7 @@ class MockBtServer:
         self.channel_mask = b'\xFF'
         self.buffer = None
 
-    def generate_exg_packet(self):
-        exg = self.EEG98_USBC_PID +\
-              self.counter.to_bytes(1, byteorder='little') +\
-              self.EEG98_USBC_PAYLOAD_LENGTH +\
-              self.timestamp.to_bytes(4, byteorder='little')
+    def sr_to_byte(self):
         sr_bits = b'\x06'
         if self.exg_sr == 250:
             sr_bits = b'\x06'
@@ -59,6 +60,14 @@ class MockBtServer:
             sr_bits = b'\x05'
         elif self.exg_sr == 1000:
             sr_bits = b'\x04'
+        return sr_bits
+
+    def generate_exg_packet(self):
+        exg = self.EEG98_USBC_PID +\
+              self.counter.to_bytes(1, byteorder='little') +\
+              self.EEG98_USBC_PAYLOAD_LENGTH +\
+              self.timestamp.to_bytes(4, byteorder='little')
+        sr_bits = self.sr_to_byte()
         current_status = self.channel_mask + b'\x00' + sr_bits
         for i in range(0, 16):
             exg += current_status
@@ -68,13 +77,33 @@ class MockBtServer:
         return exg
 
     def generate_env_packet(self):
-        raise NotImplementedError
+        env = self.ENV_PID
+        env += self.counter.to_bytes(1, byteorder='little')
+        env += self.ENV_PAYLOAD_LENGTH
+        env += self.timestamp.to_bytes(4, byteorder='little')
+        env += self.ENV_TEMP_LIGHT_BATTERY
+        env += self.FLETCHER
+        return env
 
     def generate_orn_packet(self):
-        raise NotImplementedError
+        orn = self.ORN_PID
+        orn += self.counter.to_bytes(1, byteorder='little')
+        orn += self.ORN_PAYLOAD_LENGTH
+        orn += self.timestamp.to_bytes(4, byteorder='little')
+        orn += self.ORN_DATA
+        orn += self.FLETCHER
+        return orn
 
     def generate_dev_info_v2_packet(self):
-        raise NotImplementedError
+        dev_info = self.EEG98_USBC_DEV_INFO_V2_PID
+        dev_info += self.counter.to_bytes(1, byteorder='little')
+        dev_info += self.EEG98_USBC_DEV_INFO_V2_PAYLOAD_LENGTH
+        dev_info += self.timestamp.to_bytes(4, byteorder='little')
+        dev_info += self.EEG98_USBC_DEV_INFO_V2_PCB_FW
+        dev_info += self.sr_to_byte()
+        dev_info += self.channel_mask
+        dev_info += self.ENV_MEMORY
+        return dev_info
 
     def generate_command_packets(self):
         raise NotImplementedError
@@ -82,11 +111,17 @@ class MockBtServer:
     def process_incoming_data(self):
         raise NotImplementedError
 
-    def generate_packet_buffer(self):
+    def generate_packet_buffer(self, duration=1):
         '''
         Generates a second worth of packets (ExG, ORN, ENV)
+
+        Args:
+            duration(int): duration in seconds of bluetooth stream to generate
+
+        Returns:
+            A bytestring containing device packet data
         '''
-        num_packets = self.exg_sr + self.orn_sr + 1
+        num_packets = (self.exg_sr + self.orn_sr + 1) * duration
         elapsed_time = int(60000 / num_packets)
         orn_pos = int(num_packets / self.orn_sr)
         env_pos = 10
@@ -151,9 +186,9 @@ class MockBtServer:
 
 if __name__ == '__main__':
     bt_interface = MockBtServer()
-    now = time.time_ns()
+    now = time.time() * 1000
     packet_buffer = bt_interface.generate_packet_buffer()
-    diff = time.time_ns() - now
+    diff = time.time() * 1000 - now
     print(f'Time diff: {diff}')
     print(len(packet_buffer))
-    print(packet_buffer)
+    #print(packet_buffer)
