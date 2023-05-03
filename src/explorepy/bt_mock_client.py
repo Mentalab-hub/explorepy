@@ -94,8 +94,8 @@ class MockBtClient:
         """
         try:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
-            actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
-            return actual_byte_data
+            # actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
+            return read_output
         except OverflowError as error:
             if not self.is_connected:
                 raise IOError("connection has been closed")
