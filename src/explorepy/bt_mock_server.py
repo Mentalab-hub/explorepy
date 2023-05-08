@@ -36,6 +36,10 @@ class MockBtServer:
     ENV_TEMP_LIGHT_BATTERY = b'\x15\xBB\x0F\x15\x08'
     ENV_MEMORY = b'\xC8'
     # FLETCHER_ls = [b'\xAF', b'\xBE', b'\xAD', b'\xDE']
+    CMD_RCV_PID = b'\xC0'
+    CMD_RCV_PAYLOAD_LENGTH = b'\x0D\x00'
+    CMD_STATUS_PID = b'\xC1'
+    CMD_STATUS_PAYLOAD_LENGTH = b'\x0E\x00'
     FLETCHER = b'\xAF\xBE\xAD\xDE'
 
     def __init__(self):
@@ -63,9 +67,9 @@ class MockBtServer:
         return sr_bits
 
     def generate_exg_packet(self):
-        exg = self.EEG98_USBC_PID +\
-              self.counter.to_bytes(1, byteorder='little') +\
-              self.EEG98_USBC_PAYLOAD_LENGTH +\
+        exg = self.EEG98_USBC_PID + \
+              self.counter.to_bytes(1, byteorder='little') + \
+              self.EEG98_USBC_PAYLOAD_LENGTH + \
               self.timestamp.to_bytes(4, byteorder='little')
         sr_bits = self.sr_to_byte()
         current_status = self.channel_mask + b'\x00' + sr_bits
@@ -105,13 +109,47 @@ class MockBtServer:
         dev_info += self.ENV_MEMORY
         return dev_info
 
-    def generate_command_packets(self):
-        raise NotImplementedError
+    def generate_cmd_rcv(self, cmd_pid, cmd_ts):
+        '''
+        Generates a command received packet based on command opcode (pid) and timestamp received
+        Args:
+            cmd_pid: Received opcode
+            cmd_ts: Received timestamp
+        '''
+        cmd_rcv = self.CMD_RCV_PID + \
+                  self.counter.to_bytes(1, byteorder='little') + \
+                  self.CMD_RCV_PAYLOAD_LENGTH + \
+                  self.timestamp.to_bytes(4, byteorder='little')
+        cmd_rcv += cmd_pid
+        cmd_rcv += cmd_ts
+        cmd_rcv += self.FLETCHER
+        return cmd_rcv
 
-    def process_incoming_data(self):
-        raise NotImplementedError
+    def generate_cmd_status(self, cmd_pid, cmd_ts):
+        # Can't find list of possible status messages, can only find 0x01 in stream
+        # (received and successfully executed? I think explorepy assumes that if it gets a
+        # status packet with X opcode, X has been performed successfully
+        cmd_status = self.CMD_STATUS_PID +\
+                     self.counter.to_bytes(1, byteorder='little') +\
+                     self.CMD_STATUS_PAYLOAD_LENGTH +\
+                     self.timestamp.to_bytes(4, byteorder='little')
+        cmd_status += cmd_pid
+        cmd_status += cmd_ts
+        cmd_status += b'\x01'
+        cmd_status += self.FLETCHER
+        return cmd_status
 
-    def generate_packet_buffer(self, duration=1):
+    def generate_command_packets(self, cmd_pid, cmd_ts):
+        cmd = self.generate_cmd_rcv(cmd_pid, cmd_ts)
+        self.counter = 0
+        cmd += self.generate_dev_info_v2_packet()
+        cmd += self.generate_cmd_status(cmd_pid, cmd_ts)
+        self.counter = 1
+        # Counter behaviour taken from a stream, is 0 for dev-info and cmd-status
+        # and then starts counting up again
+        return cmd
+
+    def generate_packet_buffer(self, cmd=None, duration=1):
         '''
         Generates a second worth of packets (ExG, ORN, ENV)
 
@@ -121,21 +159,21 @@ class MockBtServer:
         Returns:
             A bytestring containing device packet data
         '''
-        num_packets = (self.exg_sr + self.orn_sr + 1) * duration
+        num_packets = int((self.exg_sr + self.orn_sr + 1) * duration)
         elapsed_time = int(60000 / num_packets)
         orn_pos = int(num_packets / self.orn_sr)
         env_pos = 10
         packet_buffer = b''
         start = 0
 
-        if self.status == 0:
-            # Starting
-            start = 1
-            packet_buffer += self.generate_dev_info_v2_packet()
-        elif self.status == 1:
-            # Command received
-            start = 3
-            packet_buffer += self.generate_command_packets()
+        # if self.status == 0:
+        #    # Starting
+        #    start = 1
+        #    packet_buffer += self.generate_dev_info_v2_packet()
+        # elif self.status == 1:
+        #    # Command received
+        #    start = 3
+        #    packet_buffer += self.generate_command_packets()
 
         for i in range(start, num_packets):
             if i % orn_pos == 0:
@@ -150,7 +188,7 @@ class MockBtServer:
                 self.counter = 0
             self.timestamp += elapsed_time
 
-        self.status = 2
+        # self.status = 2
         return packet_buffer
 
     def Connect(self):
@@ -159,7 +197,8 @@ class MockBtServer:
         # self.timestamp = int(time.time() * 1000)  # time in ms
         self.counter = 0
         self.buffer = 0
-        self.buffer = self.generate_packet_buffer()
+        self.buffer = self.generate_dev_info_v2_packet() \
+                      + self.generate_packet_buffer()
         return 0
 
     def Read(self, length):
@@ -174,11 +213,25 @@ class MockBtServer:
         '''
         raise NotImplementedError
 
+    def process_incoming_data(self, data):
+        pid = data[0]
+        # if pid ==
+        raise NotImplementedError
+
     def Write(self, data):
         '''
         Sends data to the mocked device
         '''
         self.process_incoming_data(data)
+        '''
+        From command.py:
+            def translate(self):
+        """Translates the command to binary array understandable by Explore device. """
+        self.get_time()
+        result = [self.pid.value, self.cnt, self.payload_length,
+                  self.host_ts, self.opcode.value, self.param, self.fletcher]
+        return b''.join(result)
+        '''
 
     def Close(self):
         self.is_connected = False
@@ -187,8 +240,14 @@ class MockBtServer:
 if __name__ == '__main__':
     bt_interface = MockBtServer()
     now = time.time() * 1000
-    packet_buffer = bt_interface.generate_packet_buffer()
+    # packet_buffer = bt_interface.generate_packet_buffer()
+    bt_interface.Connect()
     diff = time.time() * 1000 - now
     print(f'Time diff: {diff}')
-    print(len(packet_buffer))
-    #print(packet_buffer)
+    print(len(bt_interface.buffer))
+    # print(bt_interface.buffer)
+
+    # TODO: change structure so that command packets are generated outside of the buffer generation
+    # TODO: should clear the buffer and add a stream of packet (cmd_rcv, dev_info, cmd_status)
+    # TODO: generate buffer should add to this
+    # TODO: could also do this for device info?
