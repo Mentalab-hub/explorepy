@@ -215,7 +215,40 @@ class MockBtServer:
 
     def process_incoming_data(self, data):
         pid = data[0]
-        # if pid ==
+        if pid == 160 or pid == 176:
+            # 160 == Command(API2BCMD), 176 == Command(API2BCMD), 27 = TS (TS is sent at the start)
+            ts = data[4:7]
+            opcode = data[8]
+            setting = data[9]
+            if opcode == 161:
+                # set sampling rate
+                raise NotImplementedError
+            elif opcode == 162:
+                # set channel mask
+                if pid == 160:
+                    # API2BCMD
+                    raise NotImplementedError
+                elif pid == 176:
+                    # API4BCMD
+                    raise NotImplementedError
+            elif opcode == 163:
+                # format device memory
+                raise NotImplementedError
+            elif opcode == 164:
+                # disable specific module
+                raise NotImplementedError
+            elif opcode == 165:
+                # enable specific module
+                raise NotImplementedError
+            elif opcode == 166:
+                # disable Z measurement (impedance?)
+                raise NotImplementedError
+            elif opcode == 167:
+                # enable Z measurement (impedance?)
+                raise NotImplementedError
+            elif opcode == 168:
+                # soft reset device
+                raise NotImplementedError
         raise NotImplementedError
 
     def Write(self, data):
