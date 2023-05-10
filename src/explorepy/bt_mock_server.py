@@ -95,14 +95,14 @@ class MockBtServer:
             return b''
 
         exg = self.EEG98_USBC_PID + \
-              self.counter.to_bytes(1, byteorder='little') + \
-              self.EEG98_USBC_PAYLOAD_LENGTH + \
-              self.timestamp.to_bytes(4, byteorder='little')
+            self.counter.to_bytes(1, byteorder='little') + \
+            self.EEG98_USBC_PAYLOAD_LENGTH + \
+            self.timestamp.to_bytes(4, byteorder='little')
         sr_bits = self.sr_to_byte()
         current_status = self.channel_mask + b'\x00' + sr_bits
         num_bits = self.popcount(self.channel_mask)
         # Only add 24-bit ints of channel data for active channels (3 bytes * num_active_channels)
-        row = self.EEG98_USBC_DATA_ROW_8_CH[:3*num_bits]
+        row = self.EEG98_USBC_DATA_ROW_8_CH[:3 * num_bits]
         for i in range(0, 16):
             exg += current_status
             exg += row
@@ -165,9 +165,9 @@ class MockBtServer:
             cmd_ts: Received timestamp
         '''
         cmd_rcv = self.CMD_RCV_PID + \
-                  self.counter.to_bytes(1, byteorder='little') + \
-                  self.CMD_RCV_PAYLOAD_LENGTH + \
-                  self.timestamp.to_bytes(4, byteorder='little')
+            self.counter.to_bytes(1, byteorder='little') + \
+            self.CMD_RCV_PAYLOAD_LENGTH + \
+            self.timestamp.to_bytes(4, byteorder='little')
         cmd_rcv += cmd_pid
         cmd_rcv += cmd_ts
         cmd_rcv += self.FLETCHER
@@ -182,10 +182,10 @@ class MockBtServer:
             cmd_pid (bytestring): PID as bytestring of the received command that this status packet reacts to
             cmd_ts (bytestring): Timestamp as bytestring of the received command that this status packet reacts to
         '''
-        cmd_status = self.CMD_STATUS_PID +\
-                     self.counter.to_bytes(1, byteorder='little') +\
-                     self.CMD_STATUS_PAYLOAD_LENGTH +\
-                     self.timestamp.to_bytes(4, byteorder='little')
+        cmd_status = self.CMD_STATUS_PID + \
+            self.counter.to_bytes(1, byteorder='little') + \
+            self.CMD_STATUS_PAYLOAD_LENGTH + \
+            self.timestamp.to_bytes(4, byteorder='little')
         cmd_status += cmd_pid
         cmd_status += cmd_ts
         cmd_status += b'\x01'  # Can't find list of possible status messages, have only found b'\x01' in streams
@@ -248,8 +248,7 @@ class MockBtServer:
         """
         self.is_connected = True
         self.counter = 0
-        self.buffer = self.generate_dev_info_v2_packet() \
-                      + self.generate_packet_buffer()
+        self.buffer = self.generate_dev_info_v2_packet() + self.generate_packet_buffer()
         return 0
 
     def Read(self, length):
