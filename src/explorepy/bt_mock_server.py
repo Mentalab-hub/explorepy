@@ -262,7 +262,13 @@ class MockBtServer:
         Returns:
             A list of bytes
         '''
-        raise NotImplementedError
+        if len(self.buffer >= length):
+            read_data = self.buffer[:length]
+            self.buffer = self.buffer[length:]
+        else:
+            read_data = self.buffer
+            self.buffer = None
+        return read_data
 
     def process_incoming_data(self, data):
         """
@@ -350,3 +356,5 @@ class MockBtServer:
 
     def Close(self):
         self.is_connected = False
+        self.impedance_mode = False
+        self.counter = 0
