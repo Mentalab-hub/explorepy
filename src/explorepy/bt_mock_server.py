@@ -296,6 +296,13 @@ class MockBtServer:
                     self.channel_mask = param
             elif opcode == 163:
                 # format device memory
+                self.impedance_mode = False
+                self.exg_sr = 250
+                self.channel_mask = b'\xFF'
+                self.exg = True
+                self.orn = True
+                self.env = True
+                self.counter = 0
                 self.buffer = None
             elif opcode == 164:
                 # disable specific module
@@ -315,13 +322,18 @@ class MockBtServer:
                     self.exg = True
             elif opcode == 166:
                 # disable Z measurement
-                self.impedance_mode = True
+                self.impedance_mode = False
             elif opcode == 167:
                 # enable Z measurement
-                self.impedance_mode = False
+                self.impedance_mode = True
             elif opcode == 168:
                 # soft reset device
-                raise NotImplementedError
+                self.impedance_mode = False
+                self.exg_sr = 250
+                self.channel_mask = b'\xFF'
+                self.exg = True
+                self.orn = True
+                self.env = True
             return opcode, ts
         return None, None
 
@@ -339,14 +351,3 @@ class MockBtServer:
 
     def Close(self):
         self.is_connected = False
-
-
-if __name__ == '__main__':
-    bt_interface = MockBtServer()
-    now = time.time() * 1000
-    # packet_buffer = bt_interface.generate_packet_buffer()
-    bt_interface.Connect()
-    diff = time.time() * 1000 - now
-    print(f'Time diff: {diff}')
-    print(len(bt_interface.buffer))
-    # print(bt_interface.buffer)
