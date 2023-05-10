@@ -2,9 +2,9 @@ import random
 
 
 class MockBtServer:
-    '''
+    """
     Mocks the behaviour of BTSerialPortBinding.cpp as well as the Explore device
-    '''
+    """
     # packet structure: [pid, count, payload_length, timestamp, [data + fletcher]*i]
     EEG98_USBC_PID = b'\x96'
     EEG98_USBC_PAYLOAD_LENGTH = b'\xB8\x01'
@@ -45,9 +45,9 @@ class MockBtServer:
         self.buffer = None
 
     def sr_to_byte(self):
-        '''
+        """
         Converts device sampling rate int to status byte.
-        '''
+        """
         if self.exg_sr == 250:
             return b'\x06'
         elif self.exg_sr == 500:
@@ -57,12 +57,12 @@ class MockBtServer:
         raise ValueError('Server sr is invalid')
 
     def cmd_sr_to_sr(self, sr_byte):
-        '''
+        """
         Converts command sr byte to sampling rate int.
 
         Args:
             sr_byte (bytestring): SR parameter taken from an incoming command packet to set the sampling rate
-        '''
+        """
         if sr_byte == b'\x01':
             return 250
         elif sr_byte == b'\x02':
@@ -72,12 +72,12 @@ class MockBtServer:
         raise ValueError('Received sr byte is invalid')
 
     def popcount(self, as_bytes):
-        '''
+        """
         Calculates the hamming weight of a bytestring.
 
         Args:
             as_bytes (bytestring): Bytestring to calculate hamming weight for (i.e. b'\xFF', b'\xA0' etc.)
-        '''
+        """
         as_int = int.from_bytes(as_bytes, byteorder='little')
         counter = 0
         while as_int:
@@ -86,10 +86,10 @@ class MockBtServer:
         return counter
 
     def generate_exg_packet(self):
-        '''
+        """
         Generates a single ExG packet of EEG98_USBC type (16 * (8 channels + status message) + fletcher). Returns empty
         bytestring if exg module is turned off and only returns as much data as expected from the channel mask.
-        '''
+        """
         # TODO: change this so it returns fake impedance values if imp mode is on
         if not self.exg:
             return b''
@@ -111,10 +111,10 @@ class MockBtServer:
         return exg
 
     def generate_env_packet(self):
-        '''
+        """
         Generates a single environment packet. The values for temperature, light and battery are constant. Return empty
         bytestring in environment module is turned off.
-        '''
+        """
         if not self.env:
             return b''
 
@@ -127,9 +127,9 @@ class MockBtServer:
         return env
 
     def generate_orn_packet(self):
-        '''
+        """
         Generates a single orientation packet. Return empty bytestring if orientation module is turned off.
-        '''
+        """
         if not self.orn:
             return b''
 
@@ -157,13 +157,13 @@ class MockBtServer:
         return dev_info
 
     def generate_cmd_rcv(self, cmd_pid, cmd_ts):
-        '''
+        """
         Generates a command received packet based on command opcode (pid) and timestamp received.
 
         Args:
             cmd_pid: Received opcode
             cmd_ts: Received timestamp
-        '''
+        """
         cmd_rcv = self.CMD_RCV_PID + \
             self.counter.to_bytes(1, byteorder='little') + \
             self.CMD_RCV_PAYLOAD_LENGTH + \
@@ -174,14 +174,14 @@ class MockBtServer:
         return cmd_rcv
 
     def generate_cmd_status(self, cmd_pid, cmd_ts):
-        '''
+        """
         Generates a single command status packet according to a received PID and timestamp. The status byte is a
         constant 0x01.
 
         Args:
             cmd_pid (bytestring): PID as bytestring of the received command that this status packet reacts to
             cmd_ts (bytestring): Timestamp as bytestring of the received command that this status packet reacts to
-        '''
+        """
         cmd_status = self.CMD_STATUS_PID + \
             self.counter.to_bytes(1, byteorder='little') + \
             self.CMD_STATUS_PAYLOAD_LENGTH + \
@@ -193,14 +193,14 @@ class MockBtServer:
         return cmd_status
 
     def generate_command_packets(self, cmd_pid, cmd_ts):
-        '''
+        """
         Generates a set of three packets: command received, dev_info_v2 and command status (in this order). Also resets
         the counter according to observed behaviour.
 
         Args:
             cmd_pid (bytestring): PID as bytestring of the received command that this status packet reacts to
             cmd_ts (bytestring): Timestamp as bytestring of the received command that this status packet reacts to
-        '''
+        """
         cmd = self.generate_cmd_rcv(cmd_pid, cmd_ts)
         self.counter = 0
         cmd += self.generate_dev_info_v2_packet()
@@ -210,7 +210,7 @@ class MockBtServer:
         return cmd
 
     def generate_packet_buffer(self, cmd=None, duration=1):
-        '''
+        """
         Generates a second worth of packets (ExG, ORN, ENV).
 
         Args:
@@ -218,7 +218,7 @@ class MockBtServer:
 
         Returns:
             A bytestring containing device packet data
-        '''
+        """
         num_packets = int((self.exg_sr + self.orn_sr + 1) * duration)
         elapsed_time = int(60000 / num_packets)
         orn_pos = int(num_packets / self.orn_sr)
@@ -252,7 +252,7 @@ class MockBtServer:
         return 0
 
     def Read(self, length):
-        '''
+        """
         Reads from the mocked Bluetooth stream.
 
         Args:
@@ -260,7 +260,7 @@ class MockBtServer:
 
         Returns:
             A list of bytes
-        '''
+        """
         if len(self.buffer >= length):
             read_data = self.buffer[:length]
             self.buffer = self.buffer[length:]
@@ -342,12 +342,12 @@ class MockBtServer:
         return None, None
 
     def Write(self, data):
-        '''
+        """
         Sends data to the mocked device.
 
         Args:
             data (bytestring): The command packet to be sent to the (fake) device.
-        '''
+        """
         opcode, ts = self.process_incoming_data(data)
         if opcode is not None and ts is not None:
             self.buffer = self.generate_command_packets(opcode, ts)
