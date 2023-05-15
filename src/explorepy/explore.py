@@ -32,6 +32,7 @@ from explorepy.command import (
     SetSPS,
     SoftReset
 )
+from explorepy.debug import Debug
 from explorepy.settings_manager import SettingsManager
 from explorepy.stream_processor import (
     TOPICS,
@@ -53,7 +54,9 @@ logger = logging.getLogger(__name__)
 class Explore:
     r"""Mentalab Explore device"""
 
-    def __init__(self):
+    def __init__(self, debug=False):
+        if debug:
+            self.debug = Debug()
         self.is_connected = False
         self.stream_processor = None
         self.recorders = {}
@@ -81,7 +84,7 @@ class Explore:
         else:
             self.device_name = 'Explore_' + mac_address[-5:-3] + mac_address[-2:]
         logger.info(f"Connecting to {self.device_name} ...")
-        self.stream_processor = StreamProcessor()
+        self.stream_processor = StreamProcessor(debug=True if self.debug else False)
         self.stream_processor.start(device_name=device_name, mac_address=mac_address)
         cnt = 0
         while "adc_mask" not in self.stream_processor.device_info:
@@ -95,6 +98,8 @@ class Explore:
         logger.info("Device info: " + str(self.stream_processor.device_info))
         self.is_connected = True
         self.stream_processor.send_timestamp()
+        if self.debug:
+            self.stream_processor.subscribe(callback=self.debug.process_bin, topic=TOPICS.packet_bin)
 
     def disconnect(self):
         r"""Disconnects from the device
