@@ -154,6 +154,7 @@ class MockBtServer:
         dev_info += self.sr_to_byte()
         dev_info += self.channel_mask
         dev_info += self.ENV_MEMORY
+        dev_info += self.FLETCHER
         return dev_info
 
     def generate_cmd_rcv(self, cmd_pid, cmd_ts):
@@ -261,12 +262,12 @@ class MockBtServer:
         Returns:
             A list of bytes
         """
-        if len(self.buffer >= length):
-            read_data = self.buffer[:length]
-            self.buffer = self.buffer[length:]
-        else:
-            read_data = self.buffer
-            self.buffer = None
+        if len(self.buffer) >= length:
+            self.buffer += self.generate_packet_buffer()
+
+        read_data = self.buffer[:length]
+        self.buffer = self.buffer[length:]
+
         return read_data
 
     def process_incoming_data(self, data):
