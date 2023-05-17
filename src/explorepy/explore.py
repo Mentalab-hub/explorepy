@@ -55,8 +55,7 @@ class Explore:
     r"""Mentalab Explore device"""
 
     def __init__(self, debug=False):
-        if debug:
-            self.debug = Debug()
+        self.debug = Debug() if debug else None
         self.is_connected = False
         self.stream_processor = None
         self.recorders = {}
