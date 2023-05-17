@@ -18,7 +18,9 @@ class Debug:
         num_bits = len(packet.bin_data)
         current_time = time.time()
         if self.last_timestamp > 0:
-            self.bps = num_bits / (current_time - self.last_timestamp)
+            diff_t = current_time - self.last_timestamp
+            if diff_t > 0:
+                self.bps = num_bits / diff_t
         self.last_timestamp = current_time
         print(f"Overall bps: {self.bps} bps, length: {num_bits} bits")
 
