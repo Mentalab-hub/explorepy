@@ -262,7 +262,7 @@ class MockBtServer:
         Returns:
             A list of bytes
         """
-        if len(self.buffer) >= length:
+        if len(self.buffer) <= length:
             self.buffer += self.generate_packet_buffer()
 
         read_data = self.buffer[:length]
