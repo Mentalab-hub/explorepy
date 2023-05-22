@@ -3,8 +3,10 @@
 import abc
 import logging
 import time
+from queue import Queue
 
 from bleak import BleakClient, BleakScanner
+import asyncio
 
 from explorepy import (
     exploresdk,
@@ -243,16 +245,40 @@ class BLEClient(BTClient):
             mac_address(str): Devices MAC address
         """
         super.__init__(device_name=device_name, mac_address=mac_address)
+        self.buffer = Queue()
+        self.packet_characteristic = ''
+        self.try_disconnect = False
+        self.try_send = None
 
-    async def connect(self):
+    async def stream(self):
+        ble_device = await self._discover_device()
+
+        async with BleakClient(ble_device) as client:
+            self.is_connected = True
+
+            async def handle_packet(sender, data):
+                # write packet to buffer
+                for b in data:
+                    self.buffer.put(b)
+
+            await client.start_notify(self.packet_characteristic, handle_packet)
+
+            while client.is_connected and not self.try_disconnect:
+                if self.try_send:
+                    await client.write_gatt_char(self.try_disconnect['char'], self.try_disconnect['data'])
+                    self.try_send = None
+                time.sleep(0.1)
+
+            self.try_disconnect = False
+        self.is_connected = False
+
+    def connect(self):
         """Connect to the device and return the socket
 
         Returns:
             socket (bluetooth.socket)
         """
-        ble_device = await self._discover_device()
-        async with BleakClient(ble_device) as client:
-            pass
+        asyncio.run(self.stream())
 
     async def _discover_device(self):
         if self.mac_address:
@@ -272,13 +298,13 @@ class BLEClient(BTClient):
         This function reconnects to the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
-        raise NotImplementedError
+        self.connect()
 
     def disconnect(self):
         """Disconnect from the device"""
-        raise NotImplementedError
+        self.try_disconnect = True
 
-    async def _find_mac_address(self):
+    def _find_mac_address(self):
         raise NotImplementedError
 
     def read(self, n_bytes):
@@ -290,7 +316,11 @@ class BLEClient(BTClient):
             Returns:
                 list of bytes
         """
-        raise NotImplementedError
+        ret = b''
+        for _ in range(n_bytes):
+            ret += bytes(self.buffer.get())
+
+        return ret
 
     def send(self, data):
         """Send data to the device
@@ -298,4 +328,8 @@ class BLEClient(BTClient):
         Args:
             data (bytearray): Data to be sent
         """
+        self.try_send = {
+            'char': '',
+            'data': data
+        }
         raise NotImplementedError
