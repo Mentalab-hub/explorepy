@@ -54,8 +54,8 @@ logger = logging.getLogger(__name__)
 class Explore:
     r"""Mentalab Explore device"""
 
-    def __init__(self, debug=False):
-        self.debug = Debug() if debug else None
+    def __init__(self, debug=False, debug_settings=None):
+        self.debug = Debug(settings=debug_settings) if debug else None
         self.is_connected = False
         self.stream_processor = None
         self.recorders = {}

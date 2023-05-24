@@ -6,8 +6,8 @@ class Debug:
     settings = {
         "BPS": True,
         "BIN": True,
-        "RSSI": True,
-        "DROPPED_COUNTER": True,
+        "RSSI": False,
+        "DROPPED_COUNTER": False,
         "DROPPED_TS": True
     }
 
@@ -86,11 +86,12 @@ class Debug:
         self.dropped_ts[pid] = ts
 
     def __str__(self):
-        msg = ""
-        msg += "[Bytes per second]\tavg: {:.2f}\tmin: {:.2f}\tmax: {:.2f}\t\t"\
+        msg = "[Bytes per second]\tavg: {:.2f}\tmin: {:.2f}\tmax: {:.2f}\t\t"\
             .format(self.bps_avg, self.bps_min, self.bps_max) if self.settings["BPS"] else ""
         msg += f"[RSSI]:\t{self.rssi}\t" if self.settings["RSSI"] else ""
-        msg += f"\n[Last packet]\t\t{self.last_packet}" if self.settings["BIN"] else ""
+        if self.settings["BPS"] or self.settings["RSSI"]:
+            msg += "\n"
+        msg += f"[Last packet]\t\t{self.last_packet}\n" if self.settings["BIN"] else ""
         return msg
 
     def process_bin(self, packet):
@@ -104,5 +105,5 @@ class Debug:
             self.update_dropped_ts(packet)
 
         if self.print_to_console:
-            print(self)
+            print(self, end="")
 
