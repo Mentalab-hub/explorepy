@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module contains all packet classes of Mentalab Explore device"""
 import abc
+import binascii
 import logging
 import struct
 from enum import IntEnum
@@ -102,7 +103,7 @@ class PacketBIN(Packet):
         pass
 
     def __str__(self):
-        return f"BINARY PACKET: {self.bin_data}"
+        return f"{binascii.hexlify(bytearray(self.bin_data))}"
 
 
 class EEG(Packet):
