@@ -26,6 +26,7 @@ __version__ = '1.8.1'
 
 this = sys.modules[__name__]
 this._bt_interface = 'sdk'
+list_sdk = ['sdk', 'mock']
 
 if not sys.version_info >= (3, 6):
     raise EnvironmentError("Explorepy requires python versions 3.6 or newer!")
@@ -41,7 +42,8 @@ def set_bt_interface(bt_interface):
         bt_interface (str): Bluetooth interface type. Options:'sdk'
 
     """
-    if bt_interface not in ['sdk']:
+
+    if bt_interface not in list_sdk:
         raise ValueError(("Invalid Bluetooth interface: " + bt_interface))
 
     this._bt_interface = bt_interface
