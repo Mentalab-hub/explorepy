@@ -2,10 +2,10 @@
 Changelog
 =========
 
-1.8.1 (26.4.2023)
+1.8.1 (31.5.2023)
 ------------------
 * Bugfix record data
-* Add dummy packts for CI/CD pipeline
+* Add dummy packets for CI/CD pipeline
 
 
 1.8.0 (27.2.2023)
