@@ -518,9 +518,8 @@ class FileRecorder:
                 self._rec_time_offset = time_vector[0]
             data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
         data = np.round(data, 4)
-
         if self.file_type == 'edf':
-            if isinstance(packet, EEG) and self._n_chan > 8:
+            if isinstance(packet, EEG):
                 indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
                 data = data[indices]
             if data.shape[0] != self._n_chan:
@@ -533,7 +532,7 @@ class FileRecorder:
                     self._write_edf_anno()
                     self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
-            if isinstance(packet, EEG) and self._n_chan > 8:
+            if isinstance(packet, EEG):
                 indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
                 data = data[indices]
             self._csv_obj.writerows(data.T.tolist())
