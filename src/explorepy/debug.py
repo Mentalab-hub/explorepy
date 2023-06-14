@@ -106,4 +106,3 @@ class Debug:
 
         if self.print_to_console:
             print(self, end="")
-

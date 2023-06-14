@@ -143,7 +143,6 @@ class Parser:
         raw_header = self.stream_interface.read(8)
 
         pid = raw_header[0]
-        raw_count = raw_header[1]
         raw_payload = raw_header[2:4]
         raw_timestamp = raw_header[4:8]
 
@@ -158,7 +157,7 @@ class Parser:
 
         payload_data = self.stream_interface.read(payload - 4)
         if self.debug:
-            self.callback(packet=PacketBIN(raw_header+payload_data))
+            self.callback(packet=PacketBIN(raw_header + payload_data))
         packet = self._parse_packet(pid, timestamp, payload_data)
         return packet
 
