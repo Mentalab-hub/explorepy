@@ -8,9 +8,9 @@ from threading import Thread
 import explorepy
 from explorepy._exceptions import FletcherError
 from explorepy.packet import (
-    PacketBIN,
     PACKET_CLASS_DICT,
-    TIMESTAMP_SCALE
+    TIMESTAMP_SCALE,
+    PacketBIN
 )
 from explorepy.settings_manager import SettingsManager
 from explorepy.tools import get_local_time

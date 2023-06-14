@@ -14,7 +14,6 @@ from explorepy.command import (
 )
 from explorepy.filters import ExGFilter
 from explorepy.packet import (
-    PacketBIN,
     EEG,
     CalibrationInfo,
     CalibrationInfo_USBC,
@@ -26,6 +25,7 @@ from explorepy.packet import (
     EventMarker,
     ExternalMarker,
     Orientation,
+    PacketBIN,
     SoftwareMarker
 )
 from explorepy.parser import Parser
