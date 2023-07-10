@@ -2,10 +2,11 @@
 Changelog
 =========
 
-1.8.1 (31.5.2023)
+1.8.1 (11.7.2023)
 ------------------
 * Bugfix record data
 * Add dummy packets for CI/CD pipeline
+* Add mock device
 
 
 1.8.0 (27.2.2023)
