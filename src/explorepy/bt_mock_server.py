@@ -169,7 +169,7 @@ class MockBtServer:
             self.counter.to_bytes(1, byteorder='little') + \
             self.CMD_RCV_PAYLOAD_LENGTH + \
             self.timestamp.to_bytes(4, byteorder='little')
-        cmd_rcv += cmd_pid
+        cmd_rcv += cmd_pid.to_bytes(1, byteorder='little')
         cmd_rcv += cmd_ts
         cmd_rcv += self.FLETCHER
         return cmd_rcv
@@ -187,7 +187,7 @@ class MockBtServer:
             self.counter.to_bytes(1, byteorder='little') + \
             self.CMD_STATUS_PAYLOAD_LENGTH + \
             self.timestamp.to_bytes(4, byteorder='little')
-        cmd_status += cmd_pid
+        cmd_status += cmd_pid.to_bytes(1, byteorder='little')
         cmd_status += cmd_ts
         cmd_status += b'\x01'  # Can't find list of possible status messages, have only found b'\x01' in streams
         cmd_status += self.FLETCHER
@@ -285,9 +285,9 @@ class MockBtServer:
         pid = data[0]
         if pid == 160 or pid == 176:
             # 160 == Command(API2BCMD), 176 == Command(API2BCMD), 27 = TS (TS is sent at the start)
-            ts = data[4:7]
-            opcode = data[8]
-            param = data[9]
+            ts = data[4:8]
+            opcode = data[9]
+            param = data[10]
             if opcode == 161:
                 # set sampling rate
                 self.exg_sr = self.cmd_sr_to_sr(param)
