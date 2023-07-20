@@ -93,7 +93,6 @@ class Explore:
         logger.info('Device info packet has been received. Connection has been established. Streaming...')
         logger.info("Device info: " + str(self.stream_processor.device_info))
         self.is_connected = True
-        self.stream_processor.send_timestamp()
 
     def disconnect(self):
         r"""Disconnects from the device
