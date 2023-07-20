@@ -262,6 +262,7 @@ class MockBtServer:
         Returns:
             A list of bytes
         """
+
         if len(self.buffer) <= length:
             self.buffer += self.generate_packet_buffer()
 
