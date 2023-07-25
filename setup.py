@@ -32,7 +32,7 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy', 'pyedflib', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.0.0', 'mne', 'eeglabio', 'pandas']  # noqa: E501
+my_req = ['numpy', 'scipy', 'pyedflib', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.19.1', 'mne', 'eeglabio', 'pandas']  # noqa: E501
 test_requirements = ["pytest==6.2.5",
                      "pytest-mock==3.10.0",
                      "pytest-html==3.2.0",
@@ -82,7 +82,7 @@ if not os.environ.get('READTHEDOCS'):
         os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
-    version='1.8.0',
+    version='1.8.1',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description_content_type="text/markdown",

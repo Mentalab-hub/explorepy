@@ -7,17 +7,16 @@ from explorepy import (
     exploresdk,
     settings_manager
 )
-from explorepy._exceptions import (
-    DeviceNotFoundError,
-    InputError
-)
+from explorepy._exceptions import InputError
+from explorepy.bt_mock_server import MockBtServer
 
 
 logger = logging.getLogger(__name__)
 
 
-class SDKBtClient:
+class MockBtClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
+
     def __init__(self, device_name=None, mac_address=None):
         """Initialize Bluetooth connection
 
@@ -28,8 +27,8 @@ class SDKBtClient:
         if (mac_address is None) and (device_name is None):
             raise InputError("Either name or address options must be provided!")
         self.is_connected = False
-        self.mac_address = mac_address
-        self.device_name = device_name
+        self.mac_address = 'ABCD_EFGH_IJKL_MNOP'  # dummy name as MAC address
+        self.device_name = 'Explore_Mock_Device'  # dummy name, can be changed
         self.bt_serial_port_manager = None
         self.device_manager = None
 
@@ -40,52 +39,13 @@ class SDKBtClient:
             socket (bluetooth.socket)
         """
         config_manager = settings_manager.SettingsManager(self.device_name)
-        mac_address = config_manager.get_mac_address()
+        config_manager.set_mac_address(self.mac_address)
 
-        if mac_address is None:
-            self._find_mac_address()
-            config_manager.set_mac_address(self.mac_address)
-        else:
-            self.mac_address = mac_address
-            self.device_name = "Explore_" + str(self.mac_address[-5:-3]) + str(self.mac_address[-2:])
-
-        for _ in range(5):
-            try:
-                self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
-                return_code = self.bt_serial_port_manager.Connect()
-                logger.debug("Return code for connection attempt is : {}".format(return_code))
-
-                if return_code == 0:
-                    self.is_connected = True
-                    return
-                else:
-                    self.is_connected = False
-                    logger.warning("Could not connect; Retrying in 2s...")
-                    time.sleep(2)
-
-            except SystemError as error:
-                self.is_connected = False
-                logger.debug(
-                    "Got an exception while connecting to the device: {} of type: {}".format(error, type(error)))
-
-            except TypeError as error:
-                self.is_connected = False
-                logger.debug(
-                    "Got an exception while connecting to the device: {} of type: {}".format(error, type(error))
-                )
-                raise ConnectionRefusedError("Please unpair Explore device manually or use a Bluetooth dongle")
-            except Exception as error:
-                self.is_connected = False
-                logger.debug(
-                    "Got an exception while connecting to the device: {} of type: {}".format(error, type(error))
-                )
-                logger.warning("Could not connect; Retrying in 2s...")
-                time.sleep(2)
-
-        self.is_connected = False
-        raise DeviceNotFoundError(
-            "Could not find the device! Please make sure the device is on and in advertising mode."
-        )
+        # sets up necessary variables
+        self.bt_serial_port_manager = MockBtServer()
+        self.bt_serial_port_manager.Connect()
+        logger.info('Connected to the device')
+        self.is_connected = True
 
     def reconnect(self):
         """Reconnect to the last used bluetooth socket.
@@ -95,7 +55,7 @@ class SDKBtClient:
         """
         self.is_connected = False
         for _ in range(5):
-            self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
+            self.bt_serial_port_manager = MockBtServer()
             connection_error_code = self.bt_serial_port_manager.Connect()
             logger.debug("Got an exception while connecting to the device: {}".format(connection_error_code))
             if connection_error_code == 0:
@@ -116,17 +76,7 @@ class SDKBtClient:
 
     def _find_mac_address(self):
         self.device_manager = exploresdk.ExploreSDK_Create()
-        for _ in range(5):
-            available_list = self.device_manager.PerformDeviceSearch()
-            logger.debug("Number of devices found: {}".format(len(available_list)))
-            for bt_device in available_list:
-                if bt_device.name == self.device_name:
-                    self.mac_address = bt_device.address
-                    return
-
-            logger.warning("No device found with the name: %s, searching again...", self.device_name)
-            time.sleep(0.1)
-        raise DeviceNotFoundError("No device found with the name: {}".format(self.device_name))
+        self.mac_address = 'ABCD_EFGH_IJKL_MNOP'  # dummy MAC address
 
     def read(self, n_bytes):
         """Read n_bytes from the socket
@@ -139,8 +89,8 @@ class SDKBtClient:
         """
         try:
             read_output = self.bt_serial_port_manager.Read(n_bytes)
-            actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
-            return actual_byte_data
+            # actual_byte_data = read_output.encode('utf-8', errors='surrogateescape')
+            return read_output
         except OverflowError as error:
             if not self.is_connected:
                 raise IOError("connection has been closed")
@@ -172,4 +122,4 @@ class SDKBtClient:
 
     @staticmethod
     def _check_mac_address(device_name, mac_address):
-        return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])
+        return True
