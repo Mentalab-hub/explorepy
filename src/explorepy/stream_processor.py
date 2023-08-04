@@ -200,7 +200,7 @@ class StreamProcessor:
         """
         if self.subscribers:
             with lock:
-                for callback in self.subscribers[topic]:
+                for callback in self.subscribers[topic].copy():
                     callback(packet)
 
     def add_filter(self, cutoff_freq, filter_type):
