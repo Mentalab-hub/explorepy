@@ -9,7 +9,8 @@ import explorepy
 from explorepy._exceptions import FletcherError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
-    TIMESTAMP_SCALE
+    TIMESTAMP_SCALE,
+    PacketBIN
 )
 from explorepy.settings_manager import SettingsManager
 from explorepy.tools import get_local_time
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class Parser:
     """Data parser class"""
-    def __init__(self, callback, mode='device'):
+    def __init__(self, callback, mode='device', debug=True):
         """
         Args:
             callback (function): function to be called when new packet is received
@@ -28,6 +29,7 @@ class Parser:
         """
         self.device_name = None
         self.mode = mode
+        self.debug = debug
         self.stream_interface = None
         self.device_configurator = None
         self.callback = callback
@@ -138,10 +140,15 @@ class Parser:
         Returns:
             packet object
         """
-        pid = struct.unpack('B', self.stream_interface.read(1))[0]
-        self.stream_interface.read(1)[0]  # read cnt
-        payload = struct.unpack('<H', self.stream_interface.read(2))[0]
-        timestamp = struct.unpack('<I', self.stream_interface.read(4))[0]
+        raw_header = self.stream_interface.read(8)
+
+        pid = raw_header[0]
+        raw_payload = raw_header[2:4]
+        raw_timestamp = raw_header[4:8]
+
+        # pid = struct.unpack('B', raw_pid)[0]
+        payload = struct.unpack('<H', raw_payload)[0]
+        timestamp = struct.unpack('<I', raw_timestamp)[0]
 
         # Timestamp conversion
         if self._time_offset is None:
@@ -149,6 +156,8 @@ class Parser:
             timestamp = 0
 
         payload_data = self.stream_interface.read(payload - 4)
+        if self.debug:
+            self.callback(packet=PacketBIN(raw_header + payload_data))
         packet = self._parse_packet(pid, timestamp, payload_data)
         return packet
 

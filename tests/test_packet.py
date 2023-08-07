@@ -46,7 +46,10 @@ def test_abstract_timestamp_correct(mocker, parametrized_abstract_packets):
     if hasattr(parametrized_abstract_packets, "__abstractmethods__"):
         if len(parametrized_abstract_packets.__abstractmethods__) != 0:
             mocker.patch.multiple(parametrized_abstract_packets, __abstractmethods__=set())
-    p = parametrized_abstract_packets(12345, b'\x00\x00\x00\x00', 300)
+    if parametrized_abstract_packets == EEG:
+        p = parametrized_abstract_packets(12345, b'\x00\x00\x00\xaf\xbe\xad\xde', 300, v_ref=2.4, n_packet=1)
+    else:
+        p = parametrized_abstract_packets(12345, b'\xaf\xbe\xad\xde', 300)
     assert p.timestamp == 301.2345
 
 
@@ -92,25 +95,16 @@ def test_is_eeg(parametrized_eeg_in_out):
 
 
 def test_status(parametrized_eeg_in_out):
-    """
-    Tests if the status messages have been converted correctly.
-    Currently expected to fail for every EEG packet due to only the first three status bytes being saved.
-    For EEG94, the property isn't called status but data_status. I could test for this, but the better solution is to
-    unify the name of the property. The test will still fail if data_status in EEG94 is renamed to status, since
-    the status messages are saved as numbers instead of i.e. strings or byte strings.
-    """
     eeg = parametrized_eeg_in_out['eeg_instance']
     eeg_out = parametrized_eeg_in_out['eeg_out']
-
-    if not hasattr(eeg, 'status'):
-        class_type = parametrized_eeg_in_out['eeg_class']
-        pytest.xfail(f"{str(class_type)} object has no property called \'status\'")
-
-    if len(eeg.status) < len(eeg_out['status']):
-        class_type = parametrized_eeg_in_out['eeg_class']
-        pytest.xfail(f"{str(class_type)} object's status property doesn't contain all status messages")
-
-    assert eeg.data_status == eeg_out['status']
+    status_out = {
+        'ads': eeg_out['status_ads'],
+        'empty': eeg_out['status_empty'],
+        'sr': eeg_out['status_sr']
+    }
+    np.testing.assert_array_equal(eeg.status['ads'], status_out['ads'])
+    np.testing.assert_array_equal(eeg.status['empty'], status_out['empty'])
+    np.testing.assert_array_equal(eeg.status['sr'], status_out['sr'])
 
 
 def test_convert(parametrized_eeg_in_out):
@@ -324,6 +318,7 @@ def test_convert_device_info_adc_mask(device_info_in_out):
     assert dev_info_instance.adc_mask == dev_info_out['adc_mask']
 
 
+@pytest.mark.skip("get_data has been removed from DeviceInfo")
 def test_device_info_get_data(device_info_in_out):
     dev_info_instance = device_info_in_out['dev_info_instance']
     dev_info_out = device_info_in_out['dev_info_out']
@@ -373,6 +368,7 @@ def test_device_info_v2_get_info(device_info_v2_in_out):
     assert dev_info_v2_instance.get_info() == out_dict
 
 
+@pytest.mark.skip("get_data has been removed from DeviceInfoV2")
 def test_device_info_v2_get_data(device_info_v2_in_out):
     dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
     dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
@@ -449,7 +445,7 @@ def test_calib_info_usbc_get_info(calibration_info_usbc_in_out):
         'slope': calibration_info_usbc_in_out['calib_info_usbc_out']['slope'],
         'offset': calibration_info_usbc_in_out['calib_info_usbc_out']['offset']
     }
-    assert calibration_info_usbc_in_out['calib_info_usbc_instance'].get_info() == dict_out
+    assert pytest.approx(calibration_info_usbc_in_out['calib_info_usbc_instance'].get_info()) == dict_out
 
 
 def test_calib_info_usbc_check_fletcher(calibration_info_usbc_in_out):

@@ -25,6 +25,7 @@ from explorepy.packet import (
     EventMarker,
     ExternalMarker,
     Orientation,
+    PacketBIN,
     SoftwareMarker
 )
 from explorepy.parser import Parser
@@ -36,7 +37,8 @@ from explorepy.tools import (
 )
 
 
-TOPICS = Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp')
+TOPICS =\
+    Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp packet_bin')
 logger = logging.getLogger(__name__)
 lock = Lock()
 
@@ -44,7 +46,7 @@ lock = Lock()
 class StreamProcessor:
     """Stream processor class"""
 
-    def __init__(self):
+    def __init__(self, debug=False):
         self.parser = None
         self.filters = []
         self.orn_calibrator = None
@@ -60,6 +62,7 @@ class StreamProcessor:
         self._last_packet_timestamp = 0
         self._last_packet_rcv_time = 0
         self.is_bt_streaming = True
+        self.debug = debug
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -91,7 +94,7 @@ class StreamProcessor:
         if device_name is None:
             device_name = "Explore_" + str(mac_address[-5:-3]) + str(mac_address[-2:])
         self.device_info["device_name"] = device_name
-        self.parser = Parser(callback=self.process, mode='device')
+        self.parser = Parser(callback=self.process, mode='device', debug=self.debug)
         self.parser.start_streaming(device_name, mac_address)
         self.is_connected = True
         self._device_configurator = DeviceConfiguration(bt_interface=self.parser.stream_interface)
@@ -105,13 +108,13 @@ class StreamProcessor:
             bin_file (str): Path to binary file
         """
         self.is_bt_streaming = False
-        self.parser = Parser(callback=self.process, mode='file')
+        self.parser = Parser(callback=self.process, mode='file', debug=False)
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
 
     def read_device_info(self, bin_file):
         self.is_bt_streaming = False
-        self.parser = Parser(callback=self.process, mode='file')
+        self.parser = Parser(callback=self.process, mode='file', debug=False)
         self.parser.read_device_info(bin_file)
 
     def stop(self):
@@ -126,7 +129,9 @@ class StreamProcessor:
             packet (explorepy.packet.Packet): Data packet
         """
         received_time = get_local_time()
-        if isinstance(packet, Orientation):
+        if isinstance(packet, PacketBIN):
+            self.dispatch(topic=TOPICS.packet_bin, packet=packet)
+        elif isinstance(packet, Orientation):
             self.dispatch(topic=TOPICS.raw_orn, packet=packet)
             if self.physical_orn.status == "READY":
                 packet = self.physical_orn.calculate(packet=packet)
@@ -195,7 +200,7 @@ class StreamProcessor:
         """
         if self.subscribers:
             with lock:
-                for callback in self.subscribers[topic]:
+                for callback in self.subscribers[topic].copy():
                     callback(packet)
 
     def add_filter(self, cutoff_freq, filter_type):
