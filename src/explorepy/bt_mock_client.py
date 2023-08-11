@@ -28,7 +28,7 @@ class MockBtClient:
             raise InputError("Either name or address options must be provided!")
         self.is_connected = False
         self.mac_address = 'ABCD_EFGH_IJKL_MNOP'  # dummy name as MAC address
-        self.device_name = 'Explore_Mock_Device'  # dummy name, can be changed
+        self.device_name = device_name
         self.bt_serial_port_manager = None
         self.device_manager = None
 
