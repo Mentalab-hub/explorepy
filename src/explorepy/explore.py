@@ -143,7 +143,7 @@ class Explore:
         Args:
             file_name (str): Output file name
             do_overwrite (bool): Overwrite if files exist already
-            duration (float): Duration of recording in seconds (if None records endlessly).
+            duration (float): Duration of recording in seconds (if None records for 3 hours).
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
             block (bool): Record in blocking mode if 'block' is True
             exg_ch_names (list): list of channel names. If None, default names are used.
