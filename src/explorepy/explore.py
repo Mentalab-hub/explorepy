@@ -587,3 +587,6 @@ class Explore:
             logger.warning("Duration has not been set by the user. The duration is 3 hours by default.")
             duration = 3 * 60 * 60  # 3 hours
         return duration
+
+    def is_explore_plus_device(self):
+        return True if 'board_id' in self.stream_processor.device_info.keys() else False
