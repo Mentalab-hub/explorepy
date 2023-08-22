@@ -285,9 +285,12 @@ class MockBtServer:
         pid = data[0]
         if pid == 160 or pid == 176:
             # 160 == Command(API2BCMD), 176 == Command(API2BCMD), 27 = TS (TS is sent at the start)
+            # cnt = data[1]
+            # payload_length = data[2:4]
             ts = data[4:8]
-            opcode = data[9]
-            param = data[10]
+            opcode = data[8]
+            param = data[9]
+            # fletcher = data[10:]
             if opcode == 161:
                 # set sampling rate
                 self.exg_sr = self.cmd_sr_to_sr(param)
