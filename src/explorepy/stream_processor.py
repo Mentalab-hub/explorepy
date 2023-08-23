@@ -4,7 +4,7 @@ This module is responsible for processing incoming stream from Explore device an
 """
 import logging
 import time
-import  numpy as np
+import numpy as np
 from enum import Enum
 from threading import Lock
 
@@ -331,7 +331,10 @@ class StreamProcessor:
     def update_bt_stability_status(self, current_timestamp):
         if 'board_id' in self.device_info.keys():
             # device is an explore plus device, check sample timestamps
-            self.is_unstable = current_timestamp - self._last_packet_timestamp >= np.round(2 * (1 / self.device_info['sampling_rate']), 3)
+            timestamp_diff = current_timestamp - self._last_packet_timestamp
+            # allowed time interval is two samples
+            allowed_time_interval = np.round(2 * (1 / self.device_info['sampling_rate']), 3)
+            self.is_unstable = timestamp_diff >= allowed_time_interval
         else:
             # devices is an old device, check if last sample has an earlier timestamp
             self.is_unstable = current_timestamp < self._last_packet_timestamp

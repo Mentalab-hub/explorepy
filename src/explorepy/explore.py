@@ -596,4 +596,3 @@ class Explore:
             return False
         else:
             return self.stream_processor.is_connection_unstable()
-
