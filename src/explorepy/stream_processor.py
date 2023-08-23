@@ -4,9 +4,10 @@ This module is responsible for processing incoming stream from Explore device an
 """
 import logging
 import time
-import numpy as np
 from enum import Enum
 from threading import Lock
+
+import numpy as np
 
 from explorepy.command import (
     DeviceConfiguration,
