@@ -590,3 +590,9 @@ class Explore:
 
     def is_explore_plus_device(self):
         return True if 'board_id' in self.stream_processor.device_info.keys() else False
+
+    def is_bt_link_unstable(self):
+        if not self.stream_processor:
+            return False
+        else:
+            return self.stream_processor.is_connection_unstable()
