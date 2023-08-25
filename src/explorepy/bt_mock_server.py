@@ -28,6 +28,11 @@ class MockBtServer:
     CMD_STATUS_PID = b'\xC1'
     CMD_STATUS_PAYLOAD_LENGTH = b'\x0E\x00'
 
+    CALIB_INFO_PID = b'\xC5'
+    CALIB_INFO_PAYLOAD_LENGTH = b'\x0C\x00'
+    CALIB_INFO_SLOPE = b'\xCF\x5A'
+    CALIB_INFO_OFFSET = b'\xCE\x28'
+
     FLETCHER = b'\xAF\xBE\xAD\xDE'
 
     def __init__(self):
@@ -157,6 +162,19 @@ class MockBtServer:
         dev_info += self.FLETCHER
         return dev_info
 
+    def generate_calibration_info(self):
+        """
+        Generates a calibration info packet that includes slope and offset for impedance measurement.
+        """
+        calib_info = self.CALIB_INFO_PID
+        calib_info += b'\x00'
+        calib_info += self.CALIB_INFO_PAYLOAD_LENGTH
+        calib_info += self.timestamp.to_bytes(4, byteorder='little')
+        calib_info += self.CALIB_INFO_SLOPE
+        calib_info += self.CALIB_INFO_OFFSET
+        calib_info += self.FLETCHER
+        return calib_info
+
     def generate_cmd_rcv(self, cmd_pid, cmd_ts):
         """
         Generates a command received packet based on command opcode (pid) and timestamp received.
@@ -204,7 +222,11 @@ class MockBtServer:
         """
         cmd = self.generate_cmd_rcv(cmd_pid, cmd_ts)
         self.counter = 0
-        cmd += self.generate_dev_info_v2_packet()
+        if cmd_pid == 167:
+            # Generate calibration info packet if received PID corresponds to impedance mode activation
+            cmd += self.generate_calibration_info()
+        else:
+            cmd += self.generate_dev_info_v2_packet()
         cmd += self.generate_cmd_status(cmd_pid, cmd_ts)
         self.counter = 1
         # Counter behaviour taken from a stream, is 0 for dev-info and cmd-status and then starts counting up again
@@ -285,9 +307,12 @@ class MockBtServer:
         pid = data[0]
         if pid == 160 or pid == 176:
             # 160 == Command(API2BCMD), 176 == Command(API2BCMD), 27 = TS (TS is sent at the start)
+            # cnt = data[1]
+            # payload_length = data[2:4]
             ts = data[4:8]
-            opcode = data[9]
-            param = data[10]
+            opcode = data[8]
+            param = data[9]
+            # fletcher = data[10:]
             if opcode == 161:
                 # set sampling rate
                 self.exg_sr = self.cmd_sr_to_sr(param)
