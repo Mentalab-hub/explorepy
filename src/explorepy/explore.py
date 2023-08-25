@@ -143,7 +143,7 @@ class Explore:
         Args:
             file_name (str): Output file name
             do_overwrite (bool): Overwrite if files exist already
-            duration (float): Duration of recording in seconds (if None records endlessly).
+            duration (float): Duration of recording in seconds (if None records for 3 hours).
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
             block (bool): Record in blocking mode if 'block' is True
             exg_ch_names (list): list of channel names. If None, default names are used.
@@ -587,3 +587,12 @@ class Explore:
             logger.warning("Duration has not been set by the user. The duration is 3 hours by default.")
             duration = 3 * 60 * 60  # 3 hours
         return duration
+
+    def is_explore_plus_device(self):
+        return True if 'board_id' in self.stream_processor.device_info.keys() else False
+
+    def is_bt_link_unstable(self):
+        if not self.stream_processor:
+            return False
+        else:
+            return self.stream_processor.is_connection_unstable()

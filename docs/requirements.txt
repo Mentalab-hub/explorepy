@@ -1,4 +1,14 @@
-sphinx>=1.3
-sphinx-rtd-theme
--e .
-sphinxcontrib-napoleon
+appdirs==1.4.3
+bokeh==2.2.3
+click==7.1.2
+Jinja2==3.0.0
+mne==0.24.1
+numpy==1.24.4
+pandas==1.3.4
+pyEDFlib==0.1.34
+pylsl==1.16.1
+PyYAML==6.0.1
+PyYAML==6.0.1
+scipy==1.11.1
+sentry_sdk==1.19.1
+tornado==6.3.2

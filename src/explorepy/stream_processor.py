@@ -7,6 +7,8 @@ import time
 from enum import Enum
 from threading import Lock
 
+import numpy as np
+
 from explorepy.command import (
     DeviceConfiguration,
     ZMeasurementDisable,
@@ -63,6 +65,7 @@ class StreamProcessor:
         self._last_packet_rcv_time = 0
         self.is_bt_streaming = True
         self.debug = debug
+        self.is_unstable = False
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -176,6 +179,7 @@ class StreamProcessor:
         """
         if 'sampling_rate' in self.device_info:
             timestamp, _ = packet.get_data(exg_fs=self.device_info['sampling_rate'])
+            self.update_bt_stability_status(timestamp[0])
             timestamp = timestamp[-1]
             with lock:
                 if timestamp > self._last_packet_timestamp:
@@ -200,7 +204,7 @@ class StreamProcessor:
         """
         if self.subscribers:
             with lock:
-                for callback in self.subscribers[topic]:
+                for callback in self.subscribers[topic].copy():
                     callback(packet)
 
     def add_filter(self, cutoff_freq, filter_type):
@@ -324,3 +328,17 @@ class StreamProcessor:
     def send_timestamp(self):
         """Send host timestamp to the device"""
         self._device_configurator.send_timestamp()
+
+    def update_bt_stability_status(self, current_timestamp):
+        if 'board_id' in self.device_info.keys():
+            # device is an explore plus device, check sample timestamps
+            timestamp_diff = current_timestamp - self._last_packet_timestamp
+            # allowed time interval is two samples
+            allowed_time_interval = np.round(2 * (1 / self.device_info['sampling_rate']), 3)
+            self.is_unstable = timestamp_diff >= allowed_time_interval
+        else:
+            # devices is an old device, check if last sample has an earlier timestamp
+            self.is_unstable = current_timestamp < self._last_packet_timestamp
+
+    def is_connection_unstable(self):
+        return self.is_unstable
