@@ -2,6 +2,13 @@
 Changelog
 =========
 
+1.8.2 (28.8.2023)
+------------------
+* Improve explore mock device
+* Add yaml file for RTD build
+
+
+
 1.8.1 (11.7.2023)
 ------------------
 * Bugfix record data
