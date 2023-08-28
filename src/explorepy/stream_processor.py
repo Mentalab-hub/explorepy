@@ -65,7 +65,7 @@ class StreamProcessor:
         self._last_packet_rcv_time = 0
         self.is_bt_streaming = True
         self.debug = debug
-        self.unstablility_flag = False
+        self.instability_flag = False
         self.last_bt_unstable_time = 0
 
     def subscribe(self, callback, topic):
@@ -346,11 +346,11 @@ class StreamProcessor:
 
         current_time = get_local_time()
         if is_unstable:
-            self.unstablility_flag = True
+            self.instability_flag = True
             self.last_bt_unstable_time = current_time
         else:
             if current_time - self.last_bt_unstable_time > 10:
-                self.unstablility_flag = False
+                self.instability_flag = False
 
     def is_connection_unstable(self):
-        return self.unstablility_flag
+        return self.instability_flag
