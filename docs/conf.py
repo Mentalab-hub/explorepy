@@ -38,10 +38,10 @@ extlinks = {
     'pr': ('https://github.com/Mentalab-hub/explorepy/pull/%s', 'PR #'),
 }
 # on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+#on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
-if not on_rtd:  # only set the theme if we're building docs locally
-    html_theme = 'sphinx_rtd_theme'
+#if not on_rtd:  # only set the theme if we're building docs locally
+html_theme = 'sphinx_rtd_theme'
 
 html_use_smartypants = True
 html_last_updated_fmt = '%b %d, %Y'
