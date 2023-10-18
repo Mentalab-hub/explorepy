@@ -511,12 +511,10 @@ class FileRecorder:
         """
         time_vector, sig = packet.get_data(self._fs)
 
-        if len(time_vector) == 1:
-            data = np.array(time_vector + sig)[:, np.newaxis]
-        else:
-            if self._rec_time_offset is None:
-                self._rec_time_offset = time_vector[0]
-            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
+
+        if self._rec_time_offset is None:
+            self._rec_time_offset = time_vector[0]
+        data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
         data = np.round(data, 4)
         if self.file_type == 'edf':
             if isinstance(packet, EEG):
