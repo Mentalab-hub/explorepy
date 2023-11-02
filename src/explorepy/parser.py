@@ -10,7 +10,7 @@ from explorepy._exceptions import FletcherError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
     TIMESTAMP_SCALE,
-    PacketBIN
+    PacketBIN, DeviceInfo
 )
 from explorepy.settings_manager import SettingsManager
 from explorepy.tools import get_local_time
@@ -53,6 +53,9 @@ class Parser:
         elif explorepy.get_bt_interface() == 'mock':
             from explorepy.bt_mock_client import MockBtClient
             self.stream_interface = MockBtClient(device_name=device_name, mac_address=mac_address)
+        elif explorepy.get_bt_interface() == 'pyserial':
+            from explorepy.serial_client import SerialClient
+            self.stream_interface = SerialClient(device_name=device_name)
         else:
             raise ValueError("Invalid Bluetooth interface: " + explorepy.get_bt_interface())
         self.stream_interface.connect()
@@ -77,8 +80,12 @@ class Parser:
         self.stream_interface = FileHandler(filename)
         packet = None
         try:
-            packet = self._generate_packet()
-            self.callback(packet=packet)
+            while True:
+                packet = self._generate_packet()
+                if isinstance(packet, DeviceInfo):
+                    print('packet is {}'.format(packet.__str__()))
+                    self.callback(packet=packet)
+                    break
         except (IOError, ValueError, FletcherError) as error:
             logger.error('Conversion ended incomplete. The binary file is corrupted.')
             raise error
@@ -141,7 +148,6 @@ class Parser:
             packet object
         """
         raw_header = self.stream_interface.read(8)
-
         pid = raw_header[0]
         raw_payload = raw_header[2:4]
         raw_timestamp = raw_header[4:8]
