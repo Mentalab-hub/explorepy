@@ -10,7 +10,8 @@ from explorepy._exceptions import FletcherError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
     TIMESTAMP_SCALE,
-    PacketBIN, DeviceInfo
+    DeviceInfo,
+    PacketBIN
 )
 from explorepy.settings_manager import SettingsManager
 from explorepy.tools import get_local_time
