@@ -2,16 +2,13 @@
 """A module for bluetooth connection"""
 import logging
 import subprocess
-
-import serial
 import time
 
-from explorepy import (
-    settings_manager
-)
-from explorepy._exceptions import (
-    DeviceNotFoundError
-)
+import serial
+
+from explorepy import settings_manager
+from explorepy._exceptions import DeviceNotFoundError
+
 
 logger = logging.getLogger(__name__)
 
