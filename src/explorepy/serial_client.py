@@ -1,29 +1,24 @@
 # -*- coding: utf-8 -*-
 """A module for bluetooth connection"""
 import logging
-import os
 import subprocess
-import sys
 
 import serial
-import serial.tools.list_ports as lp
 import time
 
 from explorepy import (
-    exploresdk,
     settings_manager
 )
 from explorepy._exceptions import (
-    DeviceNotFoundError,
-    InputError
+    DeviceNotFoundError
 )
-
 
 logger = logging.getLogger(__name__)
 
 
 class SerialClient:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
+
     def __init__(self, device_name):
         """Initialize Bluetooth connection
         """
@@ -48,7 +43,7 @@ class SerialClient:
 
         for _ in range(5):
             try:
-                self.connect_bluetooth_device(self.mac_address)
+                self.connect_bluetooth_device()
                 self.bt_serial_port_manager = serial.Serial('/dev/tty.' + self.device_name, 9600)
                 print('/dev/tty.' + self.device_name)
                 self.is_connected = True
@@ -110,6 +105,7 @@ class SerialClient:
         id_to_mac = self.device_name[-4:-2] + ':' + self.device_name[-2:]
 
         self.mac_address = self.mac_default + id_to_mac
+
     def read(self, n_bytes):
         """Read n_bytes from the socket
 
@@ -137,22 +133,13 @@ class SerialClient:
         """
         self.bt_serial_port_manager.write(data)
 
-    def disconnect(self):
-        """Disconnect from the device"""
-        self.is_connected = False
-        self.bt_serial_port_manager.Close()
-
     @staticmethod
     def _check_mac_address(device_name, mac_address):
         return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])
 
-    def connect_bluetooth_device(self, device_address, wait=False):
-        if wait == True:
-            connect_string = '--wait-connect 5'
-        else:
-            connect_string = '--connect'
+    def connect_bluetooth_device(self):
         try:
-            subprocess.run(["blueutil", connect_string, device_address], check=True)
-            print(f"Attempted to connect to the device with address: {device_address}")
+            subprocess.run(["blueutil", '--connect', self.mac_address], check=True)
+            print(f"Attempted to connect to the device with address: {self.mac_address}")
         except subprocess.CalledProcessError as e:
             print(f"Failed to connect to the device: {e}")
