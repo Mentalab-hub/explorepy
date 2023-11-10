@@ -32,7 +32,7 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy', 'pyedflib', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.19.1', 'mne', 'eeglabio', 'pandas']  # noqa: E501
+my_req = ['numpy', 'scipy', 'pyedflib', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.19.1', 'mne', 'eeglabio', 'pandas', 'pyserial']  # noqa: E501
 test_requirements = ["pytest==6.2.5",
                      "pytest-mock==3.10.0",
                      "pytest-html==3.2.0",
