@@ -17,11 +17,10 @@ from . import (  # noqa ignore E402
     exploresdk,
     tools
 )
-from .dashboard.dashboard import Dashboard  # noqa
 from .explore import Explore  # noqa
 
 
-__all__ = ["Explore", "Dashboard", "command", "exploresdk", "tools", "log_config"]
+__all__ = ["Explore", "command", "exploresdk", "tools", "log_config"]
 __version__ = '1.8.2'
 
 this = sys.modules[__name__]

@@ -45,8 +45,6 @@ current_platform = sys.platform
 
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pylsl')
-    my_req.append('Jinja2==3.0.0')
-    my_req.append('bokeh==2.2.3')
     libPath = "lib"
     if current_platform == 'win32' or current_platform == 'win64':
         windows_lib_path = os.path.join(libPath, 'windows')
