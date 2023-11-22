@@ -9,6 +9,7 @@ import serial
 from explorepy import settings_manager
 from explorepy._exceptions import DeviceNotFoundError
 
+
 logger = logging.getLogger(__name__)
 
 
