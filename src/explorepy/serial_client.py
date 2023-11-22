@@ -9,7 +9,6 @@ import serial
 from explorepy import settings_manager
 from explorepy._exceptions import DeviceNotFoundError
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -69,12 +68,12 @@ class SerialClient:
         self.is_connected = False
         for _ in range(5):
             try:
-                self.connect_bluetooth_device()
                 self.bt_serial_port_manager = serial.Serial('/dev/tty.' + self.device_name, 9600, timeout=5)
                 self.is_connected = True
                 logger.info('Connected to the device')
                 return self.bt_serial_port_manager
-            except Exception as error:
+            # TODO: localize exception, avoid generic exception
+            except Exception:
                 self.is_connected = False
                 logger.warning("Couldn't connect to the device. Trying to reconnect...")
                 time.sleep(2)
