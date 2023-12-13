@@ -66,20 +66,6 @@ class SerialClient:
         This function reconnects to the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
-        self.is_connected = False
-        for _ in range(5):
-            try:
-                self.bt_serial_port_manager = serial.Serial('/dev/tty.' + self.device_name, 9600, timeout=5)
-                self.is_connected = True
-                logger.info('Connected to the device')
-                return self.bt_serial_port_manager
-            # TODO: localize exception, avoid generic exception
-            except Exception:
-                self.is_connected = False
-                logger.warning("Couldn't connect to the device. Trying to reconnect...")
-                time.sleep(2)
-        logger.error("Could not reconnect after 5 attempts. Closing the socket.")
-        return None
 
     def disconnect(self):
         """Disconnect from the device"""
@@ -107,10 +93,6 @@ class SerialClient:
         """
         try:
             read_output = self.bt_serial_port_manager.read(n_bytes)
-            if len(read_output) == 0:
-                logger.debug(
-                    "Could not read from inout stream. Raising exception")
-                raise ConnectionAbortedError("device disconnected, attempting to reconnect..")
             return read_output
         except Exception as error:
             print(error)
@@ -118,7 +100,6 @@ class SerialClient:
                 "unknown error occured while reading bluetooth data by "
                 "pyserial {} of type:{}".format(error, type(error))
             )
-            raise ConnectionAbortedError("device disconnected, attempting to reconnect..")
 
     def send(self, data):
         """Send data to the device
