@@ -32,7 +32,17 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy', 'pyedflib', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.19.1', 'mne', 'eeglabio', 'pandas']  # noqa: E501
+my_req = ['numpy',
+          'scipy',
+          'pyedflib',
+          'click==7.1.2',
+          'appdirs==1.4.3',
+          'sentry_sdk==1.19.1',
+          'mne',
+          'eeglabio',
+          'pandas',
+          'pyserial',
+          'pyyaml']  # noqa: E501
 test_requirements = ["pytest==6.2.5",
                      "pytest-mock==3.10.0",
                      "pytest-html==3.2.0",
@@ -45,8 +55,6 @@ current_platform = sys.platform
 
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pylsl')
-    my_req.append('Jinja2==3.0.0')
-    my_req.append('bokeh==2.2.3')
     libPath = "lib"
     if current_platform == 'win32' or current_platform == 'win64':
         windows_lib_path = os.path.join(libPath, 'windows')

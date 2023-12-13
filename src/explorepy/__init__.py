@@ -17,16 +17,18 @@ from . import (  # noqa ignore E402
     exploresdk,
     tools
 )
-from .dashboard.dashboard import Dashboard  # noqa
 from .explore import Explore  # noqa
 
 
-__all__ = ["Explore", "Dashboard", "command", "exploresdk", "tools", "log_config"]
+__all__ = ["Explore", "command", "exploresdk", "tools", "log_config"]
 __version__ = '1.8.2'
 
 this = sys.modules[__name__]
-this._bt_interface = 'sdk'
-list_sdk = ['sdk', 'mock']
+list_sdk = ['sdk', 'mock', 'pyserial']
+if sys.platform == 'darwin':
+    this._bt_interface = 'pyserial'
+else:
+    this._bt_interface = 'sdk'
 
 if not sys.version_info >= (3, 6):
     raise EnvironmentError("Explorepy requires python versions 3.6 or newer!")
