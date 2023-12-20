@@ -48,6 +48,9 @@ class Parser:
         if explorepy.get_bt_interface() == 'sdk':
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
+        if explorepy.get_bt_interface() == 'ble':
+            from explorepy.btcpp import BLEClient
+            self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
         else:
             raise ValueError("Invalid Bluetooth interface: " + explorepy.get_bt_interface())
         self.stream_interface.connect()

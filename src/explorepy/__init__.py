@@ -25,7 +25,8 @@ __all__ = ["Explore", "Dashboard", "command", "exploresdk", "tools", "log_config
 __version__ = '1.8.1'
 
 this = sys.modules[__name__]
-this._bt_interface = 'sdk'
+bt_interface_list = ['sdk', 'ble']
+this._bt_interface = 'ble'
 
 if not sys.version_info >= (3, 6):
     raise EnvironmentError("Explorepy requires python versions 3.6 or newer!")
@@ -41,7 +42,7 @@ def set_bt_interface(bt_interface):
         bt_interface (str): Bluetooth interface type. Options:'sdk'
 
     """
-    if bt_interface not in ['sdk']:
+    if bt_interface not in bt_interface_list:
         raise ValueError(("Invalid Bluetooth interface: " + bt_interface))
 
     this._bt_interface = bt_interface
