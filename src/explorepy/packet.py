@@ -13,7 +13,7 @@ from explorepy._exceptions import FletcherError
 
 logger = logging.getLogger(__name__)
 
-TIMESTAMP_SCALE = 10000
+TIMESTAMP_SCALE = 100000
 
 
 class PACKET_ID(IntEnum):
@@ -125,9 +125,7 @@ class EEG(Packet):
         n_chan = -1
         data = data.reshape((self.n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
-        self.data = np.round(data[1:, :] * self.v_ref / gain, 2)
-        # EEG32: status bits will change in future releases as we need to use 4 bytes for 32 channel status
-        self.status = self.int32_to_status(data[0, :])
+        self.data = np.round(data * self.v_ref / gain, 2)
 
     @staticmethod
     def int32_to_status(data):
@@ -203,11 +201,13 @@ class EEG98_USBC(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
 
+
 class EEG98_BLE(EEG):
     """EEG packet for 8 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
+
 
 class EEG99(EEG):
     """EEG packet for 8 channel device"""

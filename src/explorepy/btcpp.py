@@ -2,10 +2,12 @@
 """A module for bluetooth connection"""
 import abc
 import logging
+import sys
+import threading
 import time
 from queue import Queue
 
-from bleak import BleakClient, BleakScanner
+from bleak import BleakClient, BleakScanner, BLEDevice, AdvertisementData
 import asyncio
 
 from explorepy import (
@@ -16,7 +18,6 @@ from explorepy._exceptions import (
     DeviceNotFoundError,
     InputError
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ class BTClient(abc.ABC):
 
 class SDKBtClient(BTClient):
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
+
     def __init__(self, device_name=None, mac_address=None):
         """Initialize Bluetooth connection
 
@@ -237,6 +239,7 @@ class SDKBtClient(BTClient):
 
 class BLEClient(BTClient):
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
+
     def __init__(self, device_name=None, mac_address=None):
         """Initialize Bluetooth connection
 
@@ -244,33 +247,38 @@ class BLEClient(BTClient):
             device_name(str): Name of the device (either device_name or device address should be given)
             mac_address(str): Devices MAC address
         """
-        super.__init__(device_name=device_name, mac_address=mac_address)
+        super().__init__(device_name=device_name, mac_address=mac_address)
+        self.ble_device = None
+        self.eeg_service_uuid = "FFFE0001-B5A3-F393-E0A9-E50E24DCCA9E"
+        self.eeg_tx_char_uuid = "FFFE0003-B5A3-F393-E0A9-E50E24DCCA9E"
+        self.loop = None
         self.buffer = Queue()
-        self.packet_characteristic = ''
         self.try_disconnect = False
         self.try_send = None
+        self.notification_thread = None
+        self.copy_buffer = bytearray()
 
     async def stream(self):
-        ble_device = await self._discover_device()
 
-        async with BleakClient(ble_device) as client:
-            self.is_connected = True
-
-            async def handle_packet(sender, data):
+        async with BleakClient(self.ble_device) as client:
+            def handle_packet(sender, bt_byte_array):
                 # write packet to buffer
-                for b in data:
-                    self.buffer.put(b)
+                self.buffer.put(bt_byte_array)
 
-            await client.start_notify(self.packet_characteristic, handle_packet)
+            await client.start_notify(self.eeg_tx_char_uuid, handle_packet)
+            loop = asyncio.get_running_loop()
+            while True:
+                # This waits until you type a line and press ENTER.
+                # A real terminal program might put stdin in raw mode so that things
+                # like CTRL+C get passed to the remote device.
+                data = await loop.run_in_executor(None, sys.stdin.buffer.readline)
 
-            while client.is_connected and not self.try_disconnect:
-                if self.try_send:
-                    await client.write_gatt_char(self.try_disconnect['char'], self.try_disconnect['data'])
-                    self.try_send = None
-                time.sleep(0.1)
+                # data will be empty on EOF (e.g. CTRL+D on *nix)
+                if not data:
+                    break
 
-            self.try_disconnect = False
-        self.is_connected = False
+            # self.try_disconnect = False
+            # self.is_connected = False
 
     def connect(self):
         """Connect to the device and return the socket
@@ -278,19 +286,33 @@ class BLEClient(BTClient):
         Returns:
             socket (bluetooth.socket)
         """
+        asyncio.run(self._discover_device())
+        if self.ble_device is None:
+            print('No device found!!')
+        else:
+            logger.info('Device is connected')
+            self.is_connected = True
+            self.notification_thread = threading.Thread(target=self.start_read_loop, daemon=True)
+            self.notification_thread.start()
+
+    def start_read_loop(self):
         asyncio.run(self.stream())
+
+    def stop_read_loop(self):
+        self.notification_thread.join()
 
     async def _discover_device(self):
         if self.mac_address:
-            ble_device = await BleakScanner.find_device_by_address(self.mac_address)
+            self.ble_device = await BleakScanner.find_device_by_address(self.mac_address)
         else:
-            ble_device = await BleakScanner.find_device_by_name(self.device_name)
+            logger.info('Commencing device discovery')
+            self.ble_device = await BleakScanner.find_device_by_name(self.device_name, timeout=15)
 
-        if not ble_device:
+        if self.ble_device is None:
+            print('No device found!!!!!')
             raise DeviceNotFoundError(
                 "Could not discover the device! Please make sure the device is on and in advertising mode."
             )
-        return ble_device
 
     def reconnect(self):
         """Reconnect to the last used bluetooth socket.
@@ -316,10 +338,11 @@ class BLEClient(BTClient):
             Returns:
                 list of bytes
         """
-        ret = b''
-        for _ in range(n_bytes):
-            ret += bytes(self.buffer.get())
-
+        if len(self.copy_buffer) < n_bytes:
+            get_item = self.buffer.get()
+            self.copy_buffer.extend(get_item)
+        ret = self.copy_buffer[:n_bytes]
+        self.copy_buffer = self.copy_buffer[n_bytes:]
         return ret
 
     def send(self, data):
@@ -333,3 +356,11 @@ class BLEClient(BTClient):
             'data': data
         }
         raise NotImplementedError
+
+    def match_eeg_uuid(self, device: BLEDevice, adv: AdvertisementData):
+        # This assumes that the device includes the EEG service UUID in the
+        # advertising data. This test may need to be adjusted depending on the
+        # actual advertising data supplied by the device.
+        if self.eeg_service_uuid.lower() in adv.service_uuids and adv.local_name == self.device_name:
+            print('name is {}'.format(adv.local_name))
+            return True
