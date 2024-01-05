@@ -52,6 +52,7 @@ def verify_inputs(func):
                         logger.warning("Invalid device mac address! Please check the MAC address and try again.")
                         sys.exit()
         return ctx.invoke(func, *args, **kwargs)
+
     return update_wrapper(wrapper, func)
 
 
@@ -122,31 +123,6 @@ def bin2edf(filename, overwrite):
     """Convert a binary file to EDF (BDF+)"""
     explore = explorepy.explore.Explore()
     explore.convert_bin(bin_file=filename, do_overwrite=overwrite, file_type='edf')
-
-
-@cli.command()
-@click.option("--address", "-a", type=str, help="Explore device's MAC address")
-@click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("-nf", "--notchfreq", type=click.Choice(['50', '60']), help="Frequency of notch filter.", default='50')
-@click.option("-lf", "--lowfreq", type=float, help="Low cutoff frequency of bandpass/highpass filter.")
-@click.option("-hf", "--highfreq", type=float, help="High cutoff frequency of bandpass/lowpass filter.")
-@verify_inputs
-def visualize(address, name, notchfreq, lowfreq, highfreq):
-    """Visualizing signal in a browser-based dashboard"""
-    explore = explorepy.explore.Explore()
-    explore.connect(mac_address=address, device_name=name)
-    explore.visualize(notch_freq=int(notchfreq), bp_freq=(lowfreq, highfreq))
-
-
-@cli.command()
-@click.option("--address", "-a", type=str, help="Explore device's MAC address")
-@click.option("--name", "-n", type=str, help="Name of the device")
-@verify_inputs
-def impedance(address, name):
-    """Impedance measurement in a browser-based dashboard"""
-    explore = explorepy.explore.Explore()
-    explore.connect(mac_address=address, device_name=name)
-    explore.measure_imp()
 
 
 @cli.command()
