@@ -2,7 +2,7 @@
 Changelog
 =========
 
-1.8.3 (5.1.2024)
+2.8.2 (5.1.2024)
 ------------------
 * Add Mac OSX support
 * Remove browser based visualization support
