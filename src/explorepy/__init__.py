@@ -20,7 +20,7 @@ from .explore import Explore  # noqa
 
 
 __all__ = ["Explore", "command", "exploresdk", "tools", "log_config"]
-__version__ = '1.8.2'
+__version__ = '2.0.0'
 
 this = sys.modules[__name__]
 list_sdk = ['sdk', 'mock', 'pyserial']
