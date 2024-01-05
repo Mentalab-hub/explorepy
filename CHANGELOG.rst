@@ -2,6 +2,13 @@
 Changelog
 =========
 
+2.0.0 (5.1.2024)
+------------------
+* Add Mac OSX support
+* Remove browser based visualization support
+* Update build script for docs
+
+
 1.8.2 (28.8.2023)
 ------------------
 * Improve explore mock device
