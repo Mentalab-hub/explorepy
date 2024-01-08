@@ -248,9 +248,12 @@ class BLEClient(BTClient):
             mac_address(str): Devices MAC address
         """
         super().__init__(device_name=device_name, mac_address=mac_address)
+
         self.ble_device = None
         self.eeg_service_uuid = "FFFE0001-B5A3-F393-E0A9-E50E24DCCA9E"
         self.eeg_tx_char_uuid = "FFFE0003-B5A3-F393-E0A9-E50E24DCCA9E"
+        self.eeg_rx_char_uuid = "FFFE0002-B5A3-F393-E0A9-E50E24DCCA9E"
+        self.rx_char = None
         self.loop = None
         self.buffer = Queue()
         self.try_disconnect = False
@@ -267,6 +270,7 @@ class BLEClient(BTClient):
 
             await client.start_notify(self.eeg_tx_char_uuid, handle_packet)
             loop = asyncio.get_running_loop()
+            self.rx_char = client.services.get_service(self.eeg_service_uuid).get_characteristic(self.eeg_rx_char_uuid)
             while True:
                 # This waits until you type a line and press ENTER.
                 # A real terminal program might put stdin in raw mode so that things
@@ -351,11 +355,12 @@ class BLEClient(BTClient):
         Args:
             data (bytearray): Data to be sent
         """
-        self.try_send = {
-            'char': '',
-            'data': data
-        }
-        raise NotImplementedError
+        asyncio.run(self.write_ble_data(data))
+
+
+    def write_ble_data(self, data):
+        async with BleakClient(self.ble_device) as client:
+            await client.write_gatt_char(self.rx_char, data, response=False)
 
     def match_eeg_uuid(self, device: BLEDevice, adv: AdvertisementData):
         # This assumes that the device includes the EEG service UUID in the
