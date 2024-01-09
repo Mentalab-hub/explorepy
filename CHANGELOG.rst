@@ -2,6 +2,20 @@
 Changelog
 =========
 
+2.0.0 (5.1.2024)
+------------------
+* Add Mac OSX support
+* Remove browser based visualization support
+* Update build script for docs
+
+
+1.8.2 (28.8.2023)
+------------------
+* Improve explore mock device
+* Add yaml file for RTD build
+
+
+
 1.8.1 (11.7.2023)
 ------------------
 * Bugfix record data

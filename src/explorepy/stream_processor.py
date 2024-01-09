@@ -65,7 +65,8 @@ class StreamProcessor:
         self._last_packet_rcv_time = 0
         self.is_bt_streaming = True
         self.debug = debug
-        self.is_unstable = False
+        self.instability_flag = False
+        self.last_bt_unstable_time = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -330,15 +331,29 @@ class StreamProcessor:
         self._device_configurator.send_timestamp()
 
     def update_bt_stability_status(self, current_timestamp):
+        if self._is_imp_mode:
+            self.instability_flag = False
+            return
         if 'board_id' in self.device_info.keys():
+            if self._last_packet_timestamp == 0:
+                return
             # device is an explore plus device, check sample timestamps
             timestamp_diff = current_timestamp - self._last_packet_timestamp
+
             # allowed time interval is two samples
             allowed_time_interval = np.round(2 * (1 / self.device_info['sampling_rate']), 3)
-            self.is_unstable = timestamp_diff >= allowed_time_interval
+            is_unstable = timestamp_diff >= allowed_time_interval
         else:
             # devices is an old device, check if last sample has an earlier timestamp
-            self.is_unstable = current_timestamp < self._last_packet_timestamp
+            is_unstable = current_timestamp < self._last_packet_timestamp
+
+        current_time = get_local_time()
+        if is_unstable:
+            self.instability_flag = True
+            self.last_bt_unstable_time = current_time
+        else:
+            if current_time - self.last_bt_unstable_time > 3:
+                self.instability_flag = False
 
     def is_connection_unstable(self):
-        return self.is_unstable
+        return self.instability_flag

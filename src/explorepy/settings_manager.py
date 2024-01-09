@@ -122,6 +122,11 @@ class SettingsManager:
         self.settings_dict[self.sr_key] = value
         self.write_settings()
 
+    def get_sampling_rate(self):
+        '''Returns device sampling rate'''
+        self.load_current_settings()
+        return self.settings_dict.get(self.sr_key)
+
     def set_chan_names(self, value):
         """Setter method for channel names for Explore Desktop"""
         self.load_current_settings()

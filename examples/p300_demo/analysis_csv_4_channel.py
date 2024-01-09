@@ -67,8 +67,8 @@ def main():
     lf = .5
     hf = 40
 
-    label_target = 11
-    label_nontarget = 10
+    label_target = 'sw_11'
+    label_nontarget = 'sw_10'
 
     t_min = -.3
     t_max = 1.

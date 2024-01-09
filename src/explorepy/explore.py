@@ -22,7 +22,6 @@ from threading import Timer
 import numpy as np
 from appdirs import user_cache_dir
 
-import explorepy
 from explorepy.command import (
     MemoryFormat,
     ModuleDisable,
@@ -363,51 +362,10 @@ class Explore:
             if self.lsl['timer'].is_alive():
                 self.lsl['timer'].cancel()
             self.lsl = {}
+
             logger.info("Push2lsl has been stopped.")
         else:
             logger.debug("Tried to stop LSL while no LSL server is running!")
-
-    def visualize(self, bp_freq=(1, 30), notch_freq=50):
-        r"""Visualization of the signal in the dashboard: only works for 4 and 8 channel devices
-
-        Args:
-            bp_freq (tuple): Bandpass filter cut-off frequencies (low_cutoff_freq, high_cutoff_freq), No bandpass filter
-            if it is None.
-            notch_freq (int): Line frequency for notch filter (50 or 60 Hz), No notch filter if it is None
-        """
-        self._check_connection()
-
-        if notch_freq:
-            self.stream_processor.add_filter(cutoff_freq=notch_freq, filter_type='notch')
-
-        if bp_freq:
-            if bp_freq[0] and bp_freq[1]:
-                self.stream_processor.add_filter(cutoff_freq=bp_freq, filter_type='bandpass')
-            elif bp_freq[0]:
-                self.stream_processor.add_filter(cutoff_freq=bp_freq[0], filter_type='highpass')
-            elif bp_freq[1]:
-                self.stream_processor.add_filter(cutoff_freq=bp_freq[1], filter_type='lowpass')
-
-        dashboard = explorepy.Dashboard(explore=self)
-        dashboard.start_server()
-        dashboard.start_loop()
-
-    def measure_imp(self):
-        """
-        Visualization of the electrode impedance
-        """
-        self._check_connection()
-        assert self.stream_processor.device_info['sampling_rate'] == 250, \
-            "Impedance mode only works at 250 Hz sampling rate. Please set the sampling rate to 250Hz."
-
-        self.stream_processor.imp_initialize(notch_freq=50)
-
-        try:
-            dashboard = explorepy.Dashboard(explore=self, mode='impedance')
-            dashboard.start_server()
-            dashboard.start_loop()
-        except KeyboardInterrupt:
-            self.stream_processor.disable_imp()
 
     def set_marker(self, code):
         """Sets a digital event marker while streaming
