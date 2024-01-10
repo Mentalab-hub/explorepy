@@ -85,7 +85,7 @@ class Packet(abc.ABC):
         """
         assert len(bin_data) % 3 == 0, "Packet length error!"
         return np.asarray([
-            int.from_bytes(bin_data[x:x + 3], byteorder="little", signed=True)
+            int.from_bytes(bin_data[x:x + 3], byteorder="big", signed=True)
             for x in range(0, len(bin_data), 3)
         ])
 
@@ -123,9 +123,7 @@ class EEG(Packet):
             raise ValueError("v_ref or n_packet cannot be null for conversion!")
         data = Packet.int24to32(bin_data)
         n_chan = -1
-        data = data.reshape((self.n_packet, n_chan)).astype(float).T
-        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
-        self.data = np.round(data * self.v_ref / gain, 2)
+        self.data = data.reshape((self.n_packet, n_chan)).astype(float).T
 
     @staticmethod
     def int32_to_status(data):
