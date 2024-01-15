@@ -357,8 +357,7 @@ class BLEClient(BTClient):
         """
         asyncio.run(self.write_ble_data(data))
 
-
-    def write_ble_data(self, data):
+    async def write_ble_data(self, data):
         async with BleakClient(self.ble_device) as client:
             await client.write_gatt_char(self.rx_char, data, response=False)
 
