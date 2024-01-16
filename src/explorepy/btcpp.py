@@ -254,12 +254,12 @@ class BLEClient(BTClient):
         self.eeg_tx_char_uuid = "FFFE0003-B5A3-F393-E0A9-E50E24DCCA9E"
         self.eeg_rx_char_uuid = "FFFE0002-B5A3-F393-E0A9-E50E24DCCA9E"
         self.rx_char = None
-        self.loop = None
         self.buffer = Queue()
         self.try_disconnect = False
-        self.try_send = None
         self.notification_thread = None
         self.copy_buffer = bytearray()
+        self.read_event = asyncio.Event()
+        self.data = None
 
     async def stream(self):
 
@@ -272,17 +272,9 @@ class BLEClient(BTClient):
             loop = asyncio.get_running_loop()
             self.rx_char = client.services.get_service(self.eeg_service_uuid).get_characteristic(self.eeg_rx_char_uuid)
             while True:
-                # This waits until you type a line and press ENTER.
-                # A real terminal program might put stdin in raw mode so that things
-                # like CTRL+C get passed to the remote device.
-                data = await loop.run_in_executor(None, sys.stdin.buffer.readline)
-
-                # data will be empty on EOF (e.g. CTRL+D on *nix)
-                if not data:
-                    break
-
-            # self.try_disconnect = False
-            # self.is_connected = False
+                loop.run_in_executor(None, await self.read_event.wait())
+                await client.write_gatt_char(self.rx_char, self.data, response=False)
+                self.read_event.clear()
 
     def connect(self):
         """Connect to the device and return the socket
@@ -355,16 +347,6 @@ class BLEClient(BTClient):
         Args:
             data (bytearray): Data to be sent
         """
-        asyncio.run(self.write_ble_data(data))
-
-    async def write_ble_data(self, data):
-        async with BleakClient(self.ble_device) as client:
-            await client.write_gatt_char(self.rx_char, data, response=False)
-
-    def match_eeg_uuid(self, device: BLEDevice, adv: AdvertisementData):
-        # This assumes that the device includes the EEG service UUID in the
-        # advertising data. This test may need to be adjusted depending on the
-        # actual advertising data supplied by the device.
-        if self.eeg_service_uuid.lower() in adv.service_uuids and adv.local_name == self.device_name:
-            print('name is {}'.format(adv.local_name))
-            return True
+        self.data = data
+        print('sending data to device')
+        self.read_event.set()
