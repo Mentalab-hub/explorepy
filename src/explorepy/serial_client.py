@@ -115,7 +115,7 @@ class SerialClient:
 
     def connect_bluetooth_device(self):
         try:
-            subprocess.run(["blueutil", '--connect', self.mac_address], check=True)
+            subprocess.run(["/opt/homebrew/bin/blueutil", '--connect', self.mac_address], check=True)
             print(f"Attempted to connect to the device with address: {self.mac_address}")
         except subprocess.CalledProcessError as e:
             print(f"Failed to connect to the device: {e}")
