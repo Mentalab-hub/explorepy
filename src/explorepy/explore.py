@@ -18,7 +18,6 @@ import os
 import re
 import time
 from threading import Timer
-
 import numpy as np
 from appdirs import user_cache_dir
 
@@ -223,7 +222,7 @@ class Explore:
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
 
-    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False):
+    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False, custom_callback = None):
         """Convert a binary file to EDF or CSV file
 
         Args:
@@ -282,6 +281,10 @@ class Explore:
         self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+
+        # custom callback to stream binary data to external scripts, sends only exg stream for now
+        if custom_callback:
+            self.stream_processor.subscribe(callback=custom_callback, topic=TOPICS.raw_ExG)
 
         def device_info_callback(packet):
             new_device_info = packet.get_info()
