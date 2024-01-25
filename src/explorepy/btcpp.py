@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """A module for bluetooth connection"""
 import abc
+import atexit
 import logging
 import sys
 import threading
@@ -273,7 +274,11 @@ class BLEClient(BTClient):
             self.rx_char = client.services.get_service(self.eeg_service_uuid).get_characteristic(self.eeg_rx_char_uuid)
             while True:
                 loop.run_in_executor(None, await self.read_event.wait())
+                if self.rx_char is None:
+                    print('Client disconnection requested')
+                    break
                 await client.write_gatt_char(self.rx_char, self.data, response=False)
+                self.rx_char = None
                 self.read_event.clear()
 
     def connect(self):
@@ -290,11 +295,13 @@ class BLEClient(BTClient):
             self.is_connected = True
             self.notification_thread = threading.Thread(target=self.start_read_loop, daemon=True)
             self.notification_thread.start()
+            atexit.register(self.disconnect)
 
     def start_read_loop(self):
         asyncio.run(self.stream())
 
     def stop_read_loop(self):
+        print('calling stop!!')
         self.notification_thread.join()
 
     async def _discover_device(self):
@@ -321,6 +328,7 @@ class BLEClient(BTClient):
     def disconnect(self):
         """Disconnect from the device"""
         self.try_disconnect = True
+        self.read_event.set()
 
     def _find_mac_address(self):
         raise NotImplementedError
@@ -334,13 +342,17 @@ class BLEClient(BTClient):
             Returns:
                 list of bytes
         """
-        if len(self.copy_buffer) < n_bytes:
-            get_item = self.buffer.get()
-            self.copy_buffer.extend(get_item)
-        ret = self.copy_buffer[:n_bytes]
-        self.copy_buffer = self.copy_buffer[n_bytes:]
-        return ret
-
+        try:
+            if len(self.copy_buffer) < n_bytes:
+                get_item = self.buffer.get()
+                self.copy_buffer.extend(get_item)
+            ret = self.copy_buffer[:n_bytes]
+            self.copy_buffer = self.copy_buffer[n_bytes:]
+            if len(ret) < n_bytes:
+                raise ConnectionAbortedError('Error reading data from BLE stream, too many bytes requested')
+            return ret
+        except Exception as error:
+            logger.error('Error reading data from BLE stream')
     def send(self, data):
         """Send data to the device
 
