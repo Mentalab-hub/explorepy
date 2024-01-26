@@ -274,11 +274,11 @@ class BLEClient(BTClient):
             self.rx_char = client.services.get_service(self.eeg_service_uuid).get_characteristic(self.eeg_rx_char_uuid)
             while True:
                 loop.run_in_executor(None, await self.read_event.wait())
-                if self.rx_char is None:
+                if self.data is None:
                     print('Client disconnection requested')
                     break
                 await client.write_gatt_char(self.rx_char, self.data, response=False)
-                self.rx_char = None
+                self.data = None
                 self.read_event.clear()
 
     def connect(self):
