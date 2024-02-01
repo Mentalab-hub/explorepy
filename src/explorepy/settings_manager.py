@@ -133,6 +133,11 @@ class SettingsManager:
         self.settings_dict[self.channel_name_key] = value
         self.write_settings()
 
+    def get_channel_names(self):
+        """Returns channels names"""
+        self.load_current_settings()
+        return self.settings_dict.get(self.channel_name_key)
+
     def __str__(self):
         self.load_current_settings()
         return self.settings_dict
