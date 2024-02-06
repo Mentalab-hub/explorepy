@@ -352,7 +352,7 @@ class StreamProcessor:
             self.instability_flag = True
             self.last_bt_unstable_time = current_time
         else:
-            if current_time - self.last_bt_unstable_time > 3:
+            if current_time - self.last_bt_unstable_time > .5:
                 self.instability_flag = False
 
     def is_connection_unstable(self):
