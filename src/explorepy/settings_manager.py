@@ -114,6 +114,8 @@ class SettingsManager:
 
         if self.channel_count_key not in self.settings_dict:
             self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
+        if self.channel_name_key not in self.settings_dict:
+            self.settings_dict[self.channel_name_key] = [f'ch{i + 1}' for i in range(self.settings_dict[self.channel_count_key])]
         self.write_settings()
 
     def set_sampling_rate(self, value):
