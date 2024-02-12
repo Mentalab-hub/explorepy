@@ -478,7 +478,7 @@ class DeviceInfo(Packet):
                                offset=0)
 
         self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
-        self.sampling_rate = 16000 / (2 ** bin_data[2])
+        self.sampling_rate = int(16000 / (2 ** bin_data[2]))
         self.adc_mask = [int(bit) for bit in format(bin_data[3], "#010b")[2:]]
 
     def get_info(self):
