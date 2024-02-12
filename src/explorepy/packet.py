@@ -31,6 +31,7 @@ class PACKET_ID(IntEnum):
     EEG32 = 148
     EEG98_USBC = 150
     EEG98_BLE = 151
+    EEG32_BLE = 152
     EEG99 = 62
     EEG94R = 208
     EEG98R = 210
@@ -202,6 +203,12 @@ class EEG98_USBC(EEG):
 
 class EEG98_BLE(EEG):
     """EEG packet for 8 channel device"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
+
+class EEG32_BLE(EEG):
+    """EEG packet for 32 channel BLE device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
@@ -577,6 +584,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.EEG98R: EEG98,
     PACKET_ID.EEG98_USBC: EEG98_USBC,
     PACKET_ID.EEG98_BLE: EEG98_BLE,
+    PACKET_ID.EEG32_BLE: EEG32_BLE,
     PACKET_ID.EEG32: EEG32,
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
