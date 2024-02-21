@@ -31,7 +31,7 @@ from scipy import signal
 
 import explorepy
 from explorepy.filters import ExGFilter
-from explorepy.packet import EEG
+from explorepy.packet import EEG, EEG98_USBC, BleImpedancePacket
 from explorepy.settings_manager import SettingsManager
 
 
@@ -674,6 +674,7 @@ class ImpedanceMeasurement:
         self._filters = {}
         self._notch_freq = notch_freq
         self._add_filters()
+        self.packet_buffer = []
 
     def _add_filters(self):
         bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, self._device_info['sampling_rate'] / 4 + 1.5
@@ -702,13 +703,24 @@ class ImpedanceMeasurement:
     def measure_imp(self, packet):
         """Compute electrode impedances
         """
-        temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
-        self._calib_param['noise_level'] = self._filters['base_noise']. \
-            apply(input_data=temp_packet, in_place=False).get_ptp()
-        self._filters['demodulation'].apply(
-            input_data=temp_packet, in_place=True
-        ).calculate_impedance(self._calib_param)
-        return temp_packet
+        self.packet_buffer.append(packet)
+
+        if len(self.packet_buffer) < 16:
+            return None
+        else:
+            timestamp, _ = self.packet_buffer[0].get_data()
+            resized_packet = BleImpedancePacket(timestamp=timestamp, payload=None)
+            resized_packet.populate_packet_with_data(self.packet_buffer)
+            self.packet_buffer.clear()
+
+
+            temp_packet = self._filters['notch'].apply(input_data=resized_packet, in_place=False)
+            self._calib_param['noise_level'] = self._filters['base_noise']. \
+                apply(input_data=temp_packet, in_place=False).get_ptp()
+            self._filters['demodulation'].apply(
+                input_data=temp_packet, in_place=True
+            ).calculate_impedance(self._calib_param)
+            return temp_packet
 
 
 class PhysicalOrientation:

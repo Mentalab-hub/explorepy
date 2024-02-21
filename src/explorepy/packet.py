@@ -569,6 +569,24 @@ class CalibrationInfo_USBC(CalibrationInfoBase):
     def _convert(self, bin_data):
         super()._convert(bin_data, offset_multiplier=0.01)
 
+class BleImpedancePacket(EEG98_USBC):
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        self.timestamp = timestamp
+
+    def _convert(self, bin_data):
+        pass
+
+    def populate_packet_with_data(self, ble_packet_list):
+        data_array = None
+        for i in range(len(ble_packet_list)):
+            _, data = ble_packet_list[i].get_data()
+            if data_array is None:
+                data_array = data
+            else:
+                data_array = np.concatenate((data_array, data), axis=1)
+        self.data = data_array
+
 
 PACKET_CLASS_DICT = {
     PACKET_ID.ORN: Orientation,
