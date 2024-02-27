@@ -4,14 +4,14 @@ Installation
 
 Minimal Requirements
 ------------
-* Python 3.7 to Python 3.11
+* Python 3.7 to Python 3.12
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
 
 Recommended Requirements
 ------------
-* Python 3.7 to Python 3.11
+* Python 3.7 to Python 3.12
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 8GB RAM
 * Intel i7 or higher CPU
@@ -35,6 +35,9 @@ For an overview of ``explorepy`` commands, click `here <https://explorepy.readth
 
 On a Windows machine, ``explorepy`` can be installed using the .exe installable file uploaded to
 ``explorepy``'s `release page <https://github.com/Mentalab-hub/explorepy/releases/download/v1.5.0/MentaLab_ExplorePy_1.5.0.exe>`_. Please note that the dependencies will be installed automatically.
+
+A standalone Mac installer is also available. Please contact Mentalab support to get Mac installer.
+
 
 Option 2: Installing from Python Package Index (PyPI) and pip (advanced)
 """"""""
@@ -68,17 +71,18 @@ Ubuntu
 
 Mac
 ^^^
-Please note that Mac OSX is not supported at the moment due to some bluetooth bug from Apple OS updates.
 1. Install ``XCode`` from the Mac App store. For this, you may need to upgrade to the latest version of MacOS. For older versions of MacOS, find compatible versions of ``XCode`` `here <https://en.wikipedia.org/wiki/Xcode>`_. All old ``XCode`` versions are available `here <https://developer.apple.com/download/more/>`_.
 2. Accept the license agreement: ``sudo xcodebuild -license``
 3. It is best to install Anaconda. Download  and install the `Anaconda Python 3.7 Mac installer <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and downloaded `here <https://repo.anaconda.com/archive/index.html>`_.
 4. We recommend using a virtual environment in Conda.
 
-   a. In Conda command prompt: ``conda create -n myenv python=3.8``
+   a. In Conda command prompt: ``conda create -n myenv python=3.10``
    b. Activate the virtual environment: ``conda activate myenv``
 
 5. Upgrade your pip: ``python -m pip install --upgrade pip``
 6. Run: ``pip install explorepy``, to install ``explorepy`` from PyPI.
+7. Run: ``brew install blueutil``, to install blueutil for bluetooth communication
+7. Connect your Explore device from Mac Bluetooth menu and run your Python script.
 
 Quick test
 ----------

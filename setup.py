@@ -32,7 +32,19 @@ def read(*names, **kwargs):
         return fh.read()
 
 
-my_req = ['numpy', 'scipy', 'pyedflib', 'click==7.1.2', 'appdirs==1.4.3', 'sentry_sdk==1.19.1', 'mne', 'eeglabio', 'pandas', 'bleak']  # noqa: E501
+my_req = ['numpy',
+          'scipy',
+          'pyedflib',
+          'click==7.1.2',
+          'appdirs==1.4.3',
+          'sentry_sdk==1.19.1',
+          'mne',
+          'eeglabio',
+          'pandas',
+          'pyserial',
+          'pyyaml',
+          'bleak']  # noqa: E501
+
 test_requirements = ["pytest==6.2.5",
                      "pytest-mock==3.10.0",
                      "pytest-html==3.2.0",
@@ -45,8 +57,6 @@ current_platform = sys.platform
 
 if not os.environ.get('READTHEDOCS'):
     my_req.append('pylsl')
-    my_req.append('Jinja2==3.0.0')
-    my_req.append('bokeh==2.2.3')
     libPath = "lib"
     if current_platform == 'win32' or current_platform == 'win64':
         windows_lib_path = os.path.join(libPath, 'windows')
@@ -70,19 +80,9 @@ if not os.environ.get('READTHEDOCS'):
             extra_link_args=["-lbluetooth"],
             swig_opts=['-c++']
         ))
-    else:
-        if sys.version_info >= (3, 6):
-            my_req.append('pyobjc-core>=6')
-            my_req.append('pyobjc-framework-Cocoa>=6')
-        else:
-            my_req.append('pyobjc-core>=3.1,<6')
-            my_req.append('pyobjc-framework-Cocoa>=3.1,<6')
-        os.system('cp  lib/mac/_exploresdk.so  src/explorepy')
-        os.system('cp  lib/mac/btScan  src/explorepy')
-        os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
-    version='1.8.2',
+    version='2.0.0',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description_content_type="text/markdown",

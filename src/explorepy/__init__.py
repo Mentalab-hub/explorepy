@@ -14,18 +14,17 @@ log_config.log_breadcrumb(f"OS: {platform.platform()} - {sys.version}", "info")
 
 from . import (  # noqa ignore E402
     command,
-    exploresdk,
     tools
 )
-from .dashboard.dashboard import Dashboard  # noqa
 from .explore import Explore  # noqa
 
 
-__all__ = ["Explore", "Dashboard", "command", "exploresdk", "tools", "log_config"]
-__version__ = '1.8.2'
+__all__ = ["Explore", "command", "exploresdk", "tools", "log_config"]
+__version__ = '2.0.0'
 
 this = sys.modules[__name__]
-bt_interface_list = ['sdk', 'ble']
+# TODO appropriate library 
+bt_interface_list = ['sdk', 'ble', 'mock', 'pyserial']
 this._bt_interface = 'ble'
 
 if not sys.version_info >= (3, 6):

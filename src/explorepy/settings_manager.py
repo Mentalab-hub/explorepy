@@ -130,6 +130,8 @@ class SettingsManager:
 
         if self.channel_count_key not in self.settings_dict:
             self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
+        if self.channel_name_key not in self.settings_dict:
+            self.settings_dict[self.channel_name_key] = [f'ch{i + 1}' for i in range(self.settings_dict[self.channel_count_key])]
         self.write_settings()
 
     def set_sampling_rate(self, value):
@@ -138,11 +140,21 @@ class SettingsManager:
         self.settings_dict[self.sr_key] = value
         self.write_settings()
 
+    def get_sampling_rate(self):
+        '''Returns device sampling rate'''
+        self.load_current_settings()
+        return self.settings_dict.get(self.sr_key)
+
     def set_chan_names(self, value):
         """Setter method for channel names for Explore Desktop"""
         self.load_current_settings()
         self.settings_dict[self.channel_name_key] = value
         self.write_settings()
+
+    def get_channel_names(self):
+        """Returns channels names"""
+        self.load_current_settings()
+        return self.settings_dict.get(self.channel_name_key)
 
     def __str__(self):
         self.load_current_settings()

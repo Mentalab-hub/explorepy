@@ -332,6 +332,9 @@ class StreamProcessor:
         self._device_configurator.send_timestamp()
 
     def update_bt_stability_status(self, current_timestamp):
+        if self._is_imp_mode:
+            self.instability_flag = False
+            return
         if 'board_id' in self.device_info.keys():
             if self._last_packet_timestamp == 0:
                 return
@@ -350,7 +353,7 @@ class StreamProcessor:
             self.instability_flag = True
             self.last_bt_unstable_time = current_time
         else:
-            if current_time - self.last_bt_unstable_time > 10:
+            if current_time - self.last_bt_unstable_time > .5:
                 self.instability_flag = False
 
     def is_connection_unstable(self):
