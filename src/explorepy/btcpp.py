@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 """A module for bluetooth connection"""
 import abc
+import asyncio
 import atexit
 import logging
-import sys
 import threading
 import time
 from queue import Queue
 
-from bleak import BleakClient, BleakScanner, BLEDevice, AdvertisementData
-import asyncio
+from bleak import (
+    BleakClient,
+    BleakScanner
+)
 
 from explorepy import (
     exploresdk,
@@ -19,6 +21,7 @@ from explorepy._exceptions import (
     DeviceNotFoundError,
     InputError
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -301,7 +304,7 @@ class BLEClient(BTClient):
         try:
             asyncio.run(self.stream())
         except RuntimeError as error:
-            logger.info('Shutting down BLE stream loop')
+            logger.info('Shutting down BLE stream loop with error {}'.format(error))
 
     def stop_read_loop(self):
         print('calling stop!!')
@@ -355,7 +358,8 @@ class BLEClient(BTClient):
                 raise ConnectionAbortedError('Error reading data from BLE stream, too many bytes requested')
             return ret
         except Exception as error:
-            logger.error('Error reading data from BLE stream')
+            logger.error('Error reading data from BLE stream with error {}'.format(error))
+
     def send(self, data):
         """Send data to the device
 

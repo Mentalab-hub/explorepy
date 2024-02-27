@@ -23,7 +23,7 @@ __all__ = ["Explore", "command", "exploresdk", "tools", "log_config"]
 __version__ = '2.0.0'
 
 this = sys.modules[__name__]
-# TODO appropriate library 
+# TODO appropriate library
 bt_interface_list = ['sdk', 'ble', 'mock', 'pyserial']
 this._bt_interface = 'ble'
 

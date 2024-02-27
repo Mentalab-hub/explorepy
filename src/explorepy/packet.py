@@ -207,6 +207,7 @@ class EEG98_BLE(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
 
+
 class EEG32_BLE(EEG):
     """EEG packet for 32 channel BLE device"""
 
@@ -568,6 +569,7 @@ class CalibrationInfo(CalibrationInfoBase):
 class CalibrationInfo_USBC(CalibrationInfoBase):
     def _convert(self, bin_data):
         super()._convert(bin_data, offset_multiplier=0.01)
+
 
 class BleImpedancePacket(EEG98_USBC):
 
