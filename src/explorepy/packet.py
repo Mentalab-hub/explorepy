@@ -124,7 +124,9 @@ class EEG(Packet):
             raise ValueError("v_ref or n_packet cannot be null for conversion!")
         data = Packet.int24to32(bin_data)
         n_chan = -1
-        self.data = data.reshape((self.n_packet, n_chan)).astype(float).T
+        data = data.reshape((self.n_packet, n_chan)).astype(float).T
+        gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
+        self.data = np.round(data * self.v_ref / gain, 2)
 
     @staticmethod
     def int32_to_status(data):

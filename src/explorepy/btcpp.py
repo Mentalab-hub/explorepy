@@ -279,6 +279,7 @@ class BLEClient(BTClient):
                 loop.run_in_executor(None, await self.read_event.wait())
                 if self.data is None:
                     print('Client disconnection requested')
+                    self.is_connected = False
                     break
                 await client.write_gatt_char(self.rx_char, self.data, response=False)
                 self.data = None
@@ -333,8 +334,8 @@ class BLEClient(BTClient):
 
     def disconnect(self):
         """Disconnect from the device"""
-        self.try_disconnect = True
         self.read_event.set()
+        self.stop_read_loop()
 
     def _find_mac_address(self):
         raise NotImplementedError
@@ -358,7 +359,8 @@ class BLEClient(BTClient):
                 raise ConnectionAbortedError('Error reading data from BLE stream, too many bytes requested')
             return ret
         except Exception as error:
-            logger.error('Error reading data from BLE stream with error {}'.format(error))
+            logger.error('Unknown error reading data from BLE stream')
+            raise ConnectionAbortedError(str(error))
 
     def send(self, data):
         """Send data to the device
