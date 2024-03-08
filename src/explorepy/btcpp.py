@@ -84,7 +84,8 @@ class SDKBtClient:
 
         self.is_connected = False
         raise DeviceNotFoundError(
-            "Could not find the device! Please make sure the device is on and in advertising mode."
+            "Could not find the device! Please make sure bluetooth is turned on in your computer and the Explore "
+            "device is in advertising mode. "
         )
 
     def reconnect(self):
