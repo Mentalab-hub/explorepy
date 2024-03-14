@@ -67,6 +67,7 @@ class StreamProcessor:
         self.debug = debug
         self.instability_flag = False
         self.last_bt_unstable_time = 0
+        self.last_exg_packet_timestamp = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -141,6 +142,7 @@ class StreamProcessor:
                 packet = self.physical_orn.calculate(packet=packet)
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
+            self.last_exg_packet_timestamp = get_local_time()
             self._update_last_time_point(packet, received_time)
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
