@@ -2,6 +2,11 @@ name: testing
 on:
     pull_request:
         branches: [master, develop]
+
+env:
+    COVERAGE_THRESHOLD: 80
+    FAIL_ON_BELOW_COVERAGE: 'true'
+
 jobs:
     test:
         strategy:
@@ -34,10 +39,21 @@ jobs:
               run: |
                 conda install -c conda-forge liblsl
                 pip install -e .[test]
-                python -m pytest --import-mode=append --html=pytest_report.html --self-contained-html
-            -   name: Archive test results
-                if: success() || failure()
-                uses: actions/upload-artifact@v3
-                with:
-                    name: pytest-results
-                    path: pytest_report.html
+            - name: Run tests and fail below code coverage threshold of ${{ env.COVERAGE_THRESHOLD }}
+              if: ${{ env.FAIL_ON_BELOW_COVERAGE == 'true' }}
+              run: python -m pytest --import-mode=append --html=pytest_report.html --self-contained-html --cov-report html --cov=./src/explorepy/ --cov-fail-under=${{ env.COVERAGE_THRESHOLD }}
+            - name: Run tests
+              if: ${{ env.FAIL_ON_BELOW_COVERAGE != 'true' }}
+              run: python -m pytest --import-mode=append --html=pytest_report.html --self-contained-html --cov-report html --cov=./src/explorepy/
+            - name: Archive test results
+              if: success() || failure()
+              uses: actions/upload-artifact@v3
+              with:
+                  name: pytest-test-results
+                  path: pytest_report.html
+            - name: Archive code coverage report
+              if: success() || failure()
+              uses: actions/upload-artifact@v3
+              with:
+                  name: pytest-cov-results
+                  path: ./htmlcov
