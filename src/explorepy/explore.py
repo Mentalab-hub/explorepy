@@ -87,14 +87,13 @@ class Explore:
         while "adc_mask" not in self.stream_processor.device_info:
             logger.info("Waiting for device info packet...")
             time.sleep(1)
-            if cnt >= 10:
+            if cnt >= 100:
                 raise ConnectionAbortedError("Could not get info packet from the device")
             cnt += 1
 
         logger.info('Device info packet has been received. Connection has been established. Streaming...')
         logger.info("Device info: " + str(self.stream_processor.device_info))
         self.is_connected = True
-        self.stream_processor.send_timestamp()
         if self.debug:
             self.stream_processor.subscribe(callback=self.debug.process_bin, topic=TOPICS.packet_bin)
 
@@ -257,6 +256,8 @@ class Explore:
                 self.mask = [1 for _ in range(0, 32)]
             if 'PCB_305_801_XXX' in self.stream_processor.device_info['board_id']:
                 self.mask = [1 for _ in range(0, 16)]
+            if 'PCB_304_801p2_X' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for _ in range(0, 32)]
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],

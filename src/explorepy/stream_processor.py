@@ -145,7 +145,8 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=packet)
-                self.dispatch(topic=TOPICS.imp, packet=packet_imp)
+                if packet_imp is not None:
+                    self.dispatch(topic=TOPICS.imp, packet=packet_imp)
             self.apply_filters(packet=packet)
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2):
