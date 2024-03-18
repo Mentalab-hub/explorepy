@@ -78,6 +78,15 @@ if not os.environ.get('READTHEDOCS'):
             extra_link_args=["-lbluetooth"],
             swig_opts=['-c++']
         ))
+    else:
+        if sys.version_info >= (3, 7):
+            my_req.append('pyobjc-core>=6')
+            my_req.append('pyobjc-framework-Cocoa>=6')
+        else:
+            my_req.append('pyobjc-core>=3.1,<6')
+            my_req.append('pyobjc-framework-Cocoa>=3.1,<6')
+        os.system('cp  lib/mac/_exploresdk.so  src/explorepy')
+        os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
     version='2.0.0',

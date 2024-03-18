@@ -23,11 +23,11 @@ __all__ = ["Explore", "command", "exploresdk", "tools", "log_config"]
 __version__ = '2.0.0'
 
 this = sys.modules[__name__]
+from . import exploresdk
 list_sdk = ['sdk', 'mock', 'pyserial']
 if sys.platform == 'darwin':
     this._bt_interface = 'pyserial'
 else:
-    from . import exploresdk
     this._bt_interface = 'sdk'
 
 if not sys.version_info >= (3, 6):
