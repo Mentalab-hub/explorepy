@@ -44,6 +44,7 @@ class Parser:
         self.is_waiting = False
         self._stream_thread = None
         self._is_reconnecting = False
+        self.seek_new_pid = asyncio.Event()
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -126,7 +127,7 @@ class Parser:
                     self.stop_streaming()
                     print("Press Ctrl+c to exit...")
                 self._is_reconnecting = False
-            except (IOError, ValueError, MemoryError, FletcherError) as error:
+            except (IOError, ValueError, MemoryError) as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 if self.mode == 'device':
                     if str(error) != 'connection has been closed':
@@ -137,6 +138,12 @@ class Parser:
                 else:
                     logger.warning('The binary file is corrupted. Conversion has ended incompletely.')
                 self.stop_streaming()
+            except FletcherError:
+                if explorepy.get_bt_interface() == 'ble':
+                    logger.warning('Incomplete packet received, parsing will continue.')
+                    self.seek_new_pid.set()
+                else:
+                    self.stop_streaming()
             except EOFError:
                 logger.info('End of file')
                 self.stop_streaming()
@@ -151,6 +158,12 @@ class Parser:
         Returns:
             packet object
         """
+        while self.seek_new_pid.is_set():
+            import binascii
+            bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
+            if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
+                self.seek_new_pid.clear()
+                break
         raw_header = self.stream_interface.read(8)
         pid = raw_header[0]
         raw_payload = raw_header[2:4]
