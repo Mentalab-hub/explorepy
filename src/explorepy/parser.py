@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Parser module"""
 import asyncio
+import binascii
 import logging
 import struct
 from threading import Thread
@@ -159,7 +160,7 @@ class Parser:
             packet object
         """
         while self.seek_new_pid.is_set():
-            import binascii
+
             bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
                 self.seek_new_pid.clear()
@@ -171,6 +172,8 @@ class Parser:
 
         # pid = struct.unpack('B', raw_pid)[0]
         payload = struct.unpack('<H', raw_payload)[0]
+        if payload > 500:
+            raise FletcherError
         timestamp = struct.unpack('<I', raw_timestamp)[0]
 
         # Timestamp conversion
