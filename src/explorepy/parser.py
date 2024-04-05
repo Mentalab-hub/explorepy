@@ -50,6 +50,8 @@ class Parser:
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
         self.device_name = device_name
+        if not device_name[-4:].isalpha():
+            explorepy.set_bt_interface('sdk')
         if explorepy.get_bt_interface() == 'sdk':
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
