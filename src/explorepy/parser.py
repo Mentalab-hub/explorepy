@@ -168,9 +168,12 @@ class Parser:
                 self.seek_new_pid.clear()
                 break
         raw_header = self.stream_interface.read(8)
-        pid = raw_header[0]
-        raw_payload = raw_header[2:4]
-        raw_timestamp = raw_header[4:8]
+        try:
+            pid = raw_header[0]
+            raw_payload = raw_header[2:4]
+            raw_timestamp = raw_header[4:8]
+        except:
+            raise FletcherError
 
         # pid = struct.unpack('B', raw_pid)[0]
         payload = struct.unpack('<H', raw_payload)[0]
@@ -209,6 +212,7 @@ class Parser:
         else:
             logger.debug("Unknown Packet ID:" + str(pid))
             packet = None
+            raise FletcherError
         return packet
 
 
