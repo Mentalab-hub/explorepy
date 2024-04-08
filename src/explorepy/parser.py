@@ -186,7 +186,10 @@ class Parser:
         payload_data = self.stream_interface.read(payload - 4)
         if self.debug:
             self.callback(packet=PacketBIN(raw_header + payload_data))
-        packet = self._parse_packet(pid, timestamp, payload_data)
+        try:
+            packet = self._parse_packet(pid, timestamp, payload_data)
+        except AssertionError:
+            raise FletcherError
         return packet
 
     def _parse_packet(self, pid, timestamp, bin_data):
