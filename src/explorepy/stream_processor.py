@@ -141,12 +141,24 @@ class StreamProcessor:
                 packet = self.physical_orn.calculate(packet=packet)
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
+            missing_timestamps = self.fill_mising_packet(packet)
             self._update_last_time_point(packet, received_time)
+
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=packet)
-                self.dispatch(topic=TOPICS.imp, packet=packet_imp)
-            self.apply_filters(packet=packet)
+                if packet_imp is not None:
+                    self.dispatch(topic=TOPICS.imp, packet=packet_imp)
+            try:
+                self.apply_filters(packet=packet)
+            except ValueError:
+                pass
+            # fill missing packets
+            if len(missing_timestamps) > 0:
+                for t in missing_timestamps:
+                    packet.timestamp = t
+                    self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
+
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2):
             self.old_device_info = self.device_info.copy()
@@ -357,3 +369,13 @@ class StreamProcessor:
 
     def is_connection_unstable(self):
         return self.instability_flag
+
+    def fill_mising_packet(self, packet):
+        timestamps = np.array([])
+        if self._last_packet_timestamp != 0:
+            sps = np.round(1/ self.device_info['sampling_rate'], 3)
+            time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
+            if time_diff > sps:
+                missing_samples = int(time_diff / sps)
+                timestamps = np.linspace(self._last_packet_timestamp + sps, packet.timestamp, num=missing_samples, endpoint=True)
+        return timestamps[:-1]
