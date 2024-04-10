@@ -374,12 +374,8 @@ class StreamProcessor:
         timestamps = np.array([])
         if self._last_packet_timestamp != 0:
             sps = np.round(1/ self.device_info['sampling_rate'], 3)
-            #print('self._last_packet_timestamp {} and current is {}'.format(self._last_packet_timestamp, packet.timestamp))
             time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
-            #print('+++++++++++++ {}'.format(time_diff))
             if time_diff > sps:
                 missing_samples = int(time_diff / sps)
-                #print('*************************** {}'.format(missing_samples))
                 timestamps = np.linspace(self._last_packet_timestamp + sps, packet.timestamp, num=missing_samples, endpoint=True)
-                #print('returning data with length: {}'.format(len(timestamps[:-1])))
         return timestamps[:-1]
