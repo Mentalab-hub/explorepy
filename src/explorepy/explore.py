@@ -378,7 +378,7 @@ class Explore:
         self._check_connection()
         self.stream_processor.set_marker(code=code)
 
-    def set_external_marker(self, time_lsl, marker_string):
+    def set_external_marker(self, marker_string, time_lsl=None):
         """Sets a digital event marker while streaming
 
         Args:
@@ -386,7 +386,7 @@ class Explore:
             marker_string (string): string to save as experiment marker)
         """
         self._check_connection()
-        self.stream_processor.set_ext_marker(time_lsl, marker_string)
+        self.stream_processor.set_ext_marker(marker_string=marker_string)
 
     def format_memory(self):
         """Format memory of the device

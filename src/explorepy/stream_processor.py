@@ -313,11 +313,11 @@ class StreamProcessor:
         marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
         self.process(marker)
 
-    def set_ext_marker(self, time_lsl, marker_string):
+    def set_ext_marker(self,  marker_string, time_lsl=None):
         """Set an external marker in the stream"""
         logger.info(f"Setting a software marker with code: {marker_string}")
-
-        marker = ExternalMarker.create(time_lsl, marker_string)
+        if time_lsl is None:
+            marker = ExternalMarker.create(lsl_time=self._get_sw_marker_time(), marker_string=marker_string)
         self.process(marker)
 
     def compare_device_info(self, new_device_info):

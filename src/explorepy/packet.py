@@ -404,8 +404,8 @@ class ExternalMarker(EventMarker):
     """External marker packet"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp * 10_000, payload, 0)
-        self._label_prefix = "ext_"
+        super().__init__(timestamp * TIMESTAMP_SCALE, payload, 0)
+        self._label_prefix = "sw_"
 
     def _convert(self, bin_data):
         self.code = bin_data[:15].decode('utf-8', errors='ignore')
@@ -423,8 +423,8 @@ class ExternalMarker(EventMarker):
         """
         if not isinstance(marker_string, str):
             raise ValueError("Marker label must be a string")
-        if len(marker_string) > 16 or len(marker_string) < 1:
-            raise ValueError("Marker label must be between 1 and 16 characters long")
+        if len(marker_string) > 10 or len(marker_string) < 1:
+            raise ValueError("Marker label length must be between 1 and 10 characters")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,
