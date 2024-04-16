@@ -129,6 +129,7 @@ class StreamProcessor:
     def stop(self):
         """Stop streaming"""
         self.is_connected = False
+        self.cmd_event.clear()
         self.parser.stop_streaming()
 
     def process(self, packet):
@@ -361,12 +362,14 @@ class StreamProcessor:
                 self.instability_flag = True
                 self.last_bt_unstable_time = current_time
             else:
-                if current_time - self.last_bt_unstable_time > .3:
-                    if self.instability_flag:
-                        self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
-                    self.instability_flag = False
+                if self.instability_flag:
+                    self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
+                    if current_time - self.last_bt_unstable_time > .5:
+                        self.instability_flag = False
 
     def is_connection_unstable(self):
+        if get_local_time() - self.last_exg_packet_timestamp > 1.5:
+            self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
         return self.instability_flag
 
     def start_cmd_process_thread(self):
