@@ -3,6 +3,7 @@
 This module is responsible for processing incoming stream from Explore device and publishing data to subscribers.
 """
 import logging
+import threading
 import time
 from enum import Enum
 from threading import Lock
@@ -67,6 +68,10 @@ class StreamProcessor:
         self.debug = debug
         self.instability_flag = False
         self.last_bt_unstable_time = 0
+        self.last_exg_packet_timestamp = 0
+        self.last_bt_drop_duration = None
+        self.cmd_event = threading.Event()
+        self.reset_timer()
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -124,6 +129,7 @@ class StreamProcessor:
     def stop(self):
         """Stop streaming"""
         self.is_connected = False
+        self.cmd_event.clear()
         self.parser.stop_streaming()
 
     def process(self, packet):
@@ -141,6 +147,7 @@ class StreamProcessor:
                 packet = self.physical_orn.calculate(packet=packet)
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
+            self.last_exg_packet_timestamp = get_local_time()
             missing_timestamps = self.fill_mising_packet(packet)
             self._update_last_time_point(packet, received_time)
 
@@ -234,7 +241,6 @@ class StreamProcessor:
         settings_manager = SettingsManager(self.device_info["device_name"])
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
-        # print(f"{n_chan=}")
         n_chan = 32 if n_chan == 16 else n_chan
 
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
@@ -268,6 +274,7 @@ class StreamProcessor:
         """
         if not self.is_connected:
             raise ConnectionError("No Explore device is connected!")
+        self.start_cmd_process_thread()
         return self._device_configurator.change_setting(cmd)
 
     def imp_initialize(self, notch_freq):
@@ -343,32 +350,51 @@ class StreamProcessor:
         self._device_configurator.send_timestamp()
 
     def update_bt_stability_status(self, current_timestamp):
-        if self._is_imp_mode:
-            self.instability_flag = False
-            return
-        if 'board_id' in self.device_info.keys():
-            if self._last_packet_timestamp == 0:
-                return
-            # device is an explore plus device, check sample timestamps
-            timestamp_diff = current_timestamp - self._last_packet_timestamp
+        if not self.cmd_event.is_set():
+            if 'board_id' in self.device_info.keys():
+                if self._last_packet_timestamp == 0:
+                    return
+                # device is an explore plus device, check sample timestamps
+                timestamp_diff = current_timestamp - self._last_packet_timestamp
 
-            # allowed time interval is two samples
-            allowed_time_interval = np.round(2 * (1 / self.device_info['sampling_rate']), 3)
-            is_unstable = timestamp_diff >= allowed_time_interval
-        else:
-            # devices is an old device, check if last sample has an earlier timestamp
-            is_unstable = current_timestamp < self._last_packet_timestamp
+                # allowed time interval is two samples
+                allowed_time_interval = np.round(2 * (1 / self.device_info['sampling_rate']), 3)
+                is_unstable = timestamp_diff >= allowed_time_interval
+            else:
+                # devices is an old device, check if last sample has an earlier timestamp
+                is_unstable = current_timestamp < self._last_packet_timestamp
 
-        current_time = get_local_time()
-        if is_unstable:
-            self.instability_flag = True
-            self.last_bt_unstable_time = current_time
-        else:
-            if current_time - self.last_bt_unstable_time > .5:
-                self.instability_flag = False
+            current_time = get_local_time()
+
+
+            if is_unstable:
+                if not self.instability_flag:
+                    self.bt_drop_start_time = get_local_time()
+                    self.last_bt_drop_duration = None
+                self.instability_flag = True
+                self.last_bt_unstable_time = current_time
+            else:
+                if self.instability_flag:
+                    self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
+                    threading.Timer(interval=10, function=self.reset_bt_duration).start()
+                    if current_time - self.last_bt_unstable_time > .3:
+                        self.instability_flag = False
 
     def is_connection_unstable(self):
+        if get_local_time() - self.last_exg_packet_timestamp > 1.5:
+            self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
         return self.instability_flag
+
+    def start_cmd_process_thread(self):
+        self.cmd_event.set()
+        self.bt_status_ignore_thread.start()
+
+    def reset_timer(self):
+        self.cmd_event.clear()
+        self.bt_status_ignore_thread = threading.Timer(interval=2, function=self.reset_timer)
+
+    def reset_bt_duration(self):
+        self.last_bt_drop_duration = None
 
     def fill_mising_packet(self, packet):
         timestamps = np.array([])
