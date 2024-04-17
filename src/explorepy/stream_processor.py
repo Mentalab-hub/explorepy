@@ -364,7 +364,8 @@ class StreamProcessor:
             else:
                 if self.instability_flag:
                     self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
-                    if current_time - self.last_bt_unstable_time > .5:
+                    threading.Timer(interval=10, function=self.reset_bt_duration).start()
+                    if current_time - self.last_bt_unstable_time > .3:
                         self.instability_flag = False
 
     def is_connection_unstable(self):
@@ -379,3 +380,6 @@ class StreamProcessor:
     def reset_timer(self):
         self.cmd_event.clear()
         self.bt_status_ignore_thread = threading.Timer(interval=2, function=self.reset_timer)
+
+    def reset_bt_duration(self):
+        self.last_bt_drop_duration = None
