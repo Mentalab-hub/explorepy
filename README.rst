@@ -17,9 +17,9 @@
     :target: https://pypi.org/project/explorepy
 
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v1.8.2.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v2.0.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v1.8.2...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v2.0.0...master
 
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
@@ -54,13 +54,13 @@ Quick installation
 ==================
 For Windows users, the best way to install ``explorepy`` is to download the latest ``explorepy`` version from the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_. Please note that dependencies will install automatically from the release page.
 
-For other operating systems, or to build the package manually on Windows, please refer to the information below. MAC OSX is currently not supported. 
+For other operating systems, or to build the package manually on Windows, please refer to the information below.
 
 
 Requirements
 ------------
 
-* Python 3.7 to Python 3.11.
+* Python 3.7 to Python 3.12.
 * Visual Studio 2015 community edition (Windows only. For package building).
 * Bluetooth header files (Linux only. Use: ``sudo apt-get install libbluetooth-dev``).
 

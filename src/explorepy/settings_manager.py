@@ -111,9 +111,28 @@ class SettingsManager:
                     hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
                     self.settings_dict[self.software_channel_mask_key] = hardware_adc
                 self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
+        if "board_id" in device_info_dict_update:
+            if self.settings_dict["board_id"] == "PCB_303_801D_XXX":
+                self.settings_dict[self.channel_count_key] = 8
+                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(8)]
+                if self.software_channel_mask_key not in self.settings_dict:
+                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
+                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
+                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
+        if "board_id" in device_info_dict_update:
+            if self.settings_dict["board_id"] == "PCB_304_801p2_X":
+                self.settings_dict[self.channel_count_key] = 32
+                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
+                if self.software_channel_mask_key not in self.settings_dict:
+                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
+                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
+                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
 
         if self.channel_count_key not in self.settings_dict:
             self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
+        if self.channel_name_key not in self.settings_dict:
+            self.settings_dict[self.channel_name_key] = [f'ch{i + 1}' for i in
+                                                         range(self.settings_dict[self.channel_count_key])]
         self.write_settings()
 
     def set_sampling_rate(self, value):
@@ -122,11 +141,21 @@ class SettingsManager:
         self.settings_dict[self.sr_key] = value
         self.write_settings()
 
+    def get_sampling_rate(self):
+        '''Returns device sampling rate'''
+        self.load_current_settings()
+        return self.settings_dict.get(self.sr_key)
+
     def set_chan_names(self, value):
         """Setter method for channel names for Explore Desktop"""
         self.load_current_settings()
         self.settings_dict[self.channel_name_key] = value
         self.write_settings()
+
+    def get_channel_names(self):
+        """Returns channels names"""
+        self.load_current_settings()
+        return self.settings_dict.get(self.channel_name_key)
 
     def __str__(self):
         self.load_current_settings()

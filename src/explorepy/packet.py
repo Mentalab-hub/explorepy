@@ -13,7 +13,7 @@ from explorepy._exceptions import FletcherError
 
 logger = logging.getLogger(__name__)
 
-TIMESTAMP_SCALE = 10000
+TIMESTAMP_SCALE = 100000
 
 
 class PACKET_ID(IntEnum):
@@ -30,6 +30,8 @@ class PACKET_ID(IntEnum):
     EEG98 = 146
     EEG32 = 148
     EEG98_USBC = 150
+    EEG98_BLE = 151
+    EEG32_BLE = 152
     EEG99 = 62
     EEG94R = 208
     EEG98R = 210
@@ -84,7 +86,7 @@ class Packet(abc.ABC):
         """
         assert len(bin_data) % 3 == 0, "Packet length error!"
         return np.asarray([
-            int.from_bytes(bin_data[x:x + 3], byteorder="little", signed=True)
+            int.from_bytes(bin_data[x:x + 3], byteorder="big", signed=True)
             for x in range(0, len(bin_data), 3)
         ])
 
@@ -124,9 +126,7 @@ class EEG(Packet):
         n_chan = -1
         data = data.reshape((self.n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
-        self.data = np.round(data[1:, :] * self.v_ref / gain, 2)
-        # EEG32: status bits will change in future releases as we need to use 4 bytes for 32 channel status
-        self.status = self.int32_to_status(data[0, :])
+        self.data = np.round(data * self.v_ref / gain, 2)
 
     @staticmethod
     def int32_to_status(data):
@@ -201,6 +201,20 @@ class EEG98_USBC(EEG):
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
+
+
+class EEG98_BLE(EEG):
+    """EEG packet for 8 channel device"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
+
+
+class EEG32_BLE(EEG):
+    """EEG packet for 32 channel BLE device"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
 
 
 class EEG99(EEG):
@@ -390,8 +404,8 @@ class ExternalMarker(EventMarker):
     """External marker packet"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp * 10_000, payload, 0)
-        self._label_prefix = "ext_"
+        super().__init__(timestamp * TIMESTAMP_SCALE, payload, 0)
+        self._label_prefix = "sw_"
 
     def _convert(self, bin_data):
         self.code = bin_data[:15].decode('utf-8', errors='ignore')
@@ -409,8 +423,8 @@ class ExternalMarker(EventMarker):
         """
         if not isinstance(marker_string, str):
             raise ValueError("Marker label must be a string")
-        if len(marker_string) > 16 or len(marker_string) < 1:
-            raise ValueError("Marker label must be between 1 and 16 characters long")
+        if len(marker_string) > 10 or len(marker_string) < 1:
+            raise ValueError("Marker label length must be between 1 and 10 characters")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,
@@ -478,7 +492,7 @@ class DeviceInfo(Packet):
                                offset=0)
 
         self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
-        self.sampling_rate = 16000 / (2 ** bin_data[2])
+        self.sampling_rate = int(16000 / (2 ** bin_data[2]))
         self.adc_mask = [int(bit) for bit in format(bin_data[3], "#010b")[2:]]
 
     def get_info(self):
@@ -559,6 +573,25 @@ class CalibrationInfo_USBC(CalibrationInfoBase):
         super()._convert(bin_data, offset_multiplier=0.01)
 
 
+class BleImpedancePacket(EEG98_USBC):
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        self.timestamp = timestamp
+
+    def _convert(self, bin_data):
+        pass
+
+    def populate_packet_with_data(self, ble_packet_list):
+        data_array = None
+        for i in range(len(ble_packet_list)):
+            _, data = ble_packet_list[i].get_data()
+            if data_array is None:
+                data_array = data
+            else:
+                data_array = np.concatenate((data_array, data), axis=1)
+        self.data = data_array
+
+
 PACKET_CLASS_DICT = {
     PACKET_ID.ORN: Orientation,
     PACKET_ID.ENV: Environment,
@@ -572,6 +605,8 @@ PACKET_CLASS_DICT = {
     PACKET_ID.EEG94R: EEG94,
     PACKET_ID.EEG98R: EEG98,
     PACKET_ID.EEG98_USBC: EEG98_USBC,
+    PACKET_ID.EEG98_BLE: EEG98_BLE,
+    PACKET_ID.EEG32_BLE: EEG32_BLE,
     PACKET_ID.EEG32: EEG32,
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
