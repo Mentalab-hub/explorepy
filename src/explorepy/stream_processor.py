@@ -36,7 +36,7 @@ from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
     ImpedanceMeasurement,
     PhysicalOrientation,
-    get_local_time
+    get_local_time, TIMESTAMP_SCALE_BLE, is_ble_device, TIMESTAMP_SCALE
 )
 
 
@@ -324,8 +324,10 @@ class StreamProcessor:
         """Set an external marker in the stream"""
         logger.info(f"Setting a software marker with code: {marker_string}")
         if time_lsl is None:
-            marker = ExternalMarker.create(lsl_time=self._get_sw_marker_time(), marker_string=marker_string)
-        self.process(marker)
+            time_lsl = self._get_sw_marker_time()
+            time_lsl /= TIMESTAMP_SCALE_BLE if is_ble_device() else TIMESTAMP_SCALE
+        ext_marker = ExternalMarker.create(marker_string=marker_string, lsl_time=time_lsl)
+        self.process(ext_marker)
 
     def compare_device_info(self, new_device_info):
         """Compare a device info dict with the current version

@@ -13,7 +13,7 @@ from explorepy._exceptions import FletcherError
 
 logger = logging.getLogger(__name__)
 
-TIMESTAMP_SCALE = 100000
+
 
 
 class PACKET_ID(IntEnum):
@@ -58,7 +58,7 @@ class Packet(abc.ABC):
             time_offset (double): Time offset defined by parser. It will be the timestamp of the first packet when
                                     streaming in realtime. It will be zero while converting a binary file.
         """
-        self.timestamp = timestamp / TIMESTAMP_SCALE + time_offset
+        self.timestamp = timestamp + time_offset
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -126,7 +126,15 @@ class EEG(Packet):
         n_chan = -1
         data = data.reshape((self.n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
-        self.data = np.round(data * self.v_ref / gain, 2)
+
+        if isinstance(self, EEG_BLE):
+            self.data = np.round(data * self.v_ref / gain, 2)
+            return
+        # legacy code for devices other than BLE
+        self.data = np.round(data[1:, :] * self.v_ref / gain, 2)
+        # EEG32: status bits will change in future releases as we need to use 4 bytes for 32 channel status
+        self.status = self.int32_to_status(data[0, :])
+
 
     @staticmethod
     def int32_to_status(data):
@@ -178,8 +186,7 @@ class EEG(Packet):
         return np.ptp(self.data, axis=1)
 
     def __str__(self):
-        return "EEG: " + str(self.data[:, -1]) + "\tEEG STATUS: ADS: " +\
-               str(self.status['ads'][-1]) + ", SR: " + str(self.status['sr'][-1])
+        return "EEG: " + str(self.data[:, -1])
 
 
 class EEG94(EEG):
@@ -202,8 +209,10 @@ class EEG98_USBC(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
 
+class EEG_BLE(EEG):
+    pass
 
-class EEG98_BLE(EEG):
+class EEG98_BLE(EEG_BLE):
     """EEG packet for 8 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):

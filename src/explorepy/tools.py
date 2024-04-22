@@ -33,13 +33,16 @@ import explorepy
 from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
-    BleImpedancePacket
+    BleImpedancePacket, Orientation
 )
 from explorepy.settings_manager import SettingsManager
 
 
 logger = logging.getLogger(__name__)
 lock = Lock()
+
+TIMESTAMP_SCALE_BLE = 100000
+TIMESTAMP_SCALE = 10000
 
 MAX_CHANNELS = 32
 EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
@@ -58,6 +61,8 @@ def get_local_time():
     """
     return local_clock()
 
+def is_ble_device():
+    return explorepy.get_bt_interface() == 'ble'
 
 def bt_scan():
     """ Scan for nearby Explore devices
@@ -513,10 +518,13 @@ class FileRecorder:
 
         """
         time_vector, sig = packet.get_data(self._fs)
-
-        if self._rec_time_offset is None:
-            self._rec_time_offset = time_vector[0]
-        data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
+        if isinstance(packet, Orientation):
+            if len(time_vector) == 1:
+                data = np.array(time_vector + sig)[:, np.newaxis]
+        else:
+            if self._rec_time_offset is None:
+                self._rec_time_offset = time_vector[0]
+            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
         data = np.round(data, 4)
         if self.file_type == 'edf':
             if isinstance(packet, EEG):

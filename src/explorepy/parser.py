@@ -10,19 +10,18 @@ import explorepy
 from explorepy._exceptions import FletcherError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
-    TIMESTAMP_SCALE,
     DeviceInfo,
     PacketBIN
 )
 from explorepy.settings_manager import SettingsManager
-from explorepy.tools import get_local_time
-
+from explorepy.tools import get_local_time, is_ble_device, TIMESTAMP_SCALE_BLE, TIMESTAMP_SCALE
 
 logger = logging.getLogger(__name__)
 
 
 class Parser:
     """Data parser class"""
+
     def __init__(self, callback, mode='device', debug=True):
         """
         Args:
@@ -55,7 +54,7 @@ class Parser:
         if explorepy.get_bt_interface() == 'sdk':
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
-        elif explorepy.get_bt_interface() == 'ble':
+        elif is_ble_device():
             from explorepy.btcpp import BLEClient
             self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
         elif explorepy.get_bt_interface() == 'mock':
@@ -142,7 +141,7 @@ class Parser:
                     logger.warning('The binary file is corrupted. Conversion has ended incompletely.')
                 self.stop_streaming()
             except FletcherError:
-                if explorepy.get_bt_interface() == 'ble':
+                if is_ble_device():
                     logger.warning('Incomplete packet received, parsing will continue.')
                     self.seek_new_pid.set()
                 else:
@@ -179,11 +178,12 @@ class Parser:
         payload = struct.unpack('<H', raw_payload)[0]
         if payload > 500:
             raise FletcherError
-        timestamp = struct.unpack('<I', raw_timestamp)[0]
 
+        timestamp = struct.unpack('<I', raw_timestamp)[0]
+        timestamp /= TIMESTAMP_SCALE_BLE if is_ble_device() else TIMESTAMP_SCALE
         # Timestamp conversion
         if self._time_offset is None:
-            self._time_offset = get_local_time() - timestamp / TIMESTAMP_SCALE
+            self._time_offset = get_local_time() - timestamp
             timestamp = 0
 
         payload_data = self.stream_interface.read(payload - 4)
@@ -218,6 +218,7 @@ class Parser:
 
 class FileHandler:
     """Binary file handler"""
+
     def __init__(self, filename):
         """
         Args:
