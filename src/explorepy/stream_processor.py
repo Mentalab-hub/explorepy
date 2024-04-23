@@ -383,7 +383,7 @@ class StreamProcessor:
                         self.instability_flag = False
 
     def is_connection_unstable(self):
-        if get_local_time() - self.last_exg_packet_timestamp > 1.5:
+        if get_local_time() - self.last_exg_packet_timestamp > 1.5 and self.bt_drop_start_time:
             self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
         return self.instability_flag
 
