@@ -326,7 +326,6 @@ class StreamProcessor:
         logger.info(f"Setting a software marker with code: {marker_string}")
         if time_lsl is None:
             time_lsl = self._get_sw_marker_time()
-            time_lsl /= TIMESTAMP_SCALE_BLE if is_ble_device() else TIMESTAMP_SCALE
         ext_marker = ExternalMarker.create(marker_string=marker_string, lsl_time=time_lsl)
         self.process(ext_marker)
 

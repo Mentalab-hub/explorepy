@@ -413,7 +413,7 @@ class ExternalMarker(EventMarker):
     """External marker packet"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp * TIMESTAMP_SCALE, payload, 0)
+        super().__init__(timestamp, payload, 0)
         self._label_prefix = "sw_"
 
     def _convert(self, bin_data):
@@ -453,7 +453,7 @@ class Trigger(EventMarker):
                           dtype=np.dtype(np.uint32).newbyteorder("<"),
                           count=1,
                           offset=0))
-        self.timestamp = precise_ts / TIMESTAMP_SCALE + self._time_offset
+        self.timestamp = precise_ts / 100000 + self._time_offset
         code = np.ndarray.item(
             np.frombuffer(bin_data,
                           dtype=np.dtype(np.uint16).newbyteorder("<"),
