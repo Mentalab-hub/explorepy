@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Some useful tools such as file recorder, heart rate estimation, etc. used in explorepy"""
+import asyncio
 import configparser
 import copy
 import csv
@@ -17,6 +18,9 @@ import pyedflib
 from appdirs import (
     user_cache_dir,
     user_config_dir
+)
+from bleak import(
+    BleakScanner
 )
 from mne import (
     export,
@@ -93,6 +97,21 @@ def bt_scan():
 
     return explore_devices
 
+async def scan_explore_devices():
+    # Start scanning for devices
+    device_list = []
+    devices = await BleakScanner.discover(timeout=5)
+    for d in devices:
+        if d.name is None:
+            continue
+        if d.name.startswith('Explore_'):
+            device_list.append(d.name)
+    return device_list
+
+def run_ble_scanner():
+    device_list = asyncio.run(scan_explore_devices())
+    print('got device list here{}'.format(device_list))
+    return device_list
 
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=None):
     """ Create ExG recorder
