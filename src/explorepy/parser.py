@@ -7,7 +7,7 @@ import struct
 from threading import Thread
 
 import explorepy
-from explorepy._exceptions import FletcherError
+from explorepy._exceptions import FletcherError, ReconnectionFlowError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
     DeviceInfo,
@@ -117,6 +117,9 @@ class Parser:
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
+            except ReconnectionFlowError:
+                logger.info('Got exception in reconnection flow, normal operation continues')
+                pass
             except ConnectionAbortedError as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 logger.warning("Device has been disconnected! Scanning for the last connected device...")
@@ -161,7 +164,8 @@ class Parser:
             packet object
         """
         while self.seek_new_pid.is_set():
-
+            if self._is_reconnecting:
+                raise ReconnectionFlowError()
             bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
                 self.seek_new_pid.clear()
@@ -171,6 +175,7 @@ class Parser:
             pid = raw_header[0]
             raw_payload = raw_header[2:4]
             raw_timestamp = raw_header[4:8]
+
         except:
             raise FletcherError
 
@@ -184,7 +189,6 @@ class Parser:
         # Timestamp conversion
         if self._time_offset is None:
             self._time_offset = get_local_time() - timestamp
-            timestamp = 0
 
         payload_data = self.stream_interface.read(payload - 4)
         if self.debug:

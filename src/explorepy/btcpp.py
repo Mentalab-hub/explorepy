@@ -4,6 +4,7 @@ import abc
 import asyncio
 import atexit
 import logging
+import queue
 import threading
 import time
 from queue import Queue
@@ -352,13 +353,19 @@ class BLEClient(BTClient):
         """
         try:
             if len(self.copy_buffer) < n_bytes:
-                get_item = self.buffer.get()
+                get_item = self.buffer.get(timeout=10)
                 self.copy_buffer.extend(get_item)
             ret = self.copy_buffer[:n_bytes]
             self.copy_buffer = self.copy_buffer[n_bytes:]
             if len(ret) < n_bytes:
+                logger.info('data size mismatch in buffer, raising connection aborted error when trying to read {} bytes'.format(n_bytes))
                 raise ConnectionAbortedError('Error reading data from BLE stream, too many bytes requested')
             return ret
+        except queue.Empty:
+            logger.info(
+                'Timeout in queue read, raising connection aborted error when trying to read {} bytes'.format(
+                    n_bytes))
+            raise ConnectionAbortedError('Timeout in read method')
         except Exception as error:
             logger.error('Unknown error reading data from BLE stream')
             raise ConnectionAbortedError(str(error))
