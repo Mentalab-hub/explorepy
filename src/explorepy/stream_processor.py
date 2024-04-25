@@ -2,6 +2,7 @@
 """Stream Processor module
 This module is responsible for processing incoming stream from Explore device and publishing data to subscribers.
 """
+import copy
 import logging
 import threading
 import time
@@ -153,7 +154,7 @@ class StreamProcessor:
 
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
-                packet_imp = self.imp_calculator.measure_imp(packet=packet)
+                packet_imp = self.imp_calculator.measure_imp(packet=copy.deepcopy(packet))
                 if packet_imp is not None:
                     self.dispatch(topic=TOPICS.imp, packet=packet_imp)
             try:
