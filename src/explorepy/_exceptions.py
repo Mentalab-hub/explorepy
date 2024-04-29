@@ -34,6 +34,13 @@ class FletcherError(Exception):
     pass
 
 
+class ReconnectionFlowError(Exception):
+    """
+    Reconnection flow error, only thrown when device is reconnecting
+    """
+    pass
+
+
 if sys.platform == "darwin":
     class BluetoothError(Exception):
         """
