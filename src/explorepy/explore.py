@@ -84,10 +84,11 @@ class Explore:
         self.stream_processor = StreamProcessor(debug=True if self.debug else False)
         self.stream_processor.start(device_name=device_name, mac_address=mac_address)
         cnt = 0
+        cnt_limit = 20 if self.debug else 15
         while "adc_mask" not in self.stream_processor.device_info:
             logger.info("Waiting for device info packet...")
             time.sleep(1)
-            if cnt >= 100:
+            if cnt >= cnt_limit:
                 raise ConnectionAbortedError("Could not get info packet from the device")
             cnt += 1
 
