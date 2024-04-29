@@ -499,12 +499,6 @@ class FileRecorder:
             self._file_obj = None
         elif self.file_type == 'csv':
             self._file_obj.close()
-            # sort CSV rows
-            if "ExG" in self._file_name:
-                path = os.path.join(os.getcwd(), self._file_name)
-                data = pandas.read_csv(path, delimiter=",")
-                data = data.sort_values(by=['TimeStamp'])
-                pandas.DataFrame(data).to_csv(path, index=False)
 
     def _init_edf_channels(self):
         self._file_obj.setEquipment(self._device_name)
