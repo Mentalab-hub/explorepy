@@ -23,7 +23,6 @@ from explorepy._exceptions import (
     InputError
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -261,31 +260,60 @@ class BLEClient(BTClient):
         self.eeg_rx_char_uuid = "FFFE0002-B5A3-F393-E0A9-E50E24DCCA9E"
         self.rx_char = None
         self.buffer = Queue()
-        self.try_disconnect = False
+        self.try_disconnect = asyncio.Event()
         self.notification_thread = None
         self.copy_buffer = bytearray()
         self.read_event = asyncio.Event()
         self.data = None
+        self.connection_attempt_counter = 0
 
     async def stream(self):
+        while True:
+            if not self.is_connected:
+                break
+            if self.try_disconnect.is_set():
+                logger.info("scanning for device")
+                device = await BleakScanner.find_device_by_name(self.device_name, timeout=5)
 
-        async with BleakClient(self.ble_device) as client:
-            def handle_packet(sender, bt_byte_array):
-                # write packet to buffer
-                self.buffer.put(bt_byte_array)
+                if device is None:
+                    logger.debug("no device found, wait then scan again")
+                    await asyncio.sleep(2)
+                    if self.connection_attempt_counter <= 5:
+                        self.connection_attempt_counter += 1
+                        continue
+                    else:
+                        self.disconnect()
+                self.connection_attempt_counter = 0
 
-            await client.start_notify(self.eeg_tx_char_uuid, handle_packet)
-            loop = asyncio.get_running_loop()
-            self.rx_char = client.services.get_service(self.eeg_service_uuid).get_characteristic(self.eeg_rx_char_uuid)
-            while True:
-                loop.run_in_executor(None, await self.read_event.wait())
-                if self.data is None:
-                    print('Client disconnection requested')
-                    self.is_connected = False
-                    break
-                await client.write_gatt_char(self.rx_char, self.data, response=False)
-                self.data = None
-                self.read_event.clear()
+            def disconnection_callback(_: BleakClient):
+                logger.debug("Device sent disconnection callback")
+                # cancelling all tasks effectively ends the program
+                if self.is_connected:
+                    self.try_disconnect.set()
+                    self.read_event.set()
+
+            async with BleakClient(self.ble_device, disconnected_callback=disconnection_callback) as client:
+                def handle_packet(sender, bt_byte_array):
+                    # write packet to buffer
+                    self.buffer.put(bt_byte_array)
+
+                await client.start_notify(self.eeg_tx_char_uuid, handle_packet)
+                loop = asyncio.get_running_loop()
+                self.rx_char = client.services.get_service(self.eeg_service_uuid).get_characteristic(
+                    self.eeg_rx_char_uuid)
+                while True:
+                    loop.run_in_executor(None, await self.read_event.wait())
+                    if self.data is None:
+                        if self.try_disconnect.is_set() and self.is_connected:
+                            logger.debug('Closing write thread, will attempt reconnection')
+                            self.read_event.clear()
+                            break
+                        logger.debug('Client disconnection requested')
+                        self.is_connected = False
+                        break
+                    await client.write_gatt_char(self.rx_char, self.data, response=False)
+                    self.data = None
+                    self.read_event.clear()
 
     def connect(self):
         """Connect to the device and return the socket
@@ -295,7 +323,8 @@ class BLEClient(BTClient):
         """
         asyncio.run(self._discover_device())
         if self.ble_device is None:
-            print('No device found!!')
+            logger.info('No device found!!')
+            raise DeviceNotFoundError('Could not find device')
         else:
             logger.info('Device is connected')
             self.is_connected = True
@@ -332,10 +361,21 @@ class BLEClient(BTClient):
         This function reconnects to the last bluetooth socket. If after 1 minute the connection doesn't succeed,
         program will end.
         """
-        self.connect()
+        self.is_connected = False
+        for _ in range(5):
+            try:
+                logger.info('reconnection called from parser')
+                return 0
+            except DeviceNotFoundError:
+                self.is_connected = False
+                logger.warning("Couldn't connect to the device. Trying to reconnect...")
+                time.sleep(2)
+        logger.error("Could not reconnect after 5 attempts. Closing the socket.")
+        return None
 
     def disconnect(self):
         """Disconnect from the device"""
+        self.is_connected = False
         self.read_event.set()
         self.stop_read_loop()
 
@@ -358,14 +398,17 @@ class BLEClient(BTClient):
             ret = self.copy_buffer[:n_bytes]
             self.copy_buffer = self.copy_buffer[n_bytes:]
             if len(ret) < n_bytes:
-                logger.info('data size mismatch in buffer, raising connection aborted error when trying to read {} bytes'.format(n_bytes))
+                logger.info('data size mismatch in buffer, raising connection aborted error when trying to read {}'
+                            'bytes'.format(n_bytes))
                 raise ConnectionAbortedError('Error reading data from BLE stream, too many bytes requested')
+            self.try_disconnect.clear()
             return ret
         except queue.Empty:
-            logger.info(
-                'Timeout in queue read, raising connection aborted error when trying to read {} bytes'.format(
-                    n_bytes))
-            raise ConnectionAbortedError('Timeout in read method')
+            if self.try_disconnect.is_set():
+                logger.debug('No item in bluetooth buffer, initiating next read() call')
+                return self.read(n_bytes)
+            else:
+                logger.info('disconnection flag is not set, continuing')
         except Exception as error:
             logger.error('Unknown error reading data from BLE stream')
             raise ConnectionAbortedError(str(error))
