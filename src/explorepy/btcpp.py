@@ -269,6 +269,8 @@ class BLEClient(BTClient):
 
     async def stream(self):
         while True:
+            if not self.is_connected:
+                break
             if self.try_disconnect.is_set():
                 logger.info("scanning for device")
                 device = await BleakScanner.find_device_by_name(self.device_name, timeout=5)
@@ -284,10 +286,11 @@ class BLEClient(BTClient):
                 self.connection_attempt_counter = 0
 
             def disconnection_callback(_: BleakClient):
-                print("Device sent disconnection callback")
+                logger.debug("Device sent disconnection callback")
                 # cancelling all tasks effectively ends the program
-                self.try_disconnect.set()
-                self.read_event.set()
+                if self.is_connected:
+                    self.try_disconnect.set()
+                    self.read_event.set()
 
             async with BleakClient(self.ble_device, disconnected_callback=disconnection_callback) as client:
                 def handle_packet(sender, bt_byte_array):
@@ -301,11 +304,11 @@ class BLEClient(BTClient):
                 while True:
                     loop.run_in_executor(None, await self.read_event.wait())
                     if self.data is None:
-                        if self.try_disconnect.is_set():
+                        if self.try_disconnect.is_set() and self.is_connected:
                             logger.debug('Closing write thread, will attempt reconnection')
                             self.read_event.clear()
                             break
-                        print('Client disconnection requested')
+                        logger.debug('Client disconnection requested')
                         self.is_connected = False
                         break
                     await client.write_gatt_char(self.rx_char, self.data, response=False)
@@ -320,7 +323,7 @@ class BLEClient(BTClient):
         """
         asyncio.run(self._discover_device())
         if self.ble_device is None:
-            print('No device found!!')
+            logger.info('No device found!!')
             raise DeviceNotFoundError('Could not find device')
         else:
             logger.info('Device is connected')
@@ -372,6 +375,7 @@ class BLEClient(BTClient):
 
     def disconnect(self):
         """Disconnect from the device"""
+        self.is_connected = False
         self.read_event.set()
         self.stop_read_loop()
 
