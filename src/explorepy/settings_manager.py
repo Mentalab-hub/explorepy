@@ -112,7 +112,8 @@ class SettingsManager:
                     self.settings_dict[self.software_channel_mask_key] = hardware_adc
                 self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
         if "board_id" in device_info_dict_update:
-            if self.settings_dict["board_id"] == "PCB_303_801D_XXX":
+            # 8 channel BLE board
+            if self.settings_dict["board_id"] == "PCB_303_801E_XXX":
                 self.settings_dict[self.channel_count_key] = 8
                 self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(8)]
                 if self.software_channel_mask_key not in self.settings_dict:
@@ -120,6 +121,7 @@ class SettingsManager:
                     self.settings_dict[self.software_channel_mask_key] = hardware_adc
                 self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
         if "board_id" in device_info_dict_update:
+            # 32 channel BLE board
             if self.settings_dict["board_id"] == "PCB_304_801p2_X":
                 self.settings_dict[self.channel_count_key] = 32
                 self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
