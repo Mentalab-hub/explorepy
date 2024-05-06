@@ -75,18 +75,18 @@ class Packet(abc.ABC):
         """Print the data/info"""
 
     @staticmethod
-    def int24to32(bin_data):
+    def int24to32(bin_data,  byteorder_data='little'):
         """Converts binary data to int32
 
         Args:
             bin_data (list): list of bytes with the structure of int24
-
+            byteorder_data(string): decoder byteorder- big or little endien
         Returns:
             np.ndarray of int values
         """
         assert len(bin_data) % 3 == 0, "Packet length error!"
         return np.asarray([
-            int.from_bytes(bin_data[x:x + 3], byteorder="big", signed=True)
+            int.from_bytes(bin_data[x:x + 3], byteorder=byteorder_data, signed=True)
             for x in range(0, len(bin_data), 3)
         ])
 
@@ -117,12 +117,14 @@ class EEG(Packet):
         self.n_packet = n_packet
         self.data = None
         self.imp_data = None
+        if not isinstance(self, EEG_BLE):
+            self.byteorder_data = 'little'
         super().__init__(timestamp, payload, time_offset)
 
     def _convert(self, bin_data):
         if not self.v_ref or not self.n_packet:
             raise ValueError("v_ref or n_packet cannot be null for conversion!")
-        data = Packet.int24to32(bin_data)
+        data = Packet.int24to32(bin_data, self.byteorder_data)
         n_chan = -1
         data = data.reshape((self.n_packet, n_chan)).astype(float).T
         gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
@@ -210,13 +212,16 @@ class EEG98_USBC(EEG):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
 
 class EEG_BLE(EEG):
-    pass
+    def __init__(self, timestamp, payload, time_offset=0):
+        self.byteorder_data = 'big'
+        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
+
 
 class EEG98_BLE(EEG_BLE):
     """EEG packet for 8 channel device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
+        super().__init__(timestamp, payload, time_offset)
 
 
 class EEG32_BLE(EEG):

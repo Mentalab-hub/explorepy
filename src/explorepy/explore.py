@@ -19,6 +19,7 @@ import re
 import time
 from threading import Timer
 
+import explorepy
 import numpy as np
 from appdirs import user_cache_dir
 
@@ -287,6 +288,12 @@ class Explore:
 
         def device_info_callback(packet):
             new_device_info = packet.get_info()
+            # TODO add 16 channel board id and refactor
+            # setting correct device interface
+            if 'board_id' not in new_device_info or new_device_info['board_id'] != 'PCB_304_801p2_X' or new_device_info[
+                'board_id'] != 'PCB_303_801E_XXX':
+                logger.debug('setting bt interface to sdk')
+                explorepy.set_bt_interface('sdk')
             if not self.stream_processor.compare_device_info(new_device_info):
                 new_file_name = exg_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_ExG'
                 new_meta_name = meta_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_Meta'
