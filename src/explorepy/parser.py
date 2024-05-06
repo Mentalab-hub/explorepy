@@ -181,11 +181,15 @@ class Parser:
 
         # pid = struct.unpack('B', raw_pid)[0]
         payload = struct.unpack('<H', raw_payload)[0]
-        if payload > 500:
-            raise FletcherError
+        # max payload among all devices is 503, we need to make sure there is no corrupted data in payload length field
+        if payload > 550:
+            logger.debug('Got exception in payload determination, raising fletcher error')
 
         timestamp = struct.unpack('<I', raw_timestamp)[0]
-        timestamp /= TIMESTAMP_SCALE_BLE if is_ble_device() else TIMESTAMP_SCALE
+        if is_ble_device():
+            timestamp /= TIMESTAMP_SCALE_BLE
+        else:
+            timestamp /= TIMESTAMP_SCALE
         # Timestamp conversion
         if self._time_offset is None:
             self._time_offset = get_local_time() - timestamp
@@ -196,6 +200,7 @@ class Parser:
         try:
             packet = self._parse_packet(pid, timestamp, payload_data)
         except AssertionError:
+            logger.debug('Got exception in payload conversion in parser, raising fletcher error')
             raise FletcherError
         return packet
 
