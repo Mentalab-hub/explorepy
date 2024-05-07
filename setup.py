@@ -80,6 +80,10 @@ if not os.environ.get('READTHEDOCS'):
             extra_link_args=["-lbluetooth"],
             swig_opts=['-c++']
         ))
+    else:
+        # Handle Mac OSX setup
+        os.system('cp  lib/mac/_exploresdk.so  src/explorepy')
+        os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
     version='2.0.0',
