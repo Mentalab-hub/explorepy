@@ -254,6 +254,7 @@ class BLEClient(BTClient):
         """
         super().__init__(device_name=device_name, mac_address=mac_address)
 
+        self.client = None
         self.ble_device = None
         self.eeg_service_uuid = "FFFE0001-B5A3-F393-E0A9-E50E24DCCA9E"
         self.eeg_tx_char_uuid = "FFFE0003-B5A3-F393-E0A9-E50E24DCCA9E"
@@ -266,6 +267,7 @@ class BLEClient(BTClient):
         self.read_event = asyncio.Event()
         self.data = None
         self.connection_attempt_counter = 0
+        self.result_queue = Queue()
 
     async def stream(self):
         while True:
@@ -292,28 +294,40 @@ class BLEClient(BTClient):
                     self.try_disconnect.set()
                     self.read_event.set()
 
-            async with BleakClient(self.ble_device, disconnected_callback=disconnection_callback) as client:
-                def handle_packet(sender, bt_byte_array):
-                    # write packet to buffer
-                    self.buffer.put(bt_byte_array)
+            self.client = BleakClient(self.ble_device, disconnected_callback=disconnection_callback)
+            loop = asyncio.get_running_loop()
+            connect_task = loop.create_task(self.client.connect())
+            await connect_task
 
-                await client.start_notify(self.eeg_tx_char_uuid, handle_packet)
+            # async with BleakClient(self.ble_device) as client:
+            def handle_packet(sender, bt_byte_array):
+                # write packet to buffer
+                self.buffer.put(bt_byte_array)
+
+            loop = asyncio.get_running_loop()
+            task = loop.create_task(self.client.start_notify(self.eeg_tx_char_uuid, handle_packet))
+            await task
+
+            self.rx_char = self.client.services.get_service(self.eeg_service_uuid).get_characteristic(
+                self.eeg_rx_char_uuid)
+            while True:
                 loop = asyncio.get_running_loop()
-                self.rx_char = client.services.get_service(self.eeg_service_uuid).get_characteristic(
-                    self.eeg_rx_char_uuid)
-                while True:
+                try:
                     loop.run_in_executor(None, await self.read_event.wait())
-                    if self.data is None:
-                        if self.try_disconnect.is_set() and self.is_connected:
-                            logger.debug('Closing write thread, will attempt reconnection')
-                            self.read_event.clear()
-                            break
-                        logger.debug('Client disconnection requested')
-                        self.is_connected = False
+                except Exception:
+                    print('Got exception while waiting for read event in BLE thread')
+                if self.data is None:
+                    if self.try_disconnect.is_set() and self.is_connected:
+                        logger.debug('Closing write thread, will attempt reconnection')
+                        self.read_event.clear()
                         break
-                    await client.write_gatt_char(self.rx_char, self.data, response=False)
-                    self.data = None
-                    self.read_event.clear()
+                    logger.debug('Client disconnection requested')
+                    self.is_connected = False
+                    print('ending connection here!!!!!!!')
+                    break
+                await self.client.write_gatt_char(self.rx_char, self.data, response=False)
+                self.data = None
+                self.read_event.clear()
 
     def connect(self):
         """Connect to the device and return the socket
@@ -321,26 +335,48 @@ class BLEClient(BTClient):
         Returns:
             socket (bluetooth.socket)
         """
-        asyncio.run(self._discover_device())
+        self.is_connected = True
+        self.notification_thread = threading.Thread(target=self.start_read_loop, daemon=True)
+        self.notification_thread.start()
+        print('waiting for BLE device to show up..')
+        self.result_queue.get()
+
         if self.ble_device is None:
             logger.info('No device found!!')
             raise DeviceNotFoundError('Could not find device')
         else:
             logger.info('Device is connected')
             self.is_connected = True
-            self.notification_thread = threading.Thread(target=self.start_read_loop, daemon=True)
-            self.notification_thread.start()
+
             atexit.register(self.disconnect)
 
     def start_read_loop(self):
         try:
-            asyncio.run(self.stream())
+            asyncio.run(self.ble_manager())
         except RuntimeError as error:
             logger.info('Shutting down BLE stream loop with error {}'.format(error))
+        except asyncio.exceptions.CancelledError as error:
+            print('asyncio.exceptions.CancelledError from BLE stream thread {}'.format(error))
 
     def stop_read_loop(self):
         print('calling stop!!')
+
+        self.stream_task.cancel()
         self.notification_thread.join()
+
+    async def ble_manager(self):
+        try:
+            discovery_task = asyncio.create_task(self._discover_device())
+            await discovery_task
+            print('finished here for discovery.....')
+            self.result_queue.put(True)
+            self.stream_task = asyncio.create_task(self.stream())
+            await self.stream_task
+        except DeviceNotFoundError:
+            print('device not found------')
+            self.result_queue.put(False)
+        except Exception as error:
+            print('got an error with the message{}'.format(error))
 
     async def _discover_device(self):
         if self.mac_address:
@@ -348,7 +384,8 @@ class BLEClient(BTClient):
         else:
             logger.info('Commencing device discovery')
             self.ble_device = await BleakScanner.find_device_by_name(self.device_name, timeout=15)
-
+            if self.ble_device:
+                print('found device!!!!')
         if self.ble_device is None:
             print('No device found!!!!!')
             raise DeviceNotFoundError(
