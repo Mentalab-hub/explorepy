@@ -56,31 +56,22 @@ BTSerialPortBinding::~BTSerialPortBinding()
 
 int BTSerialPortBinding::Connect()
 {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    NSString *addressString = [NSString stringWithCString:address.c_str() encoding:NSASCIIStringEncoding];
-    BluetoothWorker *worker = [BluetoothWorker getInstance];
-    // create pipe to communicate with delegate
+    NSString *nsId = [NSString stringWithCString:address.c_str() encoding:NSASCIIStringEncoding];
 
-    pipe_t *pipe = pipe_new(sizeof(unsigned char), 0);
-	int status;
 
-    IOReturn result = [worker connectDevice: addressString onChannel:channelID withPipe:pipe];
+  IOBluetoothDevice *device = nil;
+  device = [IOBluetoothDevice deviceWithAddressString:nsId];
+    NSArray *recentDevices = [IOBluetoothDevice recentDevices:0];
 
-    if (result == kIOReturnSuccess) {
-        pipe_consumer_t *c = pipe_consumer_new(pipe);
-
-        // save consumer side of the pipe
-        data->consumer = c;
-        status = 0;
-    } else {
-        status = 1;
+    NSArray *byName = [recentDevices filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"name == %@", nsId]];
+    if (byName.count > 0) {
+      device = byName.firstObject;
     }
+    if ([device openConnection] != kIOReturnSuccess) {
+            return -1;
+          }
 
-    pipe_free(pipe);
-    [pool release];
-
-
-    return status;
+    return 0;
 }
 
 void BTSerialPortBinding::Close()
@@ -97,22 +88,22 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
         cout << "Socket closed as data consumer is null" << endl;
         throw ExploreIOException("BT socket is closed!");
     }
-    
+
 
 	if (buffer == nullptr)
 	return;
 
     size_buffer = -1;
-    
+
     size_buffer = pipe_pop_eager(data->consumer, buffer, *length);
-    
+
     if (size_buffer == 0) {
         pipe_consumer_free(data->consumer);
         data->consumer = NULL;
         cout << "Possible socket closure, raising IO Exception" << endl;
         throw ExploreIOException("BT socket is closed!");
-        
-        
+
+
     }
     if(size_buffer < *length){
         if(isSocketClosed){
@@ -126,7 +117,7 @@ void BTSerialPortBinding::Read(char *buffer, int *length)
     }
 
     // when no data is read from rfcomm the connection has been closed.
-    
+
 }
 
 void BTSerialPortBinding::Write(const char *buffer, int length)

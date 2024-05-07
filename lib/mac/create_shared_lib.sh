@@ -44,6 +44,7 @@ c++ -c -fpic -std=c++11 DeviceINQ.mm -I/Library/Developer/CommandLineTools/Libra
 
 gcc  -c -fpic pipe.c -I/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Headers
 
-c++ -shared -flat_namespace -arch arm64 -undefined suppress BTSerialPortBinding.o DeviceINQ.o BluetoothDeviceResources.o BluetoothWorker.o pipe.o  swig_interface_wrap.o -std=c++11  -framework foundation -framework IOBluetooth -o _exploresdk.so
+# for building in  macbooks < M1 processor, remove "-arch arm64" from following line
+c++ -shared -flat_namespace -undefined suppress BTSerialPortBinding.o DeviceINQ.o BluetoothDeviceResources.o BluetoothWorker.o pipe.o  swig_interface_wrap.o -std=c++11  -framework foundation -framework IOBluetooth -o _exploresdk.so
 
 rm -rf *.o
