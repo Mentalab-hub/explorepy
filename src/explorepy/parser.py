@@ -15,7 +15,7 @@ from explorepy.packet import (
 )
 from explorepy.settings_manager import SettingsManager
 from explorepy.tools import get_local_time, is_ble_device, TIMESTAMP_SCALE_BLE, TIMESTAMP_SCALE
-
+import sys
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +50,8 @@ class Parser:
         """Start streaming data from Explore device"""
         self.device_name = device_name
         if not device_name[-4:].isalpha():
-            explorepy.set_bt_interface('sdk')
+            interface = 'pyserial' if sys.platform == "darwin" else 'sdk'
+            explorepy.set_bt_interface(interface)
         if explorepy.get_bt_interface() == 'sdk':
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)

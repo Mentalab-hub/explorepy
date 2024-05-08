@@ -121,7 +121,7 @@ class SDKBtClient(BTClient):
 
         for _ in range(5):
             try:
-                self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
+                self.bt_serial_port_manager = exploresdk.BTSerialPortBinding.Create(self.mac_address, 5)
                 return_code = self.bt_serial_port_manager.Connect()
                 logger.debug("Return code for connection attempt is : {}".format(return_code))
 
@@ -166,7 +166,7 @@ class SDKBtClient(BTClient):
         """
         self.is_connected = False
         for _ in range(5):
-            self.bt_serial_port_manager = exploresdk.BTSerialPortBinding_Create(self.mac_address, 5)
+            self.bt_serial_port_manager = exploresdk.BTSerialPortBinding.Create(self.mac_address, 5)
             connection_error_code = self.bt_serial_port_manager.Connect()
             logger.debug("Got an exception while connecting to the device: {}".format(connection_error_code))
             if connection_error_code == 0:
