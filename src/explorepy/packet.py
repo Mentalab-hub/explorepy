@@ -224,11 +224,11 @@ class EEG98_BLE(EEG_BLE):
         super().__init__(timestamp, payload, time_offset)
 
 
-class EEG32_BLE(EEG):
+class EEG32_BLE(EEG_BLE):
     """EEG packet for 32 channel BLE device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
+        super().__init__(timestamp, payload, time_offset)
 
 
 class EEG99(EEG):
