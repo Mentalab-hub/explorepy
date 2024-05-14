@@ -305,8 +305,11 @@ class BLEClient(BTClient):
                 self.buffer.put(bt_byte_array)
 
             loop = asyncio.get_running_loop()
-            task = loop.create_task(self.client.start_notify(self.eeg_tx_char_uuid, handle_packet))
-            await task
+            self.notify_task = loop.create_task(self.client.start_notify(self.eeg_tx_char_uuid, handle_packet))
+            try:
+                await self.notify_task
+            except asyncio.CancelledError:
+                print("Notify task is cancelled now")
 
             self.rx_char = self.client.services.get_service(self.eeg_service_uuid).get_characteristic(
                 self.eeg_rx_char_uuid)
@@ -323,7 +326,7 @@ class BLEClient(BTClient):
                         break
                     logger.debug('Client disconnection requested')
                     self.is_connected = False
-                    print('ending connection here!!!!!!!')
+                    await self.client.disconnect()
                     break
                 await self.client.write_gatt_char(self.rx_char, self.data, response=False)
                 self.data = None
@@ -356,10 +359,10 @@ class BLEClient(BTClient):
         except RuntimeError as error:
             logger.info('Shutting down BLE stream loop with error {}'.format(error))
         except asyncio.exceptions.CancelledError as error:
-            print('asyncio.exceptions.CancelledError from BLE stream thread {}'.format(error))
+            logger.debug('asyncio.exceptions.CancelledError from BLE stream thread {}'.format(error))
 
     def stop_read_loop(self):
-        print('calling stop!!')
+        logger.debug('Stopping BLE stream loop')
 
         self.stream_task.cancel()
         self.notification_thread.join()
@@ -368,13 +371,13 @@ class BLEClient(BTClient):
         try:
             discovery_task = asyncio.create_task(self._discover_device())
             await discovery_task
-            print('finished here for discovery.....')
+            logger.debug('Finished device discovery..')
             self.result_queue.put(True)
             self.stream_task = asyncio.create_task(self.stream())
             await self.stream_task
         except DeviceNotFoundError:
-            print('device not found------')
             self.result_queue.put(False)
+            logger.debug('No matching device found')
         except Exception as error:
             print('got an error with the message{}'.format(error))
 
@@ -385,9 +388,9 @@ class BLEClient(BTClient):
             logger.info('Commencing device discovery')
             self.ble_device = await BleakScanner.find_device_by_name(self.device_name, timeout=15)
             if self.ble_device:
-                print('found device!!!!')
+                logger.debug('found device!!!!')
         if self.ble_device is None:
-            print('No device found!!!!!')
+            logger.debug('No device found!!!!!')
             raise DeviceNotFoundError(
                 "Could not discover the device! Please make sure the device is on and in advertising mode."
             )
@@ -413,7 +416,9 @@ class BLEClient(BTClient):
     def disconnect(self):
         """Disconnect from the device"""
         self.is_connected = False
+        self.notify_task.cancel()
         self.read_event.set()
+        time.sleep(1)
         self.stop_read_loop()
 
     def _find_mac_address(self):
@@ -457,5 +462,5 @@ class BLEClient(BTClient):
             data (bytearray): Data to be sent
         """
         self.data = data
-        print('sending data to device')
+        logger.debug('sending data to device')
         self.read_event.set()
