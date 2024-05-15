@@ -438,8 +438,8 @@ class ExternalMarker(EventMarker):
         """
         if not isinstance(marker_string, str):
             raise ValueError("Marker label must be a string")
-        if len(marker_string) > 10 or len(marker_string) < 1:
-            raise ValueError("Marker label length must be between 1 and 10 characters")
+        if len(marker_string) > 7 or len(marker_string) < 1:
+            raise ValueError("Marker label length must be between 1 and 7 characters")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,
