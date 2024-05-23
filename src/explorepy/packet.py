@@ -215,8 +215,11 @@ class EEG98_USBC(EEG):
 class EEG_BLE(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         self.byteorder_data = 'big'
+        self.channel_order = [7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 23, 22, 21, 20, 19, 18, 17, 16,
+                        31, 30, 29, 28, 27, 26, 25, 24]
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
-
+        data_length = len(self.data)
+        self.data = self.data[self.channel_order[:data_length]]
 
 class EEG98_BLE(EEG_BLE):
     """EEG packet for 8 channel device"""
