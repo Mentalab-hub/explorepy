@@ -296,7 +296,12 @@ class Environment(Packet):
                 np.uint16).newbyteorder("<"))  # Unit Lux
         self.battery = ((16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(
             bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder("<")))  # Unit Volt
-        self.battery_percentage = self._volt_to_percent(self.battery)
+
+        max_voltage = 4.1  # constant, measured in recording, actually 4.2, but let's say 4.10 is better
+        min_voltage = 3.45  # constant , measured in recording
+        voltage_span = max_voltage - min_voltage
+        percent = int(((self.battery - min_voltage) / voltage_span) * 100)
+        self.battery_percentage = max(0, min(percent, 100))
 
     def __str__(self):
         return "Temperature: " + str(self.temperature) + "\tLight: " + str(
