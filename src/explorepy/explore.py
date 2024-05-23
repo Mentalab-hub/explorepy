@@ -416,8 +416,8 @@ class Explore:
             bool: True for success, False otherwise
         """
         self._check_connection()
-        if sampling_rate not in [250, 500, 1000]:
-            raise ValueError("Sampling rate must be 250, 500 or 1000.")
+        if sampling_rate not in [250, 500, 1000, 2000, 4000, 8000, 16000]:
+            raise ValueError("Sampling rate must be 250, 500, 2000, 4000, 8000 or 16000.")
         cmd = SetSPS(sampling_rate)
         if self.stream_processor.configure_device(cmd):
             SettingsManager(self.device_name).set_sampling_rate(sampling_rate)
