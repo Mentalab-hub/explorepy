@@ -11,10 +11,7 @@ import numpy as np
 
 from explorepy._exceptions import FletcherError
 
-
 logger = logging.getLogger(__name__)
-
-
 
 
 class PACKET_ID(IntEnum):
@@ -33,6 +30,7 @@ class PACKET_ID(IntEnum):
     EEG98_USBC = 150
     EEG98_BLE = 151
     EEG32_BLE = 152
+    EEG16_BLE = 153
     EEG99 = 62
     EEG94R = 208
     EEG98R = 210
@@ -50,6 +48,7 @@ EXG_UNIT = 1e-6
 
 class Packet(abc.ABC):
     """An abstract base class for Explore packet"""
+
     def __init__(self, timestamp, payload, time_offset=0):
         """Gets the timestamp and payload and initializes the packet object
 
@@ -76,7 +75,7 @@ class Packet(abc.ABC):
         """Print the data/info"""
 
     @staticmethod
-    def int24to32(bin_data,  byteorder_data='little'):
+    def int24to32(bin_data, byteorder_data='little'):
         """Converts binary data to int32
 
         Args:
@@ -98,6 +97,7 @@ class PacketBIN(Packet):
     parser for each incoming packet, dispatched by the stream_processor with topic TOPICS.packet_bin and used in the
     Debug class.
     """
+
     def __init__(self, raw_data):
         self.bin_data = raw_data
 
@@ -137,7 +137,6 @@ class EEG(Packet):
         self.data = np.round(data[1:, :] * self.v_ref / gain, 2)
         # EEG32: status bits will change in future releases as we need to use 4 bytes for 32 channel status
         self.status = self.int32_to_status(data[0, :])
-
 
     @staticmethod
     def int32_to_status(data):
@@ -212,6 +211,7 @@ class EEG98_USBC(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=16)
 
+
 class EEG_BLE(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         self.byteorder_data = 'big'
@@ -227,6 +227,13 @@ class EEG98_BLE(EEG_BLE):
 
 class EEG32_BLE(EEG_BLE):
     """EEG packet for 32 channel BLE device"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
+
+
+class EEG16_BLE(EEG_BLE):
+    """EEG packet for 16 channel BLE device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
@@ -289,6 +296,7 @@ class Orientation(Packet):
 
 class Environment(Packet):
     """Environment data packet"""
+
     def _convert(self, bin_data):
         self.temperature = bin_data[0]
         self.light = (1000 / 4095) * np.frombuffer(
@@ -335,6 +343,7 @@ class Environment(Packet):
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
+
     def _convert(self, bin_data):
         self.host_timestamp = np.frombuffer(bin_data,
                                             dtype=np.dtype(
@@ -410,7 +419,7 @@ class SoftwareMarker(EventMarker):
             SoftwareMarker
         """
         return SoftwareMarker(
-            local_time * TIMESTAMP_SCALE,
+            local_time * 10000,
             payload=bytearray(struct.pack("<H", code) + b"\xaf\xbe\xad\xde"),
         )
 
@@ -492,6 +501,7 @@ class TriggerOut(Trigger):
 
 class Disconnect(Packet):
     """Disconnect packet"""
+
     def _convert(self, bin_data):
         """Disconnect packet has no data"""
         pass
@@ -539,6 +549,7 @@ class DeviceInfoV2(DeviceInfo):
 
 class CommandRCV(Packet):
     """Command Status packet"""
+
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
 
@@ -549,6 +560,7 @@ class CommandRCV(Packet):
 
 class CommandStatus(Packet):
     """Command Status packet"""
+
     def _convert(self, bin_data):
         self.opcode = bin_data[0]
         self.status = bin_data[5]
@@ -623,6 +635,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.EEG98_USBC: EEG98_USBC,
     PACKET_ID.EEG98_BLE: EEG98_BLE,
     PACKET_ID.EEG32_BLE: EEG32_BLE,
+    PACKET_ID.EEG16_BLE: EEG16_BLE,
     PACKET_ID.EEG32: EEG32,
     PACKET_ID.CMDRCV: CommandRCV,
     PACKET_ID.CMDSTAT: CommandStatus,
