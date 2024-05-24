@@ -19,7 +19,7 @@ from appdirs import (
     user_cache_dir,
     user_config_dir
 )
-from bleak import(
+from bleak import (
     BleakScanner
 )
 from mne import (
@@ -40,7 +40,6 @@ from explorepy.packet import (
     BleImpedancePacket, Orientation
 )
 from explorepy.settings_manager import SettingsManager
-
 
 logger = logging.getLogger(__name__)
 lock = Lock()
@@ -65,8 +64,10 @@ def get_local_time():
     """
     return local_clock()
 
+
 def is_ble_device():
     return explorepy.get_bt_interface() == 'ble'
+
 
 def bt_scan():
     """ Scan for nearby Explore devices
@@ -97,6 +98,7 @@ def bt_scan():
 
     return explore_devices
 
+
 async def scan_explore_devices():
     # Start scanning for devices
     device_list = []
@@ -108,10 +110,12 @@ async def scan_explore_devices():
             device_list.append(d.name)
     return device_list
 
+
 def run_ble_scanner():
     device_list = asyncio.run(scan_explore_devices())
     print('got device list here{}'.format(device_list))
     return device_list
+
 
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=None):
     """ Create ExG recorder
