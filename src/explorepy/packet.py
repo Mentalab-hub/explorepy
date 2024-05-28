@@ -6,6 +6,7 @@ import logging
 import struct
 from enum import IntEnum
 
+import explorepy.tools
 import numpy as np
 
 from explorepy._exceptions import FletcherError
@@ -214,8 +215,11 @@ class EEG98_USBC(EEG):
 class EEG_BLE(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         self.byteorder_data = 'big'
+        self.channel_order = [7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 23, 22, 21, 20, 19, 18, 17, 16,
+                        31, 30, 29, 28, 27, 26, 25, 24]
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
-
+        data_length = len(self.data)
+        self.data = self.data[self.channel_order[:data_length]]
 
 class EEG98_BLE(EEG_BLE):
     """EEG packet for 8 channel device"""
@@ -224,11 +228,11 @@ class EEG98_BLE(EEG_BLE):
         super().__init__(timestamp, payload, time_offset)
 
 
-class EEG32_BLE(EEG):
+class EEG32_BLE(EEG_BLE):
     """EEG packet for 32 channel BLE device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
+        super().__init__(timestamp, payload, time_offset)
 
 
 class EEG99(EEG):
@@ -295,7 +299,12 @@ class Environment(Packet):
                 np.uint16).newbyteorder("<"))  # Unit Lux
         self.battery = ((16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(
             bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder("<")))  # Unit Volt
-        self.battery_percentage = self._volt_to_percent(self.battery)
+
+        max_voltage = 4.1  # constant, measured in recording, actually 4.2, but let's say 4.10 is better
+        min_voltage = 3.45  # constant , measured in recording
+        voltage_span = max_voltage - min_voltage
+        percent = int(((self.battery - min_voltage) / voltage_span) * 100)
+        self.battery_percentage = max(0, min(percent, 100))
 
     def __str__(self):
         return "Temperature: " + str(self.temperature) + "\tLight: " + str(
@@ -437,8 +446,8 @@ class ExternalMarker(EventMarker):
         """
         if not isinstance(marker_string, str):
             raise ValueError("Marker label must be a string")
-        if len(marker_string) > 10 or len(marker_string) < 1:
-            raise ValueError("Marker label length must be between 1 and 10 characters")
+        if len(marker_string) > 7 or len(marker_string) < 1:
+            raise ValueError("Marker label length must be between 1 and 7 characters")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,
@@ -458,7 +467,8 @@ class Trigger(EventMarker):
                           dtype=np.dtype(np.uint32).newbyteorder("<"),
                           count=1,
                           offset=0))
-        self.timestamp = precise_ts / 100000 + self._time_offset
+        scale = 100000 if explorepy.tools.is_ble_device() else 10000
+        self.timestamp = precise_ts / scale + self._time_offset
         code = np.ndarray.item(
             np.frombuffer(bin_data,
                           dtype=np.dtype(np.uint16).newbyteorder("<"),
