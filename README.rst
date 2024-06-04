@@ -60,7 +60,7 @@ For other operating systems, or to build the package manually on Windows, please
 Requirements
 ------------
 
-* Python 3.7 to Python 3.12.
+* Python 3.10 to Python 3.12.
 * Visual Studio 2015 community edition (Windows only. For package building).
 * Bluetooth header files (Linux only. Use: ``sudo apt-get install libbluetooth-dev``).
 

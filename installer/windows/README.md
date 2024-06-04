@@ -26,7 +26,7 @@ Tested versions in (brackets).
 
   - [NSIS - the Nullsoft Scriptable Install System](https://nsis.sourceforge.io/) (3.06.1)
   - [Microsoft Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16)
-  - A local python installation with virtual env support (3.7.7)
+  - A local python installation with virtual env support (3.10)
 
 
 #### Python wheels
