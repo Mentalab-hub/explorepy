@@ -24,7 +24,6 @@ from explorepy.packet import (
     CommandRCV,
     CommandStatus,
     DeviceInfo,
-    DeviceInfoV2,
     Environment,
     EventMarker,
     ExternalMarker,
@@ -168,7 +167,7 @@ class StreamProcessor:
                     self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
 
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
-        elif isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2):
+        elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
             self.device_info.update(packet.get_info())
             if self.is_bt_streaming:
