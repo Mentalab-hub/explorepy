@@ -710,8 +710,9 @@ class ImpedanceMeasurement:
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
         # Temporary fix for 16/32 channel filters
-        if n_chan >= 16:
-            n_chan = 32
+        if not is_ble_device():
+            if n_chan >= 16:
+                n_chan = 32
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
                                            filter_type='notch',
                                            s_rate=self._device_info['sampling_rate'],
