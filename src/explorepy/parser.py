@@ -149,7 +149,11 @@ class Parser:
                     logger.warning('Incomplete packet received, parsing will continue.')
                     self.seek_new_pid.set()
                 else:
-                    self.stop_streaming()
+                    if self.mode == 'file':
+                        logger.debug('Got Fletcher error in parsing BIN file, will continue')
+                        self.seek_new_pid.set()
+                    else:
+                        self.stop_streaming()
             except EOFError:
                 logger.info('End of file')
                 self.stop_streaming()

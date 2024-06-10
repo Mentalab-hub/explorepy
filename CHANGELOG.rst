@@ -2,6 +2,12 @@
 Changelog
 =========
 
+3.0.0 (7.6.2024)
+------------------
+* Improve Mac OSX support
+* Add Support for Explore Pro
+* Robust data parsing
+
 2.0.0 (5.1.2024)
 ------------------
 * Add Mac OSX support

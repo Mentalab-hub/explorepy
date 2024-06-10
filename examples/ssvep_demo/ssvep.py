@@ -4,6 +4,7 @@ SSVEP experiment module
 """
 import time
 from threading import Lock
+from psychopy_visionscience.radial import RadialStim
 from psychopy import visual, event
 import numpy as np
 from analysis import CCAAnalysis
@@ -29,9 +30,9 @@ class CheckerBoard:
         pattern = np.ones((4, 4))
         pattern[::2, ::2] *= -1
         pattern[1::2, 1::2] *= -1
-        self._stim1 = visual.RadialStim(win=self._window, tex=pattern, pos=position,
+        self._stim1 = RadialStim(win=self._window, tex=pattern, pos=position,
                                         size=size, radialCycles=1, texRes=256, opacity=1)
-        self._stim2 = visual.RadialStim(win=self._window, tex=pattern*-1, pos=position,
+        self._stim2 = RadialStim(win=self._window, tex=pattern*-1, pos=position,
                                         size=size, radialCycles=1, texRes=256, opacity=1)
         self._toggle_flag = False
         self.log_time = log_time

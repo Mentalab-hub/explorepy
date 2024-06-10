@@ -26,7 +26,7 @@ if os.getenv('SPELLCHECK'):
 source_suffix = '.rst'
 master_doc = 'index'
 project = 'explorepy'
-year = '2018-2022'
+year = '2018-2024'
 author = 'Mentalab GmbH.'
 copyright = '{0}, {1}'.format(year, author)
 version = release = '2.0.0'

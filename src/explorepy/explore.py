@@ -291,7 +291,7 @@ class Explore:
             # TODO add 16 channel board id and refactor
             # setting correct device interface
             if 'board_id' not in new_device_info or new_device_info['board_id'] != 'PCB_304_801p2_X' or new_device_info[
-                'board_id'] != 'PCB_303_801E_XXX':
+                'board_id'] != 'PCB_303_801E_XXX' or new_device_info['board_id'] != 'PCB_304_891p2_X':
                 logger.debug('setting bt interface to sdk')
                 explorepy.set_bt_interface('sdk')
             if not self.stream_processor.compare_device_info(new_device_info):
