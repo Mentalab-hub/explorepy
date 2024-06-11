@@ -397,9 +397,9 @@ class StreamProcessor:
     def reset_bt_duration(self):
         self.last_bt_drop_duration = None
 
-    def fill_mising_packet(self, packet):
+    def fill_missing_packet(self, packet):
         timestamps = np.array([])
-        if self._last_packet_timestamp != 0:
+        if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
             sps = np.round(1/ self.device_info['sampling_rate'], 3)
             time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
             if time_diff > sps:
