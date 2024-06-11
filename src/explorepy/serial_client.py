@@ -6,7 +6,7 @@ import time
 
 import serial
 
-from explorepy import settings_manager
+from explorepy import settings_manager, exploresdk
 from explorepy._exceptions import DeviceNotFoundError
 
 
@@ -37,10 +37,10 @@ class SerialClient:
         if self.mac_address is None:
             self._find_mac_address()
             config_manager.set_mac_address(self.mac_address)
-
+        result = exploresdk.BTSerialPortBinding.Create(self.mac_address, 5).Connect()
+        print('result is {}'.format(result))
         for _ in range(5):
             try:
-                self.connect_bluetooth_device()
                 self.bt_serial_port_manager = serial.Serial('/dev/tty.' + self.device_name, 9600, timeout=5)
                 print('/dev/tty.' + self.device_name)
                 self.is_connected = True
@@ -53,7 +53,6 @@ class SerialClient:
                 logger.debug('trying to connect again as tty port is not visible yet')
                 logger.warning("Could not connect; Retrying in 2s...")
                 time.sleep(2)
-                return -1
 
         self.is_connected = False
         raise DeviceNotFoundError(
@@ -112,10 +111,3 @@ class SerialClient:
     @staticmethod
     def _check_mac_address(device_name, mac_address):
         return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])
-
-    def connect_bluetooth_device(self):
-        try:
-            subprocess.run(["/opt/homebrew/bin/blueutil", '--connect', self.mac_address], check=True)
-            print(f"Attempted to connect to the device with address: {self.mac_address}")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to connect to the device: {e}")
