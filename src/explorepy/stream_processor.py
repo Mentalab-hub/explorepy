@@ -148,9 +148,8 @@ class StreamProcessor:
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
             self.last_exg_packet_timestamp = get_local_time()
-            missing_timestamps = self.fill_mising_packet(packet)
+            missing_timestamps = self.fill_missing_packet(packet)
             self._update_last_time_point(packet, received_time)
-
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=copy.deepcopy(packet))
