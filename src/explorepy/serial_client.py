@@ -111,10 +111,3 @@ class SerialClient:
     @staticmethod
     def _check_mac_address(device_name, mac_address):
         return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])
-
-    def connect_bluetooth_device(self):
-        try:
-            subprocess.run(["/opt/homebrew/bin/blueutil", '--connect', self.mac_address], check=True)
-            print(f"Attempted to connect to the device with address: {self.mac_address}")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to connect to the device: {e}")
