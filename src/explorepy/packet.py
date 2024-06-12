@@ -561,11 +561,12 @@ class DeviceInfoV2(DeviceInfo):
 class DeviceInfoBLE(DeviceInfoV2):
     def _convert(self, bin_data):
         super()._convert(bin_data)
-        self.sps_info = bin(bin_data[21])
+        # basic binary conversion shows up binary number with leading zeroes cut off
+        # here we format the raw byte to full 8 bits
+        # https://stackoverflow.com/questions/10411085/converting-integer-to-binary-in-python
+        self.sps_info = '{0:08b}'.format(bin_data[21])
         self.max_online_sps = 250 * pow(2, 6 - int(self.sps_info[4:], 2))
-
         self.max_offline_sps = 250 * pow(2, 6 - int(self.sps_info[:4], 2))
-        print('max online and offline sps {} and {}'.format(self.max_online_sps, self.max_offline_sps))
 
     def get_info(self):
         as_dict = super().get_info()
