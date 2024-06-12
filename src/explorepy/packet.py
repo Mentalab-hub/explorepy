@@ -21,6 +21,8 @@ class PACKET_ID(IntEnum):
     ENV = 19
     TS = 27
     DISCONNECT = 111
+    # Info packet from BLE devices, applies to Explore Pro
+    INFO_BLE = 98
     # New info packet containing memory and board ID: this applies to all Explore+ systems
     INFO_V2 = 97
     INFO = 99
@@ -216,10 +218,11 @@ class EEG_BLE(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         self.byteorder_data = 'big'
         self.channel_order = [7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 23, 22, 21, 20, 19, 18, 17, 16,
-                        31, 30, 29, 28, 27, 26, 25, 24]
+                              31, 30, 29, 28, 27, 26, 25, 24]
         super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
         data_length = len(self.data)
         self.data = self.data[self.channel_order[:data_length]]
+
 
 class EEG98_BLE(EEG_BLE):
     """EEG packet for 8 channel device"""
@@ -555,6 +558,23 @@ class DeviceInfoV2(DeviceInfo):
         return as_dict
 
 
+class DeviceInfoBLE(DeviceInfoV2):
+    def _convert(self, bin_data):
+        super()._convert(bin_data)
+        # basic binary conversion shows up binary number with leading zeroes cut off
+        # here we format the raw byte to full 8 bits
+        # https://stackoverflow.com/questions/10411085/converting-integer-to-binary-in-python
+        self.sps_info = '{0:08b}'.format(bin_data[21])
+        self.max_online_sps = 250 * pow(2, 6 - int(self.sps_info[4:], 2))
+        self.max_offline_sps = 250 * pow(2, 6 - int(self.sps_info[:4], 2))
+
+    def get_info(self):
+        as_dict = super().get_info()
+        as_dict['max_online_sps'] = self.max_online_sps
+        as_dict['max_offline_sps'] = self.max_offline_sps
+        return as_dict
+
+
 class CommandRCV(Packet):
     """Command Status packet"""
 
@@ -635,6 +655,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.DISCONNECT: Disconnect,
     PACKET_ID.INFO: DeviceInfo,
     PACKET_ID.INFO_V2: DeviceInfoV2,
+    PACKET_ID.INFO_BLE: DeviceInfoBLE,
     PACKET_ID.EEG94: EEG94,
     PACKET_ID.EEG98: EEG98,
     PACKET_ID.EEG99: EEG99,

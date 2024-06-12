@@ -91,7 +91,6 @@ class Parser:
             while True:
                 packet = self._generate_packet()
                 if isinstance(packet, DeviceInfo):
-                    print('packet is {}'.format(packet.__str__()))
                     self.callback(packet=packet)
                     break
         except (IOError, ValueError, FletcherError) as error:

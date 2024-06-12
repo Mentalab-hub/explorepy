@@ -24,7 +24,6 @@ from explorepy.packet import (
     CommandRCV,
     CommandStatus,
     DeviceInfo,
-    DeviceInfoV2,
     Environment,
     EventMarker,
     ExternalMarker,
@@ -149,9 +148,8 @@ class StreamProcessor:
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
             self.last_exg_packet_timestamp = get_local_time()
-            missing_timestamps = self.fill_mising_packet(packet)
+            missing_timestamps = self.fill_missing_packet(packet)
             self._update_last_time_point(packet, received_time)
-
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=copy.deepcopy(packet))
@@ -168,7 +166,7 @@ class StreamProcessor:
                     self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
 
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
-        elif isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2):
+        elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
             self.device_info.update(packet.get_info())
             if self.is_bt_streaming:
@@ -242,7 +240,8 @@ class StreamProcessor:
         settings_manager = SettingsManager(self.device_info["device_name"])
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
-        n_chan = 32 if n_chan == 16 else n_chan
+        if not is_ble_device() and n_chan == 16:
+            n_chan = 32
 
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
@@ -398,9 +397,9 @@ class StreamProcessor:
     def reset_bt_duration(self):
         self.last_bt_drop_duration = None
 
-    def fill_mising_packet(self, packet):
+    def fill_missing_packet(self, packet):
         timestamps = np.array([])
-        if self._last_packet_timestamp != 0:
+        if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
             sps = np.round(1/ self.device_info['sampling_rate'], 3)
             time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
             if time_diff > sps:
