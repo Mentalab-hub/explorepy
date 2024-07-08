@@ -198,7 +198,8 @@ class StreamProcessor:
         """
         if 'sampling_rate' in self.device_info:
             timestamp, _ = packet.get_data(exg_fs=self.device_info['sampling_rate'])
-            self.update_bt_stability_status(timestamp[0])
+            if not self.parser.mode == 'file':
+                self.update_bt_stability_status(timestamp[0])
             timestamp = timestamp[-1]
             with lock:
                 if timestamp > self._last_packet_timestamp:
