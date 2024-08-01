@@ -70,6 +70,7 @@ class StreamProcessor:
         self.last_bt_unstable_time = 0
         self.last_exg_packet_timestamp = 0
         self.last_bt_drop_duration = None
+        self.bt_drop_start_time = None
         self.cmd_event = threading.Event()
         self.reset_timer()
 
@@ -383,7 +384,7 @@ class StreamProcessor:
                         self.instability_flag = False
 
     def is_connection_unstable(self):
-        if get_local_time() - self.last_exg_packet_timestamp > 1.5 and self.bt_drop_start_time:
+        if get_local_time() - self.last_exg_packet_timestamp > 1.5 and self.bt_drop_start_time is not None:
             self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
         return self.instability_flag
 
@@ -397,6 +398,7 @@ class StreamProcessor:
 
     def reset_bt_duration(self):
         self.last_bt_drop_duration = None
+        self.bt_drop_start_time = None
 
     def fill_missing_packet(self, packet):
         timestamps = np.array([])
