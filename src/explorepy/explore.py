@@ -375,17 +375,7 @@ class Explore:
         else:
             logger.debug("Tried to stop LSL while no LSL server is running!")
 
-    def set_marker(self, code):
-        """Sets a digital event marker while streaming
-
-        Args:
-            code (int): Marker code (must be in range of 0-65535)
-
-        """
-        self._check_connection()
-        self.stream_processor.set_marker(code=code)
-
-    def set_external_marker(self, marker_string, time_lsl=None):
+    def set_marker(self, marker_string, time_lsl=None):
         """Sets a digital event marker while streaming
 
         Args:
@@ -393,7 +383,7 @@ class Explore:
             marker_string (string): string to save as experiment marker)
         """
         self._check_connection()
-        self.stream_processor.set_ext_marker(marker_string=marker_string)
+        self.stream_processor.set_ext_marker(marker_string=str(marker_string))
 
     def format_memory(self):
         """Format memory of the device
