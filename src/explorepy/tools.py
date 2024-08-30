@@ -112,8 +112,11 @@ async def scan_explore_devices():
 
 
 def run_ble_scanner():
+    print('Looking for Explore Pro devices..')
     device_list = asyncio.run(scan_explore_devices())
-    print('got device list here{}'.format(device_list))
+    for i in range(len(device_list)):
+        print('Found device: {}'.format(device_list[i]))
+    print('Scan finished, found total {} Explore Pro device'.format(len(device_list)))
     return device_list
 
 

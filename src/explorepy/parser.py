@@ -7,7 +7,7 @@ import struct
 from threading import Thread
 
 import explorepy
-from explorepy._exceptions import FletcherError, ReconnectionFlowError
+from explorepy._exceptions import FletcherError, ReconnectionFlowError, BleDisconnectionError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
     DeviceInfo,
@@ -153,6 +153,9 @@ class Parser:
                         self.seek_new_pid.set()
                     else:
                         self.stop_streaming()
+            except BleDisconnectionError:
+                logger.info('Explore pro disconnected, stopping streaming')
+                self.stop_streaming()
             except EOFError:
                 logger.info('End of file')
                 self.stop_streaming()
@@ -170,7 +173,11 @@ class Parser:
         while self.seek_new_pid.is_set():
             if self._is_reconnecting:
                 raise ReconnectionFlowError()
-            bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
+            try:
+                bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
+            except TypeError as error:
+                logger.info('No data if interface, seeking again.....')
+                continue
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
                 self.seek_new_pid.clear()
                 break
@@ -187,7 +194,9 @@ class Parser:
         payload = struct.unpack('<H', raw_payload)[0]
         # max payload among all devices is 503, we need to make sure there is no corrupted data in payload length field
         if payload > 550:
+            print('payload is {}'.format(payload))
             logger.debug('Got exception in payload determination, raising fletcher error')
+            raise FletcherError
 
         timestamp = struct.unpack('<I', raw_timestamp)[0]
         if is_ble_device():
@@ -203,8 +212,14 @@ class Parser:
             self.callback(packet=PacketBIN(raw_header + payload_data))
         try:
             packet = self._parse_packet(pid, timestamp, payload_data)
-        except AssertionError:
-            logger.debug('Got exception in payload conversion in parser, raising fletcher error')
+        except AssertionError  as error:
+            logger.debug('Got AssertionError in payload conversion in parser, raising Fletcher', format(error))
+            raise FletcherError
+        except TypeError as error:
+            logger.debug('Got TypeError in payload conversion in parser, raising Fletcher', format(error))
+            raise FletcherError
+        except ValueError as error:
+            logger.debug('Got ValueError in payload conversion in parser, raising Fletcher')
             raise FletcherError
         return packet
 
@@ -227,7 +242,6 @@ class Parser:
             packet = None
             raise FletcherError
         return packet
-
 
 class FileHandler:
     """Binary file handler"""

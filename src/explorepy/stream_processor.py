@@ -36,7 +36,7 @@ from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
     ImpedanceMeasurement,
     PhysicalOrientation,
-    get_local_time, TIMESTAMP_SCALE_BLE, is_ble_device, TIMESTAMP_SCALE
+    get_local_time, is_ble_device
 )
 
 
@@ -397,8 +397,13 @@ class StreamProcessor:
         self.bt_status_ignore_thread = threading.Timer(interval=2, function=self.reset_timer)
 
     def reset_bt_duration(self):
-        self.last_bt_drop_duration = None
-        self.bt_drop_start_time = None
+        if self.bt_drop_start_time is not None:
+            variable_lock = Lock()
+            variable_lock.acquire()
+            if np.round(get_local_time() - self.bt_drop_start_time, 2) > 10:
+                self.last_bt_drop_duration = None
+                self.bt_drop_start_time = None
+            variable_lock.release()
 
     def fill_missing_packet(self, packet):
         timestamps = np.array([])

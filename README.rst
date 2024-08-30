@@ -1,6 +1,6 @@
-.. image:: logo.png
+.. image:: logo.jpg
    :scale: 100 %
-   :align: center
+   :align: left
 
 
 .. start-badges
@@ -17,9 +17,9 @@
     :target: https://pypi.org/project/explorepy
 
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v2.0.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v3.0.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v2.0.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v3.0.0...master
 
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
@@ -124,7 +124,7 @@ If you are having problems, please check the `troubleshooting <https://explorepy
 section of the documentation.
 
 If you are still having problems, send us your error log via Sentry (note: Explorepy will send the log
-automatically once you have provided permission), or send us the log file via email to contact@mentalab.com. The log file is usually found under:
+automatically once you have provided permission), or send us the log file via email to support@mentalab.com. The log file is usually found under:
 
 * Windows: ``<Windows Drive>:\Users\<USER_NAME>\AppData\Local\mentalab\explorepy\Logs\explorepy.log``
 * Ubuntu: ``/home/<USER_NAME>/.cache/explorepy/log/explorepy.log``

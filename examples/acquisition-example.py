@@ -15,6 +15,14 @@ def my_exg_function(packet):
     #############
 
 
+def my_env_function(packet):
+    """A function that receives env packets(temperature, light, battery) and does some operations on the data"""
+    print("Received an environment packet: ", packet)
+    #############
+    # YOUR CODE #
+    #############
+
+
 def my_orn_function(packet):
     """A function that receives orientation packets and does some operations on the data"""
     timestamp, orn_data = packet.get_data()
@@ -38,6 +46,7 @@ def main():
     # Subscribe your function to the stream publisher
     exp_device.stream_processor.subscribe(callback=my_exg_function, topic=TOPICS.raw_ExG)
     exp_device.stream_processor.subscribe(callback=my_orn_function, topic=TOPICS.raw_orn)
+    exp_device.stream_processor.subscribe(callback=my_env_function, topic=TOPICS.env)
     try:
         while True:
             time.sleep(.5)
