@@ -58,7 +58,7 @@ To install the ``explorepy`` API and all its dependencies using pip on Windows:
 Ubuntu
 ^^^^^^
 1. From Linux Terminal, run these commands one by one: ``sudo apt-get install libbluetooth-dev`` and ``sudo apt-get install build-essential`` and ``conda install -c conda-forge liblsl``.
-2. We recommend installing Anaconda. Download and install the `Anaconda Python 3.10 Ubuntu installer <https://www.anaconda.com/distribution/#download-section>`_.
+2. We recommend installing Anaconda. Download and installer Anaconda<https://www.anaconda.com/download>/Miniconda/.
 3. We recommend using a virtual environment in Conda. To do this:
 
    a. In Conda command prompt: ``conda create -n myenv python=3.10``
@@ -72,7 +72,7 @@ Mac
 ^^^
 1. Install ``XCode`` from the Mac App store. For this, you may need to upgrade to the latest version of MacOS. For older versions of MacOS, find compatible versions of ``XCode`` `here <https://en.wikipedia.org/wiki/Xcode>`_. All old ``XCode`` versions are available `here <https://developer.apple.com/download/more/>`_.
 2. Accept the license agreement: ``sudo xcodebuild -license``
-3. It is best to install Anaconda. Download  and install the `Anaconda Python 3.10 Mac installer <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and downloaded `here <https://repo.anaconda.com/archive/index.html>`_.
+3. Download and installer Anaconda<https://www.anaconda.com/download>/Miniconda/.
 4. We recommend using a virtual environment in Conda.
 
    a. In Conda command prompt: ``conda create -n myenv python=3.10``
