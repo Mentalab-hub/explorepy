@@ -22,7 +22,7 @@ How to install
 Windows
 ^^^^^^^
 
-Option 1: Installing .exe file (basic)
+Option 1: Installing via installer file (basic)
 """"""""
 
 *This option is best for users who only intend to use* ``explorepy`` *via graphical user interface*
@@ -33,10 +33,8 @@ If you intend to add ``explorepy`` commands to a Python script
 
 For an overview of ``explorepy`` commands, click `here <https://explorepy.readthedocs.io/en/latest/usage.html#command-line-interface>`_.
 
-On a Windows machine, standalone desktop software ``explorepy-desktop`` can be installed using the .exe installable file uploaded to
-`release page <https://github.com/Mentalab-hub/explore-desktop-release/releases/latest/Explore_Desktop_Pro_Win64.exe>`_. Please note that the dependencies will be installed automatically.
-
-A standalone Mac installer is also available in ` release page <https://github.com/Mentalab-hub/explore-desktop-release/releases/latest/Explore_Desktop_Pro_Mac_Apple_m.zip>`_
+On a Windows and Mac operating systems, standalone desktop software ``explorepy-desktop`` can be installed using the .exe installable file uploaded to
+`release page <https://github.com/Mentalab-hub/explore-desktop-release/releases/latest/>`_. Please note that the dependencies will be installed automatically.
 
 
 Option 2: Installing from Python Package Index (PyPI) and pip (advanced)
