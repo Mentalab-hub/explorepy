@@ -42,7 +42,9 @@ my_req = ['numpy',
           'eeglabio',
           'pandas',
           'pyserial',
-          'pyyaml']  # noqa: E501
+          'pyyaml',
+          'bleak']  # noqa: E501
+
 test_requirements = ["pytest==6.2.5",
                      "pytest-mock==3.10.0",
                      "pytest-html==3.2.0",
@@ -78,9 +80,13 @@ if not os.environ.get('READTHEDOCS'):
             extra_link_args=["-lbluetooth"],
             swig_opts=['-c++']
         ))
+    else:
+        # Handle Mac OSX setup
+        os.system('cp  lib/mac/_exploresdk.so  src/explorepy')
+        os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
-    version='2.0.0',
+    version='3.0.0',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description_content_type="text/markdown",
@@ -106,11 +112,9 @@ setup(
         'Operating System :: POSIX',
         'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Topic :: Education',
         'Topic :: Scientific/Engineering :: Medical Science Apps.',
         'Topic :: Scientific/Engineering :: Visualization'

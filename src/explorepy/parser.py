@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 """Parser module"""
 import asyncio
+import binascii
 import logging
 import struct
 from threading import Thread
 
 import explorepy
-from explorepy._exceptions import FletcherError
+from explorepy._exceptions import FletcherError, ReconnectionFlowError, BleDisconnectionError
 from explorepy.packet import (
     PACKET_CLASS_DICT,
-    TIMESTAMP_SCALE,
     DeviceInfo,
     PacketBIN
 )
 from explorepy.settings_manager import SettingsManager
-from explorepy.tools import get_local_time
-
-
+from explorepy.tools import get_local_time, is_ble_device, TIMESTAMP_SCALE_BLE, TIMESTAMP_SCALE
+import sys
 logger = logging.getLogger(__name__)
 
 
 class Parser:
     """Data parser class"""
+
     def __init__(self, callback, mode='device', debug=True):
         """
         Args:
@@ -44,13 +44,20 @@ class Parser:
         self.is_waiting = False
         self._stream_thread = None
         self._is_reconnecting = False
+        self.seek_new_pid = asyncio.Event()
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
         self.device_name = device_name
+        if not device_name[-4:].isalpha():
+            interface = 'pyserial' if sys.platform == "darwin" else 'sdk'
+            explorepy.set_bt_interface(interface)
         if explorepy.get_bt_interface() == 'sdk':
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
+        elif is_ble_device():
+            from explorepy.btcpp import BLEClient
+            self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
         elif explorepy.get_bt_interface() == 'mock':
             from explorepy.bt_mock_client import MockBtClient
             self.stream_interface = MockBtClient(device_name=device_name, mac_address=mac_address)
@@ -84,7 +91,6 @@ class Parser:
             while True:
                 packet = self._generate_packet()
                 if isinstance(packet, DeviceInfo):
-                    print('packet is {}'.format(packet.__str__()))
                     self.callback(packet=packet)
                     break
         except (IOError, ValueError, FletcherError) as error:
@@ -111,6 +117,9 @@ class Parser:
             try:
                 packet = self._generate_packet()
                 self.callback(packet=packet)
+            except ReconnectionFlowError:
+                logger.info('Got exception in reconnection flow, normal operation continues')
+                pass
             except ConnectionAbortedError as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 logger.warning("Device has been disconnected! Scanning for the last connected device...")
@@ -123,7 +132,7 @@ class Parser:
                     self.stop_streaming()
                     print("Press Ctrl+c to exit...")
                 self._is_reconnecting = False
-            except (IOError, ValueError, MemoryError, FletcherError) as error:
+            except (IOError, ValueError, MemoryError) as error:
                 logger.debug(f"Got this error while streaming: {error}")
                 if self.mode == 'device':
                     if str(error) != 'connection has been closed':
@@ -133,6 +142,19 @@ class Parser:
                         raise error
                 else:
                     logger.warning('The binary file is corrupted. Conversion has ended incompletely.')
+                self.stop_streaming()
+            except FletcherError:
+                if is_ble_device():
+                    logger.warning('Incomplete packet received, parsing will continue.')
+                    self.seek_new_pid.set()
+                else:
+                    if self.mode == 'file':
+                        logger.debug('Got Fletcher error in parsing BIN file, will continue')
+                        self.seek_new_pid.set()
+                    else:
+                        self.stop_streaming()
+            except BleDisconnectionError:
+                logger.info('Explore pro disconnected, stopping streaming')
                 self.stop_streaming()
             except EOFError:
                 logger.info('End of file')
@@ -148,24 +170,57 @@ class Parser:
         Returns:
             packet object
         """
+        while self.seek_new_pid.is_set():
+            if self._is_reconnecting:
+                raise ReconnectionFlowError()
+            try:
+                bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
+            except TypeError as error:
+                logger.info('No data if interface, seeking again.....')
+                continue
+            if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
+                self.seek_new_pid.clear()
+                break
         raw_header = self.stream_interface.read(8)
-        pid = raw_header[0]
-        raw_payload = raw_header[2:4]
-        raw_timestamp = raw_header[4:8]
+        try:
+            pid = raw_header[0]
+            raw_payload = raw_header[2:4]
+            raw_timestamp = raw_header[4:8]
+
+        except:
+            raise FletcherError
 
         # pid = struct.unpack('B', raw_pid)[0]
         payload = struct.unpack('<H', raw_payload)[0]
-        timestamp = struct.unpack('<I', raw_timestamp)[0]
+        # max payload among all devices is 503, we need to make sure there is no corrupted data in payload length field
+        if payload > 550:
+            print('payload is {}'.format(payload))
+            logger.debug('Got exception in payload determination, raising fletcher error')
+            raise FletcherError
 
+        timestamp = struct.unpack('<I', raw_timestamp)[0]
+        if is_ble_device():
+            timestamp /= TIMESTAMP_SCALE_BLE
+        else:
+            timestamp /= TIMESTAMP_SCALE
         # Timestamp conversion
         if self._time_offset is None:
-            self._time_offset = get_local_time() - timestamp / TIMESTAMP_SCALE
-            timestamp = 0
+            self._time_offset = get_local_time() - timestamp
 
         payload_data = self.stream_interface.read(payload - 4)
         if self.debug:
             self.callback(packet=PacketBIN(raw_header + payload_data))
-        packet = self._parse_packet(pid, timestamp, payload_data)
+        try:
+            packet = self._parse_packet(pid, timestamp, payload_data)
+        except AssertionError  as error:
+            logger.debug('Got AssertionError in payload conversion in parser, raising Fletcher', format(error))
+            raise FletcherError
+        except TypeError as error:
+            logger.debug('Got TypeError in payload conversion in parser, raising Fletcher', format(error))
+            raise FletcherError
+        except ValueError as error:
+            logger.debug('Got ValueError in payload conversion in parser, raising Fletcher')
+            raise FletcherError
         return packet
 
     def _parse_packet(self, pid, timestamp, bin_data):
@@ -185,11 +240,12 @@ class Parser:
         else:
             logger.debug("Unknown Packet ID:" + str(pid))
             packet = None
+            raise FletcherError
         return packet
-
 
 class FileHandler:
     """Binary file handler"""
+
     def __init__(self, filename):
         """
         Args:

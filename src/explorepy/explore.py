@@ -19,6 +19,7 @@ import re
 import time
 from threading import Timer
 
+import explorepy
 import numpy as np
 from appdirs import user_cache_dir
 
@@ -84,17 +85,17 @@ class Explore:
         self.stream_processor = StreamProcessor(debug=True if self.debug else False)
         self.stream_processor.start(device_name=device_name, mac_address=mac_address)
         cnt = 0
+        cnt_limit = 20 if self.debug else 15
         while "adc_mask" not in self.stream_processor.device_info:
             logger.info("Waiting for device info packet...")
             time.sleep(1)
-            if cnt >= 10:
+            if cnt >= cnt_limit:
                 raise ConnectionAbortedError("Could not get info packet from the device")
             cnt += 1
 
         logger.info('Device info packet has been received. Connection has been established. Streaming...')
         logger.info("Device info: " + str(self.stream_processor.device_info))
         self.is_connected = True
-        self.stream_processor.send_timestamp()
         if self.debug:
             self.stream_processor.subscribe(callback=self.debug.process_bin, topic=TOPICS.packet_bin)
 
@@ -257,6 +258,10 @@ class Explore:
                 self.mask = [1 for _ in range(0, 32)]
             if 'PCB_305_801_XXX' in self.stream_processor.device_info['board_id']:
                 self.mask = [1 for _ in range(0, 16)]
+            if 'PCB_304_801p2_X' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for _ in range(0, 32)]
+            if 'PCB_304_891p2_X' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for _ in range(0, 16)]
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],
@@ -285,6 +290,11 @@ class Explore:
 
         def device_info_callback(packet):
             new_device_info = packet.get_info()
+            # TODO add 16 channel board id and refactor
+            # setting correct device interface
+            if 'max_online_sps' not in new_device_info:
+                logger.debug('setting bt interface to sdk')
+                explorepy.set_bt_interface('sdk')
             if not self.stream_processor.compare_device_info(new_device_info):
                 new_file_name = exg_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_ExG'
                 new_meta_name = meta_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_Meta'
@@ -367,17 +377,7 @@ class Explore:
         else:
             logger.debug("Tried to stop LSL while no LSL server is running!")
 
-    def set_marker(self, code):
-        """Sets a digital event marker while streaming
-
-        Args:
-            code (int): Marker code (must be in range of 0-65535)
-
-        """
-        self._check_connection()
-        self.stream_processor.set_marker(code=code)
-
-    def set_external_marker(self, time_lsl, marker_string):
+    def set_marker(self, marker_string, time_lsl=None):
         """Sets a digital event marker while streaming
 
         Args:
@@ -385,7 +385,7 @@ class Explore:
             marker_string (string): string to save as experiment marker)
         """
         self._check_connection()
-        self.stream_processor.set_ext_marker(time_lsl, marker_string)
+        self.stream_processor.set_ext_marker(marker_string=str(marker_string))
 
     def format_memory(self):
         """Format memory of the device
@@ -407,8 +407,8 @@ class Explore:
             bool: True for success, False otherwise
         """
         self._check_connection()
-        if sampling_rate not in [250, 500, 1000]:
-            raise ValueError("Sampling rate must be 250, 500 or 1000.")
+        if sampling_rate not in [250, 500, 1000, 2000, 4000, 8000, 16000]:
+            raise ValueError("Sampling rate must be 250, 500, 2000, 4000, 8000 or 16000.")
         cmd = SetSPS(sampling_rate)
         if self.stream_processor.configure_device(cmd):
             SettingsManager(self.device_name).set_sampling_rate(sampling_rate)

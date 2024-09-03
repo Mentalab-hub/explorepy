@@ -111,9 +111,39 @@ class SettingsManager:
                     hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
                     self.settings_dict[self.software_channel_mask_key] = hardware_adc
                 self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
+        if "board_id" in device_info_dict_update:
+            # 8 channel BLE board
+            if self.settings_dict["board_id"] == "PCB_303_801E_XXX":
+                self.settings_dict[self.channel_count_key] = 8
+                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(8)]
+                if self.software_channel_mask_key not in self.settings_dict:
+                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
+                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
+                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
+        if "board_id" in device_info_dict_update:
+            # 32 channel BLE board
+            if self.settings_dict["board_id"] == "PCB_304_801p2_X":
+                self.settings_dict[self.channel_count_key] = 32
+                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
+                if self.software_channel_mask_key not in self.settings_dict:
+                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
+                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
+                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
+        if "board_id" in device_info_dict_update:
+            # 32 channel BLE board
+            if self.settings_dict["board_id"] == "PCB_304_891p2_X":
+                self.settings_dict[self.channel_count_key] = 16
+                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(16)]
+                if self.software_channel_mask_key not in self.settings_dict:
+                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
+                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
+                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
 
         if self.channel_count_key not in self.settings_dict:
             self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
+        if self.channel_name_key not in self.settings_dict:
+            self.settings_dict[self.channel_name_key] = [f'ch{i + 1}' for i in
+                                                         range(self.settings_dict[self.channel_count_key])]
         self.write_settings()
 
     def set_sampling_rate(self, value):
@@ -132,6 +162,11 @@ class SettingsManager:
         self.load_current_settings()
         self.settings_dict[self.channel_name_key] = value
         self.write_settings()
+
+    def get_channel_names(self):
+        """Returns channels names"""
+        self.load_current_settings()
+        return self.settings_dict.get(self.channel_name_key)
 
     def __str__(self):
         self.load_current_settings()

@@ -27,10 +27,10 @@
 #ln -s -f /usr/local/bin/python3.7 /usr/local/bin/python
 #python can be found at:
 #/Library/Frameworks/Python.framework/Versions/3.7/
-#For Sonoma OS: 
+#For Sonoma OS:
 #/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Headers
 swig -python -c++ -py3 -extranative -threads -debug-classes   swig_interface.i
-# for windows: use the -threads option 
+# for windows: use the -threads option
 #swig -python -c++ -py3 -extranative -debug-classes swig_interface.i
 c++ -c -fpic swig_interface_wrap.cxx -I/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Headers -ObjC++ -std=c++11
 
@@ -44,6 +44,23 @@ c++ -c -fpic -std=c++11 DeviceINQ.mm -I/Library/Developer/CommandLineTools/Libra
 
 gcc  -c -fpic pipe.c -I/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Headers
 
-c++ -shared -flat_namespace -arch arm64 -undefined suppress BTSerialPortBinding.o DeviceINQ.o BluetoothDeviceResources.o BluetoothWorker.o pipe.o  swig_interface_wrap.o -std=c++11  -framework foundation -framework IOBluetooth -o _exploresdk.so
+# Get the architecture
+architecture=$(arch)
+
+# Base command
+base_command="c++ -shared -flat_namespace"
+
+# Add architecture-specific flag if architecture is arm64
+if [ "$architecture" == "arm64" ]; then
+    arch_flag="-arch arm64"
+else
+    arch_flag=""
+fi
+
+# Complete command with other flags and files
+complete_command="$base_command $arch_flag -undefined suppress BTSerialPortBinding.o DeviceINQ.o BluetoothDeviceResources.o BluetoothWorker.o pipe.o swig_interface_wrap.o -std=c++11 -framework foundation -framework IOBluetooth -o _exploresdk.so"
+
+# Execute the complete command
+$complete_command
 
 rm -rf *.o

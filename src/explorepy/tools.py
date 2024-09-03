@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Some useful tools such as file recorder, heart rate estimation, etc. used in explorepy"""
+import asyncio
 import configparser
 import copy
 import csv
@@ -18,6 +19,9 @@ from appdirs import (
     user_cache_dir,
     user_config_dir
 )
+from bleak import (
+    BleakScanner
+)
 from mne import (
     export,
     io
@@ -31,12 +35,17 @@ from scipy import signal
 
 import explorepy
 from explorepy.filters import ExGFilter
-from explorepy.packet import EEG
+from explorepy.packet import (
+    EEG,
+    BleImpedancePacket, Orientation
+)
 from explorepy.settings_manager import SettingsManager
-
 
 logger = logging.getLogger(__name__)
 lock = Lock()
+
+TIMESTAMP_SCALE_BLE = 100000
+TIMESTAMP_SCALE = 10000
 
 MAX_CHANNELS = 32
 EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
@@ -54,6 +63,10 @@ def get_local_time():
             float: local time in second
     """
     return local_clock()
+
+
+def is_ble_device():
+    return explorepy.get_bt_interface() == 'ble'
 
 
 def bt_scan():
@@ -84,6 +97,27 @@ def bt_scan():
         logger.info("No Explore device was found!")
 
     return explore_devices
+
+
+async def scan_explore_devices():
+    # Start scanning for devices
+    device_list = []
+    devices = await BleakScanner.discover(timeout=5)
+    for d in devices:
+        if d.name is None:
+            continue
+        if d.name.startswith('Explore_'):
+            device_list.append(d.name)
+    return device_list
+
+
+def run_ble_scanner():
+    print('Looking for Explore Pro devices..')
+    device_list = asyncio.run(scan_explore_devices())
+    for i in range(len(device_list)):
+        print('Found device: {}'.format(device_list[i]))
+    print('Scan finished, found total {} Explore Pro device'.format(len(device_list)))
+    return device_list
 
 
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=None):
@@ -472,12 +506,6 @@ class FileRecorder:
             self._file_obj = None
         elif self.file_type == 'csv':
             self._file_obj.close()
-            # sort CSV rows
-            if "ExG" in self._file_name:
-                path = os.path.join(os.getcwd(), self._file_name)
-                data = pandas.read_csv(path, delimiter=",")
-                data = data.sort_values(by=['TimeStamp'])
-                pandas.DataFrame(data).to_csv(path, index=False)
 
     def _init_edf_channels(self):
         self._file_obj.setEquipment(self._device_name)
@@ -510,9 +538,9 @@ class FileRecorder:
 
         """
         time_vector, sig = packet.get_data(self._fs)
-
-        if len(time_vector) == 1:
-            data = np.array(time_vector + sig)[:, np.newaxis]
+        if isinstance(packet, Orientation):
+            if len(time_vector) == 1:
+                data = np.array(time_vector + sig)[:, np.newaxis]
         else:
             if self._rec_time_offset is None:
                 self._rec_time_offset = time_vector[0]
@@ -676,6 +704,7 @@ class ImpedanceMeasurement:
         self._filters = {}
         self._notch_freq = notch_freq
         self._add_filters()
+        self.packet_buffer = []
 
     def _add_filters(self):
         bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, self._device_info['sampling_rate'] / 4 + 1.5
@@ -684,8 +713,9 @@ class ImpedanceMeasurement:
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
         # Temporary fix for 16/32 channel filters
-        if n_chan >= 16:
-            n_chan = 32
+        if not is_ble_device():
+            if n_chan >= 16:
+                n_chan = 32
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
                                            filter_type='notch',
                                            s_rate=self._device_info['sampling_rate'],
@@ -704,13 +734,22 @@ class ImpedanceMeasurement:
     def measure_imp(self, packet):
         """Compute electrode impedances
         """
-        temp_packet = self._filters['notch'].apply(input_data=packet, in_place=False)
-        self._calib_param['noise_level'] = self._filters['base_noise']. \
-            apply(input_data=temp_packet, in_place=False).get_ptp()
-        self._filters['demodulation'].apply(
-            input_data=temp_packet, in_place=True
-        ).calculate_impedance(self._calib_param)
-        return temp_packet
+        self.packet_buffer.append(packet)
+
+        if len(self.packet_buffer) < 16:
+            return None
+        else:
+            timestamp, _ = self.packet_buffer[0].get_data()
+            resized_packet = BleImpedancePacket(timestamp=timestamp, payload=None)
+            resized_packet.populate_packet_with_data(self.packet_buffer)
+            self.packet_buffer.clear()
+            temp_packet = self._filters['notch'].apply(input_data=resized_packet, in_place=False)
+            self._calib_param['noise_level'] = self._filters['base_noise']. \
+                apply(input_data=temp_packet, in_place=False).get_ptp()
+            self._filters['demodulation'].apply(
+                input_data=temp_packet, in_place=True
+            ).calculate_impedance(self._calib_param)
+            return temp_packet
 
 
 class PhysicalOrientation:

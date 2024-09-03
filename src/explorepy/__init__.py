@@ -20,15 +20,12 @@ from .explore import Explore  # noqa
 
 
 __all__ = ["Explore", "command", "exploresdk", "tools", "log_config"]
-__version__ = '2.0.0'
+__version__ = '3.0.0'
 
 this = sys.modules[__name__]
-list_sdk = ['sdk', 'mock', 'pyserial']
-if sys.platform == 'darwin':
-    this._bt_interface = 'pyserial'
-else:
-    from . import exploresdk
-    this._bt_interface = 'sdk'
+# TODO appropriate library
+bt_interface_list = ['sdk', 'ble', 'mock', 'pyserial']
+this._bt_interface = 'ble'
 
 if not sys.version_info >= (3, 6):
     raise EnvironmentError("Explorepy requires python versions 3.6 or newer!")
@@ -44,8 +41,7 @@ def set_bt_interface(bt_interface):
         bt_interface (str): Bluetooth interface type. Options:'sdk'
 
     """
-
-    if bt_interface not in list_sdk:
+    if bt_interface not in bt_interface_list:
         raise ValueError(("Invalid Bluetooth interface: " + bt_interface))
 
     this._bt_interface = bt_interface

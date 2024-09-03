@@ -34,8 +34,6 @@ Scans for nearby Mentalab Explore devices. Prints out the Name and MAC address o
     Options:
       -h, --help                      Show this message and exit.
 
-.. note:: On Windows, this command prints all paired devices.
-
 
 acquire
 %%%%
@@ -70,16 +68,11 @@ Connects to a device and records ExG and orientation data into two separate file
 
 .. note:: If you change your device's sampling rate or channel mask during recording, ``explorepy`` will create a new CSV file for ExG data with the given file name plus the time the setting changed.
 
-.. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or `mne <https://github.com/mne-tools/mne-python>`_ (for mne, you may need to change the file extension to ``bdf`` manually) in Python.
-
-          EEGLAB's BIOSIG plugin has problems with some EDF files (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). To resolve this, download a precompiled MATLAB file (mexSLOAD.mex) from BIOSIG `here <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. Documentation is `here <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
+.. note:: You can Explore desktop to generate .set files for EEGLAB export
 
 .. note:: Because environmental factors, like temperature, can affect your device's sampling rate, we recommend computing the sampling rate of recorded data. If you find a deviation between the recorded sampling rate and ``explorepy``'s sampling rate, resample your signal to correct for drifts. The timestamps in the CSV/EDF file can be used to compute the resampling factor.
 
            If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF files here, as they cannot guarantee precise timing.
-
-.. note:: If the Bluetooth connection is unstable, data may not arrive in order. Timestamps in the recorded files can be
-            used to sort the samples according to their precise sampling time in the device.
 
 
 Example:
@@ -113,10 +106,6 @@ Takes a binary file and converts it to four CSV files (ExG, orientation, marker 
       -ow, --overwrite     Overwrite existing file
       -h, --help           Show this message and exit.
 
-
-
-.. note:: For devices with firmware version 2.1.1 and lower, use ``explorepy`` v0.5.0 to convert binary files.
-
 .. note:: If you change your device's sampling rate or channel mask during recording, ``explorepy`` will create a new CSV file for ExG data with the given file name plus the time the setting changed.
 
 Example:
@@ -134,8 +123,6 @@ Takes a binary file and converts it to two EDF files (ExG and orientation - mark
       -ow, --overwrite     Overwrite existing file
       -h, --help           Show this message and exit.
 
-.. note:: For devices with firmware version 2.1.1 and lower, use ``explorepy`` v0.5.0 to convert binary files.
-
 .. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or `mne <https://github.com/mne-tools/mne-python>`_ (for mne, you may need to change the file extension to ``bdf`` manually) in Python.
 
           EEGLAB's BIOSIG plugin has problems with some EDF files (see this `issue <https://github.com/sccn/eeglab/issues/103>`_). To resolve this, download a precompiled MATLAB file (mexSLOAD.mex) from BIOSIG `here <https://pub.ist.ac.at/~schloegl/src/mexbiosig/>`_. Documentation is `here <http://biosig.sourceforge.net/help/biosig/t200/sload.html>`_.
@@ -147,29 +134,6 @@ Takes a binary file and converts it to two EDF files (ExG and orientation - mark
 Example (overwrite):
 ::
     explorepy bin2edf -f input_file.BIN -ow
-
-impedance
-%%%%
-
-Visualizes electrode impedances in a browser dashboard. Currently, Google Chrome is supported.
-::
-
-    Options:
-      -a, --address TEXT        Explore device's MAC address
-      -n, --name TEXT           Name of the device
-      -h, --help                Show this message and exit.
-
-
-
-.. note:: Impedance values depend on the impedance of the reference electrode. The value shown for each electrode is the average of the ground and ExG electrodes' impedances.
-
-            If all channel impedances are high, try cleaning the skin under the reference electrode more thoroughly using, e.g., alcohol, abrasive gel, or EEG.
-
-.. note:: Impedance values are subject to environmental conditions like noise and temperature. Aim for regular room temperatures (~15-25 degree celsius).
-
-Example:
-::
-    explorepy impedance -n Explore_XXXX
 
 calibrate-orn
 %%%%
@@ -217,28 +181,6 @@ Example:
 ::
     explorepy set-sampling-rate -n Explore_XXXX -sr 500
 
-set-channels
-%%%%
-
-Enables and disables a set of ExG channels. Takes a binary string to represent the channel mask (where the least significant/right-most bit represents channel 1).
-
-For example, to disable channels 5 to 8 of an 8 channel device, use ``00001111``.
-::
-
-    Options:
-      -a, --address TEXT              Explore device's MAC address
-      -n, --name TEXT                 Name of the device
-      -m, --channel-mask TEXT
-                                      Channel mask, it should be a binary string
-                                      containing 1 and 0, representing the mask
-                                      (LSB is channel 1).
-                                      [required]
-      -h, --help                      Show this message and exit.
-
-Example:
-::
-    explorepy set-channels -n Explore_XXXX -m 0111
-
 disable-module
 %%%%
 
@@ -250,21 +192,6 @@ Disables a device module (orientation, environment and ExG).
       -n, --name TEXT     Name of the device
       -m, --module TEXT   Module name to be disabled, options: ORN, ENV, EXG
                           [required]
-
-
-
-enable-module
-%%%%
-
-Enables a device module (orientation, environment and ExG).
-::
-
-    Options:
-      -a, --address TEXT  Explore device's MAC address
-      -n, --name TEXT     Name of the device
-      -m, --module TEXT   Module name to be enabled, options: ORN, ENV, EXG
-                          [required]
-      -h, --help          Show this message and exit.
 
 
 soft-reset
@@ -294,7 +221,7 @@ To use ``explorepy`` in a Python project:
 
 .. note:: Because ``explorepy`` uses multithreading, running Python scripts in some consoles, such as Ipython's or Spyder's, can cause strange behaviours.
 
-.. note:: For an exmaple project using ``explorepy``, see this `folder on GitHub <https://github.com/Mentalab-hub/explorepy/tree/master/examples>`_.
+.. note:: For an example project using ``explorepy``, see this `folder on GitHub <https://github.com/Mentalab-hub/explorepy/tree/master/examples>`_.
 
 
 Initialization
@@ -340,19 +267,6 @@ This will record data in three separate files: "``test_ExG.csv``", "``test_ORN.c
            If you are setting markers, use CSV. Alternatively, push data to LSL and record with `LabRecorder <https://github.com/labstreaminglayer/App-labrecorder/tree/master>`_. Avoid EDF, as it cannot guarantee precise timing.
 
 
-Impedance measurement
-"""""""""""""""""""""
-
-You can measure electrodes impedances using:
-::
-    explore.measure_imp()
-
-.. note:: Impedance values depend on the impedance of the reference electrode. The value shown for each electrode is the average of the ground and ExG electrodes' impedances.
-
-            If all channel impedances are high, try cleaning the skin under the reference electrode more thoroughly using, e.g., alcohol, abrasive gel, or EEG.
-
-.. note:: Impedance values are subject to environmental conditions like noise and temperature. Aim for regular room temperatures (~15-25 degree celsius).
-
 Lab Streaming Layer (lsl)
 """""""""""""""""""""""
 
@@ -394,18 +308,15 @@ available for Explore device.
       - 0-7
       - pb_<CODE>
     * - Software marker
-      - 0-65535
-      - sw_<CODE>
+      - Any string between 1 and 7 characters
+      - sw_<marker_text>
     * - Trigger-in
-      - 0-65535
-      - in_<CODE>
-    * - Trigger-out
-      - 0-65535
-      - out_<CODE>
+      - Only 0
+      - in_0
 
 In order to set markers programmatically, use:
 ::
-    explore.set_marker(code=10)
+    explore.set_marker(code='marker_1')
 
 A simple example of software markers used in a script can be found `here <https://github.com/Mentalab-hub/explorepy/tree/master/examples/marker_example.py>`_.
 
@@ -423,23 +334,72 @@ To format a device's memory:
 ::
     explore.format_memory()
 
-To activate/deactivate ExG input channels:
-::
-    explore.set_channels(channel_mask="01000011")
-
-.. note:: Represent the channel masks using a String of binary numbers. For example, ``01000011`` means channels 1,2,7 are active.
-
-Alternatively, use:
-::
-    explore.set_channels(channel_mask=0b01000011)
-
-
-To disabled/enable orientation, ExG or environment modules:
-::
-    explore.disable_module(module_name='ORN')
-    explore.enable_module(module_name='ENV')
-
 
 To reset a device's settings:
 ::
     explore.reset_soft()
+
+
+Sensor data acquisition in real-time
+""""""""""""""""""""""""""""""""""""
+::
+
+    """An example code for data acquisition from Explore device"""
+
+    import time
+    import explorepy
+    from explorepy.stream_processor import TOPICS
+    import argparse
+
+
+    def my_exg_function(packet):
+        """A function that receives ExG packets and does some operations on the data"""
+        t_vector, exg_data = packet.get_data()
+        print("Received an ExG packet with data shape: ", exg_data.shape)
+        #############
+        # YOUR CODE #
+        #############
+
+
+    def my_env_function(packet):
+        """A function that receives env packets(temperature, light, battery) and does some operations on the data"""
+        print("Received an environment packet: ", packet)
+        #############
+        # YOUR CODE #
+        #############
+
+
+    def my_orn_function(packet):
+        """A function that receives orientation packets and does some operations on the data"""
+        timestamp, orn_data = packet.get_data()
+        print("Received an orientation packet: ", orn_data)
+        #############
+        # YOUR CODE #
+        #############
+
+
+    def main():
+        parser = argparse.ArgumentParser(description="Example code for data acquisition")
+        parser.add_argument("-n", "--name", dest="name", type=str, help="Name of the device.")
+        args = parser.parse_args()
+
+        # Create an Explore object
+        exp_device = explorepy.Explore()
+
+        # Connect to the Explore device using device bluetooth name or mac address
+        exp_device.connect(device_name=args.name)
+
+        # Subscribe your function to the stream publisher
+        exp_device.stream_processor.subscribe(callback=my_exg_function, topic=TOPICS.raw_ExG)
+        exp_device.stream_processor.subscribe(callback=my_orn_function, topic=TOPICS.raw_orn)
+        exp_device.stream_processor.subscribe(callback=my_env_function, topic=TOPICS.env)
+        try:
+            while True:
+                time.sleep(.5)
+        except KeyboardInterrupt:
+            return
+
+
+    if __name__ == "__main__":
+        main()
+
