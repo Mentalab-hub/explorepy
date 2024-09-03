@@ -1,4 +1,4 @@
-.. image:: logo.jpg
+.. image:: logo.png
    :scale: 100 %
    :align: left
 
