@@ -60,7 +60,7 @@ def verify_inputs(func):
 def find_device():
     """List available Explore devices"""
     explorepy.set_bt_interface(default_bt_backend)
-    explorepy.tools.bt_scan()
+    explorepy.tools.run_ble_scanner()
 
 
 @cli.command()

@@ -2,7 +2,9 @@
 """Stream Processor module
 This module is responsible for processing incoming stream from Explore device and publishing data to subscribers.
 """
+import copy
 import logging
+import threading
 import time
 from enum import Enum
 from threading import Lock
@@ -22,7 +24,6 @@ from explorepy.packet import (
     CommandRCV,
     CommandStatus,
     DeviceInfo,
-    DeviceInfoV2,
     Environment,
     EventMarker,
     ExternalMarker,
@@ -35,7 +36,9 @@ from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
     ImpedanceMeasurement,
     PhysicalOrientation,
-    get_local_time
+    get_local_time,
+    is_explore_pro_device,
+    is_usb_mode
 )
 
 
@@ -67,6 +70,11 @@ class StreamProcessor:
         self.debug = debug
         self.instability_flag = False
         self.last_bt_unstable_time = 0
+        self.last_exg_packet_timestamp = 0
+        self.last_bt_drop_duration = None
+        self.bt_drop_start_time = None
+        self.cmd_event = threading.Event()
+        self.reset_timer()
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -124,6 +132,7 @@ class StreamProcessor:
     def stop(self):
         """Stop streaming"""
         self.is_connected = False
+        self.cmd_event.clear()
         self.parser.stop_streaming()
 
     def process(self, packet):
@@ -141,14 +150,26 @@ class StreamProcessor:
                 packet = self.physical_orn.calculate(packet=packet)
                 self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
+            self.last_exg_packet_timestamp = get_local_time()
+            missing_timestamps = self.fill_missing_packet(packet)
             self._update_last_time_point(packet, received_time)
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             if self._is_imp_mode and self.imp_calculator:
-                packet_imp = self.imp_calculator.measure_imp(packet=packet)
-                self.dispatch(topic=TOPICS.imp, packet=packet_imp)
-            self.apply_filters(packet=packet)
+                packet_imp = self.imp_calculator.measure_imp(packet=copy.deepcopy(packet))
+                if packet_imp is not None:
+                    self.dispatch(topic=TOPICS.imp, packet=packet_imp)
+            try:
+                self.apply_filters(packet=packet)
+            except ValueError:
+                pass
+            # fill missing packets
+            if len(missing_timestamps) > 0:
+                for t in missing_timestamps:
+                    packet.timestamp = t
+                    self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
+
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
-        elif isinstance(packet, DeviceInfo) or isinstance(packet, DeviceInfoV2):
+        elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
             self.device_info.update(packet.get_info())
             if self.is_bt_streaming:
@@ -180,7 +201,8 @@ class StreamProcessor:
         """
         if 'sampling_rate' in self.device_info:
             timestamp, _ = packet.get_data(exg_fs=self.device_info['sampling_rate'])
-            self.update_bt_stability_status(timestamp[0])
+            if not self.parser.mode == 'file':
+                self.update_bt_stability_status(timestamp[0])
             timestamp = timestamp[-1]
             with lock:
                 if timestamp > self._last_packet_timestamp:
@@ -222,8 +244,8 @@ class StreamProcessor:
         settings_manager = SettingsManager(self.device_info["device_name"])
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
-        # print(f"{n_chan=}")
-        n_chan = 32 if n_chan == 16 else n_chan
+        if not is_explore_pro_device() and n_chan == 16:
+            n_chan = 32
 
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
                                       filter_type=filter_type,
@@ -256,6 +278,7 @@ class StreamProcessor:
         """
         if not self.is_connected:
             raise ConnectionError("No Explore device is connected!")
+        self.start_cmd_process_thread()
         return self._device_configurator.change_setting(cmd)
 
     def imp_initialize(self, notch_freq):
@@ -301,12 +324,13 @@ class StreamProcessor:
         marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
         self.process(marker)
 
-    def set_ext_marker(self, time_lsl, marker_string):
+    def set_ext_marker(self, marker_string, time_lsl=None):
         """Set an external marker in the stream"""
         logger.info(f"Setting a software marker with code: {marker_string}")
-
-        marker = ExternalMarker.create(time_lsl, marker_string)
-        self.process(marker)
+        if time_lsl is None:
+            time_lsl = self._get_sw_marker_time()
+        ext_marker = ExternalMarker.create(marker_string=marker_string, lsl_time=time_lsl)
+        self.process(ext_marker)
 
     def compare_device_info(self, new_device_info):
         """Compare a device info dict with the current version
@@ -331,29 +355,65 @@ class StreamProcessor:
         self._device_configurator.send_timestamp()
 
     def update_bt_stability_status(self, current_timestamp):
-        if self._is_imp_mode:
-            self.instability_flag = False
-            return
-        if 'board_id' in self.device_info.keys():
-            if self._last_packet_timestamp == 0:
-                return
-            # device is an explore plus device, check sample timestamps
-            timestamp_diff = current_timestamp - self._last_packet_timestamp
+        if not self.cmd_event.is_set():
+            if 'board_id' in self.device_info.keys():
+                if self._last_packet_timestamp == 0:
+                    return
+                # device is an explore plus device, check sample timestamps
+                timestamp_diff = current_timestamp - self._last_packet_timestamp
 
-            # allowed time interval is two samples
-            allowed_time_interval = np.round(2 * (1 / self.device_info['sampling_rate']), 3)
-            is_unstable = timestamp_diff >= allowed_time_interval
-        else:
-            # devices is an old device, check if last sample has an earlier timestamp
-            is_unstable = current_timestamp < self._last_packet_timestamp
+                # allowed time interval is two samples
+                allowed_time_interval = np.round(2 * (1 / self.device_info['sampling_rate']), 3)
+                is_unstable = timestamp_diff >= allowed_time_interval
+            else:
+                # devices is an old device, check if last sample has an earlier timestamp
+                is_unstable = current_timestamp < self._last_packet_timestamp
 
-        current_time = get_local_time()
-        if is_unstable:
-            self.instability_flag = True
-            self.last_bt_unstable_time = current_time
-        else:
-            if current_time - self.last_bt_unstable_time > .5:
-                self.instability_flag = False
+            current_time = get_local_time()
+            if is_unstable:
+                if not self.instability_flag:
+                    self.bt_drop_start_time = get_local_time()
+                    self.last_bt_drop_duration = None
+                self.instability_flag = True
+                self.last_bt_unstable_time = current_time
+            else:
+                if self.instability_flag:
+                    self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
+                    threading.Timer(interval=10, function=self.reset_bt_duration).start()
+                    if current_time - self.last_bt_unstable_time > .3:
+                        self.instability_flag = False
 
     def is_connection_unstable(self):
+        if is_usb_mode():
+            return False
+        if get_local_time() - self.last_exg_packet_timestamp > 1.5 and self.bt_drop_start_time is not None:
+            self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
         return self.instability_flag
+
+    def start_cmd_process_thread(self):
+        self.cmd_event.set()
+        self.bt_status_ignore_thread.start()
+
+    def reset_timer(self):
+        self.cmd_event.clear()
+        self.bt_status_ignore_thread = threading.Timer(interval=2, function=self.reset_timer)
+
+    def reset_bt_duration(self):
+        if self.bt_drop_start_time is not None:
+            variable_lock = Lock()
+            variable_lock.acquire()
+            if np.round(get_local_time() - self.bt_drop_start_time, 2) > 10:
+                self.last_bt_drop_duration = None
+                self.bt_drop_start_time = None
+            variable_lock.release()
+
+    def fill_missing_packet(self, packet):
+        timestamps = np.array([])
+        if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
+            sps = np.round(1 / self.device_info['sampling_rate'], 3)
+            time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
+            if time_diff > sps:
+                missing_samples = int(time_diff / sps)
+                timestamps = np.linspace(self._last_packet_timestamp + sps,
+                                         packet.timestamp, num=missing_samples, endpoint=True)
+        return timestamps[:-1]

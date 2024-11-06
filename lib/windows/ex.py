@@ -1,8 +1,14 @@
 import explorepy
-from explorepy.stream_processor import TOPICS
-exp_device = explorepy.Explore()
+import time
 
-# Connect to the Explore device using device bluetooth name or mac address
-exp_device.connect('Explore_8531')
-exp_device.set_channels(channel_mask="00110011001100110011001100110011")
-exp_device.record_data( 'file_name', do_overwrite=True, duration=15, file_type='csv')
+
+# Before starting the USB based trigger, make sure the device is connected to the USB port
+exp_device = explorepy.Explore()
+exp_device.connect('Explore_AAAM')
+
+exp_device.record_data( 'file_name', do_overwrite=True, duration=60, file_type='csv')
+n_markers = 20
+interval = 2
+for i in range(n_markers):
+        exp_device.send_8_bit_trigger(i)
+        time.sleep(2)
