@@ -1,6 +1,6 @@
 .. image:: logo.png
    :scale: 100 %
-   :align: left
+   :align: center
 
 
 .. start-badges
