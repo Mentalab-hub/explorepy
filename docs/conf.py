@@ -53,7 +53,7 @@ html_short_title = '%s-%s' % (project, version)
 
 # If false, no module index is generated.
 html_domain_indices = True
-
+html_static_path = ['../logo.png']
 napoleon_google_docstring = True
 
 napoleon_use_ivar = True
