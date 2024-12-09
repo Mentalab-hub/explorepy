@@ -27,7 +27,8 @@
 #ln -s -f /usr/local/bin/python3.7 /usr/local/bin/python
 #python can be found at:
 #/Library/Frameworks/Python.framework/Versions/3.7/
-#For Sonoma OS:
+
+#For Sonoma OS: 
 #/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Headers
 swig -python -c++ -py3 -extranative -threads -debug-classes   swig_interface.i
 # for windows: use the -threads option
