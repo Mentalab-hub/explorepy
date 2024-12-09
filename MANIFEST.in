@@ -17,4 +17,4 @@ recursive-include lib *
 
 include tox.ini
 
-global-exclude *.py[cod] __pycache__  *.dylib
+global-exclude *.py[co] __pycache__  *.dylib
