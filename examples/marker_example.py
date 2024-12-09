@@ -17,7 +17,7 @@ def main():
     interval = 2
 
     for i in range(n_markers):
-        explore.set_marker(code=i)
+        explore.set_marker(str(i))
         time.sleep(interval)
 
     explore.stop_recording()

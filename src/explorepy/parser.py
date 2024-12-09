@@ -94,6 +94,8 @@ class Parser:
             self._do_streaming = False
             self.callback(None)
             self.stream_interface.disconnect()
+            if self.usb_marker_port is not None: 
+                self.usb_marker_port.close()
 
     def start_reading(self, filename):
         """Open the binary file
@@ -261,6 +263,7 @@ class Parser:
             packet = None
             raise FletcherError
         return packet
+
 
 class FileHandler:
     """Binary file handler"""

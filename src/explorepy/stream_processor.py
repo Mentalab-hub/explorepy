@@ -75,6 +75,7 @@ class StreamProcessor:
         self.bt_drop_start_time = None
         self.cmd_event = threading.Event()
         self.reset_timer()
+        self.packet_count = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -134,6 +135,7 @@ class StreamProcessor:
         self.is_connected = False
         self.cmd_event.clear()
         self.parser.stop_streaming()
+        self.packet_count = 0
 
     def process(self, packet):
         """Process incoming packet
@@ -154,6 +156,7 @@ class StreamProcessor:
             missing_timestamps = self.fill_missing_packet(packet)
             self._update_last_time_point(packet, received_time)
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
+            self.packet_count += 1
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(packet=copy.deepcopy(packet))
                 if packet_imp is not None:
