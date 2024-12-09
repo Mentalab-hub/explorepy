@@ -1,11 +1,16 @@
+### Laura Hainke, 2022
+### Niclas Brand, 2024
+### niclas@mentalab.com
+
+### Mentalab GmbH, Weinstraße 4, 80333 Munich, Germany
+
 import argparse
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy import signal
 import numpy as np
 
-CH_LABELS = ['TP9', 'Cz', 'Pz', 'CP1', 'CP2', 'P3', 'P4', 'Oz']
-
+CH_LABELS = ['Cz', 'CP1', 'CP2', 'Pz', 'P3', 'P4', 'CPz', 'POz']
 
 def extract_epochs(sig, sig_times, event_times, t_min, t_max, fs):
     """ Extracts epochs from signal
@@ -22,9 +27,18 @@ def extract_epochs(sig, sig_times, event_times, t_min, t_max, fs):
     offset_st = int(t_min * fs)
     offset_end = int(t_max * fs)
     epoch_list = []
+    epoch_length = offset_end - offset_st # fixed epoch length
+
     for i, event_t in enumerate(event_times):
         idx = np.argmax(sig_times > event_t)
-        epoch_list.append(sig[:, idx + offset_st:idx + offset_end])
+
+        # Ensure there is enough data for the epoch
+        if (idx + offset_st) >= 0 and (idx + offset_end) <= sig.shape[1]:
+            epoch = sig[:, idx + offset_st:idx + offset_end]
+            if epoch.shape[1] == epoch_length:
+                epoch_list.append(epoch)
+            else:
+                print(f"Skipping epoch {i} due to size mismatch: {epoch.shape}")
     return np.array(epoch_list)
 
 
@@ -79,13 +93,15 @@ def main():
 
     # Import data
     exg = pd.read_csv(exg_filename)
+    ch_nums = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8']
+    exg = exg[['TimeStamp']+ch_nums]
     markers = pd.read_csv(marker_filename)
 
     ts_sig = exg['TimeStamp'].to_numpy()
     ts_markers_nontarget = markers[markers.Code.isin([label_nontarget])]['TimeStamp'].to_numpy()
     ts_markers_target = markers[markers.Code.isin([label_target])]['TimeStamp'].to_numpy()
-    sig = exg[['ch'+str(i) for i in range(1, 9)]].to_numpy().T
-    sig -= (sig[0, :]/2)
+    sig = exg[ch_nums].to_numpy().T
+    # sig -= (sig[0, :]/2)
     filt_sig = custom_filter(sig, 45, 55, fs, 'bandstop')
     filt_sig = custom_filter(filt_sig, lf, hf, fs, 'bandpass')
 
