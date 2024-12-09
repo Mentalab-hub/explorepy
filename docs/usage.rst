@@ -344,7 +344,7 @@ Sensor data acquisition in real-time
 """"""""""""""""""""""""""""""""""""
 ::
 
-    """An example code for data acquisition from Explore device"""
+    """An example code for data acquisition from Explore device
 
     import time
     import explorepy
@@ -402,4 +402,40 @@ Sensor data acquisition in real-time
 
     if __name__ == "__main__":
         main()
+    """
+
+Impedance data acquisition in real-time
+"""""""""""""""""""""""""""""""""""""""
+::
+
+    # An example code for impedance data acquisition from Explore device
+
+    import time
+    import explorepy
+    from explorepy.stream_processor import TOPICS
+
+
+    def handle_imp(packet):
+        """A function that receives impedance packet values"""
+        imp_values = packet.get_impedances()
+        print(imp_values)
+
+
+    exp_device = explorepy.Explore()
+
+    # Connect to the Explore device using device bluetooth name or mac address
+    exp_device.connect('Explore_XXXX')
+
+    exp_device.stream_processor.subscribe(callback=handle_imp, topic=TOPICS.imp)
+
+    # enable impedance mode
+    exp_device.stream_processor.imp_initialize(notch_freq=50)
+
+    count = 0
+    while count < 15:
+        time.sleep(1)
+        count += 1
+
+    exp_device.stream_processor.disable_imp()
+    exp_device.stream_processor.unsubscribe(callback=handle_imp, topic=TOPICS.imp)
 

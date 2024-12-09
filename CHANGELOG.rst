@@ -2,6 +2,11 @@
 Changelog
 =========
 
+3.1.0 (8.11.2024)
+------------------
+* Add USB streaming support
+* Improve BT communication
+
 3.0.1 (28.08.2024)
 ------------------
 * Improve device connectivity

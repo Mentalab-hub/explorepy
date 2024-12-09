@@ -36,7 +36,9 @@ from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
     ImpedanceMeasurement,
     PhysicalOrientation,
-    get_local_time, is_ble_device
+    get_local_time,
+    is_explore_pro_device,
+    is_usb_mode
 )
 
 
@@ -242,7 +244,7 @@ class StreamProcessor:
         settings_manager = SettingsManager(self.device_info["device_name"])
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
-        if not is_ble_device() and n_chan == 16:
+        if not is_explore_pro_device() and n_chan == 16:
             n_chan = 32
 
         self.filters.append(ExGFilter(cutoff_freq=cutoff_freq,
@@ -322,7 +324,7 @@ class StreamProcessor:
         marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
         self.process(marker)
 
-    def set_ext_marker(self,  marker_string, time_lsl=None):
+    def set_ext_marker(self, marker_string, time_lsl=None):
         """Set an external marker in the stream"""
         logger.info(f"Setting a software marker with code: {marker_string}")
         if time_lsl is None:
@@ -368,8 +370,6 @@ class StreamProcessor:
                 is_unstable = current_timestamp < self._last_packet_timestamp
 
             current_time = get_local_time()
-
-
             if is_unstable:
                 if not self.instability_flag:
                     self.bt_drop_start_time = get_local_time()
@@ -384,6 +384,8 @@ class StreamProcessor:
                         self.instability_flag = False
 
     def is_connection_unstable(self):
+        if is_usb_mode():
+            return False
         if get_local_time() - self.last_exg_packet_timestamp > 1.5 and self.bt_drop_start_time is not None:
             self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
         return self.instability_flag
@@ -408,9 +410,10 @@ class StreamProcessor:
     def fill_missing_packet(self, packet):
         timestamps = np.array([])
         if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
-            sps = np.round(1/ self.device_info['sampling_rate'], 3)
+            sps = np.round(1 / self.device_info['sampling_rate'], 3)
             time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
             if time_diff > sps:
                 missing_samples = int(time_diff / sps)
-                timestamps = np.linspace(self._last_packet_timestamp + sps, packet.timestamp, num=missing_samples, endpoint=True)
+                timestamps = np.linspace(self._last_packet_timestamp + sps,
+                                         packet.timestamp, num=missing_samples, endpoint=True)
         return timestamps[:-1]

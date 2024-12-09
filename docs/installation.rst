@@ -4,14 +4,14 @@ Installation
 
 Minimal Requirements
 ------------
-* Python 3.10 to Python 3.12
+* Python 3.10 to Python 3.12. We recommend Python 3.10.
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
 
 Recommended Requirements
 ------------
-* Python 3.10 to Python 3.12
+* Python 3.10
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 8GB RAM
 * Intel i7 or higher CPU
@@ -39,9 +39,9 @@ On a Windows and Mac operating systems, standalone desktop software ``explorepy-
 
 Option 2: Installing from Python Package Index (PyPI) and pip (advanced)
 """"""""
+*To install explorepy for any python version except 3.10, please contact support@mentalab.com.*
 
 *This option is best for users who intend to include* ``explorepy`` *functionalities in their own Python scripts.*
-
 To install the ``explorepy`` API and all its dependencies using pip on Windows:
 
 1. Install Anaconda (or any other Python distribution; these instructions pertain to Anaconda only). Download and install the `Anaconda Windows installer <https://www.anaconda.com/distribution/#download-section>`_.
@@ -67,6 +67,50 @@ Ubuntu
 4. Upgrade your pip: ``python -m pip install --upgrade pip``
 5. Run: ``pip install explorepy``, to install ``explorepy`` from PyPI.
 6. From Linux Terminal, run: ``sudo apt install libxcb-cursor0``
+
+Set up USB streaming in Linux
+"""""""""""""""""""""""""""""
+a. Set up ``udev`` rules for appropiate permission to ``/dev/ttyACM*`` in Linux
+
+    *Steps to Execute the Udev Script Manually*
+
+    1. Create a file named ``setup_udev_rule.sh`` and include the following script
+
+        ::
+
+            #!/bin/bash
+
+            RULE='SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", SYMLINK+="stm_virtual_com", MODE="0666"'
+
+            echo "Creating udev rule..."
+            echo "$RULE" | sudo tee /etc/udev/rules.d/99-stm-virtual-com.rules > /dev/null
+
+            sudo udevadm control --reload-rules && sudo udevadm trigger
+            echo "udev rule has been created successfully!"
+            echo "You can access your device at /dev/$SYMLINK_NAME when it is connected."
+
+    2. Make the ``setup_udev_rule.sh`` executable ::
+
+         chmod +x setup_udev_rule.sh
+
+    3. Execute the script ::
+
+        ./setup_udev_rule.sh
+
+    *To remove the udev rule when no longer required*  ::
+
+        sudo rm /etc/udev/rules.d/99-stm-virtual-com.rules
+
+
+b. Alternate method: Temporarily granting appropriate permissions to ``/dev/ttyACM*``
+
+
+    1. Identify the device (ttyACM0, ttyACM1, ttyACM2, etc) in ``/dev`` directory
+
+
+    2. Execute this command in the terminal (replcae * with appropiate id) ::
+
+            chmod 666 /dev/ttyACM*
 
 Mac
 ^^^

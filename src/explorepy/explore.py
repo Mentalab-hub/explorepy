@@ -23,6 +23,7 @@ import explorepy
 import numpy as np
 from appdirs import user_cache_dir
 
+import explorepy
 from explorepy.command import (
     MemoryFormat,
     ModuleDisable,
@@ -43,7 +44,9 @@ from explorepy.tools import (
     create_exg_recorder,
     create_marker_recorder,
     create_meta_recorder,
-    create_orn_recorder
+    create_orn_recorder,
+    is_usb_mode,
+    setup_usb_marker_port
 )
 
 
@@ -387,6 +390,24 @@ class Explore:
         self._check_connection()
         self.stream_processor.set_ext_marker(marker_string=str(marker_string))
 
+    def send_8_bit_trigger(self, eight_bit_value):
+        eight_bit_value = eight_bit_value % 256
+        trigger_id = 0xAB
+        cmd = [trigger_id, eight_bit_value, 1, 2, 3, 4, 5, 6, 7, 8, 0xDE, 0xAD, 0xBE, 0xEF]
+        cmd = bytearray(cmd)
+        if is_usb_mode():
+            try:
+                self.stream_processor.parser.stream_interface.send(cmd)
+            except AttributeError:
+                logger.info('No USB port visible yet, skipping trigger command. Triggers will work '
+                            'after you connect the Explore device to USB port')
+        else:
+            if self.stream_processor is None:
+                # connection is BLE connection, but we want to setup the port for multiple use
+                setup_usb_marker_port().write(cmd)
+            else:
+                self.stream_processor.parser.usb_marker_port.write(cmd)
+
     def format_memory(self):
         """Format memory of the device
 
@@ -554,3 +575,6 @@ class Explore:
             return False
         else:
             return self.stream_processor.is_connection_unstable()
+
+    def get_channel_mask(self):
+        return SettingsManager(self.device_name).get_adc_mask()

@@ -4,18 +4,31 @@ import asyncio
 import binascii
 import logging
 import struct
+import sys
 from threading import Thread
 
 import explorepy
-from explorepy._exceptions import FletcherError, ReconnectionFlowError, BleDisconnectionError
+from explorepy._exceptions import (
+    BleDisconnectionError,
+    FletcherError,
+    ReconnectionFlowError
+)
 from explorepy.packet import (
     PACKET_CLASS_DICT,
     DeviceInfo,
     PacketBIN
 )
 from explorepy.settings_manager import SettingsManager
-from explorepy.tools import get_local_time, is_ble_device, TIMESTAMP_SCALE_BLE, TIMESTAMP_SCALE
-import sys
+from explorepy.tools import (
+    TIMESTAMP_SCALE,
+    TIMESTAMP_SCALE_BLE,
+    get_local_time,
+    is_ble_mode,
+    is_explore_pro_device,
+    setup_usb_marker_port
+)
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,6 +58,7 @@ class Parser:
         self._stream_thread = None
         self._is_reconnecting = False
         self.seek_new_pid = asyncio.Event()
+        self.usb_marker_port = None
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -55,7 +69,9 @@ class Parser:
         if explorepy.get_bt_interface() == 'sdk':
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
-        elif is_ble_device():
+        elif is_ble_mode():
+            # setup serial port instance
+            self.usb_marker_port = setup_usb_marker_port()
             from explorepy.btcpp import BLEClient
             self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
         elif explorepy.get_bt_interface() == 'mock':
@@ -64,6 +80,9 @@ class Parser:
         elif explorepy.get_bt_interface() == 'pyserial':
             from explorepy.serial_client import SerialClient
             self.stream_interface = SerialClient(device_name=device_name)
+        elif explorepy.get_bt_interface() == 'usb':
+            from explorepy.serial_client import SerialStream
+            self.stream_interface = SerialStream(device_name=device_name)
         else:
             raise ValueError("Invalid Bluetooth interface: " + explorepy.get_bt_interface())
         self.stream_interface.connect()
@@ -144,7 +163,7 @@ class Parser:
                     logger.warning('The binary file is corrupted. Conversion has ended incompletely.')
                 self.stop_streaming()
             except FletcherError:
-                if is_ble_device():
+                if is_explore_pro_device():
                     logger.warning('Incomplete packet received, parsing will continue.')
                     self.seek_new_pid.set()
                 else:
@@ -175,7 +194,7 @@ class Parser:
                 raise ReconnectionFlowError()
             try:
                 bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
-            except TypeError as error:
+            except TypeError:
                 logger.info('No data if interface, seeking again.....')
                 continue
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
@@ -187,7 +206,7 @@ class Parser:
             raw_payload = raw_header[2:4]
             raw_timestamp = raw_header[4:8]
 
-        except:
+        except BaseException:
             raise FletcherError
 
         # pid = struct.unpack('B', raw_pid)[0]
@@ -199,7 +218,7 @@ class Parser:
             raise FletcherError
 
         timestamp = struct.unpack('<I', raw_timestamp)[0]
-        if is_ble_device():
+        if is_explore_pro_device():
             timestamp /= TIMESTAMP_SCALE_BLE
         else:
             timestamp /= TIMESTAMP_SCALE
@@ -212,13 +231,13 @@ class Parser:
             self.callback(packet=PacketBIN(raw_header + payload_data))
         try:
             packet = self._parse_packet(pid, timestamp, payload_data)
-        except AssertionError  as error:
+        except AssertionError as error:
             logger.debug('Got AssertionError in payload conversion in parser, raising Fletcher', format(error))
             raise FletcherError
         except TypeError as error:
             logger.debug('Got TypeError in payload conversion in parser, raising Fletcher', format(error))
             raise FletcherError
-        except ValueError as error:
+        except ValueError:
             logger.debug('Got ValueError in payload conversion in parser, raising Fletcher')
             raise FletcherError
         return packet
