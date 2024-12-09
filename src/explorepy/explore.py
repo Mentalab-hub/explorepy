@@ -19,7 +19,6 @@ import re
 import time
 from threading import Timer
 
-import explorepy
 import numpy as np
 from appdirs import user_cache_dir
 
@@ -46,6 +45,7 @@ from explorepy.tools import (
     create_meta_recorder,
     create_orn_recorder,
     is_usb_mode,
+    local_clock,
     setup_usb_marker_port
 )
 
@@ -63,6 +63,8 @@ class Explore:
         self.recorders = {}
         self.lsl = {}
         self.device_name = None
+        self.last_rec_stat = 0
+        self.last_rec_start_time = 0
 
     @property
     def is_measuring_imp(self):
@@ -198,7 +200,8 @@ class Explore:
         logger.info("Recording...")
 
         self.recorders['timer'] = Timer(duration, self.stop_recording)
-
+        self.last_rec_start_time = local_clock()
+        self.initial_count = self.stream_processor.packet_count
         self.recorders['timer'].start()
         if block:
             try:
@@ -224,8 +227,21 @@ class Explore:
                 self.recorders['timer'].cancel()
             self.recorders = {}
             logger.info('Recording stopped.')
+            self.last_rec_stat = (
+                (self.stream_processor.packet_count - self.initial_count) / (
+                    (local_clock() - self.last_rec_start_time) * self.stream_processor.device_info['sampling_rate']
+                )
+            )
+            # clamp the stat variable
+            self.last_rec_stat = max(1, min(self.last_rec_stat, 1))
+            logger.info('last recording stat : {}'.format(self.last_rec_stat))
+
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
+
+    def get_last_record_stat(self):
+        """Gets the last recording statistics as a number between 0 and 1"""
+        return self.last_rec_stat
 
     def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False):
         """Convert a binary file to EDF or CSV file
