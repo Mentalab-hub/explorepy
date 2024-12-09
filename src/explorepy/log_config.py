@@ -109,7 +109,7 @@ def write_config(section, var, val):
     Returns:
         bool: True if the action is successful, otherwise False
     """
-    if not (type(val) == str and type(section) == str and type(var) == str):
+    if not isinstance(val, str) and isinstance(section, str) and isinstance(var, str):
         logger.error("Wrong input type. Inputs must be strings.")
         raise ValueError("Wrong input type. Inputs must be strings.")
 
