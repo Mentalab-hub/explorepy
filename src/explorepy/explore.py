@@ -19,6 +19,7 @@ import re
 import time
 from threading import Timer
 
+import explorepy
 import numpy as np
 from appdirs import user_cache_dir
 

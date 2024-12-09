@@ -262,7 +262,6 @@ class Parser:
             raise FletcherError
         return packet
 
-
 class FileHandler:
     """Binary file handler"""
 

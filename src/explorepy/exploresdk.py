@@ -5,8 +5,6 @@
 # the SWIG interface file instead.
 
 from sys import version_info as _swig_python_version_info
-
-
 if _swig_python_version_info < (2, 7, 0):
     raise RuntimeError("Python 2.7 or later required")
 
@@ -64,8 +62,6 @@ class _SwigNonDynamicMeta(type):
 
 
 import collections.abc
-
-
 class SwigPyIterator(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
 
