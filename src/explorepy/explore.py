@@ -241,7 +241,6 @@ class Explore:
                 # handle uninitialized state
                 pass
             self.initial_count = None
-
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
 
