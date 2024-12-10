@@ -63,6 +63,7 @@ class Explore:
         self.recorders = {}
         self.lsl = {}
         self.device_name = None
+        self.initial_count = None
         self.last_rec_stat = 0
         self.last_rec_start_time = 0
 
@@ -227,15 +228,19 @@ class Explore:
                 self.recorders['timer'].cancel()
             self.recorders = {}
             logger.info('Recording stopped.')
-            self.last_rec_stat = (
-                (self.stream_processor.packet_count - self.initial_count) / (
-                    (local_clock() - self.last_rec_start_time) * self.stream_processor.device_info['sampling_rate']
+            try:
+                self.last_rec_stat = (
+                    (self.stream_processor.packet_count - self.initial_count) / (
+                        (local_clock() - self.last_rec_start_time) * self.stream_processor.device_info['sampling_rate']
+                    )
                 )
-            )
-            # clamp the stat variable
-            self.last_rec_stat = max(1, min(self.last_rec_stat, 1))
-            logger.info('last recording stat : {}'.format(self.last_rec_stat))
-
+                # clamp the stat variable
+                self.last_rec_stat = max(1, min(self.last_rec_stat, 1))
+                logger.info('last recording stat : {}'.format(self.last_rec_stat))
+            except TypeError:
+                # handle uninitialized state
+                pass
+            self.initial_count = None
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
 
@@ -243,7 +248,8 @@ class Explore:
         """Gets the last recording statistics as a number between 0 and 1"""
         return self.last_rec_stat
 
-    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False):
+    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False,
+                    progress_callback=None, progress_dialog=None):
         """Convert a binary file to EDF or CSV file
 
         Args:
@@ -251,8 +257,13 @@ class Explore:
             out_dir (str): Output directory path (must be relative path to the current working directory)
             file_type (str): Output file type: 'edf' for EDF format and 'csv' for CSV format
             do_overwrite (bool): Whether to overwrite an existing file
+            out_dir_is_full(bool): Whether output directory is a full file path
+            progress_callback:
+            progress_dialog
 
         """
+        total_file_bytes = os.path.getsize(bin_file)
+        bt_interface = explorepy.get_bt_interface()
         if file_type not in ['edf', 'csv']:
             raise ValueError('Invalid file type is given!')
         self.recorders['file_type'] = file_type
@@ -346,14 +357,25 @@ class Explore:
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
         self.stream_processor.open_file(bin_file=bin_file)
         logger.info("Converting...")
-        while self.stream_processor.is_connected:
-            time.sleep(.1)
+        try:
+            while self.stream_processor.is_connected:
+                time.sleep(.1)
+                if progress_dialog and progress_dialog.close:
+                    logger.info("Conversion process cancelled.")
+                    break
 
-        if self.recorders['file_type'] == 'csv':
-            self.recorders["marker"].stop()
-        self.recorders["exg"].stop()
-        self.recorders["orn"].stop()
-        logger.info('Conversion finished.')
+                if progress_callback:
+                    progress = (
+                        self.stream_processor.parser.total_packet_size_read / total_file_bytes
+                    )
+                    progress_callback(int(progress * 100))
+        finally:
+            if self.recorders['file_type'] == 'csv':
+                self.recorders["marker"].stop()
+            self.recorders["exg"].stop()
+            self.recorders["orn"].stop()
+            explorepy.set_bt_interface(bt_interface)
+            logger.info('Conversion process terminated.')
 
     def push2lsl(self, duration=None, block=False):
         r"""Push samples to two lsl streams (ExG and ORN streams)
