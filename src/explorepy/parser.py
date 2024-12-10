@@ -59,6 +59,7 @@ class Parser:
         self._is_reconnecting = False
         self.seek_new_pid = asyncio.Event()
         self.usb_marker_port = None
+        self.total_packet_size_read = 0
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -110,7 +111,7 @@ class Parser:
         packet = None
         try:
             while True:
-                packet = self._generate_packet()
+                packet, _ = self._generate_packet()
                 if isinstance(packet, DeviceInfo):
                     self.callback(packet=packet)
                     break
@@ -136,7 +137,8 @@ class Parser:
         asyncio.set_event_loop(asyncio.new_event_loop())
         while self._do_streaming:
             try:
-                packet = self._generate_packet()
+                packet, packet_size = self._generate_packet()
+                self.total_packet_size_read += packet_size
                 self.callback(packet=packet)
             except ReconnectionFlowError:
                 logger.info('Got exception in reconnection flow, normal operation continues')
@@ -242,7 +244,8 @@ class Parser:
         except ValueError:
             logger.debug('Got ValueError in payload conversion in parser, raising Fletcher')
             raise FletcherError
-        return packet
+        packet_size = 8 + (payload - 4)
+        return packet, packet_size
 
     def _parse_packet(self, pid, timestamp, bin_data):
         """Generates the packets according to the pid
