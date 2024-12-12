@@ -5,6 +5,7 @@ import asyncio
 import atexit
 import logging
 import queue
+import sys
 import threading
 import time
 from queue import Queue
@@ -278,9 +279,10 @@ class BLEClient(BTClient):
                 break
             if self.try_disconnect.is_set():
                 logger.info("scanning for device")
-                device = await BleakScanner.find_device_by_name(self.device_name, timeout=3)
+                self.ble_device = await BleakScanner.find_device_by_name(self.device_name, timeout=3)
 
-                if device is None:
+                # Note: Maziar has asked to remove trying to reconnect multiple times
+                if self.ble_device is None:
                     logger.info("no device found, wait then scan again")
                     await asyncio.sleep(1)
                     if self.connection_attempt_counter < 2:
@@ -293,6 +295,25 @@ class BLEClient(BTClient):
                         disconnect_task = loop.create_task(self.client.disconnect())
                         await disconnect_task
                 self.connection_attempt_counter = 0
+            if self.ble_device and self.client:
+                available_services = await self.client.get_services()
+                eeg_service_available = False
+                for s in available_services:
+                    if s.uuid == self.eeg_service_uuid:
+                        eeg_service_available = True
+                if not eeg_service_available:
+                    logger.debug("The eeg service is not available")
+                    self.try_disconnect.set()
+                    self.read_event.set()
+                    if sys.platform != 'darwin':
+                        await self.client.unpair()
+                        logger.log("Unpaired from device")
+                    continue
+
+            if self.try_disconnect.set():
+                loop = asyncio.get_running_loop()
+                disconnect_task = loop.create_task(self.client.disconnect())
+                await disconnect_task
 
             def disconnection_callback(_: BleakClient):
                 logger.debug("Device sent disconnection callback")
@@ -312,19 +333,15 @@ class BLEClient(BTClient):
                 self.buffer.put(bt_byte_array)
 
             loop = asyncio.get_running_loop()
-            print('1')
             self.notify_task = loop.create_task(self.client.start_notify(self.eeg_tx_char_uuid, handle_packet))
-            print('2')
+
             try:
-                print('3')
                 await self.notify_task
-                print('4')
             except asyncio.CancelledError:
                 print("Notify task is cancelled now")
             except Exception as error:
                 print('Got exception here: {}'.format(error))
 
-            print('5 ')
             self.rx_char = self.client.services.get_service(self.eeg_service_uuid).get_characteristic(
                 self.eeg_rx_char_uuid)
             while True:
@@ -429,7 +446,6 @@ class BLEClient(BTClient):
 
     def disconnect(self):
         """Disconnect from the device"""
-
         self.is_connected = False
         self.notify_task.cancel()
         self.read_event.set()
