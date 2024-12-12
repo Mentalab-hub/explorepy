@@ -281,7 +281,6 @@ class BLEClient(BTClient):
                 logger.info("scanning for device")
                 self.ble_device = await BleakScanner.find_device_by_name(self.device_name, timeout=3)
 
-                # Note: Maziar has asked to remove trying to reconnect multiple times
                 if self.ble_device is None:
                     logger.info("no device found, wait then scan again")
                     await asyncio.sleep(1)
@@ -296,18 +295,16 @@ class BLEClient(BTClient):
                         await disconnect_task
                 self.connection_attempt_counter = 0
             if self.ble_device and self.client:
-                available_services = await self.client.get_services()
+                available_services = self.client.services
                 eeg_service_available = False
                 for s in available_services:
                     if s.uuid == self.eeg_service_uuid:
                         eeg_service_available = True
                 if not eeg_service_available:
-                    logger.debug("The eeg service is not available")
                     self.try_disconnect.set()
                     self.read_event.set()
                     if sys.platform != 'darwin':
                         await self.client.unpair()
-                        logger.log("Unpaired from device")
                     continue
 
             if self.try_disconnect.set():
@@ -334,7 +331,6 @@ class BLEClient(BTClient):
 
             loop = asyncio.get_running_loop()
             self.notify_task = loop.create_task(self.client.start_notify(self.eeg_tx_char_uuid, handle_packet))
-
             try:
                 await self.notify_task
             except asyncio.CancelledError:
