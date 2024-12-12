@@ -289,8 +289,8 @@ class BLEClient(BTClient):
                     disconnect_task = loop.create_task(self.client.disconnect())
                     await disconnect_task
                 self.connection_attempt_counter = 0
-            if self.ble_device and self.client:
-                available_services = self.client.services
+            if self.ble_device and self.client and sys.platform != 'darwin':
+                available_services = self.client.services  # This freezes on Mac
                 eeg_service_available = False
                 for s in available_services:
                     if s.uuid == self.eeg_service_uuid:
@@ -298,8 +298,7 @@ class BLEClient(BTClient):
                 if not eeg_service_available:
                     self.try_disconnect.set()
                     self.read_event.set()
-                    if sys.platform != 'darwin':
-                        await self.client.unpair()
+                    await self.client.unpair()  # Not available on Mac
                     continue
 
             if self.try_disconnect.set():
