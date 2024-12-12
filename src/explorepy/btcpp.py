@@ -283,16 +283,11 @@ class BLEClient(BTClient):
 
                 if self.ble_device is None:
                     logger.info("no device found, wait then scan again")
-                    await asyncio.sleep(1)
-                    if self.connection_attempt_counter < 2:
-                        self.connection_attempt_counter += 1
-                        continue
-                    else:
-                        self.did_reconnection_fail.set()
-                        logger.info("ExplorePy initiating disconnection")
-                        loop = asyncio.get_running_loop()
-                        disconnect_task = loop.create_task(self.client.disconnect())
-                        await disconnect_task
+                    self.did_reconnection_fail.set()
+                    logger.info("ExplorePy initiating disconnection")
+                    loop = asyncio.get_running_loop()
+                    disconnect_task = loop.create_task(self.client.disconnect())
+                    await disconnect_task
                 self.connection_attempt_counter = 0
             if self.ble_device and self.client:
                 available_services = self.client.services
