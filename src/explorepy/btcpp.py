@@ -278,6 +278,7 @@ class BLEClient(BTClient):
             if not self.is_connected:
                 break
             if self.try_disconnect.is_set():
+                await asyncio.sleep(1.0) # wait a second to give bleak time to disconnect (?)
                 logger.info("scanning for device")
                 self.ble_device = await BleakScanner.find_device_by_name(self.device_name, timeout=3)
 
@@ -288,8 +289,7 @@ class BLEClient(BTClient):
                     loop = asyncio.get_running_loop()
                     disconnect_task = loop.create_task(self.client.disconnect())
                     await disconnect_task
-                self.connection_attempt_counter = 0
-            if self.ble_device and self.client and sys.platform != 'darwin':
+            if self.ble_device and self.client and sys.platform == 'win32':
                 available_services = self.client.services  # This freezes on Mac
                 eeg_service_available = False
                 for s in available_services:
