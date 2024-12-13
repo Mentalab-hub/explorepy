@@ -10,6 +10,7 @@ import threading
 import time
 from queue import Queue
 
+import bleak.uuids
 from bleak import (
     BleakClient,
     BleakScanner
@@ -259,9 +260,9 @@ class BLEClient(BTClient):
 
         self.client = None
         self.ble_device = None
-        self.eeg_service_uuid = "FFFE0001-B5A3-F393-E0A9-E50E24DCCA9E"
-        self.eeg_tx_char_uuid = "FFFE0003-B5A3-F393-E0A9-E50E24DCCA9E"
-        self.eeg_rx_char_uuid = "FFFE0002-B5A3-F393-E0A9-E50E24DCCA9E"
+        self.eeg_service_uuid = bleak.uuids.normalize_uuid_str("FFFE0001-B5A3-F393-E0A9-E50E24DCCA9E")
+        self.eeg_tx_char_uuid = bleak.uuids.normalize_uuid_str("FFFE0003-B5A3-F393-E0A9-E50E24DCCA9E")
+        self.eeg_rx_char_uuid = bleak.uuids.normalize_uuid_str("FFFE0002-B5A3-F393-E0A9-E50E24DCCA9E")
         self.rx_char = None
         self.buffer = Queue()
         self.try_disconnect = asyncio.Event()
@@ -278,7 +279,7 @@ class BLEClient(BTClient):
             if not self.is_connected:
                 break
             if self.try_disconnect.is_set():
-                await asyncio.sleep(1.0) # wait a second to give bleak time to disconnect (?)
+                await asyncio.sleep(1.0)  # wait a second to give bleak time to disconnect (?)
                 logger.info("scanning for device")
                 self.ble_device = await BleakScanner.find_device_by_name(self.device_name, timeout=3)
 
