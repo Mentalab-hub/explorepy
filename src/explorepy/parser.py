@@ -24,6 +24,7 @@ from explorepy.tools import (
     TIMESTAMP_SCALE_BLE,
     get_local_time,
     is_ble_mode,
+    is_usb_mode,
     is_explore_pro_device,
     setup_usb_marker_port
 )
@@ -199,7 +200,10 @@ class Parser:
             try:
                 bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
             except TypeError:
-                logger.info('No data if interface, seeking again.....')
+                if is_usb_mode():
+                    self.stop_streaming()
+                    break
+                logger.info('No data in interface, seeking again.....')
                 continue
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
                 self.seek_new_pid.clear()

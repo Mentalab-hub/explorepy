@@ -11,6 +11,7 @@ from threading import Lock
 
 import numpy as np
 
+import explorepy
 from explorepy.command import (
     DeviceConfiguration,
     ZMeasurementDisable,
@@ -411,6 +412,8 @@ class StreamProcessor:
             variable_lock.release()
 
     def fill_missing_packet(self, packet):
+        if is_usb_mode():
+            return []
         timestamps = np.array([])
         if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
             sps = np.round(1 / self.device_info['sampling_rate'], 3)

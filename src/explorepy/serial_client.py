@@ -138,10 +138,9 @@ class SerialStream:
         port = 0
         for p in ports:
             if p.vid == 0x0483 and p.pid == 0x5740:
-                print(p.pid)
                 port = p.device
         if port == 0:
-            print("Triggerbox not found!")
+            logger.debug("Could not find any suitable explore device")
 
         for _ in range(5):
             try:
@@ -159,6 +158,14 @@ class SerialStream:
 
                 self.is_connected = True
                 return 0
+            except PermissionError:
+                # do nothing here as this comes from posix
+                pass
+            except serial.serialutil.SerialException:
+                logger.info(
+                    'Permission denied on serial port access, please run this command via terminal: sudo chmod 777 {}'.format(
+                    port)
+                )
             except Exception as error:
                 self.is_connected = False
                 logger.debug(
@@ -170,7 +177,7 @@ class SerialStream:
 
         self.is_connected = False
         raise DeviceNotFoundError(
-            "Could not find the device! Please make sure the device is on and connected to the computer"
+            "Could not find the device! Please turn on the device, wait a few seconds and connect to serial port before starting ExplorePy"
         )
 
     def reconnect(self):
@@ -185,7 +192,6 @@ class SerialStream:
         """Disconnect from the device"""
         self.is_connected = False
         self.bt_serial_port_manager.close()
-
     def read(self, n_bytes):
         """Read n_bytes from the socket
 
@@ -198,8 +204,10 @@ class SerialStream:
         try:
             read_output = self.bt_serial_port_manager.read(n_bytes)
             return read_output
+        except serial.serialutil.PortNotOpenError:
+            pass
         except Exception as error:
-            print(error)
+            logger.debug('Got error or read request: {}'.format(error))
             logger.error(
                 "unknown error occured while reading bluetooth data by "
                 "pyserial {} of type:{}".format(error, type(error))
