@@ -6,7 +6,7 @@ import logging
 import numpy as np
 from scipy.signal import (
     butter,
-    iirfilter,
+    iirnotch,
     lfilter
 )
 
@@ -43,7 +43,7 @@ class ExGFilter:
         elif filter_type == "bandpass":
             return self.get_bandpass_coeffs(cutoff[0], cutoff[1], nyquist, n_channels, order)
         elif filter_type == "notch":
-            return self.get_notch_coeffs(cutoff, nyquist, n_channels, order)
+            return self.get_notch_coeffs(cutoff, sample_rate, n_channels, order)
         else:
             raise ValueError('Unknown filter type: {}'.format(filter_type))
 
@@ -96,11 +96,9 @@ class ExGFilter:
         return a, b, zi
 
     @staticmethod
-    def get_notch_coeffs(cutoff, nyquist, n_channels, order):
-        lc_freq = (cutoff - 2) / nyquist
-        hc_freq = (cutoff + 2) / nyquist
-        b, a = iirfilter(5, [lc_freq, hc_freq], btype='bandstop', ftype='butter')
-        zi = np.zeros((n_channels, 10))
+    def get_notch_coeffs(cutoff, sample_rate, n_channels, order, quality=30):
+        b, a = iirnotch(cutoff, quality, sample_rate)
+        zi = np.zeros(shape=(n_channels, 2))
         return a, b, zi
 
     def apply(self, input_data, in_place=True):
