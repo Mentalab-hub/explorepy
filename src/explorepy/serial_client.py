@@ -144,14 +144,13 @@ class SerialStream:
 
         for _ in range(5):
             try:
-                self.bt_serial_port_manager = serial.Serial(port=port, baudrate=2000000, timeout=2)
+                self.bt_serial_port_manager = serial.Serial(port=port, baudrate=115200, timeout=2)
 
                 # stop stream
                 cmd = b'\xE5' * 14
                 self.bt_serial_port_manager.write(cmd)
                 time.sleep(1)
 
-                print("start stream")
                 cmd = b'\xE4' * 14
                 self.bt_serial_port_manager.write(cmd)
                 time.sleep(1)
@@ -191,7 +190,10 @@ class SerialStream:
     def disconnect(self):
         """Disconnect from the device"""
         self.is_connected = False
+        self.bt_serial_port_manager.cancel_read()
         self.bt_serial_port_manager.close()
+        time.sleep(1)
+
     def read(self, n_bytes):
         """Read n_bytes from the socket
 
@@ -206,10 +208,13 @@ class SerialStream:
             return read_output
         except serial.serialutil.PortNotOpenError:
             pass
+        except TypeError:
+            # Streaming stopped, do nothing
+            pass
         except Exception as error:
             logger.debug('Got error or read request: {}'.format(error))
             logger.error(
-                "unknown error occured while reading bluetooth data by "
+                "unknown error occured while reading usb data by "
                 "pyserial {} of type:{}".format(error, type(error))
             )
 

@@ -164,8 +164,8 @@ class StreamProcessor:
                     self.dispatch(topic=TOPICS.imp, packet=packet_imp)
             try:
                 self.apply_filters(packet=packet)
-            except ValueError:
-                pass
+            except ValueError as error:
+                logger.info('***************************** Got error: {}'.format(error))
             # fill missing packets
             if len(missing_timestamps) > 0:
                 for t in missing_timestamps:
@@ -389,7 +389,8 @@ class StreamProcessor:
 
     def is_connection_unstable(self):
         if is_usb_mode():
-            return False
+            self.instability_flag = False
+            return
         if get_local_time() - self.last_exg_packet_timestamp > 1.5 and self.bt_drop_start_time is not None:
             self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
         return self.instability_flag
@@ -412,14 +413,14 @@ class StreamProcessor:
             variable_lock.release()
 
     def fill_missing_packet(self, packet):
-        if is_usb_mode():
-            return []
         timestamps = np.array([])
         if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
             sps = np.round(1 / self.device_info['sampling_rate'], 3)
-            time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
-            if time_diff > sps:
-                missing_samples = int(time_diff / sps)
-                timestamps = np.linspace(self._last_packet_timestamp + sps,
-                                         packet.timestamp, num=missing_samples, endpoint=True)
+            if sps >= 250:
+                time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
+                if time_diff > sps:
+                    print('timediff & sps: {} & {}'.format(time_diff, sps))
+                    missing_samples = int(time_diff / sps)
+                    timestamps = np.linspace(self._last_packet_timestamp + sps,
+                                             packet.timestamp, num=missing_samples, endpoint=True)
         return timestamps[:-1]

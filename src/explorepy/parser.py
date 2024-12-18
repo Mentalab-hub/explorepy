@@ -239,14 +239,8 @@ class Parser:
             self.callback(packet=PacketBIN(raw_header + payload_data))
         try:
             packet = self._parse_packet(pid, timestamp, payload_data)
-        except AssertionError as error:
-            logger.debug('Got AssertionError in payload conversion in parser, raising Fletcher', format(error))
-            raise FletcherError
-        except TypeError as error:
-            logger.debug('Got TypeError in payload conversion in parser, raising Fletcher', format(error))
-            raise FletcherError
-        except ValueError:
-            logger.debug('Got ValueError in payload conversion in parser, raising Fletcher')
+        except (AssertionError, TypeError, ValueError) as error:
+            logger.debug('Raising Fletcher error for: {}'.format(error))
             raise FletcherError
         packet_size = 8 + (payload - 4)
         return packet, packet_size
