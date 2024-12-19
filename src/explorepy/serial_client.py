@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """A module for bluetooth connection"""
 import logging
+import threading
 import time
-
+from queue import Queue
 import serial
 from serial.tools import list_ports
+import binascii
 
 from explorepy import (
     exploresdk,
@@ -127,6 +129,21 @@ class SerialStream:
         self.bt_serial_port_manager = None
         self.device_manager = None
         self.bt_sdk = None
+        self.usb_stop_flag = threading.Event()
+        self.copy_buffer = bytearray()
+        self.reader_thread = None
+
+    def read_serial_in_chunks(self):
+        """Reads data in fixed-size chunks from the serial port until stopped."""
+        while not self.usb_stop_flag.is_set():
+            try:
+                data = self.bt_serial_port_manager.read(2048)
+                if data is not None:
+                    self.copy_buffer.extend(data)
+            except Exception as e:
+                print('Got Exception in USB read method: {}'.format(e))
+                time.sleep(0.0001)
+        logger.debug('Stopping USB data retrieval thread')
 
     def connect(self):
         """Connect to the device and return the socket
@@ -138,30 +155,41 @@ class SerialStream:
         port = 0
         for p in ports:
             if p.vid == 0x0483 and p.pid == 0x5740:
-                print(p.pid)
                 port = p.device
         if port == 0:
-            print("Triggerbox not found!")
+            logger.debug("Could not find any suitable explore device")
 
         for _ in range(5):
             try:
-                self.bt_serial_port_manager = serial.Serial(port=port, baudrate=2000000, timeout=2)
+                self.bt_serial_port_manager = serial.Serial(port=port, baudrate=115200, timeout=2)
 
                 # stop stream
                 cmd = b'\xE5' * 14
                 self.bt_serial_port_manager.write(cmd)
                 time.sleep(1)
 
-                print("start stream")
                 cmd = b'\xE4' * 14
                 self.bt_serial_port_manager.write(cmd)
                 time.sleep(1)
 
+                self.reader_thread = threading.Thread(
+                    target=self.read_serial_in_chunks,
+                    daemon=True
+                )
+                self.reader_thread.start()
                 self.is_connected = True
                 return 0
+            except PermissionError:
+                # do nothing here as this comes from posix
+                pass
+            except serial.serialutil.SerialException:
+                logger.info(
+                    'Permission denied on serial port access, please run this command via terminal: sudo chmod 777 {}'.format(
+                    port)
+                )
             except Exception as error:
                 self.is_connected = False
-                logger.debug(
+                logger.info(
                     "Got an exception while connecting to the device: {} of type: {}".format(error, type(error))
                 )
                 logger.debug('trying to connect again as tty port is not visible yet')
@@ -170,21 +198,25 @@ class SerialStream:
 
         self.is_connected = False
         raise DeviceNotFoundError(
-            "Could not find the device! Please make sure the device is on and connected to the computer"
+            "Could not find the device! Please turn on the device, wait a few seconds and connect to serial port before starting ExplorePy"
         )
 
     def reconnect(self):
         """Reconnect to the last connected device
 
-        Genrally speaking this is not necessary for USB stream but we keep it as placeholder
+        Generally speaking this is not necessary for USB stream but we keep it as placeholder
         in case it is needed in future
         """
         raise NotImplementedError
 
     def disconnect(self):
         """Disconnect from the device"""
+        self.usb_stop_flag.set()
+        self.reader_thread.join(timeout=2)
         self.is_connected = False
+        self.bt_serial_port_manager.cancel_read()
         self.bt_serial_port_manager.close()
+        time.sleep(1)
 
     def read(self, n_bytes):
         """Read n_bytes from the socket
@@ -196,14 +228,15 @@ class SerialStream:
                 list of bytes
         """
         try:
-            read_output = self.bt_serial_port_manager.read(n_bytes)
-            return read_output
+            count = 10
+            while len(self.copy_buffer) < n_bytes and count > 0 :
+                time.sleep(.1)
+                count -= 1
+            data=  self.copy_buffer[:n_bytes]
+            self.copy_buffer = self.copy_buffer[n_bytes:]
+            return data
         except Exception as error:
-            print(error)
-            logger.error(
-                "unknown error occured while reading bluetooth data by "
-                "pyserial {} of type:{}".format(error, type(error))
-            )
+            logger.debug('Got error or read request: {}'.format(error))
 
     def send(self, data):
         """Send data to the device
