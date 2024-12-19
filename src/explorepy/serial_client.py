@@ -126,8 +126,8 @@ def get_device_name(p):
     serial_port = serial.Serial(port=p.device, baudrate=115200, timeout=2)
     get_name_cmd = b'\xC6' * 14
     serial_port.write(get_name_cmd)
-    data = serial_port.read(4) # get packet header
-    length = struct.unpack('<H', data[2:])[0] # read payload length
+    data = serial_port.read(4)  # get packet header
+    length = struct.unpack('<H', data[2:])[0]  # read payload length
     data = serial_port.read(length)
     name = data[4:-4].decode('utf-8', errors='ignore') # read device name(12 bytes)
     serial_port.close()
@@ -272,7 +272,7 @@ class SerialStream:
         """
         try:
             count = 10
-            while len(self.copy_buffer) < n_bytes and count > 0 :
+            while len(self.copy_buffer) < n_bytes and count > 0:
                 time.sleep(.1)
                 count -= 1
             data = self.copy_buffer[:n_bytes]
