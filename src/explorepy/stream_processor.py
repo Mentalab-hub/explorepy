@@ -11,7 +11,6 @@ from threading import Lock
 
 import numpy as np
 
-import explorepy
 from explorepy.command import (
     DeviceConfiguration,
     ZMeasurementDisable,
