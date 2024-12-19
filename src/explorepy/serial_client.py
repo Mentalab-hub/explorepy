@@ -129,7 +129,7 @@ def get_device_name(p):
     data = serial_port.read(4)  # get packet header
     length = struct.unpack('<H', data[2:])[0]  # read payload length
     data = serial_port.read(length)
-    name = data[4:-4].decode('utf-8', errors='ignore') # read device name(12 bytes)
+    name = data[4:-4].decode('utf-8', errors='ignore')  # read device name(12 bytes)
     serial_port.close()
     time.sleep(1)
     return name
