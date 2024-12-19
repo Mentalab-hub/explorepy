@@ -228,9 +228,9 @@ class SerialStream:
                 list of bytes
         """
         try:
-            count = 5
+            count = 10
             while len(self.copy_buffer) < n_bytes and count > 0 :
-                time.sleep(.01)
+                time.sleep(.1)
                 count -= 1
             data=  self.copy_buffer[:n_bytes]
             self.copy_buffer = self.copy_buffer[n_bytes:]
