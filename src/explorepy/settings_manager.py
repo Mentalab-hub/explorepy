@@ -1,9 +1,11 @@
 import os
 import shutil
 from pathlib import Path
-from explorepy import logger
+
 import yaml
 from appdirs import user_config_dir
+
+from explorepy import logger
 
 
 log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
