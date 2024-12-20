@@ -163,8 +163,8 @@ class StreamProcessor:
                     self.dispatch(topic=TOPICS.imp, packet=packet_imp)
             try:
                 self.apply_filters(packet=packet)
-            except ValueError:
-                pass
+            except ValueError as error:
+                logger.info('Got error on filter call: {}'.format(error))
             # fill missing packets
             if len(missing_timestamps) > 0:
                 for t in missing_timestamps:
@@ -414,9 +414,11 @@ class StreamProcessor:
         timestamps = np.array([])
         if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
             sps = np.round(1 / self.device_info['sampling_rate'], 3)
-            time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
-            if time_diff > sps:
-                missing_samples = int(time_diff / sps)
-                timestamps = np.linspace(self._last_packet_timestamp + sps,
-                                         packet.timestamp, num=missing_samples, endpoint=True)
+            if sps >= 250:
+                time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
+                if time_diff > sps:
+                    print('timediff & sps: {} & {}'.format(time_diff, sps))
+                    missing_samples = int(time_diff / sps)
+                    timestamps = np.linspace(self._last_packet_timestamp + sps,
+                                             packet.timestamp, num=missing_samples, endpoint=True)
         return timestamps[:-1]

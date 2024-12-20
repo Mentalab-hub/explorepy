@@ -574,8 +574,11 @@ class FileRecorder:
             if isinstance(packet, EEG):
                 indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
                 data = data[indices]
-            self._csv_obj.writerows(data.T.tolist())
-            self._file_obj.flush()
+            try:
+                self._csv_obj.writerows(data.T.tolist())
+                self._file_obj.flush()
+            except ValueError as e:
+                logger.debug('Value error on file write')
 
     def _write_edf_anno(self):
         """write annotations in EDF file"""
