@@ -197,8 +197,8 @@ class SerialStream:
                 pass
             except serial.serialutil.SerialException:
                 logger.info(
-                    'Permission denied on serial port access, please run this command via \
-                    terminal: sudo chmod 777 {}'.format(port)
+                    "Permission denied on serial port access, please run this command via"
+                    "terminal: sudo chmod 777 {}".format(port)
                 )
             except Exception as error:
                 self.is_connected = False
@@ -211,8 +211,8 @@ class SerialStream:
 
         self.is_connected = False
         raise DeviceNotFoundError(
-            "Could not find the device! Please turn on the device, wait a few seconds and connect to \
-            serial port before starting ExplorePy"
+            "Could not find the device! Please turn on the device, wait a few seconds and connect to"
+            "serial port before starting ExplorePy"
         )
 
     def scan_usb_ports(self):
@@ -275,7 +275,7 @@ class SerialStream:
         try:
             count = 100
             while len(self.copy_buffer) < n_bytes and count > 0:
-                time.sleep(.001)
+                time.sleep(.010)
                 count -= 1
             data = self.copy_buffer[:n_bytes]
             self.copy_buffer = self.copy_buffer[n_bytes:]
