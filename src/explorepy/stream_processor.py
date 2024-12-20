@@ -388,8 +388,7 @@ class StreamProcessor:
 
     def is_connection_unstable(self):
         if is_usb_mode():
-            self.instability_flag = False
-            return
+            return False
         if get_local_time() - self.last_exg_packet_timestamp > 1.5 and self.bt_drop_start_time is not None:
             self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
         return self.instability_flag
