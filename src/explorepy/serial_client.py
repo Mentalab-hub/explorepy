@@ -154,12 +154,14 @@ class SerialStream:
         """Reads data in fixed-size chunks from the serial port until stopped."""
         while not self.usb_stop_flag.is_set():
             try:
-                data = self.comm_manager.read(2048)
+                bytes_available = self.comm_manager.in_waiting
+                data = self.comm_manager.read(bytes_available)
                 if data is not None:
                     self.copy_buffer.extend(data)
+                    time.sleep(0.000100)
             except Exception as e:
-                print('Got Exception in USB read method: {}'.format(e))
-                time.sleep(0.0001)
+                logger.debug('Got Exception in USB read method: {}'.format(e))
+                time.sleep(0.000100)
         logger.debug('Stopping USB data retrieval thread')
 
     def connect(self):
@@ -271,9 +273,9 @@ class SerialStream:
                 list of bytes
         """
         try:
-            count = 10
+            count = 100
             while len(self.copy_buffer) < n_bytes and count > 0:
-                time.sleep(.1)
+                time.sleep(.001)
                 count -= 1
             data = self.copy_buffer[:n_bytes]
             self.copy_buffer = self.copy_buffer[n_bytes:]
