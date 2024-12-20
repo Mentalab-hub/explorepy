@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-
+from explorepy import logger
 import yaml
 from appdirs import user_config_dir
 
@@ -33,7 +33,10 @@ class SettingsManager:
     def load_current_settings(self):
         self.settings_dict = {}
         stream = open(self.full_file_path, 'r')
-        self.settings_dict = yaml.load(stream, Loader=yaml.SafeLoader)
+        try:
+            self.settings_dict = yaml.load(stream, Loader=yaml.SafeLoader)
+        except yaml.scanner.ScannerError:
+            logger.info('Corrupt yaml file, reloading')
         if self.settings_dict is None:
             self.settings_dict = {}
 
