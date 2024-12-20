@@ -230,8 +230,8 @@ class SerialStream:
                 pass
             except serial.serialutil.SerialException:
                 logger.info(
-                    "Permission denied on serial port access, please run this command via terminal:\
-                    sudo chmod 777 {}".format(p)
+                    "Permission denied on serial port access, please run this command via terminal:"
+                    "sudo chmod 777 {}".format(p)
                 )
             except Exception as error:
                 self.is_connected = False
@@ -242,8 +242,8 @@ class SerialStream:
                 logger.warning("Could not connect; Retrying in 2s...")
                 time.sleep(2)
         raise DeviceNotFoundError(
-            "Could not find the device! Please turn on the device,\
-            wait a few seconds and connect to serial port before starting ExplorePy"
+            "Could not find the device! Please turn on the device,"
+            "wait a few seconds and connect to serial port before starting ExplorePy"
         )
 
     def reconnect(self):
