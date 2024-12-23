@@ -5,7 +5,6 @@ import asyncio
 import atexit
 import logging
 import queue
-import sys
 import threading
 import time
 from queue import Queue
@@ -265,56 +264,21 @@ class BLEClient(BTClient):
         self.eeg_rx_char_uuid = bleak.uuids.normalize_uuid_str("FFFE0002-B5A3-F393-E0A9-E50E24DCCA9E")
         self.rx_char = None
         self.buffer = Queue()
-        self.try_disconnect = asyncio.Event()
-        self.did_reconnection_fail = asyncio.Event()
         self.notification_thread = None
         self.copy_buffer = bytearray()
         self.read_event = asyncio.Event()
         self.data = None
-        self.connection_attempt_counter = 0
         self.result_queue = Queue()
 
     async def stream(self):
         while True:
-            print("In while True")
             if not self.is_connected:
                 break
-            if self.try_disconnect.is_set():
-                if sys.platform == "win32":
-                    await asyncio.sleep(1.0)  # wait a second to give bleak time to disconnect with winrt (?)
-                logger.info("scanning for device")
-                self.ble_device = await BleakScanner.find_device_by_name(self.device_name, timeout=3)
-
-                if self.ble_device is None:
-                    logger.info("no device found, wait then scan again")
-                    self.did_reconnection_fail.set()
-                    logger.info("ExplorePy initiating disconnection")
-                    loop = asyncio.get_running_loop()
-                    disconnect_task = loop.create_task(self.client.disconnect())
-                    await disconnect_task
-
-            if self.ble_device and self.client and sys.platform == 'win32':
-                available_services = self.client.services  # This freezes on Mac
-                eeg_service_available = False
-                for s in available_services:
-                    if s.uuid == self.eeg_service_uuid:
-                        eeg_service_available = True
-                if not eeg_service_available:
-                    self.try_disconnect.set()
-                    self.read_event.set()
-                    await self.client.unpair()  # Not available on Mac
-                    continue
-
-            if self.try_disconnect.set():
-                loop = asyncio.get_running_loop()
-                disconnect_task = loop.create_task(self.client.disconnect())
-                await disconnect_task
 
             def disconnection_callback(_: BleakClient):
-                logger.debug("Device sent disconnection callback")
+                logger.info("Device disconnected from BLE loop")
                 # cancelling all tasks effectively ends the program
                 if self.is_connected:
-                    self.try_disconnect.set()
                     self.read_event.set()
 
             if not self.client:
@@ -348,13 +312,8 @@ class BLEClient(BTClient):
                 except Exception:
                     print('Got exception while waiting for read event in BLE thread')
                 if self.data is None:
-                    if self.try_disconnect.is_set() and self.is_connected:
-                        logger.debug('Closing write thread, will attempt reconnection')
-                        self.read_event.clear()
-                        break
-                    logger.debug('Client disconnection requested')
-                    self.is_connected = False
                     await self.client.disconnect()
+                    self.is_connected = False
                     break
                 await self.client.write_gatt_char(self.rx_char, self.data, response=False)
                 self.data = None
@@ -396,8 +355,7 @@ class BLEClient(BTClient):
         logger.debug('Stopping BLE stream loop')
 
         self.stream_task.cancel()
-        if not self.try_disconnect.is_set():
-            self.notification_thread.join()
+        self.notification_thread.join()
 
     async def ble_manager(self):
         try:
@@ -466,7 +424,7 @@ class BLEClient(BTClient):
         """
         try:
             if len(self.copy_buffer) < n_bytes:
-                get_item = self.buffer.get(timeout=5)
+                get_item = self.buffer.get(timeout=8)
                 self.copy_buffer.extend(get_item)
             ret = self.copy_buffer[:n_bytes]
             self.copy_buffer = self.copy_buffer[n_bytes:]
@@ -474,17 +432,9 @@ class BLEClient(BTClient):
                 logger.info('data size mismatch in buffer, raising connection aborted error when trying to read {}'
                             'bytes'.format(n_bytes))
                 raise ConnectionAbortedError('Error reading data from BLE stream, too many bytes requested')
-            self.try_disconnect.clear()
             return ret
         except queue.Empty:
-            self.try_disconnect.set()
-            if self.did_reconnection_fail.is_set():
-                raise BleDisconnectionError
-            if self.try_disconnect.is_set():
-                logger.debug('No item in bluetooth buffer, initiating next read() call')
-                return self.read(n_bytes)
-            else:
-                logger.info('disconnection flag is not set, continuing')
+            raise ConnectionAbortedError
         except Exception as error:
             logger.error('Unknown error reading data from BLE stream, error is {}'.format(error))
             raise ConnectionAbortedError(str(error))
