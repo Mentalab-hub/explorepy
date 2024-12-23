@@ -276,7 +276,7 @@ class BLEClient(BTClient):
                 break
 
             def disconnection_callback(_: BleakClient):
-                logger.info("Device disconnected from BLE loop")
+                logger.debug("Device sent disconnection callback")
                 # cancelling all tasks effectively ends the program
                 if self.is_connected:
                     self.read_event.set()
