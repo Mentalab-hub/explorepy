@@ -12,7 +12,7 @@ from explorepy import (
     exploresdk,
     settings_manager
 )
-from explorepy._exceptions import DeviceNotFoundError
+from explorepy._exceptions import DeviceNotFoundError, UnsupportedBtHardwareError
 
 
 logger = logging.getLogger(__name__)
@@ -127,6 +127,9 @@ def get_device_name(p):
     get_name_cmd = b'\xC6' * 14
     serial_port.write(get_name_cmd)
     data = serial_port.read(4)  # get packet header
+    if len(data) == 0:
+        # device does not support name query command, raise Exception
+        raise UnsupportedBtHardwareError
     length = struct.unpack('<H', data[2:])[0]  # read payload length
     data = serial_port.read(length)
     name = data[4:-4].decode('utf-8', errors='ignore')  # read device name(12 bytes)
@@ -191,6 +194,8 @@ class SerialStream:
                 )
                 self.reader_thread.start()
                 self.is_connected = True
+                # wait to populate data buffer
+                time.sleep(1)
                 return 0
             except PermissionError:
                 # do nothing here as this comes from posix
@@ -225,6 +230,9 @@ class SerialStream:
                     if name == self.device_name:
                         logger.info('Device connected to USB port.')
                         return p.device
+            except UnsupportedBtHardwareError:
+                # device does not support naming query, continue connection process
+                return p.device
             except PermissionError:
                 # do nothing here as this comes from posix
                 pass
