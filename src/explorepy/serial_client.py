@@ -289,4 +289,5 @@ class SerialStream:
         Args:
             data (bytearray): Data to be sent
         """
-        self.comm_manager.write(data)
+        with threading.Lock():
+            self.comm_manager.write(data)
