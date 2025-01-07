@@ -176,6 +176,8 @@ class StreamProcessor:
             self.old_device_info = self.device_info.copy()
             self.device_info.update(packet.get_info())
             if self.is_bt_streaming:
+                if not self.old_device_info and self.device_info.is_imp_mode:
+                    self.disable_imp()
                 settings_manager = SettingsManager(self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)

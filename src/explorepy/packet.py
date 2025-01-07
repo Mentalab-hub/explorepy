@@ -541,6 +541,7 @@ class DeviceInfo(Packet):
         self.firmware_version = ".".join([char for char in str(fw_num)[1:-1]])
         self.sampling_rate = int(16000 / (2 ** bin_data[2]))
         self.adc_mask = [int(bit) for bit in format(bin_data[3], "#010b")[2:]]
+        self.is_imp_mode = False
 
     def get_info(self):
         """Get device information as a dictionary"""
@@ -577,6 +578,8 @@ class DeviceInfoBLE(DeviceInfoV2):
         self.sps_info = '{0:08b}'.format(bin_data[21])
         self.max_online_sps = 250 * pow(2, 6 - int(self.sps_info[4:], 2))
         self.max_offline_sps = 250 * pow(2, 6 - int(self.sps_info[:4], 2))
+        # second LSB is impedance mode indicator
+        self.is_imp_mode = True if self.is_memory_available is 3 else False
 
     def get_info(self):
         as_dict = super().get_info()
