@@ -174,9 +174,10 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
+            print(self.old_device_info)
             self.device_info.update(packet.get_info())
             if self.is_bt_streaming:
-                if not self.old_device_info and self.device_info.is_imp_mode:
+                if 'is_imp_mode' not in self.old_device_info and self.device_info['is_imp_mode'] is True:
                     self.disable_imp()
                 settings_manager = SettingsManager(self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
