@@ -96,6 +96,7 @@ class Parser:
             self._do_streaming = False
             self.callback(None)
             self.stream_interface.disconnect()
+            self.stream_interface = None
             if self.usb_marker_port is not None:
                 self.usb_marker_port.close()
 
@@ -142,7 +143,7 @@ class Parser:
                 self.total_packet_size_read += packet_size
                 self.callback(packet=packet)
             except ReconnectionFlowError:
-                logger.info('Got exception in reconnection flow, normal operation continues')
+                logger.info('Got exception in reconnection flow, normal operation continues.')
                 pass
             except ConnectionAbortedError as error:
                 logger.debug(f"Got this error while streaming: {error}")

@@ -5,6 +5,8 @@ from pathlib import Path
 import yaml
 from appdirs import user_config_dir
 
+from explorepy import logger
+
 
 log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
 data_path = user_config_dir(appname="Mentalab", appauthor="explorepy", version='archive')
@@ -33,7 +35,10 @@ class SettingsManager:
     def load_current_settings(self):
         self.settings_dict = {}
         stream = open(self.full_file_path, 'r')
-        self.settings_dict = yaml.load(stream, Loader=yaml.SafeLoader)
+        try:
+            self.settings_dict = yaml.load(stream, Loader=yaml.SafeLoader)
+        except yaml.scanner.ScannerError:
+            logger.info('Corrupt yaml file, reloading')
         if self.settings_dict is None:
             self.settings_dict = {}
 
