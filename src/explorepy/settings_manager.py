@@ -37,7 +37,7 @@ class SettingsManager:
         stream = open(self.full_file_path, 'r')
         try:
             self.settings_dict = yaml.load(stream, Loader=yaml.SafeLoader)
-        except yaml.scanner.ScannerError:
+        except (yaml.scanner.ScannerError, yaml.parser.ParserError):
             logger.info('Corrupt yaml file, reloading')
         if self.settings_dict is None:
             self.settings_dict = {}

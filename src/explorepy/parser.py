@@ -25,6 +25,7 @@ from explorepy.tools import (
     get_local_time,
     is_ble_mode,
     is_explore_pro_device,
+    is_usb_mode,
     setup_usb_marker_port
 )
 
@@ -200,8 +201,11 @@ class Parser:
             try:
                 bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
             except TypeError:
-                self.stop_streaming()
-                break
+                if is_usb_mode():
+                    self.stop_streaming()
+                    break
+                logger.info('No data in interface, seeking again.....')
+                continue
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
                 self.seek_new_pid.clear()
                 break
@@ -236,14 +240,8 @@ class Parser:
             self.callback(packet=PacketBIN(raw_header + payload_data))
         try:
             packet = self._parse_packet(pid, timestamp, payload_data)
-        except AssertionError as error:
-            logger.debug('Got AssertionError in payload conversion in parser, raising Fletcher', format(error))
-            raise FletcherError
-        except TypeError as error:
-            logger.debug('Got TypeError in payload conversion in parser, raising Fletcher', format(error))
-            raise FletcherError
-        except ValueError:
-            logger.debug('Got ValueError in payload conversion in parser, raising Fletcher')
+        except (AssertionError, TypeError, ValueError, struct.error) as error:
+            logger.debug('Raising Fletcher error for: {}'.format(error))
             raise FletcherError
         packet_size = 8 + (payload - 4)
         return packet, packet_size
