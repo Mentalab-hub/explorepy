@@ -7,7 +7,7 @@ jobs:
         strategy:
             matrix:
                 os: [ubuntu-latest, windows-latest, macos-latest]
-                python: [3.9.12]
+                python: [3.12]
         runs-on: ${{ matrix.os }}
         timeout-minutes: 10
         steps:
@@ -21,15 +21,28 @@ jobs:
               run: git checkout ${{ env.BRANCH }}
 
             - name: Install non-python dependencies on Ubuntu
-              if: runner.os == 'Linux'
+              if: matrix.os == 'ubuntu-latest'
               run: |
                 sudo apt-get update -y
                 sudo apt-get install libbluetooth-dev -y
-            - name: Set up Python ${{ matrix.python }}
+            - name: Set up Miniconda for Linux and Windows with ${{ matrix.python }}
+              if: matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest'
               uses: s-weigand/setup-conda@v1
               with:
                   python-version: ${{ matrix.python }}
                   conda-channels: anaconda, conda-forge
+            - name: Set up Miniconda for macOS with ${{ matrix.python }}
+              if: matrix.os == 'macos-latest'
+              shell: bash
+              run: |
+                  mkdir -p ${{ github.workspace }}/miniconda3
+                  curl "https://repo.anaconda.com/miniconda/Miniconda3-py312_24.9.2-0-MacOSX-arm64.sh" -o "${{ github.workspace }}/miniconda3/miniconda.sh"
+                  bash ${{ github.workspace }}/miniconda3/miniconda.sh -b -u -p ${{ github.workspace }}/miniconda3
+                  rm ${{ github.workspace }}/miniconda3/miniconda.sh
+                  source ${{ github.workspace }}/miniconda3/bin/activate
+                  conda init bash
+                  conda config --prepend channels conda-forge
+                  echo "${{ github.workspace }}/miniconda3/bin/" >> $GITHUB_PATH
             - name: Install liblsl from conda-forge
               run: |
                 conda install -c conda-forge liblsl
@@ -37,7 +50,7 @@ jobs:
                 python -m pytest --import-mode=append --html=pytest_report.html --self-contained-html
             -   name: Archive test results
                 if: success() || failure()
-                uses: actions/upload-artifact@v3
+                uses: actions/upload-artifact@v4
                 with:
-                    name: pytest-results
+                    name: pytest-results-${{ matrix.runs-on }}
                     path: pytest_report.html
