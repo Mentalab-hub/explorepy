@@ -581,7 +581,7 @@ class DeviceInfoBLE(DeviceInfoV2):
         self.max_online_sps = 250 * pow(2, 6 - int(self.sps_info[4:], 2))
         self.max_offline_sps = 250 * pow(2, 6 - int(self.sps_info[:4], 2))
         # second LSB is impedance mode indicator
-        self.is_imp_mode = True if self.is_memory_available is 3 else False
+        self.is_imp_mode = True if self.is_memory_available == 3 else False
 
     def get_info(self):
         as_dict = super().get_info()

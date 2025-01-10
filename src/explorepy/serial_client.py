@@ -12,7 +12,10 @@ from explorepy import (
     exploresdk,
     settings_manager
 )
-from explorepy._exceptions import DeviceNotFoundError, UnsupportedBtHardwareError
+from explorepy._exceptions import (
+    DeviceNotFoundError,
+    UnsupportedBtHardwareError
+)
 
 
 logger = logging.getLogger(__name__)
