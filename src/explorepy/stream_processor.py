@@ -207,7 +207,7 @@ class StreamProcessor:
         """
         if 'sampling_rate' in self.device_info:
             timestamp, _ = packet.get_data(exg_fs=self.device_info['sampling_rate'])
-            if not self.parser.mode == 'file':
+            if not self.parser.mode == 'file' or is_usb_mode() is False:
                 self.update_bt_stability_status(timestamp[0])
             timestamp = timestamp[-1]
             with lock:
@@ -390,7 +390,7 @@ class StreamProcessor:
                         self.instability_flag = False
 
     def is_connection_unstable(self):
-        if is_usb_mode():
+        if is_usb_mode() is True:
             return False
         if get_local_time() - self.last_exg_packet_timestamp > 1.5 and self.bt_drop_start_time is not None:
             self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
@@ -415,6 +415,8 @@ class StreamProcessor:
 
     def fill_missing_packet(self, packet):
         timestamps = np.array([])
+        if is_usb_mode() is True:
+            return timestamps[:-1]
         if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
             sps = np.round(1 / self.device_info['sampling_rate'], 3)
             if sps >= 250:

@@ -4,6 +4,7 @@ import logging
 import struct
 import threading
 import time
+from collections import deque
 
 import serial
 from serial.tools import list_ports
@@ -153,21 +154,22 @@ class SerialStream:
         self.device_manager = None
         self.bt_sdk = None
         self.usb_stop_flag = threading.Event()
-        self.copy_buffer = bytearray()
+        self.copy_buffer = deque()
         self.reader_thread = None
+        self.lock = threading.Lock()
 
     def read_serial_in_chunks(self):
         """Reads data in fixed-size chunks from the serial port until stopped."""
         while not self.usb_stop_flag.is_set():
             try:
                 bytes_available = self.comm_manager.in_waiting
-                data = self.comm_manager.read(bytes_available)
-                if data is not None:
-                    self.copy_buffer.extend(data)
-                    time.sleep(0.000100)
+                if bytes_available > 0:
+                    data = self.comm_manager.read(bytes_available)
+                    if data is not None:
+                        self.copy_buffer.extend(data)
             except Exception as e:
                 logger.debug('Got Exception in USB read method: {}'.format(e))
-                time.sleep(0.000100)
+            time.sleep(0.000100)
         logger.debug('Stopping USB data retrieval thread')
 
     def connect(self):
@@ -284,13 +286,15 @@ class SerialStream:
                 list of bytes
         """
         try:
-            count = 100
-            while len(self.copy_buffer) < n_bytes and count > 0:
-                time.sleep(.010)
-                count -= 1
-            data = self.copy_buffer[:n_bytes]
-            self.copy_buffer = self.copy_buffer[n_bytes:]
-            return data
+            chunk = bytearray()
+            for i in range(1000):
+                if len(self.copy_buffer) < n_bytes:
+                    time.sleep(0.001)
+                else:
+                    break
+            while len(chunk) < n_bytes:
+                chunk.append(self.copy_buffer.popleft())
+            return chunk
         except Exception as error:
             logger.debug('Got error or read request: {}'.format(error))
 
