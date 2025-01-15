@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """A module for bluetooth connection"""
 import logging
-import struct
 import threading
 import time
 from collections import deque
@@ -122,26 +121,6 @@ class SerialClient:
         return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])
 
 
-def get_device_name(p):
-    """ Gets name of the Explore device
-    Args:
-        p (port instance): number of bytes to be read
-    """
-    serial_port = serial.Serial(port=p.device, baudrate=115200, timeout=2)
-    get_name_cmd = b'\xC6' * 14
-    serial_port.write(get_name_cmd)
-    data = serial_port.read(4)  # get packet header
-    if len(data) == 0:
-        # device does not support name query command, raise Exception
-        raise UnsupportedBtHardwareError
-    length = struct.unpack('<H', data[2:])[0]  # read payload length
-    data = serial_port.read(length)
-    name = data[4:-4].decode('utf-8', errors='ignore')  # read device name(12 bytes)
-    serial_port.close()
-    time.sleep(1)
-    return name
-
-
 class SerialStream:
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
 
@@ -178,10 +157,9 @@ class SerialStream:
         Returns:
             socket (bluetooth.socket)
         """
-        port = self.scan_usb_ports()
-
         for _ in range(5):
             try:
+                port = get_correct_com_port(self.device_name)
                 self.comm_manager = serial.Serial(port=port, baudrate=115200, timeout=2)
 
                 # stop stream
@@ -231,7 +209,7 @@ class SerialStream:
             try:
                 if p.vid == 0x0483 and p.pid == 0x5740:
                     # Check device name
-                    name = get_device_name(p)
+                    name = get_correct_com_port()
                     if name == self.device_name:
                         logger.info('Device connected to USB port.')
                         return p.device
@@ -274,6 +252,7 @@ class SerialStream:
         self.is_connected = False
         self.comm_manager.cancel_read()
         self.comm_manager.close()
+
         time.sleep(1)
 
     def read(self, n_bytes):
@@ -306,3 +285,33 @@ class SerialStream:
         """
         with threading.Lock():
             self.comm_manager.write(data)
+
+
+def get_correct_com_port(device_name):
+    """ Returns correct COM/tty port for usb connection
+    Args: device name: the name of the device to connect to
+    """
+    ports = list(list_ports.comports())
+    for p in ports:
+        if p.vid == 0x0483 and p.pid == 0x5740:
+            serial_port = serial.Serial(port=p.device, baudrate=115200, timeout=2)
+
+            # stop stream
+            cmd = b'\xE5' * 14
+            serial_port.write(cmd)
+            time.sleep(.1)
+            # read all the stream data
+            serial_port.readall()
+
+            get_name_cmd = b'\xC6' * 14
+            serial_port.write(get_name_cmd)
+            data = serial_port.read(24)
+            if len(data) == 0:
+                # incompatible explore device, continue connection
+                print('got data as zero')
+                serial_port.close()
+                return p.device
+            name = data[8:-4].decode('utf-8', errors='ignore')
+            print(name)
+            if name == device_name:
+                return p.device
