@@ -12,9 +12,7 @@ from explorepy import (
     exploresdk,
     settings_manager
 )
-from explorepy._exceptions import (
-    DeviceNotFoundError
-)
+from explorepy._exceptions import DeviceNotFoundError
 
 
 logger = logging.getLogger(__name__)
