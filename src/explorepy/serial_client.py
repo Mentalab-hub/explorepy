@@ -13,8 +13,7 @@ from explorepy import (
     settings_manager
 )
 from explorepy._exceptions import (
-    DeviceNotFoundError,
-    UnsupportedBtHardwareError
+    DeviceNotFoundError
 )
 
 
@@ -201,40 +200,6 @@ class SerialStream:
         raise DeviceNotFoundError(
             "Could not find the device! Please turn on the device, wait a few seconds and connect to"
             "serial port before starting ExplorePy"
-        )
-
-    def scan_usb_ports(self):
-        ports = list(list_ports.comports())
-        for p in ports:
-            try:
-                if p.vid == 0x0483 and p.pid == 0x5740:
-                    # Check device name
-                    name = get_correct_com_port()
-                    if name == self.device_name:
-                        logger.info('Device connected to USB port.')
-                        return p.device
-            except UnsupportedBtHardwareError:
-                # device does not support naming query, continue connection process
-                return p.device
-            except PermissionError:
-                # do nothing here as this comes from posix
-                pass
-            except serial.serialutil.SerialException:
-                logger.info(
-                    "Permission denied on serial port access, please run this command via terminal:"
-                    "sudo chmod 777 {}".format(p)
-                )
-            except Exception as error:
-                self.is_connected = False
-                logger.info(
-                    "Got an exception while connecting to the device: {} of type: {}".format(error, type(error))
-                )
-                logger.debug('trying to connect again as tty port is not visible yet')
-                logger.warning("Could not connect; Retrying in 2s...")
-                time.sleep(2)
-        raise DeviceNotFoundError(
-            "Could not find the device! Please turn on the device,"
-            "wait a few seconds and connect to serial port before starting ExplorePy"
         )
 
     def reconnect(self):
