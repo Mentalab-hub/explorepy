@@ -277,6 +277,5 @@ def get_correct_com_port(device_name):
                 serial_port.close()
                 return p.device
             name = data[8:-4].decode('utf-8', errors='ignore')
-            print(name)
             if name == device_name:
                 return p.device
