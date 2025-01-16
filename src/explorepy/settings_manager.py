@@ -14,6 +14,7 @@ data_path = user_config_dir(appname="Mentalab", appauthor="explorepy", version='
 
 read_write_lock = Lock()
 
+
 class SettingsManager:
     def __init__(self, name):
         self.settings_dict = None
