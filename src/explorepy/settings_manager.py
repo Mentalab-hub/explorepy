@@ -1,6 +1,7 @@
 import os
 import shutil
 from pathlib import Path
+from threading import Lock
 
 import yaml
 from appdirs import user_config_dir
@@ -10,6 +11,8 @@ from explorepy import logger
 
 log_path = user_config_dir(appname="Mentalab", appauthor="explorepy")
 data_path = user_config_dir(appname="Mentalab", appauthor="explorepy", version='archive')
+
+read_write_lock = Lock()
 
 
 class SettingsManager:
@@ -33,22 +36,24 @@ class SettingsManager:
         self.sr_key = "sampling_rate"
 
     def load_current_settings(self):
-        self.settings_dict = {}
-        stream = open(self.full_file_path, 'r')
-        try:
-            self.settings_dict = yaml.load(stream, Loader=yaml.SafeLoader)
-        except (yaml.scanner.ScannerError, yaml.parser.ParserError):
-            logger.info('Corrupt yaml file, reloading')
-        if self.settings_dict is None:
+        with read_write_lock:
             self.settings_dict = {}
+            stream = open(self.full_file_path, 'r')
+            try:
+                self.settings_dict = yaml.load(stream, Loader=yaml.SafeLoader)
+            except (yaml.scanner.ScannerError, yaml.parser.ParserError):
+                logger.info('Corrupt yaml file, reloading')
+            if self.settings_dict is None:
+                self.settings_dict = {}
 
     def get_file_path(self):
         return self.log_path + self.file_name
 
     def write_settings(self):
-        with open(self.full_file_path, 'w+') as fp:
-            yaml.safe_dump(self.settings_dict, fp, default_flow_style=False)
-            fp.close()
+        with read_write_lock:
+            with open(self.full_file_path, 'w+') as fp:
+                yaml.safe_dump(self.settings_dict, fp, default_flow_style=False)
+                fp.close()
 
     def set_hardware_channel_mask(self, value):
         """ Setter method for hardware channel mask for Explore Desktop"""
