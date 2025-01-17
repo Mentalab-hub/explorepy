@@ -648,7 +648,7 @@ class LslServer:
                               channel_format='float32',
                               source_id=device_info["device_name"] + "_ORN")
         info_orn.desc().append_child_value("manufacturer", "Mentalab")
-        channels = info_exg.desc().append_child("channels")
+        channels = info_orn.desc().append_child("channels")
         for chan, unit in zip(ORN_CHANNELS, ORN_UNITS):
             channels.append_child("channel") \
                 .append_child_value("name", chan) \
