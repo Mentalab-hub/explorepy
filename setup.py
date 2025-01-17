@@ -43,7 +43,7 @@ my_req = ['numpy',
           'pandas',
           'pyserial',
           'pyyaml',
-          'bleak']  # noqa: E501
+          'bleak==0.22.3']  # noqa: E501
 
 test_requirements = ["pytest==6.2.5",
                      "pytest-mock==3.10.0",
