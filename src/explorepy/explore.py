@@ -98,7 +98,8 @@ class Explore:
             if cnt >= cnt_limit:
                 raise ConnectionAbortedError("Could not get info packet from the device")
             cnt += 1
-
+        if self.stream_processor.device_info['is_imp_mode'] is True:
+            self.stream_processor.disable_imp()
         logger.info('Device info packet has been received. Connection has been established. Streaming...')
         logger.info("Device info: " + str(self.stream_processor.device_info))
         self.is_connected = True

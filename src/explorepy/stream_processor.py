@@ -177,8 +177,6 @@ class StreamProcessor:
             print(self.old_device_info)
             self.device_info.update(packet.get_info())
             if self.is_bt_streaming:
-                if 'is_imp_mode' not in self.old_device_info and self.device_info['is_imp_mode'] is True:
-                    self.disable_imp()
                 settings_manager = SettingsManager(self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
@@ -397,6 +395,7 @@ class StreamProcessor:
         return self.instability_flag
 
     def start_cmd_process_thread(self):
+        self.bt_status_ignore_thread = threading.Timer(interval=2, function=self.reset_timer)
         self.cmd_event.set()
         self.bt_status_ignore_thread.start()
 
