@@ -731,7 +731,7 @@ class ImpedanceMeasurement:
             if n_chan >= 16:
                 n_chan = 32
         self._filters['notch'] = ExGFilter(cutoff_freq=self._notch_freq,
-                                           filter_type='notch',
+                                           filter_type='notch_imp',
                                            s_rate=self._device_info['sampling_rate'],
                                            n_chan=n_chan)
 
