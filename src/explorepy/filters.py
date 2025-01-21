@@ -6,6 +6,7 @@ import logging
 import numpy as np
 from scipy.signal import (
     butter,
+    iirfilter,
     iirnotch,
     lfilter
 )
@@ -22,7 +23,7 @@ class ExGFilter:
         """
         Args:
             cutoff_freq (Union[float, tuple]): cutoff frequency (frequencies) for the filter
-            filter_type (str): Filter type ['lowpass', 'highpass', 'bandpass', 'notch']
+            filter_type (str): Filter type ['lowpass', 'highpass', 'bandpass', 'notch', 'noch_imp']
             s_rate (Union[float, int]): sampling rate of the signal
             order (int): Filter order (default value: 5)
             n_chan (int): Number of channels
@@ -30,7 +31,6 @@ class ExGFilter:
         self.s_rate = float(s_rate)
         self.filter_type = filter_type
         self.filter_param = None
-        # use lower order filter for higher SPS
         order = 2 if self.s_rate > 1000 else order
         a, b, zi = self.get_filter_coeffs(cutoff_freq, filter_type, s_rate, n_chan, order)
         self.filter_param = {'a': a, 'b': b, 'zi': zi}
@@ -44,7 +44,9 @@ class ExGFilter:
         elif filter_type == "bandpass":
             return self.get_bandpass_coeffs(cutoff[0], cutoff[1], nyquist, n_channels, order)
         elif filter_type == "notch":
-            return self.get_notch_coeffs(cutoff, sample_rate, n_channels, order)
+            return self.get_notch_coeffs(cutoff, nyquist, n_channels, order)
+        elif filter_type == "notch_imp":
+            return self.get_notch_coeffs(cutoff, nyquist, n_channels, order, imp_mode=True)
         else:
             raise ValueError('Unknown filter type: {}'.format(filter_type))
 
@@ -97,9 +99,15 @@ class ExGFilter:
         return a, b, zi
 
     @staticmethod
-    def get_notch_coeffs(cutoff, sample_rate, n_channels, order, quality=30):
-        b, a = iirnotch(cutoff, quality, sample_rate)
-        zi = np.zeros(shape=(n_channels, 2))
+    def get_notch_coeffs(cutoff, nyquist, n_channels, order, quality=30, imp_mode=False):
+        lc_freq = (cutoff - 2) / nyquist
+        hc_freq = (cutoff + 2) / nyquist
+        if imp_mode is True:
+            b, a = iirfilter(5, [lc_freq, hc_freq], btype='bandstop', ftype='butter')
+            zi = np.zeros((n_channels, 10))
+        else:
+            b, a = iirnotch(cutoff, quality, nyquist * 2)
+            zi = np.zeros(shape=(n_channels, 2))
         return a, b, zi
 
     def apply(self, input_data, in_place=True):
