@@ -46,8 +46,6 @@ class SerialClient:
         print('result is {}'.format(result))
         for _ in range(5):
             try:
-                self.bt_serial_port_manager = serial.Serial('/dev/tty.' + self.device_name, 9600, timeout=5)
-                print('/dev/tty.' + self.device_name)
                 self.is_connected = True
                 return 0
             except Exception as error:
@@ -95,15 +93,18 @@ class SerialClient:
             Returns:
                 list of bytes
         """
+        c = 0
         try:
             read_output = self.bt_serial_port_manager.read(n_bytes)
+            while c <= 5:
+                read_output = self.bt_serial_port_manager.read(n_bytes)
+                if len(read_output) < n_bytes:
+                    continue
+                else:
+                    break
             return read_output
         except Exception as error:
             print(error)
-            logger.error(
-                "unknown error occurred while reading bluetooth data by "
-                "pyserial {} of type:{}".format(error, type(error))
-            )
 
     def send(self, data):
         """Send data to the device
