@@ -72,8 +72,6 @@ class Parser:
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
         elif is_ble_mode():
-            # setup serial port instance
-            self.usb_marker_port = setup_usb_marker_port()
             from explorepy.btcpp import BLEClient
             self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
         elif explorepy.get_bt_interface() == 'mock':

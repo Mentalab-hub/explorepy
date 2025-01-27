@@ -433,19 +433,9 @@ class Explore:
         eight_bit_value = eight_bit_value % 256
         trigger_id = 0xAB
         cmd = [trigger_id, eight_bit_value, 1, 2, 3, 4, 5, 6, 7, 8, 0xDE, 0xAD, 0xBE, 0xEF]
-        cmd = bytearray(cmd)
-        if is_usb_mode():
-            try:
-                self.stream_processor.parser.stream_interface.send(cmd)
-            except AttributeError:
-                logger.info('No USB port visible yet, skipping trigger command. Triggers will work '
-                            'after you connect the Explore device to USB port')
-        else:
-            if self.stream_processor is None:
-                # connection is BLE connection, but we want to setup the port for multiple use
-                setup_usb_marker_port().write(cmd)
-            else:
-                self.stream_processor.parser.usb_marker_port.write(cmd)
+        explore_port = setup_usb_marker_port()
+        explore_port.write(bytearray(cmd))
+        explore_port.close()
 
     def format_memory(self):
         """Format memory of the device
