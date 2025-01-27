@@ -42,8 +42,6 @@ class SerialClient:
         if self.mac_address is None:
             self._find_mac_address()
             config_manager.set_mac_address(self.mac_address)
-        result = exploresdk.BTSerialPortBinding.Create(self.mac_address, 5).Connect()
-        print('result is {}'.format(result))
         for _ in range(5):
             try:
                 self.is_connected = True
