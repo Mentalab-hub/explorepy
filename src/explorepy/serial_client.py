@@ -42,11 +42,11 @@ class SerialClient:
         if self.mac_address is None:
             self._find_mac_address()
             config_manager.set_mac_address(self.mac_address)
-        result = exploresdk.BTSerialPortBinding.Create(self.mac_address, 5).Connect()
-        print('result is {}'.format(result))
+        #result = exploresdk.BTSerialPortBinding.Create(self.mac_address, 5).Connect()
+        #print('result is {}'.format(result))
         for _ in range(5):
             try:
-                self.bt_serial_port_manager = serial.Serial('/dev/tty.' + self.device_name, 9600, timeout=5)
+                self.bt_serial_port_manager = serial.Serial('/dev/tty.' + self.device_name, 9600, timeout=2)
                 print('/dev/tty.' + self.device_name)
                 self.is_connected = True
                 return 0
@@ -95,8 +95,14 @@ class SerialClient:
             Returns:
                 list of bytes
         """
+        c = 0
         try:
-            read_output = self.bt_serial_port_manager.read(n_bytes)
+            while c <= 5:
+                read_output = self.bt_serial_port_manager.read(n_bytes)
+                if len(read_output) < n_bytes:
+                    continue
+                else:
+                    break
             return read_output
         except Exception as error:
             print(error)
