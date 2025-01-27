@@ -44,6 +44,8 @@ class SerialClient:
             config_manager.set_mac_address(self.mac_address)
         for _ in range(5):
             try:
+                self.bt_serial_port_manager = serial.Serial('/dev/tty.' + self.device_name, 115200, timeout=10)
+                time.sleep(2)
                 self.is_connected = True
                 return 0
             except Exception as error:
@@ -91,15 +93,8 @@ class SerialClient:
             Returns:
                 list of bytes
         """
-        c = 0
         try:
             read_output = self.bt_serial_port_manager.read(n_bytes)
-            while c <= 5:
-                read_output = self.bt_serial_port_manager.read(n_bytes)
-                if len(read_output) < n_bytes:
-                    continue
-                else:
-                    break
             return read_output
         except Exception as error:
             print(error)
