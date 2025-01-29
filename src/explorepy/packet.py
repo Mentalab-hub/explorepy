@@ -448,15 +448,15 @@ class SoftwareMarker(EventMarker):
 class ExternalMarker(EventMarker):
     """External marker packet"""
 
-    def __init__(self, timestamp, payload, time_offset=0):
+    def __init__(self, timestamp, payload, time_offset=0, label='sw_'):
         super().__init__(timestamp, payload, 0)
-        self._label_prefix = "sw_"
+        self._label_prefix = label
 
     def _convert(self, bin_data):
         self.code = bin_data[:15].decode('utf-8', errors='ignore')
 
     @staticmethod
-    def create(lsl_time, marker_string):
+    def create(lsl_time, marker_string, label='sw_'):
         """Create a software marker
 
         Args:
@@ -468,12 +468,11 @@ class ExternalMarker(EventMarker):
         """
         if not isinstance(marker_string, str):
             raise ValueError("Marker label must be a string")
-        if len(marker_string) > 7 or len(marker_string) < 1:
-            raise ValueError("Marker label length must be between 1 and 7 characters")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,
             payload=bytearray(byte_array + b"\xaf\xbe\xad\xde"),
+            label=label
         )
 
 
