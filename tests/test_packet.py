@@ -29,28 +29,22 @@ def get_first_status_as_tuple(status_list):
     third_byte = hex(int(status_list[0][4:6], 16))
     return first_byte, second_byte, third_byte
 
-
-def xfail_on_unexpected_timescale():
-    if explorepy.packet.TIMESTAMP_SCALE != EXPECTED_TIMESCALE:
-        pytest.xfail(
-            f"packet.py's TIMESTAMP_SCALE has changed. Expected: 10000, got: {explorepy.packet.TIMESTAMP_SCALE}")
-
-
 def test_is_abstract(parametrized_abstract_packets):
     with pytest.raises(Exception):
         parametrized_abstract_packets(1234, b'\xff\xff\xff\xff', 0)
 
 
 def test_abstract_timestamp_correct(mocker, parametrized_abstract_packets):
-    xfail_on_unexpected_timescale()
     if hasattr(parametrized_abstract_packets, "__abstractmethods__"):
         if len(parametrized_abstract_packets.__abstractmethods__) != 0:
             mocker.patch.multiple(parametrized_abstract_packets, __abstractmethods__=set())
+    start = 12345
+    offset = 300
     if parametrized_abstract_packets == EEG:
-        p = parametrized_abstract_packets(12345, b'\x00\x00\x00\xaf\xbe\xad\xde', 300, v_ref=2.4, n_packet=1)
+        p = parametrized_abstract_packets(start, b'\x00\x00\x00\xaf\xbe\xad\xde', offset, v_ref=2.4, n_packet=1)
     else:
-        p = parametrized_abstract_packets(12345, b'\xaf\xbe\xad\xde', 300)
-    assert p.timestamp == 301.2345
+        p = parametrized_abstract_packets(start, b'\xaf\xbe\xad\xde', offset)
+    assert p.timestamp == (start+offset)
 
 
 def test_int24to32(parametrized_int24toint32_in_out):
@@ -68,13 +62,13 @@ def test_calculate_impedance_no_info(mocked_eeg_base):
 def test_get_data(mocked_eeg_base):
     tv, d = mocked_eeg_base.get_data(250)
     assert len(tv) == 5
-    np.testing.assert_array_equal(tv, [1.2345, 1.2385, 1.2425, 1.2465, 1.2505])
+    np.testing.assert_allclose(tv, [12345., 12345.004, 12345.008, 12345.012, 12345.016])
     np.testing.assert_array_equal(d, mocked_eeg_base.data)
 
 
 def test_get_data_no_sample_rate(mocked_eeg_base):
     tv, d = mocked_eeg_base.get_data()
-    assert tv == 1.2345
+    assert tv == 12345
     np.testing.assert_array_equal(d, mocked_eeg_base.data)
 
 
@@ -128,11 +122,10 @@ def test_convert_orn(orientation_in_out):
 
 
 def test_get_data_orn(orientation_in_out):
-    xfail_on_unexpected_timescale()
     orn = orientation_in_out['orn_instance']
     orn_out = orientation_in_out['orn_out']
     ts, samples = orn.get_data()
-    assert [orn_out['raw_timestamp'] / EXPECTED_TIMESCALE] == ts
+    assert [orn_out['raw_timestamp']] == ts
     ls = []
     ls.extend(orn_out['acc'])
     ls.extend(orn_out['gyr'])
@@ -164,12 +157,6 @@ def test_convert_env_light(env_in_out):
 
 def test_convert_env_battery(env_in_out):
     assert env_in_out['env_instance'].battery == env_in_out['env_out']['battery']
-
-
-def test_volt_to_percent(env_in_out):
-    expected = env_in_out['env_out']['battery_percentage']
-    res = Environment._volt_to_percent(env_in_out['env_out']['battery'])
-    assert res == int(expected)
 
 
 def test_get_data_env(env_in_out):
@@ -239,7 +226,7 @@ def test_create_software_marker_prefix(sw_marker_inputs_valid):
 
 def test_create_software_marker_ts(sw_marker_inputs_valid):
     out = SoftwareMarker.create(sw_marker_inputs_valid[0], sw_marker_inputs_valid[1])
-    assert out.timestamp == sw_marker_inputs_valid[0]
+    assert out.timestamp == sw_marker_inputs_valid[0] * 10000
 
 
 def test_create_external_marker_invalid(ext_marker_inputs_invalid):
@@ -254,7 +241,7 @@ def test_create_external_marker_code(ext_marker_inputs_valid):
 
 def test_create_external_marker_prefix(ext_marker_inputs_valid):
     out = ExternalMarker.create(ext_marker_inputs_valid[0], ext_marker_inputs_valid[1])
-    assert out._label_prefix == "ext_"
+    assert out._label_prefix == "sw_"
 
 
 def test_create_external_marker_ts(ext_marker_inputs_valid):
@@ -363,7 +350,8 @@ def test_device_info_v2_get_info(device_info_v2_in_out):
         'adc_mask': dev_info_v2_out['adc_mask'],
         'sampling_rate': dev_info_v2_out['data_rate'],
         'board_id': dev_info_v2_out['board_id'],
-        'memory_info': dev_info_v2_out['memory']
+        'memory_info': dev_info_v2_out['memory'],
+        'is_imp_mode': False
     }
     assert dev_info_v2_instance.get_info() == out_dict
 

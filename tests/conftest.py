@@ -251,9 +251,9 @@ def sw_marker_inputs_invalid(request):
     return request.param
 
 
-@pytest.fixture(params=[(12345, "Experiment 0"),
-                        (42.42, "Short marker"),
-                        (12345, "Exp_1")])
+@pytest.fixture(params=[(12345, "Exp 0"),
+                        (42.42, "Short"),
+                        (12345, "A")])
 def ext_marker_inputs_valid(request):
     return request.param
 

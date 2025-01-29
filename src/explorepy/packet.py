@@ -339,28 +339,6 @@ class Environment(Packet):
             "light": [self.light],
         }
 
-    @staticmethod
-    def _volt_to_percent(voltage):
-        if voltage < 3.1:
-            percentage = 1
-        elif voltage < 3.5:
-            percentage = 1 + (voltage - 3.1) / 0.4 * 10
-        elif voltage < 3.8:
-            percentage = 10 + (voltage - 3.5) / 0.3 * 40
-        elif voltage < 3.9:
-            percentage = 40 + (voltage - 3.8) / 0.1 * 20
-        elif voltage < 4.0:
-            percentage = 60 + (voltage - 3.9) / 0.1 * 15
-        elif voltage < 4.1:
-            percentage = 75 + (voltage - 4.0) / 0.1 * 15
-        elif voltage < 4.2:
-            percentage = 90 + (voltage - 4.1) / 0.1 * 10
-        elif voltage > 4.2:
-            percentage = 100
-
-        percentage = int(percentage)
-        return percentage
-
 
 class TimeStamp(Packet):
     """Time stamp data packet"""
