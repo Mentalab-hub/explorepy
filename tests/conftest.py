@@ -39,6 +39,7 @@ EEG98_IN = os.path.join(IN, "eeg98")
 EEG98_USBC_IN = os.path.join(IN, "eeg98_usbc")
 EEG98_USBC_IN_2 = os.path.join(IN, "eeg98_usbc_2")
 EEG32_IN = os.path.join(IN, "eeg32")
+EEG98_BLE_IN = os.path.join(IN, "eeg98_ble")
 
 ORN_IN = os.path.join(IN, "orn")
 CMD_STAT_IN = os.path.join(IN, "cmd_stat")
@@ -87,7 +88,8 @@ EEG_IN_OUT_LIST = [
     (EEG98, EEG98_IN, EEG98_OUT),
     (EEG98_USBC, EEG98_USBC_IN, EEG98_USBC_OUT),
     (EEG98_USBC, EEG98_USBC_IN_2, EEG98_USBC_OUT_2),
-    (EEG32, EEG32_IN, EEG32_OUT)
+    (EEG32, EEG32_IN, EEG32_OUT),
+    #(EEG98_BLE, EEG98_BLE_IN, EEG98_BLE_OUT)
 ]
 
 

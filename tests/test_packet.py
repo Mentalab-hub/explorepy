@@ -65,6 +65,19 @@ def test_calculate_impedance_no_info(mocked_eeg_base):
     with pytest.raises(Exception):
         mocked_eeg_base.calculate_impedance(imp_calib_info)
 
+def test_calculate_impedance(parametrized_eeg_in_out):
+    out = parametrized_eeg_in_out["eeg_out"]
+    if "slope" not in out or "offset" not in out or "noise_level" not in out or "impedances" not in out:
+        pytest.xfail("Impedance calibration parameters and/or expected output are not known for this test EEG packet.")
+    imp_calib_info = {'slope': out["slope"], 'offset': out["offset"], 'noise_level': out["noise_level"]}
+    eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
+    eeg.calculate_impedance(imp_calib_info)
+    np.testing.assert_allclose(eeg.get_impedances(), out["impedances"])
+
+def test_get_impedances_none(parametrized_eeg_in_out):
+    eeg = parametrized_eeg_in_out["eeg_instance"]
+    assert eeg.get_impedances() is None
+
 
 def test_get_data(mocked_eeg_base):
     tv, d = mocked_eeg_base.get_data(250)
@@ -136,6 +149,7 @@ def test_convert_errors_n_packet(parametrized_eeg_in_out):
     eeg.n_packet = None
     with pytest.raises(ValueError, match="v_ref or n_packet cannot be null for conversion!"):
         eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
+
 
 @pytest.mark.parametrize("byte_order", [(None, TypeError),
                                         (0, TypeError),
