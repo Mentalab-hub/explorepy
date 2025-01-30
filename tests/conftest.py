@@ -178,6 +178,10 @@ def parametrized_int24toint32_in_out(request):
 
 @pytest.fixture(params=eeg_in_out_list(), scope="module")
 def parametrized_eeg_in_out(request):
+    """Provides objects containing an instance of an EEG packet, input data, expected output data and class name.
+    Note that the instances distributed with this method have scope "module", meaning changes to the instance are
+    persistent throughout all following tests!
+    """
     field_names = {'class_name': 'eeg_class',
                    'in': 'eeg_in',
                    'instance': 'eeg_instance',

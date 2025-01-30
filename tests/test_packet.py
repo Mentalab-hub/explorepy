@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import pytest
 
@@ -124,20 +126,16 @@ def test_byteorder_data(parametrized_eeg_in_out):
 
 
 def test_convert_errors_v_ref(parametrized_eeg_in_out):
-    eeg = parametrized_eeg_in_out["eeg_instance"]
-    prev = eeg.v_ref
+    eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
     eeg.v_ref = None
     with pytest.raises(ValueError, match="v_ref or n_packet cannot be null for conversion!"):
         eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
-    eeg.v_ref = prev
 
 def test_convert_errors_n_packet(parametrized_eeg_in_out):
-    eeg = parametrized_eeg_in_out["eeg_instance"]
-    prev = eeg.n_packet
+    eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
     eeg.n_packet = None
     with pytest.raises(ValueError, match="v_ref or n_packet cannot be null for conversion!"):
         eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
-    eeg.n_packet = prev
 
 @pytest.mark.parametrize("byte_order", [(None, TypeError),
                                         (0, TypeError),
@@ -149,12 +147,10 @@ def test_convert_errors_n_packet(parametrized_eeg_in_out):
                                         (True, TypeError),
                                         (False, TypeError)])
 def test_convert_errors_byteorder(parametrized_eeg_in_out, byte_order):
-    eeg = parametrized_eeg_in_out["eeg_instance"]
-    prev = eeg.byteorder_data
+    eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
     eeg.byteorder_data = byte_order[0]
     with pytest.raises(byte_order[1]):
         eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
-    eeg.byteorder_data = prev
 
 
 def test_status(parametrized_eeg_in_out):
