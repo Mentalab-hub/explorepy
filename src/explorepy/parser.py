@@ -25,8 +25,7 @@ from explorepy.tools import (
     get_local_time,
     is_ble_mode,
     is_explore_pro_device,
-    is_usb_mode,
-    setup_usb_marker_port
+    is_usb_mode
 )
 
 

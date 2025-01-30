@@ -44,7 +44,6 @@ from explorepy.tools import (
     create_marker_recorder,
     create_meta_recorder,
     create_orn_recorder,
-    is_usb_mode,
     local_clock,
     setup_usb_marker_port
 )
