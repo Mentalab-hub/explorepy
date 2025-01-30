@@ -1001,7 +1001,7 @@ def setup_usb_marker_port():
     port = 0
     for p in ports:
         if p.vid == 0x0483 and p.pid == 0x5740:
-            print(p.pid)
+            logger.info('Found an Explore Pro device connected.')
             port = p.device
 
     if port == 0:
