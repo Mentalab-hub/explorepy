@@ -4,10 +4,14 @@ import pytest
 import explorepy.packet
 from explorepy.packet import (
     EEG,
+    EEG_BLE,
+    EEG32_BLE,
     Environment,
+    TimeStamp,
     EventMarker,
     ExternalMarker,
     Packet,
+    PacketBIN,
     SoftwareMarker
 )
 
@@ -28,6 +32,7 @@ def get_first_status_as_tuple(status_list):
     second_byte = hex(int(status_list[0][2:4], 16))
     third_byte = hex(int(status_list[0][4:6], 16))
     return first_byte, second_byte, third_byte
+
 
 def test_is_abstract(parametrized_abstract_packets):
     with pytest.raises(Exception):
@@ -88,6 +93,70 @@ def test_is_eeg(parametrized_eeg_in_out):
     assert isinstance(eeg_instance, EEG)
 
 
+def test_packetbin_bin_data(parametrized_eeg_in_out):
+    raw_data = parametrized_eeg_in_out['eeg_in']
+    packetbin = PacketBIN(raw_data)
+    assert raw_data == packetbin.bin_data
+
+
+def test_packetbin_convert(parametrized_eeg_in_out):
+    raw_data = parametrized_eeg_in_out['eeg_in']
+    packetbin = PacketBIN(raw_data)
+    packetbin._convert(raw_data)
+    assert not hasattr(packetbin, "data")
+    assert raw_data == packetbin.bin_data
+
+
+def test_packetbin_str(parametrized_eeg_in_out):
+    raw_data = parametrized_eeg_in_out['eeg_in']
+    packet_bin = PacketBIN(raw_data)
+    packet_bin_out = parametrized_eeg_in_out['eeg_out']
+    if 'bin_string' in packet_bin_out:
+        assert bytes(packet_bin_out['bin_string'], "utf-8").__str__() == packet_bin.__str__()
+
+
+def test_byteorder_data(parametrized_eeg_in_out):
+    eeg = parametrized_eeg_in_out['eeg_instance']
+    if isinstance(eeg, EEG_BLE):
+        assert eeg.byteorder_data == "big"
+    else:
+        assert eeg.byteorder_data == "little"
+
+
+def test_convert_errors_v_ref(parametrized_eeg_in_out):
+    eeg = parametrized_eeg_in_out["eeg_instance"]
+    prev = eeg.v_ref
+    eeg.v_ref = None
+    with pytest.raises(ValueError, match="v_ref or n_packet cannot be null for conversion!"):
+        eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
+    eeg.v_ref = prev
+
+def test_convert_errors_n_packet(parametrized_eeg_in_out):
+    eeg = parametrized_eeg_in_out["eeg_instance"]
+    prev = eeg.n_packet
+    eeg.n_packet = None
+    with pytest.raises(ValueError, match="v_ref or n_packet cannot be null for conversion!"):
+        eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
+    eeg.n_packet = prev
+
+@pytest.mark.parametrize("byte_order", [(None, TypeError),
+                                        (0, TypeError),
+                                        ("LITTLE", ValueError),
+                                        ("BIG", ValueError),
+                                        ("l", ValueError),
+                                        ("b", ValueError),
+                                        (-1, TypeError),
+                                        (True, TypeError),
+                                        (False, TypeError)])
+def test_convert_errors_byteorder(parametrized_eeg_in_out, byte_order):
+    eeg = parametrized_eeg_in_out["eeg_instance"]
+    prev = eeg.byteorder_data
+    eeg.byteorder_data = byte_order[0]
+    with pytest.raises(byte_order[1]):
+        eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
+    eeg.byteorder_data = prev
+
+
 def test_status(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
     eeg_out = parametrized_eeg_in_out['eeg_out']
@@ -111,6 +180,15 @@ def test_check_fletcher(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
     eeg_out = parametrized_eeg_in_out['eeg_out']
     eeg._check_fletcher(bytes.fromhex(eeg_out['fletcher']))
+
+
+@pytest.mark.parametrize('fletcher', [b"\x01\x02\x03\x04",
+                                      b"\x00\x00\x00\x00",
+                                      b"\xff\xff\xff\xff"])
+def test_check_fletcher_invalid(parametrized_eeg_in_out, fletcher):
+    with pytest.raises(Exception):
+        eeg = parametrized_eeg_in_out['eeg_instance']
+        eeg._check_fletcher(fletcher)
 
 
 def test_convert_orn(orientation_in_out):
