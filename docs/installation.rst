@@ -3,15 +3,15 @@ Installation
 ============
 
 Minimal Requirements
-------------
+--------------------
 * Python 3.10 to Python 3.12. We recommend Python 3.12.
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
 
 Recommended Requirements
-------------
-* Python 3.7 to Python 3.12
+------------------------
+* Python 3.12
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 8GB RAM
 * Intel i7 or higher CPU
@@ -23,7 +23,7 @@ Windows
 ^^^^^^^
 
 Option 1: Installing via installer file (basic)
-""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""
 
 *This option is best for users who only intend to use* ``explorepy`` *via graphical user interface*
 
@@ -41,7 +41,7 @@ A standalone Mac installer is also available. Please contact Mentalab support to
 
 
 Option 2: Installing from Python Package Index (PyPI) and pip (advanced)
-""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 *To install explorepy for any python version except 3.10, please contact support@mentalab.com.*
 
 *This option is best for users who intend to include* ``explorepy`` *functionalities in their own Python scripts.*
@@ -78,22 +78,6 @@ a. Set up ``udev`` rules for appropiate permission to ``/dev/ttyACM*`` in Linux
     *Steps to Execute the Udev Script Manually*
 
     1. Create a file named ``setup_udev_rule.sh`` and include the following script
-
-Mac
-^^^
-1. Install ``XCode`` from the Mac App store. For this, you may need to upgrade to the latest version of MacOS. For older versions of MacOS, find compatible versions of ``XCode`` `here <https://en.wikipedia.org/wiki/Xcode>`_. All old ``XCode`` versions are available `here <https://developer.apple.com/download/more/>`_.
-2. Accept the license agreement: ``sudo xcodebuild -license``
-3. It is best to install Anaconda. Download  and install the `Anaconda Python 3.7 Mac installer <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and downloaded `here <https://repo.anaconda.com/archive/index.html>`_.
-4. We recommend using a virtual environment in Conda.
-
-   a. In Conda command prompt: ``conda create -n myenv python=3.10``
-   b. Activate the virtual environment: ``conda activate myenv``
-
-5. Upgrade your pip: ``python -m pip install --upgrade pip``
-6. Run: ``pip install explorepy``, to install ``explorepy`` from PyPI.
-7. Run: ``brew install blueutil``, to install blueutil for bluetooth communication
-7. Connect your Explore device from Mac Bluetooth menu and run your Python script.
-
 
         ::
 
@@ -135,7 +119,7 @@ Mac
 ^^^
 1. Install ``XCode`` from the Mac App store. For this, you may need to upgrade to the latest version of MacOS. For older versions of MacOS, find compatible versions of ``XCode`` `here <https://en.wikipedia.org/wiki/Xcode>`_. All old ``XCode`` versions are available `here <https://developer.apple.com/download/more/>`_.
 2. Accept the license agreement: ``sudo xcodebuild -license``
-3. Download and installer `Anaconda<https://www.anaconda.com/download>`/Miniconda/.
+3. It is best to install Anaconda. Download  and install the `Anaconda Python 3.7 Mac installer <https://www.anaconda.com/distribution/#download-section>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and downloaded `here <https://repo.anaconda.com/archive/index.html>`_.
 4. We recommend using a virtual environment in Conda.
 
    a. In Conda command prompt: ``conda create -n myenv python=3.10``
@@ -143,7 +127,8 @@ Mac
 
 5. Upgrade your pip: ``python -m pip install --upgrade pip``
 6. Run: ``pip install explorepy``, to install ``explorepy`` from PyPI.
-7. Connect your Explore device from Mac Bluetooth menu and run your Python script.
+7. Run: ``brew install blueutil``, to install blueutil for bluetooth communication
+8. Connect your Explore device from Mac Bluetooth menu and run your Python script.
 
 Quick test
 ----------
