@@ -71,7 +71,6 @@ Ubuntu
 5. Run: ``pip install explorepy``, to install ``explorepy`` from PyPI.
 6. From Linux Terminal, run: ``sudo apt install libxcb-cursor0``
 
-
 Set up USB streaming in Linux
 """""""""""""""""""""""""""""
 a. Set up ``udev`` rules for appropiate permission to ``/dev/ttyACM*`` in Linux
