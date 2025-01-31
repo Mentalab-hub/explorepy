@@ -124,17 +124,15 @@ Mac
 1. Install ``XCode`` from the Mac App store. For this, you may need to upgrade to the latest version of MacOS. For older versions of MacOS, find compatible versions of ``XCode`` `here <https://en.wikipedia.org/wiki/Xcode>`_. All old ``XCode`` versions are available `here <https://developer.apple.com/download/more/>`_.
 2. Accept the license agreement: ``sudo xcodebuild -license``.
 3. It is best to install Anaconda. Download  and run the `Anaconda installer for Mac <https://www.anaconda.com/download/success>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and downloaded `here <https://repo.anaconda.com/archive/index.html>`_.
-4. Install `Homebrew <https://brew.sh/>`_ to be able to install packages with the brew command.
-5. We recommend using a conda environment.
+4. We recommend using a conda environment.
 
    a. In the Anaconda command prompt: ``conda create -n myenv python=3.10``
    b. Activate the conda environment: ``conda activate myenv``
 
-6. Upgrade your pip: ``python -m pip install --upgrade pip``
-7. Install liblsl: ``conda install -c conda-forge liblsl``
-8. Run ``pip install explorepy`` to install ``explorepy`` from PyPI.
-9. Run ``brew install blueutil`` to install blueutil for Bluetooth communication.
-10. Connect your Explore device from the Bluetooth menu and run your Python script.
+5. Upgrade your pip: ``python -m pip install --upgrade pip``
+6. Install liblsl: ``conda install -c conda-forge liblsl``
+7. Run ``pip install explorepy`` to install ``explorepy`` from PyPI.
+8. Connect your Explore device from the Bluetooth menu and run your Python script.
 
 
 Quick test
