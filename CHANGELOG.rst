@@ -2,10 +2,19 @@
 Changelog
 =========
 
+3.2.0 (31.1.2025)
+------------------
+* Fix critical bug in settings file modification
+* Improve BT communication 
+* Disable impedance on fresh connection
+* Introduce new sampling rates
+
+
 3.1.0 (8.11.2024)
 ------------------
 * Add USB streaming support
 * Improve BT communication
+
 
 3.0.1 (28.08.2024)
 ------------------
@@ -33,7 +42,6 @@ Changelog
 * Add yaml file for RTD build
 
 
-
 1.8.1 (11.7.2023)
 ------------------
 * Bugfix record data
@@ -52,7 +60,7 @@ Changelog
 
 1.7.0 (21.12.2022)
 ------------------
-* Add suppport for new explore+ 32 ch device
+* Add support for new explore+ 32 ch device
 * Sorted timestamps in CSV
 * Settings file to preserve experiment settings
 
