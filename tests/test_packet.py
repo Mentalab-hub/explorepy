@@ -170,15 +170,18 @@ def test_convert_errors_byteorder(parametrized_eeg_in_out, byte_order):
 def test_status(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
     eeg_out = parametrized_eeg_in_out['eeg_out']
-    status_out = {
-        'ads': eeg_out['status_ads'],
-        'empty': eeg_out['status_empty'],
-        'sr': eeg_out['status_sr']
-    }
-    np.testing.assert_array_equal(eeg.status['ads'], status_out['ads'])
-    np.testing.assert_array_equal(eeg.status['empty'], status_out['empty'])
-    np.testing.assert_array_equal(eeg.status['sr'], status_out['sr'])
-
+    if isinstance(eeg, EEG_BLE):
+        with pytest.raises(AttributeError):
+            eeg.status
+    else:
+        status_out = {
+            'ads': eeg_out['status_ads'],
+            'empty': eeg_out['status_empty'],
+            'sr': eeg_out['status_sr']
+        }
+        np.testing.assert_array_equal(eeg.status['ads'], status_out['ads'])
+        np.testing.assert_array_equal(eeg.status['empty'], status_out['empty'])
+        np.testing.assert_array_equal(eeg.status['sr'], status_out['sr'])
 
 def test_convert(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']

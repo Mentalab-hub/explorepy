@@ -11,6 +11,7 @@ from explorepy.packet import (
     EEG94,
     EEG98,
     EEG98_USBC,
+    EEG98_BLE,
     CalibrationInfo,
     CalibrationInfo_USBC,
     CommandRCV,
@@ -64,6 +65,7 @@ EEG98_OUT = os.path.join(OUT, "eeg98_out.txt")
 EEG98_USBC_OUT = os.path.join(OUT, "eeg98_usbc_out.txt")
 EEG98_USBC_OUT_2 = os.path.join(OUT, "eeg98_usbc_out_2.txt")
 EEG32_OUT = os.path.join(OUT, "eeg32_out.txt")
+EEG98_BLE_OUT = os.path.join(OUT, "eeg98_ble_out.txt")
 
 ORN_OUT = os.path.join(OUT, "orn_out.txt")
 CMD_STAT_OUT = os.path.join(OUT, "cmd_stat_out.txt")
@@ -89,7 +91,7 @@ EEG_IN_OUT_LIST = [
     (EEG98_USBC, EEG98_USBC_IN, EEG98_USBC_OUT),
     (EEG98_USBC, EEG98_USBC_IN_2, EEG98_USBC_OUT_2),
     (EEG32, EEG32_IN, EEG32_OUT),
-    #(EEG98_BLE, EEG98_BLE_IN, EEG98_BLE_OUT)
+    (EEG98_BLE, EEG98_BLE_IN, EEG98_BLE_OUT)
 ]
 
 
