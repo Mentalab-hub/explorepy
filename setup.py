@@ -37,13 +37,13 @@ my_req = ['numpy',
           'pyedflib',
           'click==7.1.2',
           'appdirs==1.4.3',
-          'sentry_sdk==1.19.1',
+          'sentry_sdk==2.8.0',
           'mne',
           'eeglabio',
           'pandas',
           'pyserial',
           'pyyaml',
-          'bleak']  # noqa: E501
+          'bleak==0.22.3']  # noqa: E501
 
 test_requirements = ["pytest==6.2.5",
                      "pytest-mock==3.10.0",
@@ -56,7 +56,7 @@ ext_modules_list = []
 current_platform = sys.platform
 
 if not os.environ.get('READTHEDOCS'):
-    my_req.append('pylsl')
+    my_req.append('pylsl==1.16.2')
     libPath = "lib"
     if current_platform == 'win32' or current_platform == 'win64':
         windows_lib_path = os.path.join(libPath, 'windows')
@@ -86,7 +86,7 @@ if not os.environ.get('READTHEDOCS'):
         os.system('cp  lib/mac/exploresdk.py  src/explorepy')
 setup(
     name='explorepy',
-    version='3.1.0',
+    version='3.2.0',
     license='MIT license',
     description='Python API for Mentalab biosignal aquisition devices',
     long_description_content_type="text/markdown",

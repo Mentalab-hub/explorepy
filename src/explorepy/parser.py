@@ -25,7 +25,7 @@ from explorepy.tools import (
     get_local_time,
     is_ble_mode,
     is_explore_pro_device,
-    setup_usb_marker_port
+    is_usb_mode
 )
 
 
@@ -59,6 +59,7 @@ class Parser:
         self._is_reconnecting = False
         self.seek_new_pid = asyncio.Event()
         self.usb_marker_port = None
+        self.total_packet_size_read = 0
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -70,8 +71,6 @@ class Parser:
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
         elif is_ble_mode():
-            # setup serial port instance
-            self.usb_marker_port = setup_usb_marker_port()
             from explorepy.btcpp import BLEClient
             self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
         elif explorepy.get_bt_interface() == 'mock':
@@ -94,6 +93,9 @@ class Parser:
             self._do_streaming = False
             self.callback(None)
             self.stream_interface.disconnect()
+            self.stream_interface = None
+            if self.usb_marker_port is not None:
+                self.usb_marker_port.close()
 
     def start_reading(self, filename):
         """Open the binary file
@@ -108,7 +110,7 @@ class Parser:
         packet = None
         try:
             while True:
-                packet = self._generate_packet()
+                packet, _ = self._generate_packet()
                 if isinstance(packet, DeviceInfo):
                     self.callback(packet=packet)
                     break
@@ -134,10 +136,11 @@ class Parser:
         asyncio.set_event_loop(asyncio.new_event_loop())
         while self._do_streaming:
             try:
-                packet = self._generate_packet()
+                packet, packet_size = self._generate_packet()
+                self.total_packet_size_read += packet_size
                 self.callback(packet=packet)
             except ReconnectionFlowError:
-                logger.info('Got exception in reconnection flow, normal operation continues')
+                logger.info('Got exception in reconnection flow, normal operation continues.')
                 pass
             except ConnectionAbortedError as error:
                 logger.debug(f"Got this error while streaming: {error}")
@@ -195,7 +198,10 @@ class Parser:
             try:
                 bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
             except TypeError:
-                logger.info('No data if interface, seeking again.....')
+                if is_usb_mode():
+                    self.stop_streaming()
+                    break
+                logger.info('No data in interface, seeking again.....')
                 continue
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
                 self.seek_new_pid.clear()
@@ -231,16 +237,11 @@ class Parser:
             self.callback(packet=PacketBIN(raw_header + payload_data))
         try:
             packet = self._parse_packet(pid, timestamp, payload_data)
-        except AssertionError as error:
-            logger.debug('Got AssertionError in payload conversion in parser, raising Fletcher', format(error))
+        except (AssertionError, TypeError, ValueError, struct.error) as error:
+            logger.debug('Raising Fletcher error for: {}'.format(error))
             raise FletcherError
-        except TypeError as error:
-            logger.debug('Got TypeError in payload conversion in parser, raising Fletcher', format(error))
-            raise FletcherError
-        except ValueError:
-            logger.debug('Got ValueError in payload conversion in parser, raising Fletcher')
-            raise FletcherError
-        return packet
+        packet_size = 8 + (payload - 4)
+        return packet, packet_size
 
     def _parse_packet(self, pid, timestamp, bin_data):
         """Generates the packets according to the pid
@@ -261,6 +262,7 @@ class Parser:
             packet = None
             raise FletcherError
         return packet
+
 
 class FileHandler:
     """Binary file handler"""

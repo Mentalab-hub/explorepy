@@ -19,7 +19,6 @@ import re
 import time
 from threading import Timer
 
-import explorepy
 import numpy as np
 from appdirs import user_cache_dir
 
@@ -45,7 +44,7 @@ from explorepy.tools import (
     create_marker_recorder,
     create_meta_recorder,
     create_orn_recorder,
-    is_usb_mode,
+    local_clock,
     setup_usb_marker_port
 )
 
@@ -63,6 +62,9 @@ class Explore:
         self.recorders = {}
         self.lsl = {}
         self.device_name = None
+        self.initial_count = None
+        self.last_rec_stat = 0
+        self.last_rec_start_time = 0
 
     @property
     def is_measuring_imp(self):
@@ -95,7 +97,8 @@ class Explore:
             if cnt >= cnt_limit:
                 raise ConnectionAbortedError("Could not get info packet from the device")
             cnt += 1
-
+        if self.stream_processor.device_info['is_imp_mode'] is True:
+            self.stream_processor.disable_imp()
         logger.info('Device info packet has been received. Connection has been established. Streaming...')
         logger.info("Device info: " + str(self.stream_processor.device_info))
         self.is_connected = True
@@ -198,7 +201,8 @@ class Explore:
         logger.info("Recording...")
 
         self.recorders['timer'] = Timer(duration, self.stop_recording)
-
+        self.last_rec_start_time = local_clock()
+        self.initial_count = self.stream_processor.packet_count
         self.recorders['timer'].start()
         if block:
             try:
@@ -224,10 +228,28 @@ class Explore:
                 self.recorders['timer'].cancel()
             self.recorders = {}
             logger.info('Recording stopped.')
+            try:
+                self.last_rec_stat = (
+                    (self.stream_processor.packet_count - self.initial_count) / (
+                        (local_clock() - self.last_rec_start_time) * self.stream_processor.device_info['sampling_rate']
+                    )
+                )
+                # clamp the stat variable
+                self.last_rec_stat = max(1, min(self.last_rec_stat, 1))
+                logger.info('last recording stat : {}'.format(self.last_rec_stat))
+            except TypeError:
+                # handle uninitialized state
+                pass
+            self.initial_count = None
         else:
             logger.debug("Tried to stop recording while no recorder is running!")
 
-    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False):
+    def get_last_record_stat(self):
+        """Gets the last recording statistics as a number between 0 and 1"""
+        return self.last_rec_stat
+
+    def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False,
+                    progress_callback=None, progress_dialog=None):
         """Convert a binary file to EDF or CSV file
 
         Args:
@@ -235,8 +257,13 @@ class Explore:
             out_dir (str): Output directory path (must be relative path to the current working directory)
             file_type (str): Output file type: 'edf' for EDF format and 'csv' for CSV format
             do_overwrite (bool): Whether to overwrite an existing file
+            out_dir_is_full(bool): Whether output directory is a full file path
+            progress_callback:
+            progress_dialog
 
         """
+        total_file_bytes = os.path.getsize(bin_file)
+        bt_interface = explorepy.get_bt_interface()
         if file_type not in ['edf', 'csv']:
             raise ValueError('Invalid file type is given!')
         self.recorders['file_type'] = file_type
@@ -330,14 +357,25 @@ class Explore:
         self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
         self.stream_processor.open_file(bin_file=bin_file)
         logger.info("Converting...")
-        while self.stream_processor.is_connected:
-            time.sleep(.1)
+        try:
+            while self.stream_processor.is_connected:
+                time.sleep(.1)
+                if progress_dialog and progress_dialog.close:
+                    logger.info("Conversion process cancelled.")
+                    break
 
-        if self.recorders['file_type'] == 'csv':
-            self.recorders["marker"].stop()
-        self.recorders["exg"].stop()
-        self.recorders["orn"].stop()
-        logger.info('Conversion finished.')
+                if progress_callback:
+                    progress = (
+                        self.stream_processor.parser.total_packet_size_read / total_file_bytes
+                    )
+                    progress_callback(int(progress * 100))
+        finally:
+            if self.recorders['file_type'] == 'csv':
+                self.recorders["marker"].stop()
+            self.recorders["exg"].stop()
+            self.recorders["orn"].stop()
+            explorepy.set_bt_interface(bt_interface)
+            logger.info('Conversion process terminated.')
 
     def push2lsl(self, duration=None, block=False):
         r"""Push samples to two lsl streams (ExG and ORN streams)
@@ -394,19 +432,9 @@ class Explore:
         eight_bit_value = eight_bit_value % 256
         trigger_id = 0xAB
         cmd = [trigger_id, eight_bit_value, 1, 2, 3, 4, 5, 6, 7, 8, 0xDE, 0xAD, 0xBE, 0xEF]
-        cmd = bytearray(cmd)
-        if is_usb_mode():
-            try:
-                self.stream_processor.parser.stream_interface.send(cmd)
-            except AttributeError:
-                logger.info('No USB port visible yet, skipping trigger command. Triggers will work '
-                            'after you connect the Explore device to USB port')
-        else:
-            if self.stream_processor is None:
-                # connection is BLE connection, but we want to setup the port for multiple use
-                setup_usb_marker_port().write(cmd)
-            else:
-                self.stream_processor.parser.usb_marker_port.write(cmd)
+        explore_port = setup_usb_marker_port()
+        explore_port.write(bytearray(cmd))
+        explore_port.close()
 
     def format_memory(self):
         """Format memory of the device
