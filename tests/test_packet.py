@@ -3,13 +3,9 @@ import copy
 import numpy as np
 import pytest
 
-import explorepy.packet
 from explorepy.packet import (
     EEG,
     EEG_BLE,
-    EEG32_BLE,
-    Environment,
-    TimeStamp,
     EventMarker,
     ExternalMarker,
     Packet,
@@ -51,7 +47,7 @@ def test_abstract_timestamp_correct(mocker, parametrized_abstract_packets):
         p = parametrized_abstract_packets(start, b'\x00\x00\x00\xaf\xbe\xad\xde', offset, v_ref=2.4, n_packet=1)
     else:
         p = parametrized_abstract_packets(start, b'\xaf\xbe\xad\xde', offset)
-    assert p.timestamp == (start+offset)
+    assert p.timestamp == (start + offset)
 
 
 def test_int24to32(parametrized_int24toint32_in_out):
@@ -65,6 +61,7 @@ def test_calculate_impedance_no_info(mocked_eeg_base):
     with pytest.raises(Exception):
         mocked_eeg_base.calculate_impedance(imp_calib_info)
 
+
 def test_calculate_impedance(parametrized_eeg_in_out):
     out = parametrized_eeg_in_out["eeg_out"]
     if "slope" not in out or "offset" not in out or "noise_level" not in out or "impedances" not in out:
@@ -73,6 +70,7 @@ def test_calculate_impedance(parametrized_eeg_in_out):
     eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
     eeg.calculate_impedance(imp_calib_info)
     np.testing.assert_allclose(eeg.get_impedances(), out["impedances"])
+
 
 def test_get_impedances_none(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out["eeg_instance"]
@@ -144,6 +142,7 @@ def test_convert_errors_v_ref(parametrized_eeg_in_out):
     with pytest.raises(ValueError, match="v_ref or n_packet cannot be null for conversion!"):
         eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
 
+
 def test_convert_errors_n_packet(parametrized_eeg_in_out):
     eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
     eeg.n_packet = None
@@ -182,6 +181,7 @@ def test_status(parametrized_eeg_in_out):
         np.testing.assert_array_equal(eeg.status['ads'], status_out['ads'])
         np.testing.assert_array_equal(eeg.status['empty'], status_out['empty'])
         np.testing.assert_array_equal(eeg.status['sr'], status_out['sr'])
+
 
 def test_convert(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
