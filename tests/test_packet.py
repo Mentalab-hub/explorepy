@@ -188,6 +188,7 @@ def test_convert(parametrized_eeg_in_out):
     eeg_out = parametrized_eeg_in_out['eeg_out']
     np.testing.assert_array_equal(eeg.data, eeg_out['samples'])
 
+
 def test_channel_order(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
     if not isinstance(eeg, EEG_BLE):
@@ -197,6 +198,7 @@ def test_channel_order(parametrized_eeg_in_out):
                                      15, 14, 13, 12, 11, 10, 9, 8,
                                      23, 22, 21, 20, 19, 18, 17, 16,
                                      31, 30, 29, 28, 27, 26, 25, 24]
+
 
 def test_check_fletcher(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
@@ -302,12 +304,14 @@ def test_label_prefix_marker(marker_in_out):
     marker_out = marker_in_out['marker_out']
     assert marker._label_prefix == marker_out['label_prefix']
 
+
 def test_get_data_marker(marker_in_out):
     marker = marker_in_out['marker_instance']
     marker_out = marker_in_out['marker_out']
     first, second = marker.get_data()
     assert first == [marker_out['raw_timestamp']]
     assert second == [marker_out['label']]
+
 
 def test_check_fletcher_marker(marker_in_out):
     marker = marker_in_out['marker_instance']
@@ -468,6 +472,7 @@ def test_device_info_v2_get_data(device_info_v2_in_out):
     dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
     assert dev_info_v2_instance.get_data() == {'firmware_version': [dev_info_v2_out['fw_version']]}
 
+
 def test_convert_device_info_ble_board_id(device_info_ble_in_out):
     dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
     dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
@@ -514,6 +519,7 @@ def test_convert_device_info_ble_max_offline_sps(device_info_ble_in_out):
     dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
     dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
     assert dev_info_ble_instance.max_offline_sps == dev_info_ble_out['max_offline_sps']
+
 
 def test_convert_device_info_ble_is_imp_mode(device_info_ble_in_out):
     dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']

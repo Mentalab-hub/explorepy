@@ -7,19 +7,19 @@ import pytest
 
 from explorepy.packet import (
     EEG,
+    EEG16_BLE,
     EEG32,
     EEG94,
     EEG98,
     EEG98_BLE,
     EEG98_USBC,
-    EEG16_BLE,
     CalibrationInfo,
     CalibrationInfo_USBC,
     CommandRCV,
     CommandStatus,
     DeviceInfo,
-    DeviceInfoV2,
     DeviceInfoBLE,
+    DeviceInfoV2,
     Disconnect,
     Environment,
     EventMarker,
@@ -311,6 +311,7 @@ def device_info_v2_in_out(request):
     field_names = {'instance': 'dev_info_v2_instance',
                    'out': 'dev_info_v2_out'}
     return data_from_files(request.param[0], request.param[1], DeviceInfoV2, field_names)
+
 
 @pytest.fixture(params=[(DEV_INFO_BLE_IN, DEV_INFO_BLE_OUT)])
 def device_info_ble_in_out(request):
