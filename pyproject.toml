@@ -1,0 +1,60 @@
+[build-system]
+requires        = ['setuptools>=74.0']
+build-backend   = 'setuptools.build_meta'
+
+[project]
+name    = 'explorepy'
+version = "3.2.1"
+license = { text = "MIT" }
+readme = { file = "README.rst", content-type = "text/markdown" }
+authors = [
+  { name = "MentaLab Hub", email = "support@mentab.org" },
+]
+urls = { Homepage = "https://github.com/Mentalab-hub/explorepy" }
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: Unix',
+    'Operating System :: POSIX',
+    'Operating System :: Microsoft :: Windows',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Topic :: Education',
+    'Topic :: Scientific/Engineering :: Medical Science Apps.',
+    'Topic :: Scientific/Engineering :: Visualization'
+]
+
+dependencies = [
+    'numpy',
+    'scipy',
+    'pyedflib',
+    'click==7.1.2',
+    'appdirs==1.4.3',
+    'sentry_sdk==2.8.0',
+    'mne',
+    'eeglabio',
+    'pandas',
+    'pyserial',
+    'pyyaml',
+    'bleak==0.22.3',
+    'pylsl==1.16.2']
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+test = [
+    "pytest==6.2.5",
+    "pytest-mock==3.10.0",
+    "pytest-html==3.2.0",
+    "flake8==4.0.1",
+    "isort==5.10.1"]
+
+[project.scripts]
+explorepy = "explorepy.cli:cli"
