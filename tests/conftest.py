@@ -12,12 +12,14 @@ from explorepy.packet import (
     EEG98,
     EEG98_BLE,
     EEG98_USBC,
+    EEG16_BLE,
     CalibrationInfo,
     CalibrationInfo_USBC,
     CommandRCV,
     CommandStatus,
     DeviceInfo,
     DeviceInfoV2,
+    DeviceInfoBLE,
     Disconnect,
     Environment,
     EventMarker,
@@ -41,11 +43,15 @@ EEG98_USBC_IN = os.path.join(IN, "eeg98_usbc")
 EEG98_USBC_IN_2 = os.path.join(IN, "eeg98_usbc_2")
 EEG32_IN = os.path.join(IN, "eeg32")
 EEG98_BLE_IN = os.path.join(IN, "eeg98_ble")
+EEG16_BLE_IN = os.path.join(IN, "eeg16_ble")
 
 ORN_IN = os.path.join(IN, "orn")
+ORN_2_IN = os.path.join(IN, "orn_2")
 CMD_STAT_IN = os.path.join(IN, "cmd_stat")
 DEV_INFO_IN = os.path.join(IN, "device_info")
 DEV_INFO_V2_IN = os.path.join(IN, "device_info_v2")
+DEV_INFO_V2_2_IN = os.path.join(IN, "device_info_v2_2")
+DEV_INFO_BLE_IN = os.path.join(IN, "device_info_ble")
 ENV_IN = os.path.join(IN, "env")
 TS_IN = os.path.join(IN, "ts")  # Doesn't exist
 PUSH_MARKER_IN = os.path.join(IN, "push_marker")
@@ -66,11 +72,15 @@ EEG98_USBC_OUT = os.path.join(OUT, "eeg98_usbc_out.txt")
 EEG98_USBC_OUT_2 = os.path.join(OUT, "eeg98_usbc_out_2.txt")
 EEG32_OUT = os.path.join(OUT, "eeg32_out.txt")
 EEG98_BLE_OUT = os.path.join(OUT, "eeg98_ble_out.txt")
+EEG16_BLE_OUT = os.path.join(OUT, "eeg16_ble_out.txt")
 
 ORN_OUT = os.path.join(OUT, "orn_out.txt")
+ORN_2_OUT = os.path.join(OUT, "orn_2_out.txt")
 CMD_STAT_OUT = os.path.join(OUT, "cmd_stat_out.txt")
 DEV_INFO_OUT = os.path.join(OUT, "device_info_out.txt")
 DEV_INFO_V2_OUT = os.path.join(OUT, "device_info_v2_out.txt")
+DEV_INFO_V2_2_OUT = os.path.join(OUT, "device_info_v2_2_out.txt")
+DEV_INFO_BLE_OUT = os.path.join(OUT, "device_info_ble_out.txt")
 ENV_OUT = os.path.join(OUT, "env_out.txt")
 TS_OUT = os.path.join(OUT, "ts_out.txt")  # Doesn't exist
 PUSH_MARKER_OUT = os.path.join(OUT, "push_marker_out.txt")
@@ -91,7 +101,8 @@ EEG_IN_OUT_LIST = [
     (EEG98_USBC, EEG98_USBC_IN, EEG98_USBC_OUT),
     (EEG98_USBC, EEG98_USBC_IN_2, EEG98_USBC_OUT_2),
     (EEG32, EEG32_IN, EEG32_OUT),
-    (EEG98_BLE, EEG98_BLE_IN, EEG98_BLE_OUT)
+    (EEG98_BLE, EEG98_BLE_IN, EEG98_BLE_OUT),
+    (EEG16_BLE, EEG16_BLE_IN, EEG16_BLE_OUT)
 ]
 
 
@@ -193,7 +204,7 @@ def parametrized_eeg_in_out(request):
     return data_from_files(request.param[1], request.param[2], request.param[0], field_names)
 
 
-@pytest.fixture(params=[(ORN_IN, ORN_OUT)], scope="module")
+@pytest.fixture(params=[(ORN_IN, ORN_OUT), (ORN_2_IN, ORN_2_OUT)], scope="module")
 def orientation_in_out(request):
     field_names = {'instance': 'orn_instance',
                    'out': 'orn_out'}
@@ -295,11 +306,17 @@ def device_info_in_out(request):
     return data_from_files(request.param[0], request.param[1], DeviceInfo, field_names)
 
 
-@pytest.fixture(params=[(DEV_INFO_V2_IN, DEV_INFO_V2_OUT)])
+@pytest.fixture(params=[(DEV_INFO_V2_IN, DEV_INFO_V2_OUT), (DEV_INFO_V2_2_IN, DEV_INFO_V2_2_OUT)])
 def device_info_v2_in_out(request):
     field_names = {'instance': 'dev_info_v2_instance',
                    'out': 'dev_info_v2_out'}
     return data_from_files(request.param[0], request.param[1], DeviceInfoV2, field_names)
+
+@pytest.fixture(params=[(DEV_INFO_BLE_IN, DEV_INFO_BLE_OUT)])
+def device_info_ble_in_out(request):
+    field_names = {'instance': 'dev_info_ble_instance',
+                   'out': 'dev_info_ble_out'}
+    return data_from_files(request.param[0], request.param[1], DeviceInfoBLE, field_names)
 
 
 @pytest.fixture(params=[(CMD_RCV_IN, CMD_RCV_OUT)])

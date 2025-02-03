@@ -33,7 +33,7 @@ def get_first_status_as_tuple(status_list):
 
 
 def test_is_abstract(parametrized_abstract_packets):
-    with pytest.raises(Exception):
+    with pytest.raises(TypeError):
         parametrized_abstract_packets(1234, b'\xff\xff\xff\xff', 0)
 
 
@@ -188,6 +188,15 @@ def test_convert(parametrized_eeg_in_out):
     eeg_out = parametrized_eeg_in_out['eeg_out']
     np.testing.assert_array_equal(eeg.data, eeg_out['samples'])
 
+def test_channel_order(parametrized_eeg_in_out):
+    eeg = parametrized_eeg_in_out['eeg_instance']
+    if not isinstance(eeg, EEG_BLE):
+        assert not hasattr(eeg, "channel_order")
+    else:
+        assert eeg.channel_order == [7, 6, 5, 4, 3, 2, 1, 0,
+                                     15, 14, 13, 12, 11, 10, 9, 8,
+                                     23, 22, 21, 20, 19, 18, 17, 16,
+                                     31, 30, 29, 28, 27, 26, 25, 24]
 
 def test_check_fletcher(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
@@ -293,6 +302,12 @@ def test_label_prefix_marker(marker_in_out):
     marker_out = marker_in_out['marker_out']
     assert marker._label_prefix == marker_out['label_prefix']
 
+def test_get_data_marker(marker_in_out):
+    marker = marker_in_out['marker_instance']
+    marker_out = marker_in_out['marker_out']
+    first, second = marker.get_data()
+    assert first == [marker_out['raw_timestamp']]
+    assert second == [marker_out['label']]
 
 def test_check_fletcher_marker(marker_in_out):
     marker = marker_in_out['marker_instance']
@@ -452,6 +467,74 @@ def test_device_info_v2_get_data(device_info_v2_in_out):
     dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
     dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
     assert dev_info_v2_instance.get_data() == {'firmware_version': [dev_info_v2_out['fw_version']]}
+
+def test_convert_device_info_ble_board_id(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.board_id == dev_info_ble_out['board_id']
+
+
+def test_convert_device_info_ble_fw(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.firmware_version == dev_info_ble_out['fw_version']
+
+
+def test_convert_device_info_ble_sr(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.sampling_rate == dev_info_ble_out['data_rate']
+
+
+def test_convert_device_info_ble_adc(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.adc_mask == dev_info_ble_out['adc_mask']
+
+
+def test_convert_device_info_ble_memory_available(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.is_memory_available == dev_info_ble_out['memory']
+
+
+def test_convert_device_info_ble_sps_info(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.sps_info == dev_info_ble_out['sps_info']
+
+
+def test_convert_device_info_ble_max_online_sps(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.max_online_sps == dev_info_ble_out['max_online_sps']
+
+
+def test_convert_device_info_ble_max_offline_sps(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.max_offline_sps == dev_info_ble_out['max_offline_sps']
+
+def test_convert_device_info_ble_is_imp_mode(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.is_imp_mode == dev_info_ble_out['is_imp_mode']
+
+
+def test_device_info_ble_get_info(device_info_ble_in_out):
+    device_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    out_dict = {
+        'firmware_version': dev_info_ble_out['fw_version'],
+        'adc_mask': dev_info_ble_out['adc_mask'],
+        'sampling_rate': dev_info_ble_out['data_rate'],
+        'board_id': dev_info_ble_out['board_id'],
+        'memory_info': dev_info_ble_out['memory'],
+        'max_online_sps': dev_info_ble_out['max_online_sps'],
+        'max_offline_sps': dev_info_ble_out['max_offline_sps'],
+        'is_imp_mode': dev_info_ble_out['is_imp_mode']
+    }
+    assert device_info_ble_instance.get_info() == out_dict
 
 
 def test_convert_cmd_rcv(cmd_rcv_in_out):
