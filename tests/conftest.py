@@ -29,8 +29,7 @@ from explorepy.packet import (
     PushButtonMarker,
     SoftwareMarker,
     TimeStamp,
-    TriggerIn,
-    TriggerOut
+    TriggerIn
 )
 
 
