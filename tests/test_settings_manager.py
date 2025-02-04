@@ -110,6 +110,16 @@ def test_update_device_settings(settings_manager):
         assert settings_manager.settings_dict["board_id"] == "PCB_304_801_XXX"
 
 
+def test_update_device_settings_invalid_board_id(settings_manager):
+    with patch("builtins.open", new_callable=mock_open):
+        try:
+            settings_manager.update_device_settings({"board_id": None})
+            assert "board_id" in settings_manager.settings_dict
+            assert settings_manager.settings_dict["board_id"] is None
+        except KeyError:
+            assert True
+
+
 def test_save_current_session(settings_manager):
     with patch("shutil.copyfile") as mock_copyfile:
         settings_manager.save_current_session()
