@@ -57,7 +57,7 @@ TS_IN = os.path.join(IN, "ts")  # Doesn't exist
 PUSH_MARKER_IN = os.path.join(IN, "push_marker")
 SOFTWARE_MARKER_IN = os.path.join(IN, "software_marker")  # Doesn't exist
 EXTERNAL_MARKER_IN = os.path.join(IN, "external_marker")  # Doesn't exist
-TRIGGER_IN_IN = os.path.join(IN, "trigger_in")  # Doesn't exist
+TRIGGER_IN_IN = os.path.join(IN, "trigger_in")
 TRIGGER_OUT_IN = os.path.join(IN, "trigger_out")  # Doesn't exist
 DISCONNECT_IN = os.path.join(IN, "disconnect")  # Doesn't exist
 CMD_RCV_IN = os.path.join(IN, "cmd_rcv")
@@ -86,7 +86,7 @@ TS_OUT = os.path.join(OUT, "ts_out.txt")  # Doesn't exist
 PUSH_MARKER_OUT = os.path.join(OUT, "push_marker_out.txt")
 SOFTWARE_MARKER_OUT = os.path.join(OUT, "software_marker_out.txt")  # Doesn't exist
 EXTERNAL_MARKER_OUT = os.path.join(OUT, "external_marker_out.txt")
-TRIGGER_IN_OUT = os.path.join(OUT, "trigger_in_out.txt")  # Doesn't exist
+TRIGGER_IN_OUT = os.path.join(OUT, "trigger_in_out.txt")
 TRIGGER_OUT_OUT = os.path.join(OUT, "trigger_out_out.txt")  # Doesn't exist
 DISCONNECT_OUT = os.path.join(OUT, "disconnect_out.txt")  # Doesn't exist
 CMD_RCV_OUT = os.path.join(OUT, "cmd_rcv_out.txt")
@@ -284,8 +284,7 @@ def ext_marker_inputs_invalid(request):
     return request.param
 
 
-@pytest.fixture(params=[(TriggerIn, TRIGGER_IN_IN, TRIGGER_IN_OUT),
-                        (TriggerOut, TRIGGER_OUT_IN, TRIGGER_OUT_OUT)])
+@pytest.fixture(params=[(TriggerIn, TRIGGER_IN_IN, TRIGGER_IN_OUT)])
 def triggers_in_out(request):
     field_names = {'instance': 'triggers_instance',
                    'out': 'triggers_out'}

@@ -359,36 +359,31 @@ def test_create_external_marker_ts(ext_marker_inputs_valid):
     assert out.timestamp == ext_marker_inputs_valid[0]
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_triggers_is_eventmarker(triggers_in_out):
     assert isinstance(triggers_in_out['triggers_instance'], EventMarker)
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_convert_triggers_ts(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
     trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.timestamp == trigger_out['timestamp']
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_convert_triggers_code(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
     trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.code == trigger_out['code']
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_convert_triggers_mac_address(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
     trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.mac_address == trigger_out['mac_address']
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_triggers_check_fletcher(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
-    trigger_instance._check_fletcher(bytes.fromhex(triggers_in_out['fletcher']))
+    trigger_instance._check_fletcher(bytes.fromhex(triggers_in_out['triggers_out']['fletcher']))
 
 
 def test_disconnect_check_fletcher(disconnect_in_out):
