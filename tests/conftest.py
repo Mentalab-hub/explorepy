@@ -7,15 +7,18 @@ import pytest
 
 from explorepy.packet import (
     EEG,
+    EEG16_BLE,
     EEG32,
     EEG94,
     EEG98,
+    EEG98_BLE,
     EEG98_USBC,
     CalibrationInfo,
     CalibrationInfo_USBC,
     CommandRCV,
     CommandStatus,
     DeviceInfo,
+    DeviceInfoBLE,
     DeviceInfoV2,
     Disconnect,
     Environment,
@@ -26,8 +29,7 @@ from explorepy.packet import (
     PushButtonMarker,
     SoftwareMarker,
     TimeStamp,
-    TriggerIn,
-    TriggerOut
+    TriggerIn
 )
 
 
@@ -39,17 +41,22 @@ EEG98_IN = os.path.join(IN, "eeg98")
 EEG98_USBC_IN = os.path.join(IN, "eeg98_usbc")
 EEG98_USBC_IN_2 = os.path.join(IN, "eeg98_usbc_2")
 EEG32_IN = os.path.join(IN, "eeg32")
+EEG98_BLE_IN = os.path.join(IN, "eeg98_ble")
+EEG16_BLE_IN = os.path.join(IN, "eeg16_ble")
 
 ORN_IN = os.path.join(IN, "orn")
+ORN_2_IN = os.path.join(IN, "orn_2")
 CMD_STAT_IN = os.path.join(IN, "cmd_stat")
 DEV_INFO_IN = os.path.join(IN, "device_info")
 DEV_INFO_V2_IN = os.path.join(IN, "device_info_v2")
+DEV_INFO_V2_2_IN = os.path.join(IN, "device_info_v2_2")
+DEV_INFO_BLE_IN = os.path.join(IN, "device_info_ble")
 ENV_IN = os.path.join(IN, "env")
 TS_IN = os.path.join(IN, "ts")  # Doesn't exist
 PUSH_MARKER_IN = os.path.join(IN, "push_marker")
 SOFTWARE_MARKER_IN = os.path.join(IN, "software_marker")  # Doesn't exist
 EXTERNAL_MARKER_IN = os.path.join(IN, "external_marker")  # Doesn't exist
-TRIGGER_IN_IN = os.path.join(IN, "trigger_in")  # Doesn't exist
+TRIGGER_IN_IN = os.path.join(IN, "trigger_in")
 TRIGGER_OUT_IN = os.path.join(IN, "trigger_out")  # Doesn't exist
 DISCONNECT_IN = os.path.join(IN, "disconnect")  # Doesn't exist
 CMD_RCV_IN = os.path.join(IN, "cmd_rcv")
@@ -63,17 +70,22 @@ EEG98_OUT = os.path.join(OUT, "eeg98_out.txt")
 EEG98_USBC_OUT = os.path.join(OUT, "eeg98_usbc_out.txt")
 EEG98_USBC_OUT_2 = os.path.join(OUT, "eeg98_usbc_out_2.txt")
 EEG32_OUT = os.path.join(OUT, "eeg32_out.txt")
+EEG98_BLE_OUT = os.path.join(OUT, "eeg98_ble_out.txt")
+EEG16_BLE_OUT = os.path.join(OUT, "eeg16_ble_out.txt")
 
 ORN_OUT = os.path.join(OUT, "orn_out.txt")
+ORN_2_OUT = os.path.join(OUT, "orn_2_out.txt")
 CMD_STAT_OUT = os.path.join(OUT, "cmd_stat_out.txt")
 DEV_INFO_OUT = os.path.join(OUT, "device_info_out.txt")
 DEV_INFO_V2_OUT = os.path.join(OUT, "device_info_v2_out.txt")
+DEV_INFO_V2_2_OUT = os.path.join(OUT, "device_info_v2_2_out.txt")
+DEV_INFO_BLE_OUT = os.path.join(OUT, "device_info_ble_out.txt")
 ENV_OUT = os.path.join(OUT, "env_out.txt")
 TS_OUT = os.path.join(OUT, "ts_out.txt")  # Doesn't exist
 PUSH_MARKER_OUT = os.path.join(OUT, "push_marker_out.txt")
 SOFTWARE_MARKER_OUT = os.path.join(OUT, "software_marker_out.txt")  # Doesn't exist
 EXTERNAL_MARKER_OUT = os.path.join(OUT, "external_marker_out.txt")
-TRIGGER_IN_OUT = os.path.join(OUT, "trigger_in_out.txt")  # Doesn't exist
+TRIGGER_IN_OUT = os.path.join(OUT, "trigger_in_out.txt")
 TRIGGER_OUT_OUT = os.path.join(OUT, "trigger_out_out.txt")  # Doesn't exist
 DISCONNECT_OUT = os.path.join(OUT, "disconnect_out.txt")  # Doesn't exist
 CMD_RCV_OUT = os.path.join(OUT, "cmd_rcv_out.txt")
@@ -87,7 +99,9 @@ EEG_IN_OUT_LIST = [
     (EEG98, EEG98_IN, EEG98_OUT),
     (EEG98_USBC, EEG98_USBC_IN, EEG98_USBC_OUT),
     (EEG98_USBC, EEG98_USBC_IN_2, EEG98_USBC_OUT_2),
-    (EEG32, EEG32_IN, EEG32_OUT)
+    (EEG32, EEG32_IN, EEG32_OUT),
+    (EEG98_BLE, EEG98_BLE_IN, EEG98_BLE_OUT),
+    (EEG16_BLE, EEG16_BLE_IN, EEG16_BLE_OUT)
 ]
 
 
@@ -178,6 +192,10 @@ def parametrized_int24toint32_in_out(request):
 
 @pytest.fixture(params=eeg_in_out_list(), scope="module")
 def parametrized_eeg_in_out(request):
+    """Provides objects containing an instance of an EEG packet, input data, expected output data and class name.
+    Note that the instances distributed with this method have scope "module", meaning changes to the instance are
+    persistent throughout all following tests!
+    """
     field_names = {'class_name': 'eeg_class',
                    'in': 'eeg_in',
                    'instance': 'eeg_instance',
@@ -185,7 +203,7 @@ def parametrized_eeg_in_out(request):
     return data_from_files(request.param[1], request.param[2], request.param[0], field_names)
 
 
-@pytest.fixture(params=[(ORN_IN, ORN_OUT)], scope="module")
+@pytest.fixture(params=[(ORN_IN, ORN_OUT), (ORN_2_IN, ORN_2_OUT)], scope="module")
 def orientation_in_out(request):
     field_names = {'instance': 'orn_instance',
                    'out': 'orn_out'}
@@ -251,9 +269,9 @@ def sw_marker_inputs_invalid(request):
     return request.param
 
 
-@pytest.fixture(params=[(12345, "Experiment 0"),
-                        (42.42, "Short marker"),
-                        (12345, "Exp_1")])
+@pytest.fixture(params=[(12345, "Exp 0"),
+                        (42.42, "Short"),
+                        (12345, "A")])
 def ext_marker_inputs_valid(request):
     return request.param
 
@@ -265,8 +283,7 @@ def ext_marker_inputs_invalid(request):
     return request.param
 
 
-@pytest.fixture(params=[(TriggerIn, TRIGGER_IN_IN, TRIGGER_IN_OUT),
-                        (TriggerOut, TRIGGER_OUT_IN, TRIGGER_OUT_OUT)])
+@pytest.fixture(params=[(TriggerIn, TRIGGER_IN_IN, TRIGGER_IN_OUT)])
 def triggers_in_out(request):
     field_names = {'instance': 'triggers_instance',
                    'out': 'triggers_out'}
@@ -287,11 +304,18 @@ def device_info_in_out(request):
     return data_from_files(request.param[0], request.param[1], DeviceInfo, field_names)
 
 
-@pytest.fixture(params=[(DEV_INFO_V2_IN, DEV_INFO_V2_OUT)])
+@pytest.fixture(params=[(DEV_INFO_V2_IN, DEV_INFO_V2_OUT), (DEV_INFO_V2_2_IN, DEV_INFO_V2_2_OUT)])
 def device_info_v2_in_out(request):
     field_names = {'instance': 'dev_info_v2_instance',
                    'out': 'dev_info_v2_out'}
     return data_from_files(request.param[0], request.param[1], DeviceInfoV2, field_names)
+
+
+@pytest.fixture(params=[(DEV_INFO_BLE_IN, DEV_INFO_BLE_OUT)])
+def device_info_ble_in_out(request):
+    field_names = {'instance': 'dev_info_ble_instance',
+                   'out': 'dev_info_ble_out'}
+    return data_from_files(request.param[0], request.param[1], DeviceInfoBLE, field_names)
 
 
 @pytest.fixture(params=[(CMD_RCV_IN, CMD_RCV_OUT)])

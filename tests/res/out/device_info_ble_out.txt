@@ -1,0 +1,16 @@
+{
+"id": 98,
+"count": 0,
+"payload_length": 30,
+"raw_timestamp": 78699,
+"board_id": "PCB_303_801E_XX",
+"fw_version": "7.0.6",
+"data_rate": 250,
+"adc_mask": [1, 1, 1, 1, 1, 1, 1, 1],
+"memory": 1,
+"fletcher": "afbeadde",
+"sps_info": "00010100",
+"max_online_sps": 1000,
+"max_offline_sps": 8000,
+"is_imp_mode": false
+}

@@ -1,13 +1,15 @@
+import copy
+
 import numpy as np
 import pytest
 
-import explorepy.packet
 from explorepy.packet import (
     EEG,
-    Environment,
+    EEG_BLE,
     EventMarker,
     ExternalMarker,
     Packet,
+    PacketBIN,
     SoftwareMarker
 )
 
@@ -30,27 +32,22 @@ def get_first_status_as_tuple(status_list):
     return first_byte, second_byte, third_byte
 
 
-def xfail_on_unexpected_timescale():
-    if explorepy.packet.TIMESTAMP_SCALE != EXPECTED_TIMESCALE:
-        pytest.xfail(
-            f"packet.py's TIMESTAMP_SCALE has changed. Expected: 10000, got: {explorepy.packet.TIMESTAMP_SCALE}")
-
-
 def test_is_abstract(parametrized_abstract_packets):
-    with pytest.raises(Exception):
+    with pytest.raises(TypeError):
         parametrized_abstract_packets(1234, b'\xff\xff\xff\xff', 0)
 
 
 def test_abstract_timestamp_correct(mocker, parametrized_abstract_packets):
-    xfail_on_unexpected_timescale()
     if hasattr(parametrized_abstract_packets, "__abstractmethods__"):
         if len(parametrized_abstract_packets.__abstractmethods__) != 0:
             mocker.patch.multiple(parametrized_abstract_packets, __abstractmethods__=set())
+    start = 12345
+    offset = 300
     if parametrized_abstract_packets == EEG:
-        p = parametrized_abstract_packets(12345, b'\x00\x00\x00\xaf\xbe\xad\xde', 300, v_ref=2.4, n_packet=1)
+        p = parametrized_abstract_packets(start, b'\x00\x00\x00\xaf\xbe\xad\xde', offset, v_ref=2.4, n_packet=1)
     else:
-        p = parametrized_abstract_packets(12345, b'\xaf\xbe\xad\xde', 300)
-    assert p.timestamp == 301.2345
+        p = parametrized_abstract_packets(start, b'\xaf\xbe\xad\xde', offset)
+    assert p.timestamp == (start + offset)
 
 
 def test_int24to32(parametrized_int24toint32_in_out):
@@ -65,16 +62,31 @@ def test_calculate_impedance_no_info(mocked_eeg_base):
         mocked_eeg_base.calculate_impedance(imp_calib_info)
 
 
+def test_calculate_impedance(parametrized_eeg_in_out):
+    out = parametrized_eeg_in_out["eeg_out"]
+    if "slope" not in out or "offset" not in out or "noise_level" not in out or "impedances" not in out:
+        pytest.xfail("Impedance calibration parameters and/or expected output are not known for this test EEG packet.")
+    imp_calib_info = {'slope': out["slope"], 'offset': out["offset"], 'noise_level': out["noise_level"]}
+    eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
+    eeg.calculate_impedance(imp_calib_info)
+    np.testing.assert_allclose(eeg.get_impedances(), out["impedances"])
+
+
+def test_get_impedances_none(parametrized_eeg_in_out):
+    eeg = parametrized_eeg_in_out["eeg_instance"]
+    assert eeg.get_impedances() is None
+
+
 def test_get_data(mocked_eeg_base):
     tv, d = mocked_eeg_base.get_data(250)
     assert len(tv) == 5
-    np.testing.assert_array_equal(tv, [1.2345, 1.2385, 1.2425, 1.2465, 1.2505])
+    np.testing.assert_allclose(tv, [12345., 12345.004, 12345.008, 12345.012, 12345.016])
     np.testing.assert_array_equal(d, mocked_eeg_base.data)
 
 
 def test_get_data_no_sample_rate(mocked_eeg_base):
     tv, d = mocked_eeg_base.get_data()
-    assert tv == 1.2345
+    assert tv == 12345
     np.testing.assert_array_equal(d, mocked_eeg_base.data)
 
 
@@ -94,17 +106,81 @@ def test_is_eeg(parametrized_eeg_in_out):
     assert isinstance(eeg_instance, EEG)
 
 
+def test_packetbin_bin_data(parametrized_eeg_in_out):
+    raw_data = parametrized_eeg_in_out['eeg_in']
+    packetbin = PacketBIN(raw_data)
+    assert raw_data == packetbin.bin_data
+
+
+def test_packetbin_convert(parametrized_eeg_in_out):
+    raw_data = parametrized_eeg_in_out['eeg_in']
+    packetbin = PacketBIN(raw_data)
+    packetbin._convert(raw_data)
+    assert not hasattr(packetbin, "data")
+    assert raw_data == packetbin.bin_data
+
+
+def test_packetbin_str(parametrized_eeg_in_out):
+    raw_data = parametrized_eeg_in_out['eeg_in']
+    packet_bin = PacketBIN(raw_data)
+    packet_bin_out = parametrized_eeg_in_out['eeg_out']
+    if 'bin_string' in packet_bin_out:
+        assert bytes(packet_bin_out['bin_string'], "utf-8").__str__() == packet_bin.__str__()
+
+
+def test_byteorder_data(parametrized_eeg_in_out):
+    eeg = parametrized_eeg_in_out['eeg_instance']
+    if isinstance(eeg, EEG_BLE):
+        assert eeg.byteorder_data == "big"
+    else:
+        assert eeg.byteorder_data == "little"
+
+
+def test_convert_errors_v_ref(parametrized_eeg_in_out):
+    eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
+    eeg.v_ref = None
+    with pytest.raises(ValueError, match="v_ref or n_packet cannot be null for conversion!"):
+        eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
+
+
+def test_convert_errors_n_packet(parametrized_eeg_in_out):
+    eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
+    eeg.n_packet = None
+    with pytest.raises(ValueError, match="v_ref or n_packet cannot be null for conversion!"):
+        eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
+
+
+@pytest.mark.parametrize("byte_order", [(None, TypeError),
+                                        (0, TypeError),
+                                        ("LITTLE", ValueError),
+                                        ("BIG", ValueError),
+                                        ("l", ValueError),
+                                        ("b", ValueError),
+                                        (-1, TypeError),
+                                        (True, TypeError),
+                                        (False, TypeError)])
+def test_convert_errors_byteorder(parametrized_eeg_in_out, byte_order):
+    eeg = copy.deepcopy(parametrized_eeg_in_out["eeg_instance"])
+    eeg.byteorder_data = byte_order[0]
+    with pytest.raises(byte_order[1]):
+        eeg._convert(parametrized_eeg_in_out["eeg_in"][8:-4])
+
+
 def test_status(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
     eeg_out = parametrized_eeg_in_out['eeg_out']
-    status_out = {
-        'ads': eeg_out['status_ads'],
-        'empty': eeg_out['status_empty'],
-        'sr': eeg_out['status_sr']
-    }
-    np.testing.assert_array_equal(eeg.status['ads'], status_out['ads'])
-    np.testing.assert_array_equal(eeg.status['empty'], status_out['empty'])
-    np.testing.assert_array_equal(eeg.status['sr'], status_out['sr'])
+    if isinstance(eeg, EEG_BLE):
+        with pytest.raises(AttributeError):
+            eeg.status
+    else:
+        status_out = {
+            'ads': eeg_out['status_ads'],
+            'empty': eeg_out['status_empty'],
+            'sr': eeg_out['status_sr']
+        }
+        np.testing.assert_array_equal(eeg.status['ads'], status_out['ads'])
+        np.testing.assert_array_equal(eeg.status['empty'], status_out['empty'])
+        np.testing.assert_array_equal(eeg.status['sr'], status_out['sr'])
 
 
 def test_convert(parametrized_eeg_in_out):
@@ -113,10 +189,30 @@ def test_convert(parametrized_eeg_in_out):
     np.testing.assert_array_equal(eeg.data, eeg_out['samples'])
 
 
+def test_channel_order(parametrized_eeg_in_out):
+    eeg = parametrized_eeg_in_out['eeg_instance']
+    if not isinstance(eeg, EEG_BLE):
+        assert not hasattr(eeg, "channel_order")
+    else:
+        assert eeg.channel_order == [7, 6, 5, 4, 3, 2, 1, 0,
+                                     15, 14, 13, 12, 11, 10, 9, 8,
+                                     23, 22, 21, 20, 19, 18, 17, 16,
+                                     31, 30, 29, 28, 27, 26, 25, 24]
+
+
 def test_check_fletcher(parametrized_eeg_in_out):
     eeg = parametrized_eeg_in_out['eeg_instance']
     eeg_out = parametrized_eeg_in_out['eeg_out']
     eeg._check_fletcher(bytes.fromhex(eeg_out['fletcher']))
+
+
+@pytest.mark.parametrize('fletcher', [b"\x01\x02\x03\x04",
+                                      b"\x00\x00\x00\x00",
+                                      b"\xff\xff\xff\xff"])
+def test_check_fletcher_invalid(parametrized_eeg_in_out, fletcher):
+    with pytest.raises(Exception):
+        eeg = parametrized_eeg_in_out['eeg_instance']
+        eeg._check_fletcher(fletcher)
 
 
 def test_convert_orn(orientation_in_out):
@@ -128,11 +224,10 @@ def test_convert_orn(orientation_in_out):
 
 
 def test_get_data_orn(orientation_in_out):
-    xfail_on_unexpected_timescale()
     orn = orientation_in_out['orn_instance']
     orn_out = orientation_in_out['orn_out']
     ts, samples = orn.get_data()
-    assert [orn_out['raw_timestamp'] / EXPECTED_TIMESCALE] == ts
+    assert [orn_out['raw_timestamp']] == ts
     ls = []
     ls.extend(orn_out['acc'])
     ls.extend(orn_out['gyr'])
@@ -164,12 +259,6 @@ def test_convert_env_light(env_in_out):
 
 def test_convert_env_battery(env_in_out):
     assert env_in_out['env_instance'].battery == env_in_out['env_out']['battery']
-
-
-def test_volt_to_percent(env_in_out):
-    expected = env_in_out['env_out']['battery_percentage']
-    res = Environment._volt_to_percent(env_in_out['env_out']['battery'])
-    assert res == int(expected)
 
 
 def test_get_data_env(env_in_out):
@@ -216,6 +305,14 @@ def test_label_prefix_marker(marker_in_out):
     assert marker._label_prefix == marker_out['label_prefix']
 
 
+def test_get_data_marker(marker_in_out):
+    marker = marker_in_out['marker_instance']
+    marker_out = marker_in_out['marker_out']
+    first, second = marker.get_data()
+    assert first == [marker_out['raw_timestamp']]
+    assert second == [marker_out['label']]
+
+
 def test_check_fletcher_marker(marker_in_out):
     marker = marker_in_out['marker_instance']
     marker_out = marker_in_out['marker_out']
@@ -239,7 +336,7 @@ def test_create_software_marker_prefix(sw_marker_inputs_valid):
 
 def test_create_software_marker_ts(sw_marker_inputs_valid):
     out = SoftwareMarker.create(sw_marker_inputs_valid[0], sw_marker_inputs_valid[1])
-    assert out.timestamp == sw_marker_inputs_valid[0]
+    assert out.timestamp == sw_marker_inputs_valid[0] * 10000
 
 
 def test_create_external_marker_invalid(ext_marker_inputs_invalid):
@@ -254,7 +351,7 @@ def test_create_external_marker_code(ext_marker_inputs_valid):
 
 def test_create_external_marker_prefix(ext_marker_inputs_valid):
     out = ExternalMarker.create(ext_marker_inputs_valid[0], ext_marker_inputs_valid[1])
-    assert out._label_prefix == "ext_"
+    assert out._label_prefix == "sw_"
 
 
 def test_create_external_marker_ts(ext_marker_inputs_valid):
@@ -262,36 +359,31 @@ def test_create_external_marker_ts(ext_marker_inputs_valid):
     assert out.timestamp == ext_marker_inputs_valid[0]
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_triggers_is_eventmarker(triggers_in_out):
     assert isinstance(triggers_in_out['triggers_instance'], EventMarker)
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_convert_triggers_ts(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
     trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.timestamp == trigger_out['timestamp']
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_convert_triggers_code(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
     trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.code == trigger_out['code']
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_convert_triggers_mac_address(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
     trigger_out = triggers_in_out['triggers_out']
     assert trigger_instance.mac_address == trigger_out['mac_address']
 
 
-@pytest.mark.skip(reason="TriggerIn and TriggerOut not in use, no packets available")
 def test_triggers_check_fletcher(triggers_in_out):
     trigger_instance = triggers_in_out['triggers_instance']
-    trigger_instance._check_fletcher(bytes.fromhex(triggers_in_out['fletcher']))
+    trigger_instance._check_fletcher(bytes.fromhex(triggers_in_out['triggers_out']['fletcher']))
 
 
 def test_disconnect_check_fletcher(disconnect_in_out):
@@ -363,7 +455,8 @@ def test_device_info_v2_get_info(device_info_v2_in_out):
         'adc_mask': dev_info_v2_out['adc_mask'],
         'sampling_rate': dev_info_v2_out['data_rate'],
         'board_id': dev_info_v2_out['board_id'],
-        'memory_info': dev_info_v2_out['memory']
+        'memory_info': dev_info_v2_out['memory'],
+        'is_imp_mode': False
     }
     assert dev_info_v2_instance.get_info() == out_dict
 
@@ -373,6 +466,76 @@ def test_device_info_v2_get_data(device_info_v2_in_out):
     dev_info_v2_instance = device_info_v2_in_out['dev_info_v2_instance']
     dev_info_v2_out = device_info_v2_in_out['dev_info_v2_out']
     assert dev_info_v2_instance.get_data() == {'firmware_version': [dev_info_v2_out['fw_version']]}
+
+
+def test_convert_device_info_ble_board_id(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.board_id == dev_info_ble_out['board_id']
+
+
+def test_convert_device_info_ble_fw(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.firmware_version == dev_info_ble_out['fw_version']
+
+
+def test_convert_device_info_ble_sr(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.sampling_rate == dev_info_ble_out['data_rate']
+
+
+def test_convert_device_info_ble_adc(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.adc_mask == dev_info_ble_out['adc_mask']
+
+
+def test_convert_device_info_ble_memory_available(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.is_memory_available == dev_info_ble_out['memory']
+
+
+def test_convert_device_info_ble_sps_info(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.sps_info == dev_info_ble_out['sps_info']
+
+
+def test_convert_device_info_ble_max_online_sps(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.max_online_sps == dev_info_ble_out['max_online_sps']
+
+
+def test_convert_device_info_ble_max_offline_sps(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.max_offline_sps == dev_info_ble_out['max_offline_sps']
+
+
+def test_convert_device_info_ble_is_imp_mode(device_info_ble_in_out):
+    dev_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    assert dev_info_ble_instance.is_imp_mode == dev_info_ble_out['is_imp_mode']
+
+
+def test_device_info_ble_get_info(device_info_ble_in_out):
+    device_info_ble_instance = device_info_ble_in_out['dev_info_ble_instance']
+    dev_info_ble_out = device_info_ble_in_out['dev_info_ble_out']
+    out_dict = {
+        'firmware_version': dev_info_ble_out['fw_version'],
+        'adc_mask': dev_info_ble_out['adc_mask'],
+        'sampling_rate': dev_info_ble_out['data_rate'],
+        'board_id': dev_info_ble_out['board_id'],
+        'memory_info': dev_info_ble_out['memory'],
+        'max_online_sps': dev_info_ble_out['max_online_sps'],
+        'max_offline_sps': dev_info_ble_out['max_offline_sps'],
+        'is_imp_mode': dev_info_ble_out['is_imp_mode']
+    }
+    assert device_info_ble_instance.get_info() == out_dict
 
 
 def test_convert_cmd_rcv(cmd_rcv_in_out):
