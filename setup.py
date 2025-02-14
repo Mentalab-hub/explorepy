@@ -7,11 +7,20 @@ from setuptools import (
     Extension,
     setup
 )
+import numpy
 
 
 ext_modules_list = []
 current_platform = sys.platform
 libPath = "lib"
+
+ext_modules_list.append(Extension(
+    name='explorepy.int24to32',
+    sources=['src/int24to32.c'],
+    include_dirs=[numpy.get_include()],
+    extra_compile_args=['-O3']
+))
+
 if current_platform == 'win32' or current_platform == 'win64':
     windows_lib_path = os.path.join(libPath, 'windows')
     ext_modules_list.append(Extension(

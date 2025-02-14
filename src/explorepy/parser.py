@@ -5,14 +5,20 @@ import binascii
 import logging
 import struct
 import sys
+import mmap
+import numpy as np
+from typing import Optional, Generator, List, Tuple
 from threading import Thread
-
+from explorepy.packet import Packet
+from concurrent.futures import ThreadPoolExecutor
+import time
 import explorepy
 from explorepy._exceptions import (
     BleDisconnectionError,
     FletcherError,
     ReconnectionFlowError
 )
+import multiprocessing
 from explorepy.packet import (
     PACKET_CLASS_DICT,
     DeviceInfo,
@@ -103,7 +109,19 @@ class Parser:
             filename (str): Binary file name
         """
         self.stream_interface = FileHandler(filename)
-        self._stream(new_thread=True)
+        total_packet_batch = 0
+        packet_generator = self._generate_packets_from_file()
+        try:
+            while True:
+                batch = next(packet_generator)
+                self.callback(packet_batch=batch)
+                total_packet_batch += 1
+        except StopIteration:
+            logger.info(f"Total packets collected:{total_packet_batch}")
+        except EOFError:
+            logger.info('Reached end of the file')
+        finally:
+            self.stream_interface.disconnect()
 
     def read_device_info(self, filename):
         self.stream_interface = FileHandler(filename)
@@ -263,32 +281,119 @@ class Parser:
             raise FletcherError
         return packet
 
+    def _process_packet_chunk(self, marker_positions: List[int], buffer: bytearray) -> List[Tuple]:
+        """Process a single batch of packets in one thread."""
+        PACKET_MARKER = b'\xaf\xbe\xad\xde'
+        chunk_packets = []
+        parse_time = 0
+        payload_time = 0
+
+        for current_pos in marker_positions:
+            try:
+                parse_start = time.time()
+                header_start = current_pos + len(PACKET_MARKER)
+                if header_start + 8 > len(buffer):
+                    continue
+                raw_header = buffer[header_start:header_start + 8]
+                pid = raw_header[0]
+                payload_length = struct.unpack_from('<H', raw_header, 2)[0]
+                timestamp = struct.unpack_from('<I', raw_header, 4)[0] / TIMESTAMP_SCALE
+                parse_time += time.time() - parse_start
+                if payload_length > 550:
+                    continue
+                payload_start = time.time()
+                payload_start_idx = header_start + 8
+                payload_end = payload_start_idx + payload_length - 4
+                if payload_end > len(buffer):
+                    continue
+                payload_data = buffer[payload_start_idx:payload_end]
+                chunk_packets.append((pid, timestamp, payload_data, self._time_offset))
+                payload_time += time.time() - payload_start
+            except (IndexError, struct.error) as e:
+                logger.debug(f'Error parsing packet at position {current_pos}: {e}')
+                continue
+        return chunk_packets
+
+    def _generate_packets_from_file(self, batch_size: int = 10000, num_threads: int = 4) -> Generator[List[Tuple], None, None]:
+        """Reads and parses packets from file in parallel, aligning batch size with thread processing."""
+        PACKET_MARKER = b'\xaf\xbe\xad\xde'
+        num_threads = multiprocessing.cpu_count()
+        try:
+            # Time: File reading
+            buffer = bytearray(self.stream_interface.read())
+            # Time: Finding markers
+            arr = np.frombuffer(buffer, dtype=np.uint8)
+            marker_arr = np.frombuffer(PACKET_MARKER, dtype=np.uint8)
+            matches = np.where(arr[:-3] == marker_arr[0])[0]
+            marker_positions = [
+                pos for pos in matches 
+                if buffer[pos:pos + 4] == PACKET_MARKER
+            ]
+            with ThreadPoolExecutor(max_workers=num_threads) as executor:
+                futures = []
+                for i in range(0, len(marker_positions), batch_size):
+                    chunk = marker_positions[i:i + batch_size]
+                    futures.append(executor.submit(self._process_packet_chunk, chunk, buffer))
+                for future in futures:
+                    try:
+                        chunk_packets = future.result()
+                        processed_packets = Packet.parse_packets_batch(chunk_packets)
+                        batch = [(packet, 8 + len(info[2])) for packet, info in zip(processed_packets, chunk_packets)]
+                        yield batch
+                    except FletcherError:
+                        print('Fletcher checksum error in batch, skipping affected packets')
+                        continue
+        except (IOError, ValueError) as e:
+            print(f'Error reading file: {e}')
+            raise
+
 
 class FileHandler:
-    """Binary file handler"""
+    """Binary file handler with conditional memory mapping for improved performance"""
 
-    def __init__(self, filename):
+    def __init__(self, filename: str):
         """
+        Initialize file handler.
+        
         Args:
-            filename (str): Binary file name
+            filename (str): Path to the binary file
         """
-        self.fid = open(filename, mode='rb')
+        self.filename = filename
+        self.file = open(filename, mode='rb')
+        self.mmap = None
 
-    def read(self, n_bytes):
-        """Read n bytes from file
-        Args:
-            n_bytes (int): Number of bytes to be read
+    def read(self, n_bytes: Optional[int] = None) -> bytes:
         """
+        Read from file, using mmap only when reading entire file.
+        Args:
+            n_bytes: Number of bytes to read. If None, reads entire file with mmap.
+        Returns:
+            bytes: The data read from file
+        Raises:
+            ValueError: If n_bytes is negative
+            EOFError: If reached end of file while reading n_bytes
+            IOError: If file is not open or already closed
+        """
+        if self.file.closed:
+            raise IOError("File has not been opened or already closed!")
+        if n_bytes is None:
+            # Only create mmap when needed for full file read
+            if self.mmap is None:
+                self.mmap = mmap.mmap(self.file.fileno(), 0, access=mmap.ACCESS_READ)
+            return self.mmap[:]
         if n_bytes <= 0:
-            raise ValueError('Read length must be a positive number!')
-        if not self.fid.closed:
-            data = self.fid.read(n_bytes)
-            if len(data) < n_bytes:
-                raise EOFError('End of file!')
-            return data
-        raise IOError("File has not been opened or already closed!")
-
+            raise ValueError('Read length must be positive!')
+        # Use regular file I/O for partial reads
+        data = self.file.read(n_bytes)
+        if len(data) < n_bytes:
+            raise EOFError('End of file!')
+            
+        return data
+    
     def disconnect(self):
-        """Close file"""
-        if not self.fid.closed:
-            self.fid.close()
+        """Close both the memory map (if exists) and file"""
+        if self.mmap is not None:
+            self.mmap.close()
+            self.mmap = None
+        if not self.file.closed:
+            self.file.close()

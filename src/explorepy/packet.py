@@ -5,6 +5,7 @@ import binascii
 import logging
 import struct
 from enum import IntEnum
+from explorepy.int24to32 import convert
 
 import numpy as np
 
@@ -47,6 +48,7 @@ class PACKET_ID(IntEnum):
 
 
 EXG_UNIT = 1e-6
+GAIN = EXG_UNIT * 8388607 * 6.0
 
 
 class Packet(abc.ABC):
@@ -78,20 +80,55 @@ class Packet(abc.ABC):
         """Print the data/info"""
 
     @staticmethod
-    def int24to32(bin_data, byteorder_data='little'):
-        """Converts binary data to int32
-
+    def parse_packets_batch(packet_list):
+        """Process multiple packets at once for offline file parsing.
         Args:
-            bin_data (list): list of bytes with the structure of int24
-            byteorder_data(string): decoder byteorder- big or little endien
+            packet_list (list): List of tuples containing (packet_id, timestamp, binary_data, time_offset)
+                            where:
+                            - packet_id (int): The ID of the packet from PACKET_ID enum
+                            - timestamp (float): Timestamp of the packet
+                            - binary_data (bytearray): The binary payload data
+                            - time_offset (float, optional): Time offset for the packet. Defaults to 0.
         Returns:
-            np.ndarray of int values
+            list: List of parsed packet objects corresponding to their respective packet types
         """
-        assert len(bin_data) % 3 == 0, "Packet length error!"
-        return np.asarray([
-            int.from_bytes(bin_data[x:x + 3], byteorder=byteorder_data, signed=True)
-            for x in range(0, len(bin_data), 3)
-        ])
+        parsed_packets = []
+        parsed_packets_append = parsed_packets.append
+        packet_classes = {}
+        for packet_info in packet_list:
+            try:
+                if len(packet_info) == 3:
+                    pid, timestamp, bin_data = packet_info
+                    time_offset = 0
+                else:
+                    pid, timestamp, bin_data, time_offset = packet_info
+                packet_class = packet_classes.get(pid)
+                if packet_class is None:
+                    if pid not in PACKET_CLASS_DICT:
+                        logger.warning(f"Invalid packet ID: {pid}")
+                        continue
+                    packet_class = PACKET_CLASS_DICT[pid]
+                    packet_classes[pid] = packet_class
+                packet = packet_class(timestamp, bin_data, time_offset)
+                parsed_packets_append(packet)
+            except FletcherError:
+                logger.warning("Fletcher checksum error in packet")
+                continue
+            except (ValueError, KeyError) as e:
+                logger.warning(f"Error processing packet: {str(e)}")
+                continue
+        return parsed_packets
+
+    @staticmethod
+    def int24to32(bin_data, byteorder_data='little'):
+        """Converts binary data to int32 using C extension
+        Args:
+            bin_data (bytes/bytearray): binary data with int24 structure
+            byteorder_data (str): decoder byteorder - 'big' or 'little'
+        Returns:
+            np.ndarray of int32 values
+        """
+        return convert(bin_data, byteorder_data)
 
 
 class PacketBIN(Packet):
@@ -126,13 +163,19 @@ class EEG(Packet):
         super().__init__(timestamp, payload, time_offset)
 
     def _convert(self, bin_data):
+        """Read the binary data and convert it to real values"""
         if not self.v_ref or not self.n_packet:
-            raise ValueError("v_ref or n_packet cannot be null for conversion!")
+            raise ValueError(
+                "v_ref or n_packet cannot be null for conversion!")
         try:
             data = Packet.int24to32(bin_data, self.byteorder_data)
             n_chan = -1
             data = data.reshape((self.n_packet, n_chan)).astype(float).T
-            gain = EXG_UNIT * ((2 ** 23) - 1) * 6.0
+            if isinstance(self, EEG_BLE):
+                self.data = np.round(data * self.v_ref / GAIN, 2)
+                return
+            self.data = np.round(data[1:, :] * self.v_ref / GAIN, 2)
+            self.status = self.int32_to_status(data[0, :])
         except UnboundLocalError as error:
             logger.debug('Got UnboundLocalError in packet conversion')
             raise error
@@ -142,13 +185,6 @@ class EEG(Packet):
         except ValueError as error:
             logger.debug('Got ValueError in packet conversion')
             raise error
-        if isinstance(self, EEG_BLE):
-            self.data = np.round(data * self.v_ref / gain, 2)
-            return
-        # legacy code for devices other than BLE
-        self.data = np.round(data[1:, :] * self.v_ref / gain, 2)
-        # EEG32: status bits will change in future releases as we need to use 4 bytes for 32 channel status
-        self.status = self.int32_to_status(data[0, :])
 
     @staticmethod
     def int32_to_status(data):
@@ -173,7 +209,8 @@ class EEG(Packet):
         scale = imp_calib_info["slope"]
         offset = imp_calib_info["offset"]
         self.imp_data = np.round(
-            (self.get_ptp() - imp_calib_info["noise_level"]) * scale / 1.0e6 - offset,
+            (self.get_ptp() -
+             imp_calib_info["noise_level"]) * scale / 1.0e6 - offset,
             decimals=0,
         )
 
@@ -321,7 +358,8 @@ class Environment(Packet):
         self.battery = ((16.8 / 6.8) * (1.8 / 2457) * np.frombuffer(
             bin_data[3:5], dtype=np.dtype(np.uint16).newbyteorder("<")))  # Unit Volt
 
-        max_voltage = 4.1  # constant, measured in recording, actually 4.2, but let's say 4.10 is better
+        # constant, measured in recording, actually 4.2, but let's say 4.10 is better
+        max_voltage = 4.1
         min_voltage = 3.45  # constant , measured in recording
         voltage_span = max_voltage - min_voltage
         percent = int(((self.battery - min_voltage) / voltage_span) * 100)
@@ -447,7 +485,8 @@ class ExternalMarker(EventMarker):
         if not isinstance(marker_string, str):
             raise ValueError("Marker label must be a string")
         if len(marker_string) > 7 or len(marker_string) < 1:
-            raise ValueError("Marker label length must be between 1 and 7 characters")
+            raise ValueError(
+                "Marker label length must be between 1 and 7 characters")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,

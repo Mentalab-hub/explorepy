@@ -11,6 +11,7 @@ import socket
 from collections import namedtuple
 from contextlib import closing
 from threading import Lock
+from io import StringIO
 
 import numpy as np
 import pandas
@@ -38,7 +39,7 @@ from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
     BleImpedancePacket,
-    Orientation
+    Orientation,
 )
 from explorepy.settings_manager import SettingsManager
 
@@ -55,7 +56,8 @@ EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
 ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
-ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps', 'mdps', 'mgauss', 'mgauss', 'mgauss']
+ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps',
+             'mdps', 'mgauss', 'mgauss', 'mgauss']
 
 
 def get_local_time():
@@ -93,7 +95,8 @@ def bt_scan():
     Returns:
             list[namedtuple]: list of nearby devices
     """
-    NearbyDeviceInfo = namedtuple("NearbyDeviceInfo", ["name", "address", "is_paired"])
+    NearbyDeviceInfo = namedtuple(
+        "NearbyDeviceInfo", ["name", "address", "is_paired"])
     logger.info("Searching for nearby devices...")
     explore_devices = []
     print('\n')
@@ -101,8 +104,10 @@ def bt_scan():
     nearby_devices = device_manager.PerformDeviceSearch()
     for bt_device in nearby_devices:
         if "Explore" in bt_device.name:
-            print("Device found: %s - %s - Paired: %s" % (bt_device.name, bt_device.address, bt_device.authenticated))
-            explore_devices.append(NearbyDeviceInfo(bt_device.name, bt_device.address, bt_device.authenticated))
+            print("Device found: %s - %s - Paired: %s" %
+                  (bt_device.name, bt_device.address, bt_device.authenticated))
+            explore_devices.append(NearbyDeviceInfo(
+                bt_device.name, bt_device.address, bt_device.authenticated))
 
     if not nearby_devices:
         logger.info("No Explore device was found!")
@@ -147,16 +152,20 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=
     """
     if exg_ch is None:
         exg_ch = ['TimeStamp'] + EXG_CHANNELS
-        exg_ch = [exg_ch[0]] + [exg_ch[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+        exg_ch = [exg_ch[0]] + [exg_ch[i + 1]
+                                for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     else:
         exg_ch = ['TimeStamp'] + exg_ch
 
     exg_unit = ['s'] + EXG_UNITS
-    exg_unit = [exg_unit[0]] + [exg_unit[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    exg_unit = [exg_unit[0]] + [exg_unit[i + 1]
+                                for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_max = [21600.] + [EXG_MAX_LIM for i in range(MAX_CHANNELS)]
-    exg_max = [exg_max[0]] + [exg_max[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    exg_max = [exg_max[0]] + [exg_max[i + 1]
+                              for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     exg_min = [0.] + [EXG_MIN_LIM for i in range(MAX_CHANNELS)]
-    exg_min = [exg_min[0]] + [exg_min[i + 1] for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
+    exg_min = [exg_min[0]] + [exg_min[i + 1]
+                              for i, flag in enumerate(reversed(adc_mask)) if flag == 1]
     return FileRecorder(filename=filename, ch_label=exg_ch, fs=fs, ch_unit=exg_unit,
                         file_type=file_type, do_overwrite=do_overwrite, ch_min=exg_min, ch_max=exg_max,
                         adc_mask=adc_mask)  # noqa: E501
@@ -175,8 +184,10 @@ def create_orn_recorder(filename, file_type, do_overwrite):
     """
     orn_ch = ['TimeStamp'] + ORN_CHANNELS
     orn_unit = ['s'] + ORN_UNITS
-    orn_max = [21600., 2000, 2000, 2000, 250000, 250000, 250000, 50000, 50000, 50000]
-    orn_min = [0, -2000, -2000, -2000, -250000, -250000, -250000, -50000, -50000, -50000]
+    orn_max = [21600., 2000, 2000, 2000, 250000,
+               250000, 250000, 50000, 50000, 50000]
+    orn_min = [0, -2000, -2000, -2000, -250000, -
+               250000, -250000, -50000, -50000, -50000]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
                         do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min)
 
@@ -214,7 +225,8 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, time
     header = ['TimeOffset', 'Device', 'sr', 'adcMask', 'ExGUnits']
     exg_unit = 'mV'
     if EXG_UNITS:
-        exg_unit = EXG_UNITS[0]  # we only need the first channel's units as this will correspond with the rest
+        # we only need the first channel's units as this will correspond with the rest
+        exg_unit = EXG_UNITS[0]
     return FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=exg_unit,
                         adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite, timestamp=timestamp)
 
@@ -244,7 +256,8 @@ class HeartRateEstimator:
         self.prev_times = np.zeros(smoothing_win)
         self.prev_max_slope = 0
 
-        self.bp_filter = ExGFilter(cutoff_freq=(1, 30), filter_type='bandpass', s_rate=fs, n_chan=1, order=3)
+        self.bp_filter = ExGFilter(cutoff_freq=(
+            1, 30), filter_type='bandpass', s_rate=fs, n_chan=1, order=3)
         self.hamming_window = signal.windows.hamming(smoothing_win, sym=True)
         self.hamming_window /= self.hamming_window.sum()
 
@@ -280,7 +293,8 @@ class HeartRateEstimator:
 
         estimated_heart_rate = int(1. / np.mean(rr_intervals) * 60)
         if estimated_heart_rate > 140 or estimated_heart_rate < 40:
-            logger.warning('Estimated heart rate <40 or >140! Potentially due to noisy signal!')
+            logger.warning(
+                'Estimated heart rate <40 or >140! Potentially due to noisy signal!')
             estimated_heart_rate = 'NA'
         return estimated_heart_rate
 
@@ -349,7 +363,8 @@ class HeartRateEstimator:
             #     continue
 
             # check missing peak
-            self.check_missing_peak(peak_time, peak_idx, detected_peaks_idx, ecg_sig, time_vector)
+            self.check_missing_peak(
+                peak_time, peak_idx, detected_peaks_idx, ecg_sig, time_vector)
 
             # 3- If the peak occurred within 360 ms of a previous detection and had a maximum slope less than half the
             # maximum slope of the previous detection assume it is a T-wave
@@ -387,7 +402,8 @@ class HeartRateEstimator:
                     st_idx = 0
                 else:
                     st_idx = peak_idx - 25
-                self.prev_max_slope = np.abs(np.diff(ecg_sig[st_idx:peak_idx + 25])).max()
+                self.prev_max_slope = np.abs(
+                    np.diff(ecg_sig[st_idx:peak_idx + 25])).max()
             else:
                 self._push_noise_peak(pval, peak_idx, peak_time)
 
@@ -416,13 +432,16 @@ class HeartRateEstimator:
                             st_idx = 0
                         else:
                             st_idx = last_noise_idx - 20
-                        detected_peaks_idx.append(st_idx + np.argmax(ecg_sig[st_idx:peak_idx]))
-                        self._push_r_peak(last_noise_val, time_vector[detected_peaks_idx[-1]])
+                        detected_peaks_idx.append(
+                            st_idx + np.argmax(ecg_sig[st_idx:peak_idx]))
+                        self._push_r_peak(
+                            last_noise_val, time_vector[detected_peaks_idx[-1]])
                         if peak_idx < 25:
                             st_idx = 0
                         else:
                             st_idx = peak_idx - 25
-                        self.prev_max_slope = np.abs(np.diff(ecg_sig[st_idx:peak_idx + 25])).max()
+                        self.prev_max_slope = np.abs(
+                            np.diff(ecg_sig[st_idx:peak_idx + 25])).max()
                     else:
                         # The peak is in the previous chunk
                         # TODO: return a negative index for it!
@@ -441,7 +460,6 @@ class FileRecorder:
     def __init__(self, filename, ch_label, fs, ch_unit, timestamp=None, adc_mask=None, ch_min=None, ch_max=None,
                  device_name='Explore', file_type='edf', do_overwrite=False):
         """
-
         Args:
             filename (str): File name
             ch_label (list): List of channel labels.
@@ -449,13 +467,12 @@ class FileRecorder:
             ch_unit (list): List of channels unit (e.g. 'uV', 'mG', 's', etc.)
             timestamp (datetime): The time at which this recording starts
             adc_mask (str): Channel mask
-            ch_min (list): List of minimum value of each channel. Only needed in edf mode (can be None in csv mode)
-            ch_max (list): List of maximum value of each channel. Only needed in edf mode (can be None in csv mode)
+            ch_min (list): List of minimum value of each channel. Only needed in edf mode
+            ch_max (list): List of maximum value of each channel. Only needed in edf mode
             device_name (str): Recording device name
-            file_type (str): File type. current options: 'edf' and 'csv'.
-            do_overwrite (bool): Overwrite file if a file with the same name exists already.
+            file_type (str): File type. current options: 'edf' and 'csv'
+            do_overwrite (bool): Overwrite file if a file with the same name exists already
         """
-
         # Check invalid characters
         if set(r'<>{}[]~`*%').intersection(filename):
             raise ValueError("Invalid character in file name")
@@ -475,7 +492,8 @@ class FileRecorder:
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
-                raise ValueError('ch_label, ch_unit, ch_min and ch_max must have the same length!')
+                raise ValueError(
+                    'ch_label, ch_unit, ch_min and ch_max must have the same length!')
             self._file_name = filename + '.bdf'
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
@@ -485,6 +503,8 @@ class FileRecorder:
         elif file_type == 'csv':
             self._file_name = filename + '.csv'
             self._create_csv(do_overwrite=do_overwrite)
+        else:
+            raise ValueError("File type must be 'edf' or 'csv'")
 
     @property
     def fs(self):
@@ -495,113 +515,108 @@ class FileRecorder:
         if (not do_overwrite) and os.path.isfile(self._file_name):
             raise FileExistsError(self._file_name + ' already exists!')
         assert self._file_obj is None, "Usage Error: File object has been created already."
-        self._file_obj = pyedflib.EdfWriter(self._file_name, self._n_chan, file_type=pyedflib.FILETYPE_BDFPLUS)
+        self._file_obj = pyedflib.EdfWriter(
+            self._file_name, self._n_chan, file_type=pyedflib.FILETYPE_BDFPLUS)
 
     def _create_csv(self, do_overwrite):
+        """Create CSV file with optimized writing setup"""
         if (not do_overwrite) and os.path.isfile(self._file_name):
             raise FileExistsError(self._file_name + ' already exists!')
         assert self._file_obj is None, "Usage Error: File object has been created already."
-        self._file_obj = open(self._file_name, 'w', newline='\n')
-        self._csv_obj = csv.writer(self._file_obj, delimiter=",")
-        self._csv_obj.writerow(self._ch_label)
+        self._file_obj = open(self._file_name, 'wb')
+
+        # Write headers
+        header = ','.join(self._ch_label) + '\n'
+        self._file_obj.write(header.encode('utf-8'))
+
+    def _init_edf_channels(self):
+        """Initialize EDF channels with signal parameters"""
+        self._file_obj.setEquipment(self._device_name)
+        self._file_obj.setStartdatetime(datetime.datetime.now())
+
+        ch_info_list = []
+        for ch in zip(self._ch_label, self._ch_unit, self._ch_max, self._ch_min):
+            ch_info_list.append({
+                'label': ch[0],
+                'dimension': ch[1],
+                'sample_rate': self._fs,
+                'physical_max': ch[2],
+                'physical_min': ch[3],
+                'digital_max': 8388607,
+                'digital_min': -8388608,
+                'prefilter': '',
+                'transducer': ''
+            })
+        for i, ch_info in enumerate(ch_info_list):
+            self._file_obj.setSignalHeader(i, ch_info)
+
+    def write_data(self, packet):
+        """Writes data to the file.
+
+        Args:
+            packet (explorepy.packet.Packet): ExG or Orientation packet
+        """
+        if isinstance(packet[0], Orientation):
+            data = np.array([[p.timestamp] + p.acc.tolist() +
+                            p.gyro.tolist() + p.mag.tolist() for p in packet]).T
+
+        elif isinstance(packet[0], EEG):  # EEG batch processing
+            all_data = np.concatenate([p.data for p in packet], axis=1)
+            n_total_samples = all_data.shape[1]
+            start_time = packet[0].timestamp
+            time_vector = np.linspace(start_time,
+                                      start_time +
+                                      (n_total_samples - 1) / self._fs,
+                                      n_total_samples)
+            data = np.concatenate(
+                (time_vector[np.newaxis, :], all_data), axis=0)
+
+        else:  # All other packet types
+            time_vector, sig = packet.get_data(self._fs)
+            if self._rec_time_offset is None:
+                self._rec_time_offset = time_vector[0]
+            data = np.concatenate(
+                (np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
+
+        np.savetxt(self._file_obj, data.T, fmt='%4f', delimiter=',')
+
+    def _write_edf_anno(self):
+        """Write annotations in EDF file"""
+        for ts, code in list(self._annotations_buffer):
+            idx = np.argmax(np.array(self._timestamps) > ts) - 1
+            if idx != -1:
+                timestamp = idx / self.fs
+                self._file_obj.writeAnnotation(timestamp, 0.001, code)
+                self._annotations_buffer.remove((ts, code))
 
     def stop(self):
         """Stop recording"""
         assert self._file_obj is not None, "Usage Error: File object has not been created yet."
         if self.file_type == 'edf':
             if self._data.shape[1] > 0:
-                with lock:
+                with self._buffer_lock:
                     self._file_obj.writeSamples(list(self._data))
                     self._write_edf_anno()
             self._file_obj.close()
             self._file_obj = None
         elif self.file_type == 'csv':
             self._file_obj.close()
-
-    def _init_edf_channels(self):
-        self._file_obj.setEquipment(self._device_name)
-        self._file_obj.setStartdatetime(datetime.datetime.now())
-
-        ch_info_list = []
-        for ch in zip(self._ch_label, self._ch_unit, self._ch_max, self._ch_min):
-            ch_info_list.append({'label': ch[0],
-                                 'dimension': ch[1],
-                                 'sample_rate': self._fs,
-                                 'physical_max': ch[2],
-                                 'physical_min': ch[3],
-                                 'digital_max': 8388607,
-                                 'digital_min': -8388608,
-                                 'prefilter': '',
-                                 'transducer': ''
-                                 })
-        for i, ch_info in enumerate(ch_info_list):
-            self._file_obj.setSignalHeader(i, ch_info)
-
-    def write_data(self, packet):
-        """writes data to the file
-
-        Notes:
-            If file type is set to EDF, this function writes each 1 seconds of data. If the input is less than 1 second,
-            it will be buffered in the memory and it will be written in the file when enough data is in the buffer.
-
-        Args:
-            packet (explorepy.packet.Packet): ExG or Orientation packet
-
-        """
-        time_vector, sig = packet.get_data(self._fs)
-        if isinstance(packet, Orientation):
-            if len(time_vector) == 1:
-                data = np.array(time_vector + sig)[:, np.newaxis]
-        else:
-            if self._rec_time_offset is None:
-                self._rec_time_offset = time_vector[0]
-            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
-        data = np.round(data, 4)
-        if self.file_type == 'edf':
-            if isinstance(packet, EEG):
-                indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-                data = data[indices]
-            if data.shape[0] != self._n_chan:
-                raise ValueError('Input first dimension must be {}'.format(self._n_chan))
-            self._data = np.concatenate((self._data, data), axis=1)
-            self._timestamps += list(data[0, :])
-            with lock:
-                if self._data.shape[1] > self._fs:
-                    self._file_obj.writeSamples(list(self._data[:, :self._fs]))
-                    self._write_edf_anno()
-                    self._data = self._data[:, self._fs:]
-        elif self.file_type == 'csv':
-            if isinstance(packet, EEG):
-                indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-                data = data[indices]
-            try:
-                self._csv_obj.writerows(data.T.tolist())
-                self._file_obj.flush()
-            except ValueError as e:
-                logger.debug('Value error on file write: {}'.format(e))
-
-    def _write_edf_anno(self):
-        """write annotations in EDF file"""
-        for ts, code in list(self._annotations_buffer):
-            # correct clock deviations
-            idx = np.argmax(np.array(self._timestamps) > ts) - 1
-            if idx != -1:
-                timestamp = idx / self.fs
-                self._file_obj.writeAnnotation(timestamp, 0.001, code)
-                self._annotations_buffer.remove((ts, code))  # remove the written annotation from original buffer
+            self._file_obj = None
 
     def set_marker(self, packet):
         """Writes a marker event in the file
 
         Args:
             packet (explorepy.packet.EventMarker): Event marker packet
-
         """
         timestamp, code = packet.get_data()
         timestamp[0] = round(timestamp[0], 4)
         if self.file_type == 'csv':
-            data = timestamp + code
-            self._csv_obj.writerow(data)
+            marker_data = np.array(timestamp + code)[:, np.newaxis]
+            output = StringIO()
+            np.savetxt(output, marker_data.T, fmt='%s',
+                       delimiter=',', newline='\n')
+            self._file_obj.write(output.getvalue().encode('utf-8'))
             self._file_obj.flush()
         elif self.file_type == 'edf':
             if self._rec_time_offset is None:
@@ -610,9 +625,10 @@ class FileRecorder:
 
     def write_meta(self):
         """Writes meta data in the file"""
-        channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-        row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
-        self._csv_obj.writerow(row)
+        channels = [
+            'ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+        meta_row = f"{self.timestamp or ''},{self._device_name},{self._fs},{' '.join(channels)},{''.join(self._ch_unit)}\n"
+        self._file_obj.write(meta_row.encode('utf-8'))
         self._file_obj.flush()
 
 
@@ -621,7 +637,8 @@ class LslServer:
 
     def __init__(self, device_info):
 
-        self.adc_mask = SettingsManager(device_info["device_name"]).get_adc_mask()
+        self.adc_mask = SettingsManager(
+            device_info["device_name"]).get_adc_mask()
         n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
@@ -680,7 +697,8 @@ class LslServer:
         """
         _, exg_data = packet.get_data(self.exg_fs)
         if isinstance(packet, EEG):
-            indices = [i for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+            indices = [i for i, flag in enumerate(
+                reversed(self.adc_mask)) if flag == 1]
             exg_data = exg_data[indices]
         self.exg_outlet.push_chunk(exg_data.T.tolist())
 
@@ -721,8 +739,10 @@ class ImpedanceMeasurement:
         self.packet_buffer = []
 
     def _add_filters(self):
-        bp_freq = self._device_info['sampling_rate'] / 4 - 1.5, self._device_info['sampling_rate'] / 4 + 1.5
-        noise_freq = self._device_info['sampling_rate'] / 4 + 2.5, self._device_info['sampling_rate'] / 4 + 5.5
+        bp_freq = self._device_info['sampling_rate'] / 4 - \
+            1.5, self._device_info['sampling_rate'] / 4 + 1.5
+        noise_freq = self._device_info['sampling_rate'] / \
+            4 + 2.5, self._device_info['sampling_rate'] / 4 + 5.5
         settings_manager = SettingsManager(self._device_info["device_name"])
         settings_manager.load_current_settings()
         n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
@@ -754,10 +774,12 @@ class ImpedanceMeasurement:
             return None
         else:
             timestamp, _ = self.packet_buffer[0].get_data()
-            resized_packet = BleImpedancePacket(timestamp=timestamp, payload=None)
+            resized_packet = BleImpedancePacket(
+                timestamp=timestamp, payload=None)
             resized_packet.populate_packet_with_data(self.packet_buffer)
             self.packet_buffer.clear()
-            temp_packet = self._filters['notch'].apply(input_data=resized_packet, in_place=False)
+            temp_packet = self._filters['notch'].apply(
+                input_data=resized_packet, in_place=False)
             self._calib_param['noise_level'] = self._filters['base_noise']. \
                 apply(input_data=temp_packet, in_place=False).get_ptp()
             self._filters['demodulation'].apply(
@@ -791,9 +813,12 @@ class PhysicalOrientation:
     def _get_rest_orn(self, packet):
         D = packet.acc / (np.dot(packet.acc, packet.acc) ** 0.5)
         # [kx, ky, kz, mx_offset, my_offset, mz_offset] = self.calibre_set
-        packet.mag[0] = self.calibre_set[0] * (packet.mag[0] - self.calibre_set[3])
-        packet.mag[1] = self.calibre_set[1] * (packet.mag[1] - self.calibre_set[4])
-        packet.mag[2] = self.calibre_set[2] * (packet.mag[2] - self.calibre_set[5])
+        packet.mag[0] = self.calibre_set[0] * \
+            (packet.mag[0] - self.calibre_set[3])
+        packet.mag[1] = self.calibre_set[1] * \
+            (packet.mag[1] - self.calibre_set[4])
+        packet.mag[2] = self.calibre_set[2] * \
+            (packet.mag[2] - self.calibre_set[5])
         E = -1 * np.cross(D, packet.mag)
         E = E / (np.dot(E, E) ** 0.5)
         # here you can find an estimation of actual north from packet.mag, it is perpendicular to D and still
@@ -809,13 +834,15 @@ class PhysicalOrientation:
 
     def read_calibre_data(self, device_name):
         config = configparser.ConfigParser()
-        calibre_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
+        calibre_file = user_config_dir(
+            appname="explorepy", appauthor="Mentalab") + "/conf.ini"
         if os.path.isfile(calibre_file):
             config.read(calibre_file)
             try:
                 calibre_coef = config[device_name]
                 self.calibre_set = np.asarray([float(calibre_coef['kx']), float(calibre_coef['ky']),
-                                               float(calibre_coef['kz']), float(calibre_coef['mx']),
+                                               float(calibre_coef['kz']), float(
+                                                   calibre_coef['mx']),
                                                float(calibre_coef['my']), float(calibre_coef['mz'])])
                 return True
             except KeyError:
@@ -827,9 +854,12 @@ class PhysicalOrientation:
         acc = packet.acc
         acc = acc / (np.dot(acc, acc) ** 0.5)
         gyro = packet.gyro * 1.745329e-5  # radian per second
-        packet.mag[0] = self.calibre_set[0] * (packet.mag[0] - self.calibre_set[3])
-        packet.mag[1] = self.calibre_set[1] * (packet.mag[1] - self.calibre_set[4])
-        packet.mag[2] = self.calibre_set[2] * (packet.mag[2] - self.calibre_set[5])
+        packet.mag[0] = self.calibre_set[0] * \
+            (packet.mag[0] - self.calibre_set[3])
+        packet.mag[1] = self.calibre_set[1] * \
+            (packet.mag[1] - self.calibre_set[4])
+        packet.mag[2] = self.calibre_set[2] * \
+            (packet.mag[2] - self.calibre_set[5])
         mag = packet.mag
         D = acc
         dD = D - self.ED_prv[1]
@@ -879,20 +909,25 @@ class PhysicalOrientation:
     @staticmethod
     def init_dir():
         if not os.path.isfile(user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"):
-            os.makedirs(user_config_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
-            calibre_out_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
+            os.makedirs(user_config_dir(appname="explorepy",
+                        appauthor="Mentalab"), exist_ok=True)
+            calibre_out_file = user_config_dir(
+                appname="explorepy", appauthor="Mentalab") + "/conf.ini"
             with open(calibre_out_file, "w") as f_coef:
                 config = configparser.ConfigParser()
-                config['DEFAULT'] = {'description': 'configurations for Explorepy'}
+                config['DEFAULT'] = {
+                    'description': 'configurations for Explorepy'}
                 config.write(f_coef)
                 f_coef.close()
 
         if not os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab")):
-            os.makedirs(user_cache_dir(appname="explorepy", appauthor="Mentalab"), exist_ok=True)
+            os.makedirs(user_cache_dir(appname="explorepy",
+                        appauthor="Mentalab"), exist_ok=True)
 
     @staticmethod
     def calibrate(cache_dir, device_name):
-        calibre_out_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
+        calibre_out_file = user_config_dir(
+            appname="explorepy", appauthor="Mentalab") + "/conf.ini"
         parser = configparser.ConfigParser()
         parser.read(calibre_out_file)
         with open((cache_dir + "_ORN.csv"), "r") as f_set:
@@ -942,7 +977,8 @@ class PhysicalOrientation:
     @staticmethod
     def check_calibre_data(device_name):
         config = configparser.ConfigParser()
-        calibre_file = user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"
+        calibre_file = user_config_dir(
+            appname="explorepy", appauthor="Mentalab") + "/conf.ini"
         if os.path.isfile(calibre_file):
             config.read(calibre_file)
             if config.has_section(device_name):
@@ -990,8 +1026,10 @@ def compare_recover_from_bin(file_name_csv, file_name_device):
     time_period = 1 / sampling_rate
 
     start = csv_df[timestamp_key][0] - offset_ - time_period
-    stop = csv_df[timestamp_key][len(csv_df[timestamp_key]) - 1] - offset_ + time_period
-    bin_df = bin_df[(bin_df[timestamp_key] >= start) & (bin_df[timestamp_key] <= stop)]
+    stop = csv_df[timestamp_key][len(
+        csv_df[timestamp_key]) - 1] - offset_ + time_period
+    bin_df = bin_df[(bin_df[timestamp_key] >= start) &
+                    (bin_df[timestamp_key] <= stop)]
     bin_df[timestamp_key] = bin_df[timestamp_key] + offset_
     bin_df.to_csv(file_name_csv + '_recovered_ExG.csv', index=False)
 
