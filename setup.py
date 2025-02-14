@@ -27,7 +27,7 @@ if current_platform == 'win32' or current_platform == 'win64':
         swig_opts=['-c++']
     ))
     ext_modules_list.append(Extension(
-        name='explorepy._int24to32',
+        name='explorepy.int24to32',
         sources=[os.path.join(explorepy_path, 'int24to32.c')],
         include_dirs=[numpy.get_include()],
         extra_compile_args=['/O2']
@@ -45,7 +45,7 @@ elif current_platform.startswith('linux'):
         swig_opts=['-c++']
     ))
     ext_modules_list.append(Extension(
-        name='explorepy._int24to32',
+        name='explorepy.int24to32',
         sources=[os.path.join(explorepy_path, 'int24to32.c')],
         include_dirs=[numpy.get_include()],
         extra_compile_args=['-O3']
