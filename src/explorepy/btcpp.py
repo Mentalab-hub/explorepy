@@ -116,7 +116,6 @@ class SDKBtClient(BTClient):
 
         if mac_address is None:
             self._find_mac_address()
-            print('found item {}'.format(self.mac_address))
             config_manager.set_mac_address(self.mac_address)
         else:
             self.mac_address = mac_address
@@ -125,7 +124,6 @@ class SDKBtClient(BTClient):
         for _ in range(5):
             try:
                 self.bt_serial_port_manager = SDKBtClient.exploresdk.BTSerialPortBinding.Create(self.mac_address, 5)
-                print('#######################################################')
                 return_code = self.bt_serial_port_manager.Connect()
                 logger.debug("Return code for connection attempt is : {}".format(return_code))
 
@@ -190,12 +188,10 @@ class SDKBtClient(BTClient):
         self.bt_serial_port_manager.Close()
 
     def _find_mac_address(self):
-        print('*********************************')
         self.device_manager = SDKBtClient.exploresdk.ExploreSDK.Create()
         for _ in range(5):
             available_list = self.device_manager.PerformDeviceSearch()
-            print(available_list)
-            logger.info("Number of devices found: {}".format(len(available_list)))
+            logger.debug("Number of devices found: {}".format(len(available_list)))
             for bt_device in available_list:
                 if bt_device.name == self.device_name:
                     self.mac_address = bt_device.address
