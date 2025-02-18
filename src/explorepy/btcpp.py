@@ -15,10 +15,7 @@ from bleak import (
     BleakScanner
 )
 
-from explorepy import (
-    exploresdk,
-    settings_manager
-)
+from explorepy import settings_manager
 from explorepy._exceptions import (
     BleDisconnectionError,
     DeviceNotFoundError,
@@ -91,6 +88,8 @@ class BTClient(abc.ABC):
 class SDKBtClient(BTClient):
     """ Responsible for Connecting and reconnecting explore devices via bluetooth"""
 
+    from explorepy import exploresdk
+
     def __init__(self, device_name=None, mac_address=None):
         """Initialize Bluetooth connection
 
@@ -117,14 +116,16 @@ class SDKBtClient(BTClient):
 
         if mac_address is None:
             self._find_mac_address()
+            print('found item {}'.format(self.mac_address))
             config_manager.set_mac_address(self.mac_address)
         else:
             self.mac_address = mac_address
             self.device_name = "Explore_" + str(self.mac_address[-5:-3]) + str(self.mac_address[-2:])
-
+            print('mac is {}'.format(self.mac_address))
         for _ in range(5):
             try:
-                self.bt_serial_port_manager = exploresdk.BTSerialPortBinding.Create(self.mac_address, 5)
+                self.bt_serial_port_manager = SDKBtClient.exploresdk.BTSerialPortBinding.Create(self.mac_address, 5)
+                print('#######################################################')
                 return_code = self.bt_serial_port_manager.Connect()
                 logger.debug("Return code for connection attempt is : {}".format(return_code))
 
@@ -169,7 +170,7 @@ class SDKBtClient(BTClient):
         """
         self.is_connected = False
         for _ in range(5):
-            self.bt_serial_port_manager = exploresdk.BTSerialPortBinding.Create(self.mac_address, 5)
+            self.bt_serial_port_manager = SDKBtClient.exploresdk.BTSerialPortBinding.Create(self.mac_address, 5)
             connection_error_code = self.bt_serial_port_manager.Connect()
             logger.debug("Got an exception while connecting to the device: {}".format(connection_error_code))
             if connection_error_code == 0:
@@ -189,10 +190,12 @@ class SDKBtClient(BTClient):
         self.bt_serial_port_manager.Close()
 
     def _find_mac_address(self):
-        self.device_manager = exploresdk.ExploreSDK_Create()
+        print('*********************************')
+        self.device_manager = SDKBtClient.exploresdk.ExploreSDK.Create()
         for _ in range(5):
             available_list = self.device_manager.PerformDeviceSearch()
-            logger.debug("Number of devices found: {}".format(len(available_list)))
+            print(available_list)
+            logger.info("Number of devices found: {}".format(len(available_list)))
             for bt_device in available_list:
                 if bt_device.name == self.device_name:
                     self.mac_address = bt_device.address

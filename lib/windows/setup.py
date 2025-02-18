@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- encoding: utf-8 -*-
+# Copy this file to the top level folder(where pyproject.toml file resides)
+# Then, run pip install command to install explorepy for legacy devices
 import os
 import sys
 
@@ -7,7 +7,6 @@ from setuptools import (
     Extension,
     setup
 )
-
 
 ext_modules_list = []
 current_platform = sys.platform
