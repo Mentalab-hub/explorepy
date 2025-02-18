@@ -18,7 +18,7 @@ from explorepy._exceptions import (
     BleDisconnectionError,
     DeviceNotFoundError
 )
-from explorepy.btcpp import BTClient
+from explorepy.BTClient import BTClient
 
 
 logger = logging.getLogger(__name__)
