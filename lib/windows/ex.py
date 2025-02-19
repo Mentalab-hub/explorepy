@@ -1,14 +1,15 @@
 import explorepy
 import time
+import binascii
+import serial
+from explorepy import exploresdk
 
+#exploresdk.BTSerialPortBinding.Create('00:13:43:A1:84:DF', 5).Connect()
+myusb = serial.Serial('/dev/tty.Explore_84DF', timeout=5)
 
-# Before starting the USB based trigger, make sure the device is connected to the USB port
-exp_device = explorepy.Explore()
-exp_device.connect('Explore_AAAM')
+#myusb.reset_input_buffer()
 
-exp_device.record_data( 'file_name', do_overwrite=True, duration=60, file_type='csv')
-n_markers = 20
-interval = 2
-for i in range(n_markers):
-        exp_device.send_8_bit_trigger(i)
-        time.sleep(2)
+count = 0
+while count < 10:
+        print(binascii.hexlify(myusb.read(4)))
+        count+= 1
