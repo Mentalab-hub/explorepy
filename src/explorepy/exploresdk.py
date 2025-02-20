@@ -5,8 +5,7 @@
 # Do not make changes to this file unless you know what you are doing - modify
 # the SWIG interface file instead.
 import sys
-from sys import version_info as _swig_python_version_info
-if _swig_python_version_info < (2, 7, 0):
+if sys.version_info < (2, 7, 0):
     raise RuntimeError("Python 2.7 or later required")
 
 # Import the low-level C/C++ module
@@ -153,7 +152,7 @@ class BTSerialPortBinding(object):
 
 # Register BTSerialPortBinding in _exploresdk:
 _exploresdk.BTSerialPortBinding_swigregister(BTSerialPortBinding)
-class vectordevice(collections.abc.MutableSequence if _swig_python_version_info >= (3, 3) else collections.MutableSequence):
+class vectordevice(collections.abc.MutableSequence if sys.version_info >= (3, 3) else collections.MutableSequence):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
 
