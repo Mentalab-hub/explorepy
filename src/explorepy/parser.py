@@ -79,7 +79,7 @@ class Parser:
             from explorepy.btcpp import SDKBtClient
             self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
         elif is_ble_mode():
-            from explorepy.btcpp import BLEClient
+            from explorepy.BLEClient import BLEClient
             self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
         elif explorepy.get_bt_interface() == 'mock':
             from explorepy.bt_mock_client import MockBtClient

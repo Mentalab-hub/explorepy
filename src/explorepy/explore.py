@@ -415,9 +415,13 @@ class Explore:
             logger.info("Conversion process interrupted.")
         finally:
             if self.recorders['file_type'] == 'csv':
+                self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
                 self.recorders["marker"].stop()
+            self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+            self.stream_processor.unsubscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
             self.recorders["exg"].stop()
             self.recorders["orn"].stop()
+            self.recorders = {}
             explorepy.set_bt_interface(bt_interface)
             logger.info('Conversion process terminated.')
 
