@@ -40,8 +40,7 @@ dependencies = [
     'pyserial',
     'pyyaml',
     'bleak==0.22.3',
-    'pylsl'
-]
+    'pylsl']
 
 [tool.setuptools]
 package-dir = {"" = "src"}
