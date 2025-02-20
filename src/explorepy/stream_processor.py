@@ -78,6 +78,7 @@ class StreamProcessor:
         self.cmd_event = threading.Event()
         self.reset_timer()
         self.packet_count = 0
+        self.progress = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -122,16 +123,17 @@ class StreamProcessor:
             callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
         self.orn_initialize(device_name)
 
-    def open_file(self, bin_file):
+    def open_file(self, bin_file, progress_callback=None):
         """Open the binary file and read until it gets device info packet
         Args:
             bin_file (str): Path to binary file
         """
         self.is_bt_streaming = False
-        self.parser = Parser(callback=self.process_batch,
+        self.parser = Parser(callback=self.process_batch, progress_callback=progress_callback,
                              mode='file', debug=False)
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
+        self.is_connected = False
 
     def read_device_info(self, bin_file):
         self.is_bt_streaming = False

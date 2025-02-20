@@ -284,7 +284,6 @@ class Explore:
             progress_dialog
 
         """
-        # total_file_bytes = os.path.getsize(bin_file)
         bt_interface = explorepy.get_bt_interface()
         if file_type not in ['edf', 'csv']:
             raise ValueError('Invalid file type is given!')
@@ -390,21 +389,30 @@ class Explore:
         self.stream_processor.subscribe(
             callback=device_info_callback, topic=TOPICS.device_info)
 
+        def stream_progress_handler(progress):
+            progress = np.floor(progress)
+            if progress_callback:
+                progress_callback(progress)
+            if progress_dialog:
+                if progress >= 100:
+                    progress_dialog._close()
+                    return
+                elif progress_dialog.close:
+                    raise InterruptedError("Conversion cancelled by user")
+            else:
+                bar_width = 50
+                filled = int(bar_width * progress / 100)
+                bar = '=' * filled + '-' * (bar_width - filled)
+                print(f'\rProgress: [{bar}] {progress}%', end='', flush=True)
+                if progress >= 100:
+                    print()
+
         logger.info("Converting...")
         try:
-            self.stream_processor.open_file(bin_file)
+            self.stream_processor.open_file(bin_file, progress_callback=stream_progress_handler)
 
-            # while self.stream_processor.is_connected:
-            #     time.sleep(.1)
-            #     if progress_dialog and progress_dialog.close:
-            #         logger.info("Conversion process cancelled.")
-            #         break
-
-            #     if progress_callback:
-            #         progress = (
-            #             self.stream_processor.parser.total_packet_size_read / total_file_bytes
-            #         )
-            #         progress_callback(int(progress * 100))
+        except InterruptedError:
+            logger.info("Conversion process interrupted.")
         finally:
             if self.recorders['file_type'] == 'csv':
                 self.recorders["marker"].stop()

@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class Parser:
     """Data parser class"""
 
-    def __init__(self, callback, mode='device', debug=True):
+    def __init__(self, callback, progress_callback=None, mode='device', debug=True):
         """
         Args:
             callback (function): function to be called when new packet is received
@@ -66,6 +66,8 @@ class Parser:
         self.seek_new_pid = asyncio.Event()
         self.usb_marker_port = None
         self.total_packet_size_read = 0
+        self.progress = 0
+        self.progress_callback = progress_callback
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -104,20 +106,27 @@ class Parser:
                 self.usb_marker_port.close()
 
     def start_reading(self, filename):
-        """Open the binary file
+        """Open the binary file and start reading packets
         Args:
             filename (str): Binary file name
         """
         self.stream_interface = FileHandler(filename)
         total_packet_batch = 0
         packet_generator = self._generate_packets_from_file()
+
         try:
             while True:
-                batch = next(packet_generator)
-                self.callback(packet_batch=batch)
+                batch, total_markers = next(packet_generator)
+                self.callback(packet_batch=batch)               
+                self.progress += (len(batch) / total_markers) * 100
+                if self.progress_callback:
+                    self.progress_callback(min(self.progress, 100.0))
                 total_packet_batch += 1
+
         except StopIteration:
-            logger.info(f"Total packets collected:{total_packet_batch}")
+            logger.debug(f"Total batches of packets collected: {total_packet_batch}")
+            if self.progress_callback:
+                self.progress_callback(100.0)
         except EOFError:
             logger.info('Reached end of the file')
         finally:
@@ -297,7 +306,11 @@ class Parser:
                 raw_header = buffer[header_start:header_start + 8]
                 pid = raw_header[0]
                 payload_length = struct.unpack_from('<H', raw_header, 2)[0]
-                timestamp = struct.unpack_from('<I', raw_header, 4)[0] / TIMESTAMP_SCALE
+                if is_explore_pro_device():
+                    timestamp_scale = TIMESTAMP_SCALE_BLE
+                else:
+                    timestamp_scale = TIMESTAMP_SCALE
+                timestamp = struct.unpack_from('<I', raw_header, 4)[0] / timestamp_scale
                 parse_time += time.time() - parse_start
                 if payload_length > 550:
                     continue
@@ -314,7 +327,8 @@ class Parser:
                 continue
         return chunk_packets
 
-    def _generate_packets_from_file(self, batch_size: int = 10000, num_threads: int = 4) -> Generator[List[Tuple], None, None]:
+    def _generate_packets_from_file(self, batch_size: int = 10000,
+                                    num_threads: int = 4) -> Generator[List[Tuple], None, None]:
         """Reads and parses packets from file in parallel, aligning batch size with thread processing."""
         PACKET_MARKER = b'\xaf\xbe\xad\xde'
         num_threads = multiprocessing.cpu_count()
@@ -339,7 +353,7 @@ class Parser:
                         chunk_packets = future.result()
                         processed_packets = Packet.parse_packets_batch(chunk_packets)
                         batch = [(packet, 8 + len(info[2])) for packet, info in zip(processed_packets, chunk_packets)]
-                        yield batch
+                        yield batch, len(marker_positions)
                     except FletcherError:
                         print('Fletcher checksum error in batch, skipping affected packets')
                         continue
@@ -354,7 +368,7 @@ class FileHandler:
     def __init__(self, filename: str):
         """
         Initialize file handler.
-        
+
         Args:
             filename (str): Path to the binary file
         """
@@ -387,9 +401,9 @@ class FileHandler:
         data = self.file.read(n_bytes)
         if len(data) < n_bytes:
             raise EOFError('End of file!')
-            
+
         return data
-    
+
     def disconnect(self):
         """Close both the memory map (if exists) and file"""
         if self.mmap is not None:
