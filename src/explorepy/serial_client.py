@@ -8,10 +8,7 @@ from collections import deque
 import serial
 from serial.tools import list_ports
 
-from explorepy import (
-    exploresdk,
-    settings_manager
-)
+from explorepy import settings_manager
 from explorepy._exceptions import DeviceNotFoundError
 
 
