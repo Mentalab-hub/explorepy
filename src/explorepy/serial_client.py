@@ -107,8 +107,6 @@ class SerialClient:
         Args:
             data (bytearray): Data to be sent
         """
-        import binascii
-        print(binascii.hexlify(data))
         self.bt_serial_port_manager.write(data)
 
     @staticmethod
