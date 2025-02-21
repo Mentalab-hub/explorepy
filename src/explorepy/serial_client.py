@@ -181,6 +181,9 @@ class SerialStream:
                 # do nothing here as this comes from posix
                 pass
             except serial.serialutil.SerialException:
+                raise serial.serialutil.SerialException('Permission error on USB port access. Please set up correct permission via terminal: chmod 777 <port_name>.'
+                                                        'Alternatively, set up udev rule following ExplorePy documentation: '
+                                                        'https://explorepy.readthedocs.io/en/latest/installation.html#set-up-usb-streaming-in-linux')
                 logger.info(
                     "Permission denied on serial port access, please run this command via"
                     "terminal: sudo chmod 777 {}".format(port)
