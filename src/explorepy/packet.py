@@ -5,12 +5,12 @@ import binascii
 import logging
 import struct
 from enum import IntEnum
-from explorepy.int24to32 import convert
 
 import numpy as np
 
 import explorepy.tools
 from explorepy._exceptions import FletcherError
+from explorepy.int24to32 import convert
 
 
 logger = logging.getLogger(__name__)

@@ -3,25 +3,32 @@
 import asyncio
 import binascii
 import logging
+import mmap
+import multiprocessing
 import struct
 import sys
-import mmap
-import numpy as np
-from typing import Optional, Generator, List, Tuple
-from threading import Thread
-from explorepy.packet import Packet
-from concurrent.futures import ThreadPoolExecutor
 import time
+from concurrent.futures import ThreadPoolExecutor
+from threading import Thread
+from typing import (
+    Generator,
+    List,
+    Optional,
+    Tuple
+)
+
+import numpy as np
+
 import explorepy
 from explorepy._exceptions import (
     BleDisconnectionError,
     FletcherError,
     ReconnectionFlowError
 )
-import multiprocessing
 from explorepy.packet import (
     PACKET_CLASS_DICT,
     DeviceInfo,
+    Packet,
     PacketBIN
 )
 from explorepy.settings_manager import SettingsManager

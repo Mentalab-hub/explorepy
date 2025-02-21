@@ -10,8 +10,8 @@ import os.path
 import socket
 from collections import namedtuple
 from contextlib import closing
-from threading import Lock
 from io import StringIO
+from threading import Lock
 
 import numpy as np
 import pandas
@@ -39,7 +39,7 @@ from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
     BleImpedancePacket,
-    Orientation,
+    Orientation
 )
 from explorepy.settings_manager import SettingsManager
 
