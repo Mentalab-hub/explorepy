@@ -228,7 +228,8 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, time
         # we only need the first channel's units as this will correspond with the rest
         exg_unit = EXG_UNITS[0]
     return FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=exg_unit,
-                        adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite, timestamp=timestamp, batch_mode=batch_mode)
+                        adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite,
+                        timestamp=timestamp, batch_mode=batch_mode)
 
 
 class HeartRateEstimator:
@@ -503,10 +504,7 @@ class FileRecorder:
             self._timestamps = []
         elif file_type == 'csv':
             self._file_name = filename + '.csv'
-            if self._batch_mode:
-                self._create_batch_csv(do_overwrite=do_overwrite)
-            else:
-                self._create_csv(do_overwrite=do_overwrite)
+            self._create_csv(do_overwrite=do_overwrite)
         else:
             raise ValueError("File type must be 'edf' or 'csv'")
 
@@ -522,24 +520,20 @@ class FileRecorder:
         self._file_obj = pyedflib.EdfWriter(
             self._file_name, self._n_chan, file_type=pyedflib.FILETYPE_BDFPLUS)
 
-    def _create_batch_csv(self, do_overwrite):
-        """Create CSV file with optimized writing setup"""
-        if (not do_overwrite) and os.path.isfile(self._file_name):
-            raise FileExistsError(self._file_name + ' already exists!')
-        assert self._file_obj is None, "Usage Error: File object has been created already."
-        self._file_obj = open(self._file_name, 'wb')
-
-        # Write headers
-        header = ','.join(self._ch_label) + '\n'
-        self._file_obj.write(header.encode('utf-8'))
-
     def _create_csv(self, do_overwrite):
         if (not do_overwrite) and os.path.isfile(self._file_name):
             raise FileExistsError(self._file_name + ' already exists!')
         assert self._file_obj is None, "Usage Error: File object has been created already."
-        self._file_obj = open(self._file_name, 'w', newline='\n')
-        self._csv_obj = csv.writer(self._file_obj, delimiter=",")
-        self._csv_obj.writerow(self._ch_label)
+        if not self._batch_mode:
+            self._file_obj = open(self._file_name, 'w', newline='\n')
+            self._csv_obj = csv.writer(self._file_obj, delimiter=",")
+            self._csv_obj.writerow(self._ch_label)
+        else:
+            self._file_obj = open(self._file_name, 'wb')
+
+            # Write headers
+            header = ','.join(self._ch_label) + '\n'
+            self._file_obj.write(header.encode('utf-8'))
 
     def _init_edf_channels(self):
         """Initialize EDF channels with signal parameters"""
@@ -585,26 +579,6 @@ class FileRecorder:
             self._file_obj.close()
             self._file_obj = None
 
-    def set_batch_marker(self, packet):
-        """Writes a marker event in the file
-
-        Args:
-            packet (explorepy.packet.EventMarker): Event marker packet
-        """
-        timestamp, code = packet.get_data()
-        timestamp[0] = round(timestamp[0], 4)
-        if self.file_type == 'csv':
-            marker_data = np.array(timestamp + code)[:, np.newaxis]
-            output = StringIO()
-            np.savetxt(output, marker_data.T, fmt='%s',
-                       delimiter=',', newline='\n')
-            self._file_obj.write(output.getvalue().encode('utf-8'))
-            self._file_obj.flush()
-        elif self.file_type == 'edf':
-            if self._rec_time_offset is None:
-                self._rec_time_offset = timestamp[0]
-            self._annotations_buffer.append((timestamp[0], code[0]))
-
     def set_marker(self, packet):
         """Writes a marker event in the file
 
@@ -615,58 +589,33 @@ class FileRecorder:
         timestamp, code = packet.get_data()
         timestamp[0] = round(timestamp[0], 4)
         if self.file_type == 'csv':
-            data = timestamp + code
-            self._csv_obj.writerow(data)
-            self._file_obj.flush()
+            if not self._batch_mode:
+                data = timestamp + code
+                self._csv_obj.writerow(data)
+                self._file_obj.flush()
+            else:
+                marker_data = np.array(timestamp + code)[:, np.newaxis]
+                output = StringIO()
+                np.savetxt(output, marker_data.T, fmt='%s', delimiter=',', newline='\n')
+                self._file_obj.write(output.getvalue().encode('utf-8'))
+                self._file_obj.flush()
         elif self.file_type == 'edf':
             if self._rec_time_offset is None:
                 self._rec_time_offset = timestamp[0]
             self._annotations_buffer.append((timestamp[0], code[0]))
 
-    def write_batch_meta(self):
+    def write_meta(self):
         """Writes meta data in the file"""
         channels = [
             'ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-        meta_row = f"{self.timestamp or ''},{self._device_name},{self._fs},{' '.join(channels)},{''.join(self._ch_unit)}\n"
-        self._file_obj.write(meta_row.encode('utf-8'))
-        self._file_obj.flush()
-
-    def write_meta(self):
-        """Writes meta data in the file"""
-        channels = ['ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-        row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
-        self._csv_obj.writerow(row)
-        self._file_obj.flush()
-
-    def write_batch_data(self, packet):
-        """Writes data to the file.
-
-        Args:
-            packet (explorepy.packet.Packet): ExG or Orientation packet
-        """
-        if isinstance(packet[0], Orientation):
-            data = np.array([[p.timestamp] + p.acc.tolist() +
-                            p.gyro.tolist() + p.mag.tolist() for p in packet]).T
-
-        elif isinstance(packet[0], EEG):  # EEG batch processing
-            all_data = np.concatenate([p.data for p in packet], axis=1)
-            n_total_samples = all_data.shape[1]
-            start_time = packet[0].timestamp
-            time_vector = np.linspace(start_time,
-                                      start_time +
-                                      (n_total_samples - 1) / self._fs,
-                                      n_total_samples)
-            data = np.concatenate(
-                (time_vector[np.newaxis, :], all_data), axis=0)
-
-        else:  
-            time_vector, sig = packet.get_data(self._fs)
-            if self._rec_time_offset is None:
-                self._rec_time_offset = time_vector[0]
-            data = np.concatenate(
-                (np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
-
-        np.savetxt(self._file_obj, data.T, fmt='%4f', delimiter=',')
+        if not self._batch_mode:
+            row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
+            self._csv_obj.writerow(row)
+            self._file_obj.flush()
+        else:
+            meta_row = f"{self.timestamp or ''},{self._device_name},{self._fs},{' '.join(channels)},{''.join(self._ch_unit)}\n"
+            self._file_obj.write(meta_row.encode('utf-8'))
+            self._file_obj.flush()
 
     def write_data(self, packet):
         """writes data to the file
@@ -679,15 +628,16 @@ class FileRecorder:
             packet (explorepy.packet.Packet): ExG or Orientation packet
 
         """
-        time_vector, sig = packet.get_data(self._fs)
-        if isinstance(packet, Orientation):
-            if len(time_vector) == 1:
-                data = np.array(time_vector + sig)[:, np.newaxis]
-        else:
-            if self._rec_time_offset is None:
-                self._rec_time_offset = time_vector[0]
-            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
-        data = np.round(data, 4)
+        if not self._batch_mode:
+            time_vector, sig = packet.get_data(self._fs)
+            if isinstance(packet, Orientation):
+                if len(time_vector) == 1:
+                    data = np.array(time_vector + sig)[:, np.newaxis]
+            else:
+                if self._rec_time_offset is None:
+                    self._rec_time_offset = time_vector[0]
+                data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
+            data = np.round(data, 4)
         if self.file_type == 'edf':
             if isinstance(packet, EEG):
                 indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
@@ -702,14 +652,37 @@ class FileRecorder:
                     self._write_edf_anno()
                     self._data = self._data[:, self._fs:]
         elif self.file_type == 'csv':
-            if isinstance(packet, EEG):
-                indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-                data = data[indices]
-            try:
-                self._csv_obj.writerows(data.T.tolist())
-                self._file_obj.flush()
-            except ValueError as e:
-                logger.debug('Value error on file write: {}'.format(e))
+            if not self._batch_mode:
+                if isinstance(packet, EEG):
+                    indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+                    data = data[indices]
+                try:
+                    self._csv_obj.writerows(data.T.tolist())
+                    self._file_obj.flush()
+                except ValueError as e:
+                    logger.debug('Value error on file write: {}'.format(e))
+            else:
+                if isinstance(packet[0], Orientation):
+                    data = np.array([[p.timestamp] + p.acc.tolist() +
+                                    p.gyro.tolist() + p.mag.tolist() for p in packet]).T
+
+                elif isinstance(packet[0], EEG):  # EEG batch processing
+                    all_data = np.concatenate([p.data for p in packet], axis=1)
+                    n_total_samples = all_data.shape[1]
+                    start_time = packet[0].timestamp
+                    time_vector = np.linspace(start_time,
+                                              start_time + (n_total_samples - 1) / self._fs, n_total_samples)
+                    data = np.concatenate(
+                        (time_vector[np.newaxis, :], all_data), axis=0)
+
+                else:  
+                    time_vector, sig = packet.get_data(self._fs)
+                    if self._rec_time_offset is None:
+                        self._rec_time_offset = time_vector[0]
+                    data = np.concatenate(
+                        (np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
+
+                np.savetxt(self._file_obj, data.T, fmt='%4f', delimiter=',')
 
 
 class LslServer:
