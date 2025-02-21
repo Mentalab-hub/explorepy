@@ -318,30 +318,30 @@ class Explore:
                                                     file_type=self.recorders['file_type'],
                                                     fs=self.stream_processor.device_info['sampling_rate'],
                                                     adc_mask=self.mask,
-                                                    do_overwrite=do_overwrite)
+                                                    do_overwrite=do_overwrite, batch_mode=True)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=self.recorders['file_type'],
-                                                    do_overwrite=do_overwrite)
+                                                    do_overwrite=do_overwrite, batch_mode=True)
 
         if self.recorders['file_type'] == 'csv':
             self.recorders['marker'] = create_marker_recorder(
-                filename=marker_out_file, do_overwrite=do_overwrite)
+                filename=marker_out_file, do_overwrite=do_overwrite, batch_mode=True)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                           fs=self.stream_processor.device_info['sampling_rate'],
                                                           adc_mask=self.mask,
                                                           device_name=self.device_name,
-                                                          do_overwrite=do_overwrite)
-            self.recorders['meta'].write_meta()
+                                                          do_overwrite=do_overwrite, batch_mode=True)
+            self.recorders['meta'].write_batch_meta()
             self.recorders['meta'].stop()
         else:
             self.recorders['marker'] = self.recorders['exg']
 
         self.stream_processor.subscribe(
-            callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+            callback=self.recorders['exg'].write_batch_data, topic=TOPICS.raw_ExG)
         self.stream_processor.subscribe(
-            callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+            callback=self.recorders['orn'].write_batch_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(
-            callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+            callback=self.recorders['marker'].set_batch_marker, topic=TOPICS.marker)
 
         def device_info_callback(packet):
             new_device_info = packet.get_info()
@@ -358,23 +358,23 @@ class Explore:
                 logger.warning("Creating a new file: " +
                                new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(
-                    callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                    callback=self.recorders['exg'].write_batch_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(
-                    callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                    callback=self.recorders['marker'].set_batch_marker, topic=TOPICS.marker)
                 self.recorders['exg'].stop()
                 self.recorders['exg'] = create_exg_recorder(filename=new_file_name,
                                                             file_type=self.recorders['file_type'],
                                                             fs=self.stream_processor.device_info['sampling_rate'],
                                                             adc_mask=self.stream_processor.device_info['adc_mask'],
-                                                            do_overwrite=do_overwrite)
+                                                            do_overwrite=do_overwrite, batch_mode=True)
 
                 if self.recorders['file_type'] == 'edf':
                     self.recorders['marker'] = self.recorders['exg']
 
                 self.stream_processor.subscribe(
-                    callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                    callback=self.recorders['exg'].write_batch_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.subscribe(
-                    callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                    callback=self.recorders['marker'].set_batch_marker, topic=TOPICS.marker)
 
                 if self.recorders['file_type'] == 'csv':
                     self.recorders['meta'] = create_meta_recorder(
@@ -382,8 +382,8 @@ class Explore:
                         fs=self.stream_processor.device_info['sampling_rate'],
                         adc_mask=self.stream_processor.device_info['adc_mask'],
                         device_name=self.device_name,
-                        do_overwrite=do_overwrite)
-                    self.recorders['meta'].write_meta()
+                        do_overwrite=do_overwrite, batch_mode=True)
+                    self.recorders['meta'].write_batch_meta()
                     self.recorders['meta'].stop()
 
         self.stream_processor.subscribe(
