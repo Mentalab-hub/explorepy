@@ -22,6 +22,7 @@ from appdirs import (
 )
 from bleak import BleakScanner
 from mne import (
+    create_info,
     export,
     io
 )
@@ -967,22 +968,22 @@ def get_raw_data_from_csv(file_name):
     base_file_name = os.path.basename(file_name).split(".")[0]
     meta_ending = "_Meta.csv"
     meta_file = file_name[:-8] + meta_ending
-    if base_file_name[-4] != "_ExG":
+    if base_file_name[-4:] != "_ExG":
         logger.error("File name does not end in _ExG for trying to convert from csv, quitting...")
         return None
     elif not os.path.isfile(file_name[:-8] + meta_ending):
         logger.error("Could not find Meta file while trying to convert from csv, quitting...")
         return None
 
-    sampling_freq = pd.read_csv(meta_file, delimiter=',')['sr'][0]
-    data_frame = pd.read_csv(file_name, delimiter=',')
+    sampling_freq = pandas.read_csv(meta_file, delimiter=',')['sr'][0]
+    data_frame = pandas.read_csv(file_name, delimiter=',')
     data_frame = data_frame.drop('TimeStamp', axis=1)
     ch_types = ["eeg"] * len(data_frame.columns)
-    info = mne.create_info(len(ch_types), sfreq=sampling_freq, ch_types=ch_types)
+    info = create_info(len(ch_types), sfreq=sampling_freq, ch_types=ch_types)
 
     data_frame = data_frame.div(1e6)
     data_frame = data_frame.transpose()
-    raw_data = mne.io.RawArray(data_frame, info).notch_filter(freqs=50)
+    raw_data = io.RawArray(data_frame, info).notch_filter(freqs=50)
 
     return raw_data
 
@@ -991,9 +992,9 @@ def generate_eeglab_dataset(file_name, output_name):
     """Generates an EEGLab dataset from edf(bdf+) file
     """
     file_ext = os.path.splitext(file_name)[1]
-    if file_ext == "csv":
+    if file_ext == ".csv":
         raw_data = get_raw_data_from_csv(file_name)
-    elif file_ext == "bdf":
+    elif file_ext == ".bdf":
         raw_data = io.read_raw_bdf(file_name)
         raw_data = raw_data.drop_channels(raw_data.ch_names[0])
     else:
@@ -1003,6 +1004,7 @@ def generate_eeglab_dataset(file_name, output_name):
         export.export_raw(output_name, raw_data,
                           fmt='eeglab',
                           overwrite=True, physical_range=[-400000, 400000])
+
 
 
 def compare_recover_from_bin(file_name_csv, file_name_device):
