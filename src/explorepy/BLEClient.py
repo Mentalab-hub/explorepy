@@ -121,7 +121,7 @@ class BLEClient(BTClient):
 
     def start_read_loop(self):
         try:
-            asyncio.run(self.ble_manager())
+            asyncio.new_event_loop().run_until_complete(self.ble_manager())
         except RuntimeError as error:
             logger.info('Shutting down BLE stream loop with error {}'.format(error))
         except asyncio.exceptions.CancelledError as error:
