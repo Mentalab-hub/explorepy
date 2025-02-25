@@ -4,8 +4,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath('../src/explorepy/'))
-autodoc_mock_imports = ['bluetooth', 'pylsl', 'bokeh', 'tornado',
-                        'explorepy.exploresdk', 'explorepy._exploresdk']
+autodoc_mock_imports = ['bluetooth', 'pylsl', 'bokeh', 'tornado']
 
 extensions = [
     'sphinx.ext.autodoc',

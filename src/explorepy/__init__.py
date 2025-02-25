@@ -19,7 +19,7 @@ from . import (  # noqa ignore E402
 from .explore import Explore  # noqa
 
 
-__all__ = ["Explore", "command", "exploresdk", "tools", "log_config"]
+__all__ = ["Explore", "command", "tools", "log_config"]
 __version__ = '3.2.1'
 
 this = sys.modules[__name__]
@@ -38,7 +38,7 @@ def set_bt_interface(bt_interface):
     """Set Explorepy Bluetooth interface type
 
     Args:
-        bt_interface (str): Bluetooth interface type. Options:'sdk'
+        bt_interface (str): Bluetooth interface type.
 
     """
     if bt_interface not in bt_interface_list:
