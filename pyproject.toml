@@ -1,5 +1,5 @@
 [build-system]
-requires        = ['setuptools>=74.0', 'numpy']
+requires        = ['setuptools>=74.0']
 build-backend   = 'setuptools.build_meta'
 
 [project]
@@ -40,7 +40,8 @@ dependencies = [
     'pyserial',
     'pyyaml',
     'bleak==0.22.3',
-    'pylsl']
+    'pylsl',
+    'numba']
 
 [tool.setuptools]
 package-dir = {"" = "src"}

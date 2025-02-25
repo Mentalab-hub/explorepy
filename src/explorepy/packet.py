@@ -6,11 +6,11 @@ import logging
 import struct
 from enum import IntEnum
 
+import numba as nb
 import numpy as np
 
 import explorepy.tools
 from explorepy._exceptions import FletcherError
-from explorepy.int24to32 import convert
 
 
 logger = logging.getLogger(__name__)
@@ -120,15 +120,40 @@ class Packet(abc.ABC):
         return parsed_packets
 
     @staticmethod
+    @nb.njit(fastmath=True, cache=True)
     def int24to32(bin_data, byteorder_data='little'):
-        """Converts binary data to int32 using C extension
+        """Converts binary data to int32 using Numba.
+        fastmath and cache enabled for repeated calls.
+
         Args:
-            bin_data (bytes/bytearray): binary data with int24 structure
-            byteorder_data (str): decoder byteorder - 'big' or 'little'
+            bin_data (bytes or bytearray): Binary data structured as int24 values.
+            byteorder_data (str): Byte order ('little' or 'big').
+
         Returns:
-            np.ndarray of int32 values
+            np.ndarray: Converted int32 values.
         """
-        return convert(bin_data, byteorder_data)
+        length = len(bin_data)
+        assert length % 3 == 0, "Packet length error!"
+
+        num_values = length // 3
+        output = np.empty(num_values, dtype=np.int32)
+        bin_array = np.frombuffer(bin_data, dtype=np.uint8)
+
+        if byteorder_data == 'little':
+            shift = np.array([1, 256, 65536], dtype=np.int32)
+        else:  # 'big'
+            shift = np.array([65536, 256, 1], dtype=np.int32)
+
+        for i in range(num_values):
+            idx = i * 3
+            val = (bin_array[idx] * shift[0] + bin_array[idx + 1] * shift[1] + bin_array[idx + 2] * shift[2])
+
+            if val >= 0x800000:
+                val -= 0x1000000
+
+            output[i] = val
+
+        return output
 
 
 class PacketBIN(Packet):
