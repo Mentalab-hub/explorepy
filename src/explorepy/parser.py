@@ -6,7 +6,6 @@ import logging
 import mmap
 import multiprocessing
 import struct
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
@@ -33,7 +32,6 @@ from explorepy.packet import (
 )
 from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
-    TIMESTAMP_SCALE,
     TIMESTAMP_SCALE_BLE,
     get_local_time,
     is_ble_mode,
@@ -79,22 +77,13 @@ class Parser:
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
         self.device_name = device_name
-        if not device_name[-4:].isalpha():
-            interface = 'pyserial' if sys.platform == "darwin" else 'sdk'
-            explorepy.set_bt_interface(interface)
-        if explorepy.get_bt_interface() == 'sdk':
-            from explorepy.btcpp import SDKBtClient
-            self.stream_interface = SDKBtClient(device_name=device_name, mac_address=mac_address)
-        elif is_ble_mode():
+        if is_ble_mode():
             from explorepy.BLEClient import BLEClient
             self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
         elif explorepy.get_bt_interface() == 'mock':
             from explorepy.bt_mock_client import MockBtClient
             self.stream_interface = MockBtClient(device_name=device_name, mac_address=mac_address)
-        elif explorepy.get_bt_interface() == 'pyserial':
-            from explorepy.serial_client import SerialClient
-            self.stream_interface = SerialClient(device_name=device_name)
-        elif explorepy.get_bt_interface() == 'usb':
+        elif is_usb_mode():
             from explorepy.serial_client import SerialStream
             self.stream_interface = SerialStream(device_name=device_name)
         else:
@@ -258,10 +247,7 @@ class Parser:
             raise FletcherError
 
         timestamp = struct.unpack('<I', raw_timestamp)[0]
-        if is_explore_pro_device():
-            timestamp /= TIMESTAMP_SCALE_BLE
-        else:
-            timestamp /= TIMESTAMP_SCALE
+        timestamp /= TIMESTAMP_SCALE_BLE
         # Timestamp conversion
         if self._time_offset is None:
             self._time_offset = get_local_time() - timestamp
@@ -313,11 +299,7 @@ class Parser:
                 raw_header = buffer[header_start:header_start + 8]
                 pid = raw_header[0]
                 payload_length = struct.unpack_from('<H', raw_header, 2)[0]
-                if is_explore_pro_device():
-                    timestamp_scale = TIMESTAMP_SCALE_BLE
-                else:
-                    timestamp_scale = TIMESTAMP_SCALE
-                timestamp = struct.unpack_from('<I', raw_header, 4)[0] / timestamp_scale
+                timestamp = struct.unpack_from('<I', raw_header, 4)[0] / TIMESTAMP_SCALE_BLE
                 parse_time += time.time() - parse_start
                 if payload_length > 550:
                     continue

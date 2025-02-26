@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Some useful tools such as file recorder, heart rate estimation, etc. used in explorepy"""
-import asyncio
 import configparser
 import copy
 import csv
@@ -8,7 +7,6 @@ import datetime
 import logging
 import os.path
 import socket
-from collections import namedtuple
 from contextlib import closing
 from io import StringIO
 from threading import Lock
@@ -21,7 +19,6 @@ from appdirs import (
     user_cache_dir,
     user_config_dir
 )
-from bleak import BleakScanner
 from mne import (
     create_info,
     export,
@@ -49,7 +46,6 @@ logger = logging.getLogger(__name__)
 lock = Lock()
 
 TIMESTAMP_SCALE_BLE = 100000
-TIMESTAMP_SCALE = 10000
 
 MAX_CHANNELS = 32
 EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
@@ -81,60 +77,6 @@ def is_ble_mode():
 
 def is_usb_mode():
     return explorepy.get_bt_interface() == 'usb'
-
-
-def bt_scan():
-    """ Scan for nearby Explore devices
-
-    This function searches for nearby bluetooth devices and returns a list of advertising Explore devices.
-
-    Note:
-        In Windows, this function returns all the paired devices and unpaired advertising devices. The 'is_paired'
-        attribute shows if the device is paired. If a device is paired, it will be in the returned list regardless if
-        it is currently advertising or not.
-
-    Returns:
-            list[namedtuple]: list of nearby devices
-    """
-    NearbyDeviceInfo = namedtuple(
-        "NearbyDeviceInfo", ["name", "address", "is_paired"])
-    logger.info("Searching for nearby devices...")
-    explore_devices = []
-    print('\n')
-    device_manager = explorepy.exploresdk.ExploreSDK_Create()
-    nearby_devices = device_manager.PerformDeviceSearch()
-    for bt_device in nearby_devices:
-        if "Explore" in bt_device.name:
-            print("Device found: %s - %s - Paired: %s" %
-                  (bt_device.name, bt_device.address, bt_device.authenticated))
-            explore_devices.append(NearbyDeviceInfo(
-                bt_device.name, bt_device.address, bt_device.authenticated))
-
-    if not nearby_devices:
-        logger.info("No Explore device was found!")
-
-    return explore_devices
-
-
-async def scan_explore_devices():
-    # Start scanning for devices
-    device_list = []
-    devices = await BleakScanner.discover(timeout=5)
-    for d in devices:
-        if d.name is None:
-            continue
-        if d.name.startswith('Explore_'):
-            device_list.append(d.name)
-    return device_list
-
-
-def run_ble_scanner():
-    print('Looking for Explore Pro devices..')
-    device_list = asyncio.run(scan_explore_devices())
-    for i in range(len(device_list)):
-        print('Found device: {}'.format(device_list[i]))
-    print('Scan finished, found total {} Explore Pro device'.format(len(device_list)))
-    return device_list
 
 
 def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=None, batch_mode=False):
