@@ -8,7 +8,10 @@ import threading
 import time
 from enum import Enum
 from threading import Lock
-from typing import List, Tuple
+from typing import (
+    List,
+    Tuple
+)
 
 import numpy as np
 
