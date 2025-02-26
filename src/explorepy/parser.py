@@ -124,7 +124,7 @@ class Parser:
         try:
             while True:
                 batch, total_markers = next(packet_generator)
-                self.callback(packet_batch=batch)               
+                self.callback(packet_batch=batch)
                 self.progress += (len(batch) / total_markers) * 100
                 if self.progress_callback:
                     self.progress_callback(min(self.progress, 100.0))
@@ -347,7 +347,7 @@ class Parser:
             marker_arr = np.frombuffer(PACKET_MARKER, dtype=np.uint8)
             matches = np.where(arr[:-3] == marker_arr[0])[0]
             marker_positions = [
-                pos for pos in matches 
+                pos for pos in matches
                 if buffer[pos:pos + 4] == PACKET_MARKER
             ]
             with ThreadPoolExecutor(max_workers=num_threads) as executor:
