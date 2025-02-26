@@ -6,7 +6,6 @@ import logging
 import mmap
 import multiprocessing
 import struct
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
@@ -300,11 +299,7 @@ class Parser:
                 raw_header = buffer[header_start:header_start + 8]
                 pid = raw_header[0]
                 payload_length = struct.unpack_from('<H', raw_header, 2)[0]
-                if is_explore_pro_device():
-                    timestamp_scale = TIMESTAMP_SCALE_BLE
-                else:
-                    timestamp_scale = TIMESTAMP_SCALE
-                timestamp = struct.unpack_from('<I', raw_header, 4)[0] / timestamp_scale
+                timestamp = struct.unpack_from('<I', raw_header, 4)[0] / TIMESTAMP_SCALE_BLE
                 parse_time += time.time() - parse_start
                 if payload_length > 550:
                     continue

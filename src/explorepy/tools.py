@@ -78,7 +78,7 @@ def is_usb_mode():
     return explorepy.get_bt_interface() == 'usb'
 
 
-def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=None):
+def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=None, batch_mode=False):
     """ Create ExG recorder
 
     Args:
