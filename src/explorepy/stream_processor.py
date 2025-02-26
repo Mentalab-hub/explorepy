@@ -601,8 +601,8 @@ class StreamProcessor:
         if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
             sps = np.round(1 / self.device_info['sampling_rate'], 3)
             if sps >= 250:
-                time_diff = np.round(packet.timestamp -
-                                     self._last_packet_timestamp, 3)
+                time_diff = np.round(packet.timestamp
+                                     - self._last_packet_timestamp, 3)
                 if time_diff > sps:
                     print('timediff & sps: {} & {}'.format(time_diff, sps))
                     missing_samples = int(time_diff / sps)

@@ -250,8 +250,8 @@ class Explore:
             try:
                 self.last_rec_stat = (
                     (self.stream_processor.packet_count - self.initial_count) / (
-                        (local_clock() - self.last_rec_start_time) *
-                        self.stream_processor.device_info['sampling_rate']
+                        (local_clock() - self.last_rec_start_time)
+                        * self.stream_processor.device_info['sampling_rate']
                     )
                 )
                 # clamp the stat variable
@@ -355,8 +355,8 @@ class Explore:
                     str(np.round(packet.timestamp, 0)) + '_ExG'
                 new_meta_name = meta_out_file[:-4] + "_" + \
                     str(np.round(packet.timestamp, 0)) + '_Meta'
-                logger.warning("Creating a new file: " +
-                               new_file_name + '.' + self.recorders['file_type'])
+                logger.warning("Creating a new file: "
+                               + new_file_name + '.' + self.recorders['file_type'])
                 self.stream_processor.unsubscribe(
                     callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
                 self.stream_processor.unsubscribe(

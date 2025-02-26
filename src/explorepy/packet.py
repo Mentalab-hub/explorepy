@@ -234,8 +234,8 @@ class EEG(Packet):
         scale = imp_calib_info["slope"]
         offset = imp_calib_info["offset"]
         self.imp_data = np.round(
-            (self.get_ptp() -
-             imp_calib_info["noise_level"]) * scale / 1.0e6 - offset,
+            (self.get_ptp()
+             - imp_calib_info["noise_level"]) * scale / 1.0e6 - offset,
             decimals=0,
         )
 
