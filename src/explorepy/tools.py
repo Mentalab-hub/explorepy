@@ -992,8 +992,12 @@ def generate_eeglab_dataset(file_name, output_name):
     """Generates an EEGLab dataset from edf(bdf+) file
     """
     file_ext = os.path.splitext(file_name)[1]
+    raw_data = None
     if file_ext == ".csv":
-        raw_data = get_raw_data_from_csv(file_name)
+        try:
+            raw_data = get_raw_data_from_csv(file_name)
+        except Exception as e:
+            logger.error(f"Got error {e} for file : {file_name}")
     elif file_ext == ".bdf":
         raw_data = io.read_raw_bdf(file_name)
         raw_data = raw_data.drop_channels(raw_data.ch_names[0])
