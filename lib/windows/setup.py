@@ -11,6 +11,7 @@ from setuptools import (
 ext_modules_list = []
 current_platform = sys.platform
 libPath = "lib"
+
 if current_platform == 'win32' or current_platform == 'win64':
     windows_lib_path = os.path.join(libPath, 'windows')
     ext_modules_list.append(Extension(
