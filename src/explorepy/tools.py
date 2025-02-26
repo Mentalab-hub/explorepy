@@ -983,7 +983,7 @@ def get_raw_data_from_csv(file_name):
 
     data_frame = data_frame.div(1e6)
     data_frame = data_frame.transpose()
-    raw_data = io.RawArray(data_frame, info).notch_filter(freqs=50)
+    raw_data = io.RawArray(data_frame, info)
 
     return raw_data
 
