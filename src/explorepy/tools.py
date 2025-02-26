@@ -187,8 +187,8 @@ def create_orn_recorder(filename, file_type, do_overwrite, batch_mode=False):
     orn_unit = ['s'] + ORN_UNITS
     orn_max = [21600., 2000, 2000, 2000, 250000,
                250000, 250000, 50000, 50000, 50000]
-    orn_min = [0, -2000, -2000, -2000, -250000, -
-               250000, -250000, -50000, -50000, -50000]
+    orn_min = [0, -2000, -2000, -2000, -250000,
+               -250000, -250000, -50000, -50000, -50000]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
                         do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min, batch_mode=batch_mode)
 
@@ -582,7 +582,7 @@ class FileRecorder:
 
     def set_marker(self, packet):
         """Writes a marker event in the file
-        
+
         Args:
             packet (explorepy.packet.EventMarker): Event marker packet
 
@@ -614,7 +614,8 @@ class FileRecorder:
             self._csv_obj.writerow(row)
             self._file_obj.flush()
         else:
-            meta_row = f"{self.timestamp or ''},{self._device_name},{self._fs},{' '.join(channels)},{''.join(self._ch_unit)}\n"
+            meta_row = \
+                f"{self.timestamp or ''},{self._device_name},{self._fs},{' '.join(channels)},{''.join(self._ch_unit)}\n"
             self._file_obj.write(meta_row.encode('utf-8'))
             self._file_obj.flush()
 
@@ -664,8 +665,8 @@ class FileRecorder:
                     logger.debug('Value error on file write: {}'.format(e))
             else:
                 if isinstance(packet[0], Orientation):
-                    data = np.array([[p.timestamp] + p.acc.tolist() +
-                                    p.gyro.tolist() + p.mag.tolist() for p in packet]).T
+                    data = np.array([[p.timestamp] + p.acc.tolist()
+                                    + p.gyro.tolist() + p.mag.tolist() for p in packet]).T
 
                 elif isinstance(packet[0], EEG):  # EEG batch processing
                     all_data = np.concatenate([p.data for p in packet], axis=1)
@@ -676,7 +677,7 @@ class FileRecorder:
                     data = np.concatenate(
                         (time_vector[np.newaxis, :], all_data), axis=0)
 
-                else:  
+                else:
                     time_vector, sig = packet.get_data(self._fs)
                     if self._rec_time_offset is None:
                         self._rec_time_offset = time_vector[0]
@@ -1099,7 +1100,6 @@ def generate_eeglab_dataset(file_name, output_name):
                           overwrite=True, physical_range=[-400000, 400000])
 
 
-
 def compare_recover_from_bin(file_name_csv, file_name_device):
     """Compares and recovers missing samples of csv file by comparing data from binary file
 
@@ -1119,8 +1119,8 @@ def compare_recover_from_bin(file_name_csv, file_name_device):
     start = csv_df[timestamp_key][0] - offset_ - time_period
     stop = csv_df[timestamp_key][len(
         csv_df[timestamp_key]) - 1] - offset_ + time_period
-    bin_df = bin_df[(bin_df[timestamp_key] >= start) &
-                    (bin_df[timestamp_key] <= stop)]
+    bin_df = bin_df[(bin_df[timestamp_key] >= start)
+                    & (bin_df[timestamp_key] <= stop)]
     bin_df[timestamp_key] = bin_df[timestamp_key] + offset_
     bin_df.to_csv(file_name_csv + '_recovered_ExG.csv', index=False)
 
