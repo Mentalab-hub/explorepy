@@ -40,6 +40,7 @@ from explorepy.stream_processor import (
 from explorepy.tools import (
     LslServer,
     PhysicalOrientation,
+    check_bin_compatibility,
     create_exg_recorder,
     create_marker_recorder,
     create_meta_recorder,
@@ -272,18 +273,19 @@ class Explore:
 
     def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False,
                     progress_callback=None, progress_dialog=None):
-        """Convert a binary file to EDF or CSV file
+        """Convert a binary file to EDF(BDF+) or CSV file
 
         Args:
             bin_file (str): Path to the binary file recorded by Explore device
             out_dir (str): Output directory path (must be relative path to the current working directory)
-            file_type (str): Output file type: 'edf' for EDF format and 'csv' for CSV format
+            file_type (str): Output file type: 'edf' for EDF(BDF+) format and 'csv' for CSV format
             do_overwrite (bool): Whether to overwrite an existing file
             out_dir_is_full(bool): Whether output directory is a full file path
-            progress_callback:
-            progress_dialog
+            progress_callback: Callback to get progress update
+            progress_dialog: Dialog instance
 
         """
+        check_bin_compatibility(bin_file)
         bt_interface = explorepy.get_bt_interface()
         if file_type not in ['edf', 'csv']:
             raise ValueError('Invalid file type is given!')
@@ -346,10 +348,6 @@ class Explore:
         def device_info_callback(packet):
             new_device_info = packet.get_info()
             # TODO add 16 channel board id and refactor
-            # setting correct device interface
-            if 'max_online_sps' not in new_device_info:
-                logger.debug('setting bt interface to sdk')
-                explorepy.set_bt_interface('sdk')
             if not self.stream_processor.compare_device_info(new_device_info):
                 new_file_name = exg_out_file[:-4] + "_" + \
                     str(np.round(packet.timestamp, 0)) + '_ExG'
