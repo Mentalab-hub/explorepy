@@ -177,3 +177,4 @@ def get_correct_com_port(device_name):
             name = data[8:-4].decode('utf-8', errors='ignore')
             if name == device_name:
                 return p.device
+    raise DeviceNotFoundError()
