@@ -33,6 +33,7 @@ from scipy import signal
 from serial.tools import list_ports
 
 import explorepy
+from explorepy._exceptions import ExplorePyDeprecationError
 from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
@@ -1081,3 +1082,10 @@ def setup_usb_marker_port():
     else:
         logger.info('Found connected device, opening a USB port')
         return serial.Serial(port=port, baudrate=2000000, timeout=0.5)
+
+
+def check_bin_compatibility(file_name):
+    with open(file_name, "rb") as f:
+        b = f.read(1).hex()
+        if b != "62":
+            raise ExplorePyDeprecationError()
