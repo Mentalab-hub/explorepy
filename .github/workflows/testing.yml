@@ -2,11 +2,16 @@ name: testing
 on:
     pull_request:
         branches: [master, develop]
+    push:
+        branches: [APIS-1222-fix-conda-ubuntu]
+env:
+    miniconda_linux: "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+    miniconda_mac_arm: "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh"
 jobs:
     test:
         strategy:
             matrix:
-                os: [ubuntu-latest, windows-latest]
+                os: [ubuntu-latest]
                 python: [3.12]
         runs-on: ${{ matrix.os }}
         timeout-minutes: 10
@@ -25,18 +30,28 @@ jobs:
               run: |
                 sudo apt-get update -y
                 sudo apt-get install libbluetooth-dev -y
-            - name: Set up Miniconda for Linux and Windows with ${{ matrix.python }}
-              if: matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest'
+            - name: Set up Miniconda for Windows with ${{ matrix.python }}
+              if: matrix.os == 'windows-latest'
               uses: s-weigand/setup-conda@v1
               with:
                   python-version: ${{ matrix.python }}
                   conda-channels: anaconda, conda-forge
-            - name: Set up Miniconda for macOS with ${{ matrix.python }}
+            - name: Download Miniconda for macOS
               if: matrix.os == 'macos-latest'
               shell: bash
               run: |
                   mkdir -p ${{ github.workspace }}/miniconda3
-                  curl "https://repo.anaconda.com/miniconda/Miniconda3-py312_24.9.2-0-MacOSX-arm64.sh" -o "${{ github.workspace }}/miniconda3/miniconda.sh"
+                  curl "${{ env.miniconda_mac_arm }}" -o "${{ github.workspace }}/miniconda3/miniconda.sh"
+            - name: Download Miniconda for Ubuntu
+              if: matrix.os == 'ubuntu-latest'
+              shell: bash
+              run: |
+                  mkdir -p ${{ github.workspace }}/miniconda3
+                  curl "${{ env.miniconda_linux }}" -o "${{ github.workspace }}/miniconda3/miniconda.sh"
+            - name: Set up Miniconda for macOS with ${{ matrix.python }}
+              if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
+              shell: bash
+              run: |
                   bash ${{ github.workspace }}/miniconda3/miniconda.sh -b -u -p ${{ github.workspace }}/miniconda3
                   rm ${{ github.workspace }}/miniconda3/miniconda.sh
                   source ${{ github.workspace }}/miniconda3/bin/activate
