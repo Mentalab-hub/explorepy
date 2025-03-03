@@ -2,8 +2,6 @@ name: testing
 on:
     pull_request:
         branches: [master, develop]
-    push:
-        branches: [APIS-1222-fix-conda-ubuntu]
 env:
     miniconda_linux: "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
     miniconda_mac_arm: "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh"
@@ -11,7 +9,7 @@ jobs:
     test:
         strategy:
             matrix:
-                os: [ubuntu-latest]
+                os: [ubuntu-latest, windows-latest]
                 python: [3.12]
         runs-on: ${{ matrix.os }}
         timeout-minutes: 10
@@ -48,7 +46,7 @@ jobs:
               run: |
                   mkdir -p ${{ github.workspace }}/miniconda3
                   curl "${{ env.miniconda_linux }}" -o "${{ github.workspace }}/miniconda3/miniconda.sh"
-            - name: Set up Miniconda for macOS with ${{ matrix.python }}
+            - name: Set up Miniconda for ${{ matrix.os }} with ${{ matrix.python }}
               if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
               shell: bash
               run: |
