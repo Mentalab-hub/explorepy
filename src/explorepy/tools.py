@@ -435,6 +435,7 @@ class FileRecorder:
         self._fs = int(fs)
         self._rec_time_offset = None
         self._batch_mode = batch_mode
+        self._buffer_lock = Lock()
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
