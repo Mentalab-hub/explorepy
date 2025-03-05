@@ -514,7 +514,7 @@ class FileRecorder:
         assert self._file_obj is not None, "Usage Error: File object has not been created yet."
         if self.file_type == 'edf':
             if self._data.shape[1] > 0:
-                with self._buffer_lock:
+                with lock:
                     self._file_obj.writeSamples(list(self._data))
                     self._write_edf_anno()
             self._file_obj.close()
@@ -562,71 +562,84 @@ class FileRecorder:
             self._file_obj.write(meta_row.encode('utf-8'))
             self._file_obj.flush()
 
-    def write_data(self, packet):
-        """writes data to the file
+    def _write_edf(self, packet):
+        time_vector, sig = packet.get_data(self._fs)
+        if isinstance(packet, Orientation) and len(time_vector) == 1:
+            data = np.array(time_vector + sig)[:, np.newaxis]
+        else:
+            if self._rec_time_offset is None:
+                self._rec_time_offset = time_vector[0]
+            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
+        data = np.round(data, 4)
+        if isinstance(packet, EEG):
+            indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+            data = data[indices]
+        if data.shape[0] != self._n_chan:
+            raise ValueError('Input first dimension must be {}'.format(self._n_chan))
+        self._data = np.concatenate((self._data, data), axis=1)
+        self._timestamps += list(data[0, :])
+        with lock:
+            if self._data.shape[1] > self._fs:
+                self._file_obj.writeSamples(list(self._data[:, :self._fs]))
+                self._write_edf_anno()
+                self._data = self._data[:, self._fs:]
 
+    def _process_packet_data(self, packet):
+        """Helper function to extract and format data from a packet."""
+        time_vector, sig = packet.get_data(self._fs)
+        if isinstance(packet, Orientation) and len(time_vector) == 1:
+            data = np.array(time_vector + sig)[:, np.newaxis]
+        else:
+            if self._rec_time_offset is None:
+                self._rec_time_offset = time_vector[0]
+            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
+        data = np.round(data, 4)
+        if isinstance(packet, EEG):
+            indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
+            data = data[indices]
+        return data
+
+    def _process_batch_csv(self, packet):
+        """Process a batch of packets for CSV output."""
+        if isinstance(packet[0], Orientation):
+            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.tolist() for p in packet]).T
+        elif isinstance(packet[0], EEG):
+            all_data = np.concatenate([p.data for p in packet], axis=1)
+            n_total_samples = all_data.shape[1]
+            start_time = packet[0].timestamp
+            time_vector = np.linspace(start_time, start_time + (n_total_samples - 1) / self._fs, n_total_samples)
+            data = np.concatenate((time_vector[np.newaxis, :], all_data), axis=0)
+        else:
+            time_vector, sig = packet.get_data(self._fs)
+            if self._rec_time_offset is None:
+                self._rec_time_offset = time_vector[0]
+            data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
+        return data
+
+    def write_data(self, packet):
+        """Writes data to the file
         Notes:
             If file type is set to EDF, this function writes each 1 seconds of data. If the input is less than 1 second,
             it will be buffered in the memory and it will be written in the file when enough data is in the buffer.
-
         Args:
             packet (explorepy.packet.Packet): ExG or Orientation packet
-
         """
-        if not self._batch_mode:
-            time_vector, sig = packet.get_data(self._fs)
-            if isinstance(packet, Orientation):
-                if len(time_vector) == 1:
-                    data = np.array(time_vector + sig)[:, np.newaxis]
-            else:
-                if self._rec_time_offset is None:
-                    self._rec_time_offset = time_vector[0]
-                data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
-            data = np.round(data, 4)
         if self.file_type == 'edf':
-            if isinstance(packet, EEG):
-                indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-                data = data[indices]
-            if data.shape[0] != self._n_chan:
-                raise ValueError('Input first dimension must be {}'.format(self._n_chan))
-            self._data = np.concatenate((self._data, data), axis=1)
-            self._timestamps += list(data[0, :])
-            with lock:
-                if self._data.shape[1] > self._fs:
-                    self._file_obj.writeSamples(list(self._data[:, :self._fs]))
-                    self._write_edf_anno()
-                    self._data = self._data[:, self._fs:]
+            if not self._batch_mode:
+                self._write_edf(packet)
+            else:
+                for p in packet:
+                    self._write_edf(packet=p)
         elif self.file_type == 'csv':
             if not self._batch_mode:
-                if isinstance(packet, EEG):
-                    indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
-                    data = data[indices]
+                data = self._process_packet_data(packet)
                 try:
                     self._csv_obj.writerows(data.T.tolist())
                     self._file_obj.flush()
                 except ValueError as e:
                     logger.debug('Value error on file write: {}'.format(e))
             else:
-                if isinstance(packet[0], Orientation):
-                    data = np.array([[p.timestamp] + p.acc.tolist()
-                                    + p.gyro.tolist() + p.mag.tolist() for p in packet]).T
-
-                elif isinstance(packet[0], EEG):  # EEG batch processing
-                    all_data = np.concatenate([p.data for p in packet], axis=1)
-                    n_total_samples = all_data.shape[1]
-                    start_time = packet[0].timestamp
-                    time_vector = np.linspace(start_time,
-                                              start_time + (n_total_samples - 1) / self._fs, n_total_samples)
-                    data = np.concatenate(
-                        (time_vector[np.newaxis, :], all_data), axis=0)
-
-                else:
-                    time_vector, sig = packet.get_data(self._fs)
-                    if self._rec_time_offset is None:
-                        self._rec_time_offset = time_vector[0]
-                    data = np.concatenate(
-                        (np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
-
+                data = self._process_batch_csv(packet)
                 np.savetxt(self._file_obj, data.T, fmt='%4f', delimiter=',')
 
 
