@@ -335,18 +335,23 @@ class Orientation(Packet):
     """Orientation data packet"""
 
     def __init__(self, timestamp, payload, time_offset=0):
+        self.quat = None
         super().__init__(timestamp, payload, time_offset)
         self.theta = None
         self.rot_axis = None
 
     def _convert(self, bin_data):
         data = np.copy(
-            np.frombuffer(bin_data, dtype=np.dtype(
+            np.frombuffer(bin_data[0:18], dtype=np.dtype(
                 np.int16).newbyteorder("<"))).astype(float)
-        self.acc = 0.061 * data[0:3]  # Unit [mg/LSB]
-        self.gyro = 8.750 * data[3:6]  # Unit [mdps/LSB]
-        self.mag = 1.52 * np.multiply(data[6:], np.array(
+        self.acc = 0.122 * data[0:3]  # Unit [mg/LSB]
+        self.gyro = 70 * data[3:6]  # Unit [mdps/LSB]
+        self.mag = 1.52 * np.multiply(data[6:9], np.array(
             [-1, 1, 1]))  # Unit [mgauss/LSB]
+        data = np.copy(
+            np.frombuffer(bin_data[18:34], dtype=np.dtype(
+                np.float32).newbyteorder("<"))).astype(float)
+        self.quat = data
         self.theta = None
         self.rot_axis = None
 
