@@ -8,6 +8,7 @@ from enum import IntEnum
 
 import numba as nb
 import numpy as np
+from pylsl import local_clock
 
 import explorepy.tools
 from explorepy._exceptions import FletcherError
@@ -51,6 +52,12 @@ EXG_UNIT = 1e-6
 GAIN = EXG_UNIT * 8388607 * 6.0
 
 
+def get_clock_suffix():
+    current = local_clock()
+    temp = int(current * 1000000)
+    return ((temp >> 32) & 0xffffffff) << 32
+
+
 class Packet(abc.ABC):
     """An abstract base class for Explore packet"""
 
@@ -63,7 +70,7 @@ class Packet(abc.ABC):
             time_offset (double): Time offset defined by parser. It will be the timestamp of the first packet when
                                     streaming in realtime. It will be zero while converting a binary file.
         """
-        self.timestamp = timestamp + time_offset
+        self.timestamp = timestamp + get_clock_suffix()
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 
@@ -532,7 +539,7 @@ class Trigger(EventMarker):
                           count=1,
                           offset=0))
         scale = 100000 if explorepy.tools.is_explore_pro_device() else 10000
-        self.timestamp = precise_ts / scale + self._time_offset
+        self.timestamp = precise_ts / scale + get_clock_suffix()
         code = np.ndarray.item(
             np.frombuffer(bin_data,
                           dtype=np.dtype(np.uint16).newbyteorder("<"),
