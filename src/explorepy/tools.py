@@ -707,12 +707,12 @@ class LslServer:
         Args:
             packet (explorepy.packet.EEG): ExG packet
         """
-        _, exg_data = packet.get_data(self.exg_fs)
+        ts, exg_data = packet.get_data(self.exg_fs)
         if isinstance(packet, EEG):
             indices = [i for i, flag in enumerate(
                 reversed(self.adc_mask)) if flag == 1]
             exg_data = exg_data[indices]
-        self.exg_outlet.push_chunk(exg_data.T.tolist())
+        self.exg_outlet.push_chunk(exg_data.T.tolist(), ts)
 
     def push_orn(self, packet):
         """Push data to orientation outlet
@@ -720,8 +720,8 @@ class LslServer:
         Args:
             packet (explorepy.packet.Orientation): Orientation packet
         """
-        _, orn_data = packet.get_data()
-        self.orn_outlet.push_sample(orn_data)
+        ts, orn_data = packet.get_data()
+        self.orn_outlet.push_sample(orn_data, ts)
 
     def push_marker(self, packet):
         """Push data to marker outlet
@@ -729,8 +729,8 @@ class LslServer:
         Args:
             packet (explorepy.packet.EventMarker): Event marker packet
         """
-        _, code = packet.get_data()
-        self.marker_outlet.push_sample(code)
+        ts, code = packet.get_data()
+        self.marker_outlet.push_sample(code, ts)
 
 
 class ImpedanceMeasurement:
