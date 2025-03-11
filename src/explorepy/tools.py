@@ -721,7 +721,7 @@ class LslServer:
             packet (explorepy.packet.Orientation): Orientation packet
         """
         ts, orn_data = packet.get_data()
-        self.orn_outlet.push_sample(orn_data, ts)
+        self.orn_outlet.push_sample(orn_data, ts[0])
 
     def push_marker(self, packet):
         """Push data to marker outlet
