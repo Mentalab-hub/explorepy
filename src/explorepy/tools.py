@@ -664,6 +664,7 @@ class LslServer:
                               source_id=device_info["device_name"] + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         info_exg.desc().append_child_value("constant", str(get_clock_upper()))
+        print(str(get_clock_upper()))
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(self.adc_mask):
             if mask == 1:
@@ -715,7 +716,7 @@ class LslServer:
                 reversed(self.adc_mask[:-1])) if flag == 1]
             exg_data = exg_data[indices]
         joined_data = np.append(exg_data, np.array([[ts[0]]]), axis=0)
-        self.exg_outlet.push_chunk(joined_data.T.tolist())
+        self.exg_outlet.push_sample(joined_data)
 
     def push_orn(self, packet):
         """Push data to orientation outlet
@@ -1110,4 +1111,8 @@ def check_bin_compatibility(file_name):
 def get_clock_upper():
     current = local_clock()
     temp = int(current * 1000000)
-    return ((temp >> 32) & 0xffffffff) << 32
+    temp2 =  ((temp >> 32) & 0xffffffff)
+    return temp2 << 32
+
+if __name__ == '__main__':
+    print(get_clock_upper())
