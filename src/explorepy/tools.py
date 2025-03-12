@@ -714,7 +714,7 @@ class LslServer:
             indices = [i for i, flag in enumerate(
                 reversed(self.adc_mask[:-1])) if flag == 1]
             exg_data = exg_data[indices]
-        self.exg_outlet.push_chunk(exg_data.T.tolist() + ts.T.tolist())
+        self.exg_outlet.push_chunk((exg_data + ts).T.tolist())
 
     def push_orn(self, packet):
         """Push data to orientation outlet
