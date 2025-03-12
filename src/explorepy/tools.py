@@ -710,7 +710,6 @@ class LslServer:
             packet (explorepy.packet.EEG): ExG packet
         """
         ts, exg_data = packet.get_data(self.exg_fs)
-        print(ts)
         if isinstance(packet, EEG):
             indices = [i for i, flag in enumerate(
                 reversed(self.adc_mask[:-1])) if flag == 1]
