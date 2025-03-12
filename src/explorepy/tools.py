@@ -663,7 +663,7 @@ class LslServer:
                               channel_format='float32',
                               source_id=device_info["device_name"] + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
-        info_exg.desc().append_child_value("settings", str(get_clock_upper()))
+        info_exg.desc().append_child_value("constant", str(get_clock_upper()))
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(self.adc_mask):
             if mask == 1:
@@ -714,7 +714,7 @@ class LslServer:
             indices = [i for i, flag in enumerate(
                 reversed(self.adc_mask[:-1])) if flag == 1]
             exg_data = exg_data[indices]
-        self.exg_outlet.push_chunk(exg_data.T.tolist() + ts)
+        self.exg_outlet.push_chunk(exg_data.T.tolist() + ts.T.tolist())
 
     def push_orn(self, packet):
         """Push data to orientation outlet
