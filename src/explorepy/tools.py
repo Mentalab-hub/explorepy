@@ -650,7 +650,8 @@ class LslServer:
     def __init__(self, device_info):
 
         self.adc_mask = SettingsManager(
-            device_info["device_name"]).get_adc_mask()
+            device_info["device_name"]).get_adc_mask() +  [1]
+        print(self.adc_mask)
         n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
@@ -662,6 +663,7 @@ class LslServer:
                               channel_format='float32',
                               source_id=device_info["device_name"] + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
+        info_exg.desc().append_child_value("settings", str(get_clock_upper()))
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(self.adc_mask):
             if mask == 1:
@@ -708,11 +710,12 @@ class LslServer:
             packet (explorepy.packet.EEG): ExG packet
         """
         ts, exg_data = packet.get_data(self.exg_fs)
+        print(ts)
         if isinstance(packet, EEG):
             indices = [i for i, flag in enumerate(
-                reversed(self.adc_mask)) if flag == 1]
+                reversed(self.adc_mask[:-1])) if flag == 1]
             exg_data = exg_data[indices]
-        self.exg_outlet.push_chunk(exg_data.T.tolist(), ts)
+        self.exg_outlet.push_chunk(exg_data.T.tolist() + ts)
 
     def push_orn(self, packet):
         """Push data to orientation outlet
@@ -1103,3 +1106,8 @@ def check_bin_compatibility(file_name):
         b = f.read(1).hex()
         if b != "62":
             raise ExplorePyDeprecationError()
+
+def get_clock_upper():
+    current = local_clock()
+    temp = int(current * 1000000)
+    return ((temp >> 32) & 0xffffffff) << 32
