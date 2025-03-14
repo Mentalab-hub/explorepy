@@ -4,7 +4,7 @@ import logging
 import time
 
 from explorepy import (
-    exploresdk,
+    BLEClient,
     settings_manager
 )
 from explorepy._exceptions import InputError
@@ -42,7 +42,7 @@ class MockBtClient:
         config_manager.set_mac_address(self.mac_address)
 
         # sets up necessary variables
-        self.bt_serial_port_manager = MockBtServer()
+        self.bt_serial_port_manager = BLEClient(self.device_name)
         self.bt_serial_port_manager.Connect()
         logger.info('Connected to the device')
         self.is_connected = True
@@ -72,11 +72,7 @@ class MockBtClient:
     def disconnect(self):
         """Disconnect from the device"""
         self.is_connected = False
-        self.bt_serial_port_manager.Close()
-
-    def _find_mac_address(self):
-        self.device_manager = exploresdk.ExploreSDK_Create()
-        self.mac_address = 'ABCD_EFGH_IJKL_MNOP'  # dummy MAC address
+        self.bt_serial_port_manager.disconnect()
 
     def read(self, n_bytes):
         """Read n_bytes from the socket
@@ -109,7 +105,7 @@ class MockBtClient:
             print(error)
             logger.error(
                 "unknown error occured while reading bluetooth data by "
-                "exploresdk {} of type:{}".format(error, type(error))
+                "BLE interface {} of type:{}".format(error, type(error))
             )
 
     def send(self, data):

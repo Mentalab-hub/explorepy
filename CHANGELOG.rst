@@ -2,10 +2,21 @@
 Changelog
 =========
 
+4.0.0 (14.3.2025)
+------------------
+* Deprecate support for Explore legacy devices
+* Improve binary file conversion and stream parser algorithm
+
+
+3.2.1 (31.1.2025)
+------------------
+* Hotfix impedance calculation
+
+
 3.2.0 (31.1.2025)
 ------------------
 * Fix critical bug in settings file modification
-* Improve BT communication 
+* Improve BT communication
 * Disable impedance on fresh connection
 * Introduce new sampling rates
 

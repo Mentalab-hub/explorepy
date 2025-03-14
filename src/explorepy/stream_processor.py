@@ -8,6 +8,10 @@ import threading
 import time
 from enum import Enum
 from threading import Lock
+from typing import (
+    List,
+    Tuple
+)
 
 import numpy as np
 
@@ -58,7 +62,8 @@ class StreamProcessor:
         self.device_info = {}
         self.old_device_info = {}
         self.imp_calib_info = {}
-        self.subscribers = {key: set() for key in TOPICS}  # keys are topics and values are sets of callbacks
+        # keys are topics and values are sets of callbacks
+        self.subscribers = {key: set() for key in TOPICS}
         self._device_configurator = None
         self.imp_calculator = None
         self.is_connected = False
@@ -76,6 +81,7 @@ class StreamProcessor:
         self.cmd_event = threading.Event()
         self.reset_timer()
         self.packet_count = 0
+        self.progress = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -105,25 +111,32 @@ class StreamProcessor:
             mac_address (str): MAC address of Explore device
         """
         if device_name is None:
-            device_name = "Explore_" + str(mac_address[-5:-3]) + str(mac_address[-2:])
+            device_name = "Explore_" + \
+                str(mac_address[-5:-3]) + str(mac_address[-2:])
         self.device_info["device_name"] = device_name
-        self.parser = Parser(callback=self.process, mode='device', debug=self.debug)
+        self.parser = Parser(callback=self.process,
+                             mode='device', debug=self.debug)
         self.parser.start_streaming(device_name, mac_address)
         self.is_connected = True
-        self._device_configurator = DeviceConfiguration(bt_interface=self.parser.stream_interface)
-        self.subscribe(callback=self._device_configurator.update_ack, topic=TOPICS.cmd_ack)
-        self.subscribe(callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
+        self._device_configurator = DeviceConfiguration(
+            bt_interface=self.parser.stream_interface)
+        self.subscribe(
+            callback=self._device_configurator.update_ack, topic=TOPICS.cmd_ack)
+        self.subscribe(
+            callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
         self.orn_initialize(device_name)
 
-    def open_file(self, bin_file):
+    def open_file(self, bin_file, progress_callback=None):
         """Open the binary file and read until it gets device info packet
         Args:
             bin_file (str): Path to binary file
         """
         self.is_bt_streaming = False
-        self.parser = Parser(callback=self.process, mode='file', debug=False)
+        self.parser = Parser(callback=self.process_batch, progress_callback=progress_callback,
+                             mode='file', debug=False)
         self.is_connected = True
         self.parser.start_reading(filename=bin_file)
+        self.is_connected = False
 
     def read_device_info(self, bin_file):
         self.is_bt_streaming = False
@@ -136,6 +149,162 @@ class StreamProcessor:
         self.cmd_event.clear()
         self.parser.stop_streaming()
         self.packet_count = 0
+
+    def group_packets_by_base_type(self, packet_batch: List[Tuple]):
+        """Group packets by their base type (EEG, Orientation, etc)
+
+        Args:
+            packet_batch: List of (packet, metadata) tuples
+
+        Returns:
+            Dict mapping base classes to lists of packets of that type
+        """
+        grouped_packets = {}
+
+        for packet, metadata in packet_batch:
+            # Find the appropriate base class
+            if isinstance(packet, EEG):
+                base_class = EEG
+            elif isinstance(packet, Orientation):
+                base_class = Orientation
+            elif isinstance(packet, DeviceInfo):
+                base_class = DeviceInfo
+            elif isinstance(packet, CommandRCV):
+                base_class = CommandRCV
+            elif isinstance(packet, CommandStatus):
+                base_class = CommandStatus
+            elif isinstance(packet, Environment):
+                base_class = Environment
+            elif isinstance(packet, EventMarker):
+                base_class = EventMarker
+            elif isinstance(packet, CalibrationInfo):
+                base_class = CalibrationInfo
+            elif isinstance(packet, PacketBIN):
+                base_class = PacketBIN
+            else:
+                base_class = type(packet)
+
+            if base_class not in grouped_packets:
+                grouped_packets[base_class] = []
+            grouped_packets[base_class].append((packet, metadata))
+
+        return grouped_packets
+
+    def process_batch(self, packet_batch: List[Tuple]):
+        if not packet_batch:
+            return
+
+        # Group packets by their base type
+        grouped_packets = self.group_packets_by_base_type(packet_batch)
+
+        # Process EEG packets in batch
+        if EEG in grouped_packets:
+            self._process_eeg_batch(grouped_packets[EEG])
+
+        # Process Orientation packets in batch
+        if Orientation in grouped_packets:
+            orn_packets = grouped_packets[Orientation]
+            self._process_orientation_batch(orn_packets)
+
+        # Process device info packets
+        if DeviceInfo in grouped_packets:
+            self._process_device_info_batch(grouped_packets[DeviceInfo])
+
+        # Process command packets
+        if CommandRCV in grouped_packets:
+            self._process_command_rcv_batch(grouped_packets[CommandRCV])
+        if CommandStatus in grouped_packets:
+            self._process_command_status_batch(grouped_packets[CommandStatus])
+
+        # Process environment packets
+        if Environment in grouped_packets:
+            self._process_environment_batch(grouped_packets[Environment])
+        # Process event marker packets
+        if EventMarker in grouped_packets:
+            eeg_packets = grouped_packets[EventMarker]
+            timestamps = np.array([np.float64(p[0].timestamp)
+                                  for p in eeg_packets])
+            sorted_indices = np.argsort(timestamps)
+            sorted_eeg_packets = [eeg_packets[i] for i in sorted_indices]
+            self._process_marker_batch(sorted_eeg_packets)
+
+        # Process calibration info packets
+        if CalibrationInfo in grouped_packets:
+            self._process_calib_info_batch(grouped_packets[CalibrationInfo])
+
+        # Process binary packets
+        if PacketBIN in grouped_packets:
+            self._process_bin_packet_batch(grouped_packets[PacketBIN])
+
+    def _process_eeg_batch(self, packets: List[Tuple]):
+        # First dispatch the entire raw batch
+        raw_packets = [packet for packet, _ in packets]
+        self.dispatch(topic=TOPICS.raw_ExG, packet=raw_packets)
+
+        # Collect impedance packets if needed
+        if self._is_imp_mode and self.imp_calculator:
+            imp_packets = []
+            for packet, _ in packets:
+                packet_imp = self.imp_calculator.measure_imp(
+                    packet=copy.deepcopy(packet))
+                if packet_imp is not None:
+                    imp_packets.append(packet_imp)
+            if imp_packets:
+                self.dispatch(topic=TOPICS.imp, packet=imp_packets)
+
+        # Process filters and collect filtered packets
+        filtered_packets = []
+        for packet, _ in packets:
+            try:
+                self.apply_filters(packet=packet)
+                filtered_packets.append(packet)
+            except ValueError as error:
+                logger.info('Got error on filter call: {}'.format(error))
+
+        if filtered_packets:
+            self.dispatch(topic=TOPICS.filtered_ExG, packet=filtered_packets)
+
+    def _process_orientation_batch(self, packets: List[Tuple]):
+        raw_packets = [packet for packet, _ in packets]
+        self.dispatch(topic=TOPICS.raw_orn, packet=raw_packets)
+        for packet, _ in packets:
+            if self.physical_orn.status == "READY":
+                processed_packet = self.physical_orn.calculate(packet=packet)
+                self.dispatch(topic=TOPICS.mapped_orn, packet=processed_packet)
+
+    def _process_device_info_batch(self, packets: List[Tuple]):
+        for packet, _ in packets:
+            self.old_device_info = self.device_info.copy()
+            self.device_info.update(packet.get_info())
+            if self.is_bt_streaming:
+                settings_manager = SettingsManager(
+                    self.device_info["device_name"])
+                settings_manager.update_device_settings(packet.get_info())
+            self.dispatch(topic=TOPICS.device_info, packet=packet)
+
+    def _process_command_rcv_batch(self, packets: List[Tuple]):
+        for packet, _ in packets:
+            self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
+
+    def _process_command_status_batch(self, packets: List[Tuple]):
+        for packet, _ in packets:
+            self.dispatch(topic=TOPICS.cmd_status, packet=packet)
+
+    def _process_environment_batch(self, packets: List[Tuple]):
+        for packet, _ in packets:
+            self.dispatch(topic=TOPICS.env, packet=packet)
+
+    def _process_marker_batch(self, packets: List[Tuple]):
+        for packet, _ in packets:
+            self.dispatch(topic=TOPICS.marker, packet=packet)
+
+    def _process_calib_info_batch(self, packets: List[Tuple]):
+        for packet, _ in packets:
+            self.imp_calib_info = packet.get_info()
+
+    def _process_bin_packet_batch(self, packets: List[Tuple]):
+        for packet, _ in packets:
+            self.dispatch(topic=TOPICS.packet_bin, packet=packet)
 
     def process(self, packet):
         """Process incoming packet
@@ -158,7 +327,8 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             self.packet_count += 1
             if self._is_imp_mode and self.imp_calculator:
-                packet_imp = self.imp_calculator.measure_imp(packet=copy.deepcopy(packet))
+                packet_imp = self.imp_calculator.measure_imp(
+                    packet=copy.deepcopy(packet))
                 if packet_imp is not None:
                     self.dispatch(topic=TOPICS.imp, packet=packet_imp)
             try:
@@ -177,7 +347,8 @@ class StreamProcessor:
             print(self.old_device_info)
             self.device_info.update(packet.get_info())
             if self.is_bt_streaming:
-                settings_manager = SettingsManager(self.device_info["device_name"])
+                settings_manager = SettingsManager(
+                    self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
@@ -204,7 +375,8 @@ class StreamProcessor:
             received_time (float): Local time of receiving the packet
         """
         if 'sampling_rate' in self.device_info:
-            timestamp, _ = packet.get_data(exg_fs=self.device_info['sampling_rate'])
+            timestamp, _ = packet.get_data(
+                exg_fs=self.device_info['sampling_rate'])
             if not self.parser.mode == 'file' or is_usb_mode() is False:
                 self.update_bt_stability_status(timestamp[0])
             timestamp = timestamp[-1]
@@ -240,9 +412,11 @@ class StreamProcessor:
             cutoff_freq (Union[float, tuple]): Cut-off frequency (frequencies) for the filter
             filter_type (str): Filter type ['bandpass', 'lowpass', 'highpass', 'notch']
         """
-        logger.info(f"Adding a {filter_type} filter with cut-off freqs of {cutoff_freq}.")
+        logger.info(
+            f"Adding a {filter_type} filter with cut-off freqs of {cutoff_freq}.")
         while not self.device_info:
-            logger.warning('No device info is available. Waiting for device info packet...')
+            logger.warning(
+                'No device info is available. Waiting for device info packet...')
             time.sleep(.2)
 
         settings_manager = SettingsManager(self.device_info["device_name"])
@@ -262,7 +436,8 @@ class StreamProcessor:
         """
         logger.info("Removing all filters.")
         while not self.device_info:
-            logger.warning('No device info is available. Waiting for device info packet...')
+            logger.warning(
+                'No device info is available. Waiting for device info packet...')
             time.sleep(.2)
         self.filters = []
 
@@ -323,7 +498,8 @@ class StreamProcessor:
         if not isinstance(code, int):
             raise TypeError('Marker code must be an integer!')
         if not 0 <= code <= 65535:
-            raise ValueError('Marker code value is not valid! Code must be in range of 0-65535.')
+            raise ValueError(
+                'Marker code value is not valid! Code must be in range of 0-65535.')
 
         marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
         self.process(marker)
@@ -333,7 +509,8 @@ class StreamProcessor:
         logger.info(f"Setting a software marker with code: {marker_string}")
         if time_lsl is None:
             time_lsl = self._get_sw_marker_time()
-        ext_marker = ExternalMarker.create(marker_string=marker_string, lsl_time=time_lsl)
+        ext_marker = ExternalMarker.create(
+            marker_string=marker_string, lsl_time=time_lsl)
         self.process(ext_marker)
 
     def compare_device_info(self, new_device_info):
@@ -347,10 +524,12 @@ class StreamProcessor:
         """
         assert self.device_info, "The internal device info has not been set yet!"
         if new_device_info['sampling_rate'] != self.old_device_info['sampling_rate']:
-            logger.info(f"Sampling rate has been changed to {new_device_info['sampling_rate']} in the file.")
+            logger.info(
+                f"Sampling rate has been changed to {new_device_info['sampling_rate']} in the file.")
             return False
         if new_device_info['adc_mask'] != self.old_device_info['adc_mask']:
-            print(f"ADC mask has been changed to {new_device_info['adc_mask']} in the file.")
+            print(
+                f"ADC mask has been changed to {new_device_info['adc_mask']} in the file.")
             return False
         return True
 
@@ -367,7 +546,8 @@ class StreamProcessor:
                 timestamp_diff = current_timestamp - self._last_packet_timestamp
 
                 # allowed time interval is two samples
-                allowed_time_interval = np.round(2 * (1 / self.device_info['sampling_rate']), 3)
+                allowed_time_interval = np.round(
+                    2 * (1 / self.device_info['sampling_rate']), 3)
                 is_unstable = timestamp_diff >= allowed_time_interval
             else:
                 # devices is an old device, check if last sample has an earlier timestamp
@@ -382,8 +562,10 @@ class StreamProcessor:
                 self.last_bt_unstable_time = current_time
             else:
                 if self.instability_flag:
-                    self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
-                    threading.Timer(interval=10, function=self.reset_bt_duration).start()
+                    self.last_bt_drop_duration = np.round(
+                        get_local_time() - self.bt_drop_start_time, 3)
+                    threading.Timer(
+                        interval=10, function=self.reset_bt_duration).start()
                     if current_time - self.last_bt_unstable_time > .3:
                         self.instability_flag = False
 
@@ -391,17 +573,20 @@ class StreamProcessor:
         if is_usb_mode() is True:
             return False
         if get_local_time() - self.last_exg_packet_timestamp > 1.5 and self.bt_drop_start_time is not None:
-            self.last_bt_drop_duration = np.round(get_local_time() - self.bt_drop_start_time, 3)
+            self.last_bt_drop_duration = np.round(
+                get_local_time() - self.bt_drop_start_time, 3)
         return self.instability_flag
 
     def start_cmd_process_thread(self):
-        self.bt_status_ignore_thread = threading.Timer(interval=2, function=self.reset_timer)
+        self.bt_status_ignore_thread = threading.Timer(
+            interval=2, function=self.reset_timer)
         self.cmd_event.set()
         self.bt_status_ignore_thread.start()
 
     def reset_timer(self):
         self.cmd_event.clear()
-        self.bt_status_ignore_thread = threading.Timer(interval=2, function=self.reset_timer)
+        self.bt_status_ignore_thread = threading.Timer(
+            interval=2, function=self.reset_timer)
 
     def reset_bt_duration(self):
         if self.bt_drop_start_time is not None:
@@ -419,7 +604,8 @@ class StreamProcessor:
         if self._last_packet_timestamp != 0 and self.parser.mode == 'device':
             sps = np.round(1 / self.device_info['sampling_rate'], 3)
             if sps >= 250:
-                time_diff = np.round(packet.timestamp - self._last_packet_timestamp, 3)
+                time_diff = np.round(packet.timestamp
+                                     - self._last_packet_timestamp, 3)
                 if time_diff > sps:
                     print('timediff & sps: {} & {}'.format(time_diff, sps))
                     missing_samples = int(time_diff / sps)

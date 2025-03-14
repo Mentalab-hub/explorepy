@@ -40,6 +40,7 @@ from explorepy.stream_processor import (
 from explorepy.tools import (
     LslServer,
     PhysicalOrientation,
+    check_bin_compatibility,
     create_exg_recorder,
     create_marker_recorder,
     create_meta_recorder,
@@ -85,25 +86,31 @@ class Explore:
         if device_name:
             self.device_name = device_name
         else:
-            self.device_name = 'Explore_' + mac_address[-5:-3] + mac_address[-2:]
+            self.device_name = 'Explore_' + \
+                mac_address[-5:-3] + mac_address[-2:]
         logger.info(f"Connecting to {self.device_name} ...")
-        self.stream_processor = StreamProcessor(debug=True if self.debug else False)
-        self.stream_processor.start(device_name=device_name, mac_address=mac_address)
+        self.stream_processor = StreamProcessor(
+            debug=True if self.debug else False)
+        self.stream_processor.start(
+            device_name=device_name, mac_address=mac_address)
         cnt = 0
         cnt_limit = 20 if self.debug else 15
         while "adc_mask" not in self.stream_processor.device_info:
             logger.info("Waiting for device info packet...")
             time.sleep(1)
             if cnt >= cnt_limit:
-                raise ConnectionAbortedError("Could not get info packet from the device")
+                raise ConnectionAbortedError(
+                    "Could not get info packet from the device")
             cnt += 1
         if self.stream_processor.device_info['is_imp_mode'] is True:
             self.stream_processor.disable_imp()
-        logger.info('Device info packet has been received. Connection has been established. Streaming...')
+        logger.info(
+            'Device info packet has been received. Connection has been established. Streaming...')
         logger.info("Device info: " + str(self.stream_processor.device_info))
         self.is_connected = True
         if self.debug:
-            self.stream_processor.subscribe(callback=self.debug.process_bin, topic=TOPICS.packet_bin)
+            self.stream_processor.subscribe(
+                callback=self.debug.process_bin, topic=TOPICS.packet_bin)
 
     def disconnect(self):
         r"""Disconnects from the device
@@ -136,10 +143,12 @@ class Explore:
         def callback(packet):
             print(packet)
 
-        self.stream_processor.subscribe(callback=callback, topic=TOPICS.raw_ExG)
+        self.stream_processor.subscribe(
+            callback=callback, topic=TOPICS.raw_ExG)
         logger.debug(f"Acquiring and printing data stream for {duration}s ...")
         time.sleep(duration)
-        self.stream_processor.unsubscribe(callback=callback, topic=TOPICS.raw_ExG)
+        self.stream_processor.unsubscribe(
+            callback=callback, topic=TOPICS.raw_ExG)
 
     def record_data(
         self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False, exg_ch_names=None
@@ -160,7 +169,8 @@ class Explore:
         if set(r'<>{}[]~`*%').intersection(file_name):
             raise ValueError("Invalid character in file name")
         if file_type not in ['edf', 'csv']:
-            raise ValueError('{} is not a supported file extension!'.format(file_type))
+            raise ValueError(
+                '{} is not a supported file extension!'.format(file_type))
         duration = self._check_duration(duration)
 
         exg_out_file = file_name + "_ExG"
@@ -171,7 +181,8 @@ class Explore:
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=file_type,
                                                     fs=self.stream_processor.device_info['sampling_rate'],
-                                                    adc_mask=SettingsManager(self.device_name).get_adc_mask(),
+                                                    adc_mask=SettingsManager(
+                                                        self.device_name).get_adc_mask(),
                                                     do_overwrite=do_overwrite,
                                                     exg_ch=exg_ch_names)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
@@ -180,10 +191,12 @@ class Explore:
 
         #  TODO: make sure older timestamp in meta file was not used in any other software!
         if file_type == 'csv':
-            self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
+            self.recorders['marker'] = create_marker_recorder(
+                filename=marker_out_file, do_overwrite=do_overwrite)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                           fs=self.stream_processor.device_info['sampling_rate'],
-                                                          adc_mask=SettingsManager(self.device_name).get_adc_mask(),
+                                                          adc_mask=SettingsManager(
+                                                              self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
                                                           do_overwrite=do_overwrite,
                                                           timestamp=str(self.stream_processor.parser._time_offset))  # noqa: E501
@@ -195,9 +208,12 @@ class Explore:
             logger.warning("Markers' timing might not be precise in EDF files. We recommend recording in CSV format "
                            "if you are setting markers during the recording.")
 
-        self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-        self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-        self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+        self.stream_processor.subscribe(
+            callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+        self.stream_processor.subscribe(
+            callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.subscribe(
+            callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
         logger.info("Recording...")
 
         self.recorders['timer'] = Timer(duration, self.stop_recording)
@@ -209,7 +225,8 @@ class Explore:
                 while 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
                     time.sleep(.3)
             except KeyboardInterrupt:
-                logger.info("Got Keyboard Interrupt while recording in blocked mode!")
+                logger.info(
+                    "Got Keyboard Interrupt while recording in blocked mode!")
                 self.stop_recording()
                 self.stream_processor.stop()
                 time.sleep(1)
@@ -217,9 +234,12 @@ class Explore:
     def stop_recording(self):
         """Stop recording"""
         if self.recorders:
-            self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-            self.stream_processor.unsubscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-            self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+            self.stream_processor.unsubscribe(
+                callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+            self.stream_processor.unsubscribe(
+                callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+            self.stream_processor.unsubscribe(
+                callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
             self.recorders['exg'].stop()
             self.recorders['orn'].stop()
             if self.recorders['exg'].file_type == 'csv':
@@ -231,18 +251,21 @@ class Explore:
             try:
                 self.last_rec_stat = (
                     (self.stream_processor.packet_count - self.initial_count) / (
-                        (local_clock() - self.last_rec_start_time) * self.stream_processor.device_info['sampling_rate']
+                        (local_clock() - self.last_rec_start_time)
+                        * self.stream_processor.device_info['sampling_rate']
                     )
                 )
                 # clamp the stat variable
                 self.last_rec_stat = max(1, min(self.last_rec_stat, 1))
-                logger.info('last recording stat : {}'.format(self.last_rec_stat))
+                logger.info('last recording stat : {}'.format(
+                    self.last_rec_stat))
             except TypeError:
                 # handle uninitialized state
                 pass
             self.initial_count = None
         else:
-            logger.debug("Tried to stop recording while no recorder is running!")
+            logger.debug(
+                "Tried to stop recording while no recorder is running!")
 
     def get_last_record_stat(self):
         """Gets the last recording statistics as a number between 0 and 1"""
@@ -250,19 +273,19 @@ class Explore:
 
     def convert_bin(self, bin_file, out_dir='', file_type='edf', do_overwrite=False, out_dir_is_full=False,
                     progress_callback=None, progress_dialog=None):
-        """Convert a binary file to EDF or CSV file
+        """Convert a binary file to EDF(BDF+) or CSV file
 
         Args:
             bin_file (str): Path to the binary file recorded by Explore device
             out_dir (str): Output directory path (must be relative path to the current working directory)
-            file_type (str): Output file type: 'edf' for EDF format and 'csv' for CSV format
+            file_type (str): Output file type: 'edf' for EDF(BDF+) format and 'csv' for CSV format
             do_overwrite (bool): Whether to overwrite an existing file
             out_dir_is_full(bool): Whether output directory is a full file path
-            progress_callback:
-            progress_dialog
+            progress_callback: Callback to get progress update
+            progress_dialog: Dialog instance
 
         """
-        total_file_bytes = os.path.getsize(bin_file)
+        check_bin_compatibility(bin_file)
         bt_interface = explorepy.get_bt_interface()
         if file_type not in ['edf', 'csv']:
             raise ValueError('Invalid file type is given!')
@@ -297,52 +320,59 @@ class Explore:
                                                     file_type=self.recorders['file_type'],
                                                     fs=self.stream_processor.device_info['sampling_rate'],
                                                     adc_mask=self.mask,
-                                                    do_overwrite=do_overwrite)
+                                                    do_overwrite=do_overwrite, batch_mode=True)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=self.recorders['file_type'],
-                                                    do_overwrite=do_overwrite)
+                                                    do_overwrite=do_overwrite, batch_mode=True)
 
         if self.recorders['file_type'] == 'csv':
-            self.recorders['marker'] = create_marker_recorder(filename=marker_out_file, do_overwrite=do_overwrite)
+            self.recorders['marker'] = create_marker_recorder(
+                filename=marker_out_file, do_overwrite=do_overwrite, batch_mode=True)
             self.recorders['meta'] = create_meta_recorder(filename=meta_out_file,
                                                           fs=self.stream_processor.device_info['sampling_rate'],
                                                           adc_mask=self.mask,
                                                           device_name=self.device_name,
-                                                          do_overwrite=do_overwrite)
+                                                          do_overwrite=do_overwrite, batch_mode=True)
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
         else:
             self.recorders['marker'] = self.recorders['exg']
 
-        self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-        self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-        self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+        self.stream_processor.subscribe(
+            callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+        self.stream_processor.subscribe(
+            callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.subscribe(
+            callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
 
         def device_info_callback(packet):
             new_device_info = packet.get_info()
             # TODO add 16 channel board id and refactor
-            # setting correct device interface
-            if 'max_online_sps' not in new_device_info:
-                logger.debug('setting bt interface to sdk')
-                explorepy.set_bt_interface('sdk')
             if not self.stream_processor.compare_device_info(new_device_info):
-                new_file_name = exg_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_ExG'
-                new_meta_name = meta_out_file[:-4] + "_" + str(np.round(packet.timestamp, 0)) + '_Meta'
-                logger.warning("Creating a new file: " + new_file_name + '.' + self.recorders['file_type'])
-                self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-                self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                new_file_name = exg_out_file[:-4] + "_" + \
+                    str(np.round(packet.timestamp, 0)) + '_ExG'
+                new_meta_name = meta_out_file[:-4] + "_" + \
+                    str(np.round(packet.timestamp, 0)) + '_Meta'
+                logger.warning("Creating a new file: "
+                               + new_file_name + '.' + self.recorders['file_type'])
+                self.stream_processor.unsubscribe(
+                    callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                self.stream_processor.unsubscribe(
+                    callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
                 self.recorders['exg'].stop()
                 self.recorders['exg'] = create_exg_recorder(filename=new_file_name,
                                                             file_type=self.recorders['file_type'],
                                                             fs=self.stream_processor.device_info['sampling_rate'],
                                                             adc_mask=self.stream_processor.device_info['adc_mask'],
-                                                            do_overwrite=do_overwrite)
+                                                            do_overwrite=do_overwrite, batch_mode=True)
 
                 if self.recorders['file_type'] == 'edf':
                     self.recorders['marker'] = self.recorders['exg']
 
-                self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-                self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                self.stream_processor.subscribe(
+                    callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                self.stream_processor.subscribe(
+                    callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
 
                 if self.recorders['file_type'] == 'csv':
                     self.recorders['meta'] = create_meta_recorder(
@@ -350,30 +380,46 @@ class Explore:
                         fs=self.stream_processor.device_info['sampling_rate'],
                         adc_mask=self.stream_processor.device_info['adc_mask'],
                         device_name=self.device_name,
-                        do_overwrite=do_overwrite)
+                        do_overwrite=do_overwrite, batch_mode=True)
                     self.recorders['meta'].write_meta()
                     self.recorders['meta'].stop()
 
-        self.stream_processor.subscribe(callback=device_info_callback, topic=TOPICS.device_info)
-        self.stream_processor.open_file(bin_file=bin_file)
+        self.stream_processor.subscribe(
+            callback=device_info_callback, topic=TOPICS.device_info)
+
+        def stream_progress_handler(progress):
+            progress = np.floor(progress)
+            if progress_callback:
+                progress_callback(progress)
+            if progress_dialog:
+                if progress >= 100:
+                    progress_dialog._close()
+                    return
+                elif progress_dialog.close:
+                    raise InterruptedError("Conversion cancelled by user")
+            else:
+                bar_width = 50
+                filled = int(bar_width * progress / 100)
+                bar = '=' * filled + '-' * (bar_width - filled)
+                print(f'\rProgress: [{bar}] {progress}%', end='', flush=True)
+                if progress >= 100:
+                    print()
+
         logger.info("Converting...")
         try:
-            while self.stream_processor.is_connected:
-                time.sleep(.1)
-                if progress_dialog and progress_dialog.close:
-                    logger.info("Conversion process cancelled.")
-                    break
+            self.stream_processor.open_file(bin_file, progress_callback=stream_progress_handler)
 
-                if progress_callback:
-                    progress = (
-                        self.stream_processor.parser.total_packet_size_read / total_file_bytes
-                    )
-                    progress_callback(int(progress * 100))
+        except InterruptedError:
+            logger.info("Conversion process interrupted.")
         finally:
             if self.recorders['file_type'] == 'csv':
+                self.stream_processor.unsubscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
                 self.recorders["marker"].stop()
+            self.stream_processor.unsubscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+            self.stream_processor.unsubscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
             self.recorders["exg"].stop()
             self.recorders["orn"].stop()
+            self.recorders = {}
             explorepy.set_bt_interface(bt_interface)
             logger.info('Conversion process terminated.')
 
@@ -389,9 +435,12 @@ class Explore:
 
         self.lsl['timer'] = Timer(duration, self.stop_lsl)
         self.lsl['server'] = LslServer(self.stream_processor.device_info)
-        self.stream_processor.subscribe(topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
-        self.stream_processor.subscribe(topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
-        self.stream_processor.subscribe(topic=TOPICS.marker, callback=self.lsl['server'].push_marker)
+        self.stream_processor.subscribe(
+            topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
+        self.stream_processor.subscribe(
+            topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
+        self.stream_processor.subscribe(
+            topic=TOPICS.marker, callback=self.lsl['server'].push_marker)
         self.lsl['timer'].start()
 
         if block:
@@ -399,7 +448,8 @@ class Explore:
                 while 'timer' in self.lsl.keys() and self.lsl['timer'].is_alive():
                     time.sleep(.3)
             except KeyboardInterrupt:
-                logger.info("Got Keyboard Interrupt while pushing data to LSL in blocked mode!")
+                logger.info(
+                    "Got Keyboard Interrupt while pushing data to LSL in blocked mode!")
                 self.stream_processor.stop()
                 self.stop_lsl()
                 time.sleep(1)
@@ -407,9 +457,12 @@ class Explore:
     def stop_lsl(self):
         """Stop pushing data to LSL streams"""
         if self.lsl:
-            self.stream_processor.unsubscribe(topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
-            self.stream_processor.unsubscribe(topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
-            self.stream_processor.unsubscribe(topic=TOPICS.marker, callback=self.lsl['server'].push_marker)
+            self.stream_processor.unsubscribe(
+                topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
+            self.stream_processor.unsubscribe(
+                topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
+            self.stream_processor.unsubscribe(
+                topic=TOPICS.marker, callback=self.lsl['server'].push_marker)
             if self.lsl['timer'].is_alive():
                 self.lsl['timer'].cancel()
             self.lsl = {}
@@ -457,7 +510,8 @@ class Explore:
         """
         self._check_connection()
         if sampling_rate not in [250, 500, 1000, 2000, 4000, 8000, 16000]:
-            raise ValueError("Sampling rate must be 250, 500, 2000, 4000, 8000 or 16000.")
+            raise ValueError(
+                "Sampling rate must be 250, 500, 2000, 4000, 8000 or 16000.")
         cmd = SetSPS(sampling_rate)
         if self.stream_processor.configure_device(cmd):
             SettingsManager(self.device_name).set_sampling_rate(sampling_rate)
@@ -561,10 +615,13 @@ class Explore:
         PhysicalOrientation.init_dir()
         logger.info("Start recording for 100 seconds, "
                     "please move the device around during this time, in all directions")
-        file_name = user_cache_dir(appname="explorepy", appauthor="Mentalab") + '//temp_' + self.device_name
-        self.record_data(file_name, do_overwrite=do_overwrite, duration=100, file_type='csv')
+        file_name = user_cache_dir(
+            appname="explorepy", appauthor="Mentalab") + '//temp_' + self.device_name
+        self.record_data(file_name, do_overwrite=do_overwrite,
+                         duration=100, file_type='csv')
         time.sleep(105)
-        PhysicalOrientation.calibrate(cache_dir=file_name, device_name=self.device_name)
+        PhysicalOrientation.calibrate(
+            cache_dir=file_name, device_name=self.device_name)
 
     def _activate_test_sig(self, channel_mask):
         """ Activate the internal ADS test signals
@@ -591,7 +648,8 @@ class Explore:
             if duration <= 0:
                 raise ValueError("Duration must be a positive number!")
         else:
-            logger.warning("Duration has not been set by the user. The duration is 3 hours by default.")
+            logger.warning(
+                "Duration has not been set by the user. The duration is 3 hours by default.")
             duration = 3 * 60 * 60  # 3 hours
         return duration
 
