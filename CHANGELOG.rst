@@ -2,7 +2,7 @@
 Changelog
 =========
 
-4.0.0 (13.3.2025)
+4.0.0 (14.3.2025)
 ------------------
 * Deprecate support for Explore legacy devices
 * Improve binary file conversion and stream parser algorithm
