@@ -20,6 +20,7 @@ class SerialStream:
         """Initialize Bluetooth connection
         """
         self.is_connected = False
+        self.block_read_size = 2048
         self.device_name = device_name
         self.comm_manager = None
         self.device_manager = None
@@ -33,14 +34,11 @@ class SerialStream:
         """Reads data in fixed-size chunks from the serial port until stopped."""
         while not self.usb_stop_flag.is_set():
             try:
-                bytes_available = self.comm_manager.in_waiting
-                if bytes_available > 0:
-                    data = self.comm_manager.read(bytes_available)
-                    if data is not None:
-                        self.copy_buffer.extend(data)
+                data = self.comm_manager.read(self.block_read_size)
+                if data is not None:
+                    self.copy_buffer.extend(data)
             except Exception as e:
                 logger.debug('Got Exception in USB read method: {}'.format(e))
-            time.sleep(0.000100)
         logger.debug('Stopping USB data retrieval thread')
 
     def connect(self):
@@ -49,17 +47,18 @@ class SerialStream:
         Returns:
             socket (bluetooth.socket)
         """
+        fletscher = b'\xaf\xbe\xad\xde'
         for _ in range(5):
             try:
                 port = get_correct_com_port(self.device_name)
                 self.comm_manager = serial.Serial(port=port, baudrate=115200, timeout=2)
 
                 # stop stream
-                cmd = b'\xE5' * 14
+                cmd = b'\xE5' * 10 + fletscher
                 self.comm_manager.write(cmd)
                 time.sleep(1)
 
-                cmd = b'\xE4' * 14
+                cmd = b'\xE4' * 10 + fletscher
                 self.comm_manager.write(cmd)
                 time.sleep(1)
 
@@ -154,19 +153,20 @@ def get_correct_com_port(device_name):
     """ Returns correct COM/tty port for usb connection
     Args: device name: the name of the device to connect to
     """
+    fletscher = b'\xaf\xbe\xad\xde'
+
     ports = list(list_ports.comports())
     for p in ports:
         if p.vid == 0x0483 and p.pid == 0x5740:
             serial_port = serial.Serial(port=p.device, baudrate=115200, timeout=2)
-
             # stop stream
-            cmd = b'\xE5' * 14
+            cmd = b'\xE5' * 10 + fletscher
             serial_port.write(cmd)
             time.sleep(.1)
             # read all the stream data
             serial_port.readall()
 
-            get_name_cmd = b'\xC6' * 14
+            get_name_cmd = b'\xC6' * 10 + fletscher
             serial_port.write(get_name_cmd)
             data = serial_port.read(24)
             if len(data) == 0:
