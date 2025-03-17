@@ -25,7 +25,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Topic :: Scientific/Engineering :: Information Analysis",
-    "Topic :: Scientific/Engineering :: Neuroscience App",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 
