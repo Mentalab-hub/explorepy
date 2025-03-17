@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class PACKET_ID(IntEnum):
     """Packet ID enum"""
 
-    ORN = 13
+    ORN = 14
     ENV = 19
     TS = 27
     DISCONNECT = 111
