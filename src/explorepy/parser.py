@@ -87,7 +87,10 @@ class Parser:
             from explorepy.serial_client import SerialStream
             self.stream_interface = SerialStream(device_name=device_name)
         else:
-            raise ValueError("Invalid Bluetooth interface: " + explorepy.get_bt_interface())
+            raise ValueError("Support for legacy Explore devices is deprecated starting from ExplorePy 4.0.0.\n"
+                             "Please use the following command to use ExplorePy with a legacy device\n"
+                             "pip install explorepy==3.2.1\n"
+                             "https://explorepy.readthedocs.io/en/latest/explore_legacy_devices\n")
         self.stream_interface.connect()
         self._stream()
 

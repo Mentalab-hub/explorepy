@@ -12,6 +12,7 @@ Contents
    contributing
    authors
    changelog
+   explore_legacy_devices
 
 Indices and tables
 ==================

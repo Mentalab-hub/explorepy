@@ -4,7 +4,7 @@ build-backend   = 'setuptools.build_meta'
 
 [project]
 name    = 'explorepy'
-version = "3.2.1"
+version = "4.0.0"
 license = { text = "MIT" }
 readme = { file = "README.rst", content-type = "text/markdown" }
 authors = [
@@ -12,19 +12,21 @@ authors = [
 ]
 urls = { Homepage = "https://github.com/Mentalab-hub/explorepy" }
 classifiers = [
-    'Development Status :: 5 - Production/Stable',
-    'Intended Audience :: Developers',
-    'License :: OSI Approved :: MIT License',
-    'Operating System :: Unix',
-    'Operating System :: POSIX',
-    'Operating System :: Microsoft :: Windows',
-    'Programming Language :: Python',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
-    'Programming Language :: Python :: 3.12',
-    'Topic :: Education',
-    'Topic :: Scientific/Engineering :: Medical Science Apps.',
-    'Topic :: Scientific/Engineering :: Visualization'
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Neuroscience App",
+    "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 
 dependencies = [
