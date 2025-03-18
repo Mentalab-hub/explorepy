@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class PACKET_ID(IntEnum):
     """Packet ID enum"""
 
-    ORN = 13
+    ORN_V1 = 13
     ORN_V2 = 14
     ENV = 19
     TS = 27
@@ -333,12 +333,16 @@ class EEG32(EEG):
 
 
 class Orientation(Packet):
+    super().__init__(timestamp, payload, time_offset)
+    self.theta = None
+    self.rot_axis = None
+
+
+class OrientationV1(Orientation):
     """Orientation data packet"""
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
-        self.theta = None
-        self.rot_axis = None
 
     def _convert(self, bin_data):
         data = np.copy(
@@ -373,14 +377,12 @@ class Orientation(Packet):
         return [theta, rot_axis]
 
 
-class OrientationV2(Packet):
+class OrientationV2(Orientation):
     """Orientation data packet"""
 
     def __init__(self, timestamp, payload, time_offset=0):
         self.quat = None
         super().__init__(timestamp, payload, time_offset)
-        self.theta = None
-        self.rot_axis = None
 
     def _convert(self, bin_data):
         data = np.copy(
@@ -770,7 +772,7 @@ class VersionInfoPacket(Packet):
 
 
 PACKET_CLASS_DICT = {
-    PACKET_ID.ORN: Orientation,
+    PACKET_ID.ORN_V1: OrientationV1,
     PACKET_ID.ORN_V2: OrientationV2,
     PACKET_ID.ENV: Environment,
     PACKET_ID.TS: TimeStamp,
