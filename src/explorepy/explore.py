@@ -479,7 +479,7 @@ class Explore:
             marker_string (string): string to save as experiment marker)
         """
         self._check_connection()
-        self.stream_processor.set_ext_marker(marker_string=str(marker_string))
+        self.stream_processor.set_ext_marker(marker_string=str(marker_string), time_lsl=time_lsl)
 
     def send_8_bit_trigger(self, eight_bit_value):
         eight_bit_value = eight_bit_value % 256
