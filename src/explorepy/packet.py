@@ -333,9 +333,10 @@ class EEG32(EEG):
 
 
 class Orientation(Packet):
-    super().__init__(timestamp, payload, time_offset)
-    self.theta = None
-    self.rot_axis = None
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
+        self.theta = None
+        self.rot_axis = None
 
 
 class OrientationV1(Orientation):
