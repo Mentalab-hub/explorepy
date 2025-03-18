@@ -51,25 +51,26 @@ class SerialStream:
         for _ in range(5):
             try:
                 port = get_correct_com_port(self.device_name)
-                self.comm_manager = serial.Serial(port=port, baudrate=115200, timeout=2)
+                self.comm_manager = serial.Serial(port=port, baudrate=115200, timeout=0.5)
 
                 # stop stream
                 cmd = b'\xE5' * 10 + fletcher
                 self.comm_manager.write(cmd)
                 time.sleep(1)
-
-                cmd = b'\xE4' * 10 + fletcher
-                self.comm_manager.write(cmd)
-                time.sleep(1)
+                self.comm_manager.readall()
 
                 self.reader_thread = threading.Thread(
                     target=self.read_serial_in_chunks,
                     daemon=True
                 )
                 self.reader_thread.start()
+                # start stream
+                cmd = b'\xE4' * 10 + fletcher
+                self.comm_manager.write(cmd)
+
                 self.is_connected = True
                 # wait to populate data buffer
-                time.sleep(1)
+                #time.sleep(1)
                 return 0
             except PermissionError:
                 # do nothing here as this comes from posix
@@ -115,7 +116,7 @@ class SerialStream:
         self.comm_manager.cancel_read()
         self.comm_manager.close()
 
-        time.sleep(1)
+        #time.sleep(1)
 
     def read(self, n_bytes):
         """Read n_bytes from the socket
@@ -138,6 +139,7 @@ class SerialStream:
             return chunk
         except Exception as error:
             logger.debug('Got error or read request: {}'.format(error))
+            print('maziar Got error or read request: {}'.format(error))
 
     def send(self, data):
         """Send data to the device
