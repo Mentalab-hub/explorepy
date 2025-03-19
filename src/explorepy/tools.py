@@ -646,19 +646,19 @@ class FileRecorder:
 
 class LslServer:
     """Class for LabStreamingLayer integration"""
-
     def __init__(self, device_info, stream_name=None):
-
         self.adc_mask = SettingsManager(
             device_info["device_name"]).get_adc_mask()
-        EXG_CHANNELS = SettingsManager(
-            device_info["device_name"]).get_channel_names() or EXG_CHANNELS
+        if len(SettingsManager(device_info["device_name"]).get_channel_names()) == len(self.adc_mask):
+            channel_names = SettingsManager(device_info["device_name"]).get_channel_names()
+        else:
+            channel_names = EXG_CHANNELS
         stream_name = stream_name or device_info["device_name"]
         n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
 
-        info_exg = StreamInfo(name=stream_name,
+        info_exg = StreamInfo(name=device_info["device_name"] + "_ExG",
                               type='ExG',
                               channel_count=n_chan,
                               nominal_srate=self.exg_fs,
@@ -669,7 +669,7 @@ class LslServer:
         for i, mask in enumerate(self.adc_mask):
             if mask == 1:
                 channels.append_child("channel") \
-                    .append_child_value("name", EXG_CHANNELS[i]) \
+                    .append_child_value("name", channel_names[i]) \
                     .append_child_value("unit", EXG_UNITS[i]) \
                     .append_child_value("type", "ExG")
 
