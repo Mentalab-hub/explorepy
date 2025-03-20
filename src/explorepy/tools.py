@@ -673,7 +673,7 @@ class LslServer:
                     .append_child_value("name", channel_names[i]) \
                     .append_child_value("unit", EXG_UNITS[i]) \
                     .append_child_value("type", "ExG")
-
+        # TODO adapt for other pro devices
         info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
                               type='ORN',
                               channel_count=13,
