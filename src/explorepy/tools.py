@@ -53,7 +53,7 @@ EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
-ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'w', 'x', 'y', 'z']
+ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'quat_w', 'quat_x', 'quat_y', 'quat_z']
 ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps',
              'mdps', 'mgauss', 'mgauss', 'mgauss', '1', '1', '1', '1']
 
