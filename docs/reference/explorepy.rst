@@ -27,11 +27,6 @@ Parser
     :members:
     :undoc-members:
 
-Dashboard
-*********
-.. autoclass:: dashboard.dashboard.Dashboard
-    :members:
-
 
 Additional tools
 ****************

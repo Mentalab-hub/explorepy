@@ -424,10 +424,10 @@ class Explore:
             logger.info('Conversion process terminated.')
 
     def push2lsl(self, duration=None, block=False):
-        r"""Push samples to two lsl streams (ExG and ORN streams)
+        """Push samples to three lsl streams (ExG, Marker and ORN streams)
 
         Args:
-            duration (float): duration of data acquiring (if None it streams for one hour).
+            duration (float): duration of data acquiring (if None it streams for three hours).
             block (bool): blocking mode
         """
         self._check_connection()

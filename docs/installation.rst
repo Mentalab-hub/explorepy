@@ -4,7 +4,7 @@ Installation
 
 Minimal Requirements
 --------------------
-* Python 3.10 to Python 3.12. We recommend Python 3.12.
+* Python 3.12 and upwards. We recommend using Python 3.12.
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
@@ -31,13 +31,20 @@ For example, if you want to quickly visualize and record data and don't need the
 
 If you intend to call ``explorepy`` from the command line or a Python script (e.g. from an experiment script), install ``explorepy`` via Anaconda/pip instead.
 
-For Windows and Mac, the standalone desktop software ExploreDesktop can be installed using the installer files uploaded to the 
+For Windows and Mac, the standalone desktop software ExploreDesktop can be installed using the installer files uploaded to the
 `release page <https://github.com/Mentalab-hub/explore-desktop-release/releases/latest/>`_. Please note that the dependencies will be installed automatically and bundled locally with the installed software.
 
 
 Option 2: Installing from Python Package Index (PyPI) and pip (advanced)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*To install explorepy for any Python version below 3.10, please contact support@mentalab.com.*
+
+
+.. note::
+
+   Explore legacy device support is **deprecated** in ExplorePy. See the documentation on :doc:`explore_legacy_devices`.
+
+
+*To install explorepy for any Python version below 3.10, please contact support@mentalab.com*
 
 *This option is best for users who intend to include* ``explorepy`` *functionalities in their own Python scripts or use it from the command line.*
 
@@ -144,26 +151,3 @@ Quick test
 * Activate the virtual environment that you made before installing explorepy: ``conda activate myenv``
 * Run ``explorepy acquire -n DEVICE-NAME``
 * To stop the command execution, press ``Ctrl+C``
-
-Troubleshooting
----------------
-
-**1. OSError: A socket operation was attempted to an unreachable network.**
-
-Solution: Ensure that your Explore device is paired with your computer and try again.
-
----------------------
-
-**2. ValueError: Error opening socket.**
-
-Solution: Ensure the Bluetooth module of your computer's operating system is on and working.
-
----------------------
-
-**3. OSError: The handle is invalid.**
-
-Solution: Ensure the Bluetooth module of your computer's operating system is on and working.
-
----------------------
-
-If your issue persists, please send a screenshot and brief error description to support@mentalab.com, and we will quickly help you solve it.
