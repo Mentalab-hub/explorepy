@@ -399,14 +399,15 @@ class OrientationV2(Orientation):
         self.quat = data
         self.theta = None
         self.rot_axis = None
+        print(self.quat)
 
     def __str__(self):
-        return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag)
+        return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag) + "\tQuat: " + str(self.quat)
 
     def get_data(self, srate=None):
         """Get orientation timestamp and data"""
         return [self.timestamp
-                ], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
+                ], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist() + self.quat.tolist()
 
     def compute_angle(self, matrix=None):
         """Compute physical angle"""

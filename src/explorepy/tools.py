@@ -53,9 +53,9 @@ EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
-ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
+ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'w', 'x', 'y', 'z']
 ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps',
-             'mdps', 'mgauss', 'mgauss', 'mgauss']
+             'mdps', 'mgauss', 'mgauss', 'mgauss', '1', '1', '1', '1']
 
 
 def get_local_time():
@@ -602,8 +602,10 @@ class FileRecorder:
 
     def _process_batch_csv(self, packet):
         """Process a batch of packets for CSV output."""
-        if isinstance(packet[0], Orientation):
+        if isinstance(packet[0], OrientationV1):
             data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.tolist() for p in packet]).T
+        elif isinstance(packet[0], OrientationV2):
+            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.tolist() + p.quat.tolist() for p in packet]).T
         elif isinstance(packet[0], EEG):
             all_data = np.concatenate([p.data for p in packet], axis=1)
             n_total_samples = all_data.shape[1]
@@ -657,7 +659,6 @@ class LslServer:
         n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
-
         info_exg = StreamInfo(name=device_info["device_name"] + "_ExG",
                               type='ExG',
                               channel_count=n_chan,
@@ -675,7 +676,7 @@ class LslServer:
 
         info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
                               type='ORN',
-                              channel_count=9,
+                              channel_count=13,
                               nominal_srate=orn_fs,
                               channel_format='float32',
                               source_id=device_info["device_name"] + "_ORN")
