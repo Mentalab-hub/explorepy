@@ -49,8 +49,8 @@ lock = Lock()
 TIMESTAMP_SCALE_BLE = 100000
 
 MAX_CHANNELS = 32
-EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
-EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
+EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)] + ['dev_time']
+EXG_UNITS = ['uV' for ch in EXG_CHANNELS] + ['s']
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
 ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
