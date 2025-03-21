@@ -399,7 +399,6 @@ class OrientationV2(Orientation):
         self.quat = data
         self.theta = None
         self.rot_axis = None
-        print(self.quat)
 
     def __str__(self):
         return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag) + "\tQuat: " + str(self.quat)
