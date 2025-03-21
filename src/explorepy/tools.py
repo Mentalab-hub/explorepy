@@ -673,10 +673,12 @@ class LslServer:
                     .append_child_value("name", channel_names[i]) \
                     .append_child_value("unit", EXG_UNITS[i]) \
                     .append_child_value("type", "ExG")
-        # TODO adapt for other pro devices
+        fw_version = str.split(device_info["firmware_version"][-3:], '.')
+        fw_version = int(10*fw_version[0] + fw_version[1])
+        orn_ch = 13 if fw_version >= 7 else 9
         info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
                               type='ORN',
-                              channel_count=13,
+                              channel_count=orn_ch,
                               nominal_srate=orn_fs,
                               channel_format='float32',
                               source_id=device_info["device_name"] + "_ORN")
