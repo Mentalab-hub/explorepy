@@ -38,7 +38,9 @@ from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
     BleImpedancePacket,
-    Orientation
+    Orientation,
+    OrientationV1,
+    OrientationV2
 )
 from explorepy.settings_manager import SettingsManager
 
@@ -605,16 +607,16 @@ class FileRecorder:
     def _process_batch_csv(self, packet):
         """Process a batch of packets for CSV output."""
         if isinstance(packet[0], OrientationV1):
-            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.\
+            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.
                             mag.tolist() for p in packet]).T
         elif isinstance(packet[0], OrientationV2):
-            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.\
+            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.
                             tolist() + p.quat.tolist() for p in packet]).T
         elif isinstance(packet[0], EEG):
             all_data = np.concatenate([p.data for p in packet], axis=1)
             n_total_samples = all_data.shape[1]
             start_time = packet[0].timestamp
-            time_vector = np.linspace(start_time, start_time + (n_total_samples - 1) / self._fs, \
+            time_vector = np.linspace(start_time, start_time + (n_total_samples - 1) / self._fs,
                                       n_total_samples)
             data = np.concatenate((time_vector[np.newaxis, :], all_data), axis=0)
         else:
@@ -709,8 +711,6 @@ class LslServer:
         self.orn_outlet = StreamOutlet(info_orn)
         self.exg_outlet = StreamOutlet(info_exg)
         self.marker_outlet = StreamOutlet(info_marker)
-
-
 
     def push_exg(self, packet):
         """Push data to ExG outlet
@@ -1114,6 +1114,7 @@ def check_bin_compatibility(file_name):
         b = f.read(1).hex()
         if b != "62":
             raise ExplorePyDeprecationError()
+
 
 def get_orn_chan_len(device_info):
     fw_version = str.split(device_info["firmware_version"][-3:], '.')

@@ -69,8 +69,6 @@ class SerialStream:
                 self.comm_manager.write(cmd)
 
                 self.is_connected = True
-                # wait to populate data buffer
-                #time.sleep(1)
                 return 0
             except PermissionError:
                 # do nothing here as this comes from posix
@@ -115,8 +113,6 @@ class SerialStream:
         self.is_connected = False
         self.comm_manager.cancel_read()
         self.comm_manager.close()
-
-        #time.sleep(1)
 
     def read(self, n_bytes):
         """Read n_bytes from the socket

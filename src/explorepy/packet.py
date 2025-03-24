@@ -401,7 +401,8 @@ class OrientationV2(Orientation):
         self.rot_axis = None
 
     def __str__(self):
-        return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(self.mag) + "\tQuat: " + str(self.quat)
+        return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(
+            self.mag) + "\tQuat: " + str(self.quat)
 
     def get_data(self, srate=None):
         """Get orientation timestamp and data"""
