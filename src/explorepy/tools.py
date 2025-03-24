@@ -49,7 +49,7 @@ lock = Lock()
 TIMESTAMP_SCALE_BLE = 100000
 
 MAX_CHANNELS = 32
-EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
+EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 2)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
@@ -648,7 +648,7 @@ class LslServer:
     """Class for LabStreamingLayer integration"""
     def __init__(self, device_info, stream_name=None):
         self.adc_mask = SettingsManager(
-            device_info["device_name"]).get_adc_mask()  +  [1]
+            device_info["device_name"]).get_adc_mask()  +  [2]
         if len(SettingsManager(device_info["device_name"]).get_channel_names()) == len(self.adc_mask):
             channel_names = SettingsManager(device_info["device_name"]).get_channel_names()
         else:
@@ -657,10 +657,11 @@ class LslServer:
         n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
+        self.trg_ts = 0
 
         info_exg = StreamInfo(name=device_info["device_name"] + "_ExG",
                               type='ExG',
-                              channel_count=n_chan,
+                              channel_count=9,
                               nominal_srate=self.exg_fs,
                               channel_format='float32',
                               source_id=device_info["device_name"] + "_ExG")
@@ -715,9 +716,16 @@ class LslServer:
         ts, exg_data = packet.get_data(self.exg_fs)
         if isinstance(packet, EEG):
             indices = [i for i, flag in enumerate(
-                reversed(self.adc_mask[:-1])) if flag == 1]
+                reversed(self.adc_mask[:-2])) if flag == 1]
             exg_data = exg_data[indices]
         joined_data = np.append(exg_data, np.array([[ts[0]]]), axis=0)
+        if self.trg_ts > 0 and ts[0] > self.trg_ts:
+            print('****')
+            joined_data = np.append(joined_data, np.array([[400000]]), axis=0)
+            self.trg_ts = 0
+        else:
+            joined_data = np.append(joined_data, np.array([[0]]), axis=0)
+
         self.exg_outlet.push_sample(joined_data)
 
     def push_orn(self, packet):
