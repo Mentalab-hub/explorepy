@@ -115,23 +115,24 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=
                         adc_mask=adc_mask, batch_mode=batch_mode)  # noqa: E501
 
 
-def create_orn_recorder(filename, file_type, do_overwrite, batch_mode=False):
+def create_orn_recorder(filename, file_type, do_overwrite, n_chan, batch_mode=False):
     """ Create orientation data recorder
 
     Args:
         filename (str): file name
         file_type (str): file type
         do_overwrite (bool): overwrite if the file already exists
+        n_chan (int): number of orientation channels
 
     Returns:
         FileRecorder: file recorder object
     """
-    orn_ch = ['TimeStamp'] + ORN_CHANNELS
-    orn_unit = ['s'] + ORN_UNITS
+    orn_ch = ['TimeStamp'] + ORN_CHANNELS[:n_chan]
+    orn_unit = ['s'] + ORN_UNITS[:n_chan]
     orn_max = [21600., 2000, 2000, 2000, 250000,
-               250000, 250000, 50000, 50000, 50000, 1, 1, 1, 1]
+               250000, 250000, 50000, 50000, 50000, 1, 1, 1, 1][:n_chan + 1]
     orn_min = [0, -2000, -2000, -2000, -250000,
-               -250000, -250000, -50000, -50000, -50000, 0, 0, 0, 0]
+               -250000, -250000, -50000, -50000, -50000, 0, 0, 0, 0][:n_chan + 1]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
                         do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min, batch_mode=batch_mode)
 
@@ -604,14 +605,17 @@ class FileRecorder:
     def _process_batch_csv(self, packet):
         """Process a batch of packets for CSV output."""
         if isinstance(packet[0], OrientationV1):
-            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.tolist() for p in packet]).T
+            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.\
+                            mag.tolist() for p in packet]).T
         elif isinstance(packet[0], OrientationV2):
-            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.tolist() + p.quat.tolist() for p in packet]).T
+            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.\
+                            tolist() + p.quat.tolist() for p in packet]).T
         elif isinstance(packet[0], EEG):
             all_data = np.concatenate([p.data for p in packet], axis=1)
             n_total_samples = all_data.shape[1]
             start_time = packet[0].timestamp
-            time_vector = np.linspace(start_time, start_time + (n_total_samples - 1) / self._fs, n_total_samples)
+            time_vector = np.linspace(start_time, start_time + (n_total_samples - 1) / self._fs, \
+                                      n_total_samples)
             data = np.concatenate((time_vector[np.newaxis, :], all_data), axis=0)
         else:
             time_vector, sig = packet.get_data(self._fs)
@@ -674,9 +678,7 @@ class LslServer:
                     .append_child_value("name", channel_names[i]) \
                     .append_child_value("unit", EXG_UNITS[i]) \
                     .append_child_value("type", "ExG")
-        fw_version = str.split(device_info["firmware_version"][-3:], '.')
-        fw_version = int(10*fw_version[0] + fw_version[1])
-        orn_ch = 13 if fw_version >= 7 else 9
+        orn_ch = get_orn_chan_len(device_info)
         info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
                               type='ORN',
                               channel_count=orn_ch,
@@ -707,6 +709,8 @@ class LslServer:
         self.orn_outlet = StreamOutlet(info_orn)
         self.exg_outlet = StreamOutlet(info_exg)
         self.marker_outlet = StreamOutlet(info_marker)
+
+
 
     def push_exg(self, packet):
         """Push data to ExG outlet
@@ -1110,3 +1114,9 @@ def check_bin_compatibility(file_name):
         b = f.read(1).hex()
         if b != "62":
             raise ExplorePyDeprecationError()
+
+def get_orn_chan_len(device_info):
+    fw_version = str.split(device_info["firmware_version"][-3:], '.')
+    fw_version = int(10 * fw_version[0] + fw_version[1])
+    orn_ch = 13 if fw_version >= 7 else 9
+    return orn_ch
