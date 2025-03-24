@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 class PACKET_ID(IntEnum):
     """Packet ID enum"""
 
-    ORN = 13
+    ORN_V1 = 13
+    ORN_V2 = 14
     ENV = 19
     TS = 27
     DISCONNECT = 111
@@ -332,12 +333,17 @@ class EEG32(EEG):
 
 
 class Orientation(Packet):
-    """Orientation data packet"""
-
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
         self.theta = None
         self.rot_axis = None
+
+
+class OrientationV1(Orientation):
+    """Orientation data packet"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
 
     def _convert(self, bin_data):
         data = np.copy(
@@ -357,6 +363,51 @@ class Orientation(Packet):
         """Get orientation timestamp and data"""
         return [self.timestamp
                 ], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist()
+
+    def compute_angle(self, matrix=None):
+        """Compute physical angle"""
+        trace = matrix[0][0] + matrix[1][1] + matrix[2][2]
+        theta = np.arccos((trace - 1) / 2) * 57.2958
+        nx = matrix[2][1] - matrix[1][2]
+        ny = matrix[0][2] - matrix[2][0]
+        nz = matrix[1][0] - matrix[0][1]
+        rot_axis = 1 / np.sqrt(
+            (3 - trace) * (1 + trace)) * np.array([nx, ny, nz])
+        self.theta = theta
+        self.rot_axis = rot_axis
+        return [theta, rot_axis]
+
+
+class OrientationV2(Orientation):
+    """Orientation data packet"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        self.quat = None
+        super().__init__(timestamp, payload, time_offset)
+
+    def _convert(self, bin_data):
+        data = np.copy(
+            np.frombuffer(bin_data[0:18], dtype=np.dtype(
+                np.int16).newbyteorder("<"))).astype(float)
+        self.acc = 0.122 * data[0:3]  # Unit [mg/LSB]
+        self.gyro = 70 * data[3:6]  # Unit [mdps/LSB]
+        self.mag = 1.52 * np.multiply(data[6:9], np.array(
+            [-1, 1, 1]))  # Unit [mgauss/LSB]
+        data = np.copy(
+            np.frombuffer(bin_data[18:34], dtype=np.dtype(
+                np.float32).newbyteorder("<"))).astype(float)
+        self.quat = data
+        self.theta = None
+        self.rot_axis = None
+
+    def __str__(self):
+        return "Acc: " + str(self.acc) + "\tGyro: " + str(self.gyro) + "\tMag: " + str(
+            self.mag) + "\tQuat: " + str(self.quat)
+
+    def get_data(self, srate=None):
+        """Get orientation timestamp and data"""
+        return [self.timestamp
+                ], self.acc.tolist() + self.gyro.tolist() + self.mag.tolist() + self.quat.tolist()
 
     def compute_angle(self, matrix=None):
         """Compute physical angle"""
@@ -723,7 +774,8 @@ class VersionInfoPacket(Packet):
 
 
 PACKET_CLASS_DICT = {
-    PACKET_ID.ORN: Orientation,
+    PACKET_ID.ORN_V1: OrientationV1,
+    PACKET_ID.ORN_V2: OrientationV2,
     PACKET_ID.ENV: Environment,
     PACKET_ID.TS: TimeStamp,
     PACKET_ID.DISCONNECT: Disconnect,

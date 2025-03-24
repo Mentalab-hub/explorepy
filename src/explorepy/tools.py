@@ -38,7 +38,9 @@ from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
     BleImpedancePacket,
-    Orientation
+    Orientation,
+    OrientationV1,
+    OrientationV2
 )
 from explorepy.settings_manager import SettingsManager
 
@@ -53,9 +55,9 @@ EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
 EXG_MIN_LIM = -400000
-ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz']
+ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'quat_w', 'quat_x', 'quat_y', 'quat_z']
 ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps',
-             'mdps', 'mgauss', 'mgauss', 'mgauss']
+             'mdps', 'mgauss', 'mgauss', 'mgauss', '1', '1', '1', '1']
 
 
 def get_local_time():
@@ -115,23 +117,24 @@ def create_exg_recorder(filename, file_type, adc_mask, fs, do_overwrite, exg_ch=
                         adc_mask=adc_mask, batch_mode=batch_mode)  # noqa: E501
 
 
-def create_orn_recorder(filename, file_type, do_overwrite, batch_mode=False):
+def create_orn_recorder(filename, file_type, do_overwrite, n_chan, batch_mode=False):
     """ Create orientation data recorder
 
     Args:
         filename (str): file name
         file_type (str): file type
         do_overwrite (bool): overwrite if the file already exists
+        n_chan (int): number of orientation channels
 
     Returns:
         FileRecorder: file recorder object
     """
-    orn_ch = ['TimeStamp'] + ORN_CHANNELS
-    orn_unit = ['s'] + ORN_UNITS
+    orn_ch = ['TimeStamp'] + ORN_CHANNELS[:n_chan]
+    orn_unit = ['s'] + ORN_UNITS[:n_chan]
     orn_max = [21600., 2000, 2000, 2000, 250000,
-               250000, 250000, 50000, 50000, 50000]
+               250000, 250000, 50000, 50000, 50000, 1, 1, 1, 1][:n_chan + 1]
     orn_min = [0, -2000, -2000, -2000, -250000,
-               -250000, -250000, -50000, -50000, -50000]
+               -250000, -250000, -50000, -50000, -50000, 0, 0, 0, 0][:n_chan + 1]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
                         do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min, batch_mode=batch_mode)
 
@@ -439,6 +442,7 @@ class FileRecorder:
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
+                print('{}, \n{}, \n{}, \n{}'.format(ch_unit, ch_label, ch_min, ch_max))
                 raise ValueError(
                     'ch_label, ch_unit, ch_min and ch_max must have the same length!')
             self._file_name = filename + '.bdf'
@@ -602,13 +606,18 @@ class FileRecorder:
 
     def _process_batch_csv(self, packet):
         """Process a batch of packets for CSV output."""
-        if isinstance(packet[0], Orientation):
-            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.tolist() for p in packet]).T
+        if isinstance(packet[0], OrientationV1):
+            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.
+                            mag.tolist() for p in packet]).T
+        elif isinstance(packet[0], OrientationV2):
+            data = np.array([[p.timestamp] + p.acc.tolist() + p.gyro.tolist() + p.mag.
+                            tolist() + p.quat.tolist() for p in packet]).T
         elif isinstance(packet[0], EEG):
             all_data = np.concatenate([p.data for p in packet], axis=1)
             n_total_samples = all_data.shape[1]
             start_time = packet[0].timestamp
-            time_vector = np.linspace(start_time, start_time + (n_total_samples - 1) / self._fs, n_total_samples)
+            time_vector = np.linspace(start_time, start_time + (n_total_samples - 1) / self._fs,
+                                      n_total_samples)
             data = np.concatenate((time_vector[np.newaxis, :], all_data), axis=0)
         else:
             time_vector, sig = packet.get_data(self._fs)
@@ -646,15 +655,17 @@ class FileRecorder:
 
 class LslServer:
     """Class for LabStreamingLayer integration"""
-
-    def __init__(self, device_info):
-
+    def __init__(self, device_info, stream_name=None):
         self.adc_mask = SettingsManager(
             device_info["device_name"]).get_adc_mask()
+        if len(SettingsManager(device_info["device_name"]).get_channel_names()) == len(self.adc_mask):
+            channel_names = SettingsManager(device_info["device_name"]).get_channel_names()
+        else:
+            channel_names = EXG_CHANNELS
+        stream_name = stream_name or device_info["device_name"]
         n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
         orn_fs = 20
-
         info_exg = StreamInfo(name=device_info["device_name"] + "_ExG",
                               type='ExG',
                               channel_count=n_chan,
@@ -666,13 +677,13 @@ class LslServer:
         for i, mask in enumerate(self.adc_mask):
             if mask == 1:
                 channels.append_child("channel") \
-                    .append_child_value("name", EXG_CHANNELS[i]) \
+                    .append_child_value("name", channel_names[i]) \
                     .append_child_value("unit", EXG_UNITS[i]) \
                     .append_child_value("type", "ExG")
-
+        orn_ch = get_orn_chan_len(device_info)
         info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
                               type='ORN',
-                              channel_count=9,
+                              channel_count=orn_ch,
                               nominal_srate=orn_fs,
                               channel_format='float32',
                               source_id=device_info["device_name"] + "_ORN")
@@ -1103,3 +1114,10 @@ def check_bin_compatibility(file_name):
         b = f.read(1).hex()
         if b != "62":
             raise ExplorePyDeprecationError()
+
+
+def get_orn_chan_len(device_info):
+    fw_version = str.split(device_info["firmware_version"][-3:], '.')
+    fw_version = int(10 * fw_version[0] + fw_version[1])
+    orn_ch = 13 if fw_version >= 7 else 9
+    return orn_ch

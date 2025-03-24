@@ -45,6 +45,7 @@ from explorepy.tools import (
     create_marker_recorder,
     create_meta_recorder,
     create_orn_recorder,
+    get_orn_chan_len,
     local_clock,
     setup_usb_marker_port
 )
@@ -187,7 +188,8 @@ class Explore:
                                                     exg_ch=exg_ch_names)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=file_type,
-                                                    do_overwrite=do_overwrite)
+                                                    do_overwrite=do_overwrite,
+                                                    n_chan=get_orn_chan_len(self.stream_processor.device_info))
 
         #  TODO: make sure older timestamp in meta file was not used in any other software!
         if file_type == 'csv':
@@ -424,10 +426,10 @@ class Explore:
             logger.info('Conversion process terminated.')
 
     def push2lsl(self, duration=None, block=False):
-        r"""Push samples to two lsl streams (ExG and ORN streams)
+        """Push samples to three lsl streams (ExG, Marker and ORN streams)
 
         Args:
-            duration (float): duration of data acquiring (if None it streams for one hour).
+            duration (float): duration of data acquiring (if None it streams for three hours).
             block (bool): blocking mode
         """
         self._check_connection()
