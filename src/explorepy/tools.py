@@ -129,9 +129,9 @@ def create_orn_recorder(filename, file_type, do_overwrite, batch_mode=False):
     orn_ch = ['TimeStamp'] + ORN_CHANNELS
     orn_unit = ['s'] + ORN_UNITS
     orn_max = [21600., 2000, 2000, 2000, 250000,
-               250000, 250000, 50000, 50000, 50000]
+               250000, 250000, 50000, 50000, 50000, 1, 1, 1, 1]
     orn_min = [0, -2000, -2000, -2000, -250000,
-               -250000, -250000, -50000, -50000, -50000]
+               -250000, -250000, -50000, -50000, -50000, 0, 0, 0, 0]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
                         do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min, batch_mode=batch_mode)
 
@@ -439,6 +439,7 @@ class FileRecorder:
 
         if file_type == 'edf':
             if (len(ch_unit) != len(ch_label)) or (len(ch_label) != len(ch_min)) or (len(ch_label) != len(ch_max)):
+                print('{}, \n{}, \n{}, \n{}'.format(ch_unit, ch_label, ch_min, ch_max))
                 raise ValueError(
                     'ch_label, ch_unit, ch_min and ch_max must have the same length!')
             self._file_name = filename + '.bdf'
