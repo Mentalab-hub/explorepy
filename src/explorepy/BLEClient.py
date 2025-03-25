@@ -16,7 +16,8 @@ from bleak import (
 
 from explorepy._exceptions import (
     BleDisconnectionError,
-    DeviceNotFoundError
+    DeviceNotFoundError,
+    UnexpectedConnectionError
 )
 from explorepy.BTClient import BTClient
 
@@ -108,7 +109,10 @@ class BLEClient(BTClient):
         self.notification_thread = threading.Thread(target=self.start_read_loop, daemon=True)
         self.notification_thread.start()
         print('waiting for BLE device to show up..')
-        self.result_queue.get()
+        ret = self.result_queue.get()
+        if not ret:
+            logger.error("Got exception in read loop")
+            raise UnexpectedConnectionError("Could not connect to the device")
 
         if self.ble_device is None:
             logger.info('No device found!!')
@@ -122,6 +126,7 @@ class BLEClient(BTClient):
     def start_read_loop(self):
         try:
             asyncio.new_event_loop().run_until_complete(self.ble_manager())
+            self.result_queue.put(True)
         except RuntimeError as error:
             logger.info('Shutting down BLE stream loop with error {}'.format(error))
         except asyncio.exceptions.CancelledError as error:
@@ -129,6 +134,8 @@ class BLEClient(BTClient):
         except BleDisconnectionError as error:
             print('Got error as {}'.format(error))
             raise error
+        finally:
+            self.result_queue.put(False)
 
     def stop_read_loop(self):
         logger.debug('Stopping BLE stream loop')
@@ -152,6 +159,7 @@ class BLEClient(BTClient):
             raise error
         except Exception as error:
             logger.debug('Got an BLE exception with error {}'.format(error))
+            raise error
 
     async def _discover_device(self):
         if self.mac_address:
