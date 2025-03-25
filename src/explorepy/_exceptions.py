@@ -5,6 +5,7 @@ Customized exceptions module
 """
 import sys
 
+
 class UnexpectedConnectionError(ConnectionError):
     """
     Generic exception thrown if an unexpected error occurs during connection

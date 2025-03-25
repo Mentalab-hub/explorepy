@@ -3,7 +3,6 @@ import atexit
 import logging
 import threading
 import time
-from doctest import UnexpectedException
 from queue import (
     Empty,
     Queue
@@ -111,7 +110,7 @@ class BLEClient(BTClient):
         self.notification_thread.start()
         print('waiting for BLE device to show up..')
         ret = self.result_queue.get()
-        if ret == False:
+        if not ret:
             logger.error("Got exception in read loop")
             raise UnexpectedConnectionError("Could not connect to the device")
 
