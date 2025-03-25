@@ -486,7 +486,7 @@ class Explore:
     def send_8_bit_trigger(self, eight_bit_value):
         eight_bit_value = eight_bit_value % 256
         trigger_id = 0xAB
-        cmd = [trigger_id, eight_bit_value, 1, 2, 3, 4, 5, 6, 7, 8, 0xDE, 0xAD, 0xBE, 0xEF]
+        cmd = [trigger_id, eight_bit_value, 1, 2, 3, 4, 5, 6, 7, 8, 0xAF, 0xBE, 0xAD, 0xDE]
         explore_port = setup_usb_marker_port()
         explore_port.write(bytearray(cmd))
         explore_port.close()
