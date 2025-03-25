@@ -189,16 +189,13 @@ class BLEClient(BTClient):
     def disconnect(self):
         """Disconnect from the device"""
         self.is_connected = False
-        try:
-            self.notify_task.cancel()
-            self.read_event.set()
-            time.sleep(1)
-            self.stop_read_loop()
-            self.ble_device = None
-            self.buffer = Queue()
-            logger.info('ExplorePy disconnecting from device')
-        except Exception:
-            pass
+        self.notify_task.cancel()
+        self.read_event.set()
+        time.sleep(1)
+        self.stop_read_loop()
+        self.ble_device = None
+        self.buffer = Queue()
+        logger.info('ExplorePy disconnecting from device')
 
     def _find_mac_address(self):
         raise NotImplementedError
