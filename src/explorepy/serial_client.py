@@ -18,6 +18,7 @@ class CountingSemaphore:
         self.count = count
         self.lock = threading.Lock()
         self.condition = threading.Condition(self.lock)
+        self.max_semaphore = 0
 
     def acquire(self):
         with self.condition:
@@ -28,6 +29,10 @@ class CountingSemaphore:
     def release(self):
         with self.condition:
             self.count += 1
+            if self.max_semaphore < self.count:
+                self.max_semaphore = self.count
+                if self.max_semaphore > 100:
+                    print("max_semaphore: " + str(self.max_semaphore))
             self.condition.notify()  # Wake up one waiting thread
 
 class SerialStream:
@@ -42,14 +47,14 @@ class SerialStream:
         self.device_manager = None
         self.bt_sdk = None
         self.usb_stop_flag = threading.Event()
-        self.copy_buffer = deque()
+        self.copy_buffer = bytearray()
         self.reader_thread = None
         self.lock = threading.Lock()
         self.max_time = 0
         self.start = 0
         self.stop = 0
 
-        self.data_array_size = 6
+        self.data_array_size = 100
         self.data_array = [bytearray(2048) for _ in range(self.data_array_size)]
         self.data_array_read = 0
         self.data_array_write = 0
@@ -70,6 +75,7 @@ class SerialStream:
                 #print(self.data_array[self.data_array_write])
                 if len(self.data_array[self.data_array_write]) !=  self.block_read_size:
                     self.usb_stop_flag.set()
+                    print("self.usb_stop_flag.set()self.usb_stop_flag.set()self.usb_stop_flag.set()self.usb_stop_flag.set()self.usb_stop_flag.set()")
 
                 self.data_array_write += 1
                 if self.data_array_write >= self.data_array_size:
@@ -78,7 +84,9 @@ class SerialStream:
 
             except Exception as e:
                 logger.debug('Got Exception in USB read method: {}'.format(e))
+                print('test Got Exception in USB read method: {}'.format(e))
         logger.debug('Stopping USB data retrieval thread')
+        print('Stopping USB data retrieval threadStopping USB data retrieval threadStopping USB data retrieval threadStopping USB data retrieval threadStopping USB data retrieval thread')
 
     def connect(self):
         """Connect to the device and return the socket
@@ -167,8 +175,7 @@ class SerialStream:
             if len(self.copy_buffer) < n_bytes:
                 self.counting_semaphore.acquire()
                 # while self.data_array_write != self.data_array_read:
-                #print("IN")
-                #print(self.data_array[self.data_array_read])
+
                 self.copy_buffer.extend(self.data_array[self.data_array_read])
 
                 self.data_array_read += 1
@@ -178,13 +185,17 @@ class SerialStream:
 
             chunk = bytearray()
 
-            while len(chunk) < n_bytes:
-                chunk.append(self.copy_buffer.popleft())
+            #while len(chunk) < n_bytes:
+                #chunk.append(self.copy_buffer.popleft())
+            chunk = self.copy_buffer[:n_bytes]
+            self.copy_buffer = self.copy_buffer[n_bytes:]
 
             return chunk
         except Exception as error:
             logger.debug('Got error or read request: {}'.format(error))
-            print('maziar Got error or read request: {}'.format(error))
+            print('test Got error or read request: {}'.format(error))
+            print('nbtes: ' + str(n_bytes))
+            print ("len of copy buffer: " +str(len(self.copy_buffer)))
 
     def send(self, data):
         """Send data to the device
@@ -205,7 +216,7 @@ def get_correct_com_port(device_name):
     ports = list(list_ports.comports())
     for p in ports:
         if p.vid == 0x0483 and p.pid == 0x5740:
-            serial_port = serial.Serial(port=p.device, baudrate=115200, timeout=2)
+            serial_port = serial.Serial(port=p.device, baudrate=115200, timeout=4)
             # stop stream
             cmd = b'\xE5' * 10 + fletcher
             serial_port.write(cmd)
