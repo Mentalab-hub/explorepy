@@ -9,10 +9,26 @@ import serial
 from serial.tools import list_ports
 
 from explorepy._exceptions import DeviceNotFoundError
-
+from pylsl import local_clock
 
 logger = logging.getLogger(__name__)
 
+class CountingSemaphore:
+    def __init__(self, count=1):
+        self.count = count
+        self.lock = threading.Lock()
+        self.condition = threading.Condition(self.lock)
+
+    def acquire(self):
+        with self.condition:
+            while self.count == 0:
+                self.condition.wait()  # Wait until a resource is available
+            self.count -= 1
+
+    def release(self):
+        with self.condition:
+            self.count += 1
+            self.condition.notify()  # Wake up one waiting thread
 
 class SerialStream:
     """ Responsible for Connecting and reconnecting explore devices via usb interface"""
@@ -29,14 +45,37 @@ class SerialStream:
         self.copy_buffer = deque()
         self.reader_thread = None
         self.lock = threading.Lock()
+        self.max_time = 0
+        self.start = 0
+        self.stop = 0
+
+        self.data_array_size = 6
+        self.data_array = [bytearray(2048) for _ in range(self.data_array_size)]
+        self.data_array_read = 0
+        self.data_array_write = 0
+        self.counting_semaphore = CountingSemaphore(0)
+
+
 
     def read_serial_in_chunks(self):
         """Reads data in fixed-size chunks from the serial port until stopped."""
         while not self.usb_stop_flag.is_set():
             try:
-                data = self.comm_manager.read(self.block_read_size)
-                if data is not None:
-                    self.copy_buffer.extend(data)
+                # no time consuming operation here
+                # critical section
+
+                self.data_array[self.data_array_write] = self.comm_manager.read(self.block_read_size)
+
+                #print("out")
+                #print(self.data_array[self.data_array_write])
+                if len(self.data_array[self.data_array_write]) !=  self.block_read_size:
+                    self.usb_stop_flag.set()
+
+                self.data_array_write += 1
+                if self.data_array_write >= self.data_array_size:
+                    self.data_array_write = 0
+                self.counting_semaphore.release()
+
             except Exception as e:
                 logger.debug('Got Exception in USB read method: {}'.format(e))
         logger.debug('Stopping USB data retrieval thread')
@@ -51,7 +90,7 @@ class SerialStream:
         for _ in range(5):
             try:
                 port = get_correct_com_port(self.device_name)
-                self.comm_manager = serial.Serial(port=port, baudrate=115200, timeout=0.5)
+                self.comm_manager = serial.Serial(port=port, baudrate=115200, timeout=3)
 
                 # stop stream
                 cmd = b'\xE5' * 10 + fletcher
@@ -124,14 +163,24 @@ class SerialStream:
                 list of bytes
         """
         try:
+
+            if len(self.copy_buffer) < n_bytes:
+                self.counting_semaphore.acquire()
+                # while self.data_array_write != self.data_array_read:
+                #print("IN")
+                #print(self.data_array[self.data_array_read])
+                self.copy_buffer.extend(self.data_array[self.data_array_read])
+
+                self.data_array_read += 1
+                if self.data_array_read >= self.data_array_size:
+                    self.data_array_read = 0
+
+
             chunk = bytearray()
-            for i in range(1000):
-                if len(self.copy_buffer) < n_bytes:
-                    time.sleep(0.001)
-                else:
-                    break
+
             while len(chunk) < n_bytes:
                 chunk.append(self.copy_buffer.popleft())
+
             return chunk
         except Exception as error:
             logger.debug('Got error or read request: {}'.format(error))
