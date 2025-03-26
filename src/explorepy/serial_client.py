@@ -29,11 +29,12 @@ class CountingSemaphore:
     def release(self):
         with self.condition:
             self.count += 1
+            self.condition.notify()  # Wake up one waiting thread
             if self.max_semaphore < self.count:
                 self.max_semaphore = self.count
                 if self.max_semaphore > 100:
                     print("max_semaphore: " + str(self.max_semaphore))
-            self.condition.notify()  # Wake up one waiting thread
+
 
 class SerialStream:
     """ Responsible for Connecting and reconnecting explore devices via usb interface"""
@@ -64,27 +65,48 @@ class SerialStream:
 
     def read_serial_in_chunks(self):
         """Reads data in fixed-size chunks from the serial port until stopped."""
+        # start stream
+        fletcher = b'\xaf\xbe\xad\xde'
+        cmd = b'\xE4' * 10 + fletcher
+        self.comm_manager.write(cmd)
+
+        self.is_connected = True
         while not self.usb_stop_flag.is_set():
             try:
                 # no time consuming operation here
                 # critical section
 
                 self.data_array[self.data_array_write] = self.comm_manager.read(self.block_read_size)
-
+                self.start = local_clock()
                 #print("out")
                 #print(self.data_array[self.data_array_write])
                 if len(self.data_array[self.data_array_write]) !=  self.block_read_size:
                     self.usb_stop_flag.set()
+                    self.stop = local_clock() - self.start
+                    if (self.max_time < self.stop) and self.start != 0:
+                        self.max_time = self.stop
+                        print("max time: " + str(self.max_time))
                     print("self.usb_stop_flag.set()self.usb_stop_flag.set()self.usb_stop_flag.set()self.usb_stop_flag.set()self.usb_stop_flag.set()")
 
                 self.data_array_write += 1
                 if self.data_array_write >= self.data_array_size:
                     self.data_array_write = 0
+                self.start = local_clock()
                 self.counting_semaphore.release()
+                self.stop = local_clock() - self.start
+                if (self.max_time < self.stop) and self.start != 0:
+                    self.max_time = self.stop
+                    print("max time: " + str(self.max_time))
+
 
             except Exception as e:
                 logger.debug('Got Exception in USB read method: {}'.format(e))
                 print('test Got Exception in USB read method: {}'.format(e))
+
+                self.stop = local_clock() - self.start
+                if (self.max_time < self.stop) and self.start != 0:
+                    self.max_time = self.stop
+                    print("max time: " + str(self.max_time))
         logger.debug('Stopping USB data retrieval thread')
         print('Stopping USB data retrieval threadStopping USB data retrieval threadStopping USB data retrieval threadStopping USB data retrieval threadStopping USB data retrieval thread')
 
@@ -94,28 +116,26 @@ class SerialStream:
         Returns:
             socket (bluetooth.socket)
         """
+
         fletcher = b'\xaf\xbe\xad\xde'
         for _ in range(5):
             try:
                 port = get_correct_com_port(self.device_name)
-                self.comm_manager = serial.Serial(port=port, baudrate=115200, timeout=3)
+                self.comm_manager = serial.Serial(port=port, baudrate=115200, timeout=0.5)
 
                 # stop stream
                 cmd = b'\xE5' * 10 + fletcher
                 self.comm_manager.write(cmd)
-                time.sleep(1)
-                self.comm_manager.readall()
-
+                # read all waits till timeout
+                self.comm_manager.readall() 
+				
+                self.comm_manager.timeout = 2
                 self.reader_thread = threading.Thread(
                     target=self.read_serial_in_chunks,
                     daemon=True
                 )
                 self.reader_thread.start()
-                # start stream
-                cmd = b'\xE4' * 10 + fletcher
-                self.comm_manager.write(cmd)
 
-                self.is_connected = True
                 return 0
             except PermissionError:
                 # do nothing here as this comes from posix
@@ -214,19 +234,22 @@ def get_correct_com_port(device_name):
     fletcher = b'\xaf\xbe\xad\xde'
 
     ports = list(list_ports.comports())
+    max_time = 0
+    cnt = 0
     for p in ports:
         if p.vid == 0x0483 and p.pid == 0x5740:
-            serial_port = serial.Serial(port=p.device, baudrate=115200, timeout=4)
+            serial_port = serial.Serial(port=p.device, baudrate=115200, timeout=0.5)
             # stop stream
             cmd = b'\xE5' * 10 + fletcher
             serial_port.write(cmd)
-            time.sleep(.1)
-            # read all the stream data
+            start = local_clock()
+            # read all the stream data, waits till time out
             serial_port.readall()
 
             get_name_cmd = b'\xC6' * 10 + fletcher
             serial_port.write(get_name_cmd)
             data = serial_port.read(24)
+            print("name len:" + str(len(data)))
             if len(data) == 0:
                 # incompatible explore device, continue connection
                 print('got data as zero')
@@ -234,5 +257,7 @@ def get_correct_com_port(device_name):
                 return p.device
             name = data[8:-4].decode('utf-8', errors='ignore')
             if name == device_name:
+                stop = local_clock() -start
+                print("find duration:" + str(stop))
                 return p.device
     raise DeviceNotFoundError()
