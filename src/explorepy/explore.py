@@ -325,7 +325,8 @@ class Explore:
                                                     do_overwrite=do_overwrite, batch_mode=True)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=self.recorders['file_type'],
-                                                    do_overwrite=do_overwrite, batch_mode=True)
+                                                    do_overwrite=do_overwrite, batch_mode=True,
+                                                    n_chan=get_orn_chan_len(self.stream_processor.device_info))
 
         if self.recorders['file_type'] == 'csv':
             self.recorders['marker'] = create_marker_recorder(
