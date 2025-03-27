@@ -2,6 +2,13 @@
 Changelog
 =========
 
+4.1.0 (31.3.2025)
+------------------
+* Improve bluetooth connection UX
+* Add more data in IMU packet
+* Improve USB streaming
+
+
 4.0.0 (14.3.2025)
 ------------------
 * Deprecate support for Explore legacy devices
