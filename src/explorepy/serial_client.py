@@ -54,6 +54,8 @@ class SerialStream:
         self.max_time = 0
         self.start = 0
         self.stop = 0
+        self.cnt = 0
+        self.cnt_total = 0
 
         self.data_array_size = 100
         self.data_array = [bytearray(2048) for _ in range(self.data_array_size)]
@@ -93,10 +95,16 @@ class SerialStream:
                     self.data_array_write = 0
                 self.start = local_clock()
                 self.counting_semaphore.release()
+
+
                 self.stop = local_clock() - self.start
                 if (self.max_time < self.stop) and self.start != 0:
                     self.max_time = self.stop
-                    print("max time: " + str(self.max_time))
+                self.cnt_total += 1
+                if self.stop > 0.000200:
+                    self.cnt += 1
+
+                    print("bad times: " + str(self.stop) + " total amount: " + str(self.cnt_total) +" above threshold amount: " + str(self.cnt))
 
 
             except Exception as e:
@@ -127,8 +135,8 @@ class SerialStream:
                 cmd = b'\xE5' * 10 + fletcher
                 self.comm_manager.write(cmd)
                 # read all waits till timeout
-                self.comm_manager.readall() 
-				
+                self.comm_manager.readall()
+
                 self.comm_manager.timeout = 2
                 self.reader_thread = threading.Thread(
                     target=self.read_serial_in_chunks,
