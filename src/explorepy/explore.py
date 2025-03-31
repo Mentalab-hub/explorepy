@@ -45,6 +45,7 @@ from explorepy.tools import (
     create_marker_recorder,
     create_meta_recorder,
     create_orn_recorder,
+    get_orn_chan_len,
     local_clock,
     setup_usb_marker_port
 )
@@ -187,7 +188,8 @@ class Explore:
                                                     exg_ch=exg_ch_names)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=file_type,
-                                                    do_overwrite=do_overwrite)
+                                                    do_overwrite=do_overwrite,
+                                                    n_chan=get_orn_chan_len(self.stream_processor.device_info))
 
         #  TODO: make sure older timestamp in meta file was not used in any other software!
         if file_type == 'csv':
@@ -323,7 +325,8 @@ class Explore:
                                                     do_overwrite=do_overwrite, batch_mode=True)
         self.recorders['orn'] = create_orn_recorder(filename=orn_out_file,
                                                     file_type=self.recorders['file_type'],
-                                                    do_overwrite=do_overwrite, batch_mode=True)
+                                                    do_overwrite=do_overwrite, batch_mode=True,
+                                                    n_chan=get_orn_chan_len(self.stream_processor.device_info))
 
         if self.recorders['file_type'] == 'csv':
             self.recorders['marker'] = create_marker_recorder(
@@ -424,10 +427,10 @@ class Explore:
             logger.info('Conversion process terminated.')
 
     def push2lsl(self, duration=None, block=False):
-        r"""Push samples to two lsl streams (ExG and ORN streams)
+        """Push samples to three lsl streams (ExG, Marker and ORN streams)
 
         Args:
-            duration (float): duration of data acquiring (if None it streams for one hour).
+            duration (float): duration of data acquiring (if None it streams for three hours).
             block (bool): blocking mode
         """
         self._check_connection()
@@ -484,7 +487,7 @@ class Explore:
     def send_8_bit_trigger(self, eight_bit_value):
         eight_bit_value = eight_bit_value % 256
         trigger_id = 0xAB
-        cmd = [trigger_id, eight_bit_value, 1, 2, 3, 4, 5, 6, 7, 8, 0xDE, 0xAD, 0xBE, 0xEF]
+        cmd = [trigger_id, eight_bit_value, 1, 2, 3, 4, 5, 6, 7, 8, 0xAF, 0xBE, 0xAD, 0xDE]
         explore_port = setup_usb_marker_port()
         explore_port.write(bytearray(cmd))
         explore_port.close()
