@@ -648,7 +648,7 @@ class LslServer:
     """Class for LabStreamingLayer integration"""
     def __init__(self, device_info, stream_name=None):
         self.adc_mask = SettingsManager(
-            device_info["device_name"]).get_adc_mask() +  [1]
+            device_info["device_name"]).get_adc_mask()  +  [1]
         if len(SettingsManager(device_info["device_name"]).get_channel_names()) == len(self.adc_mask):
             channel_names = SettingsManager(device_info["device_name"]).get_channel_names()
         else:
