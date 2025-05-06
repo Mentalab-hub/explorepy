@@ -32,6 +32,7 @@ class SpectrogramPlot:
             colormap (str): The colormap to use for the plot, needs to be one of vispy.color.colormap.get_colormaps()
         """
         self.fig = vispy.plot.Fig(size=(800, 600), show=False)
+        self.fig.events.connect(self.on_event)
         self.plot = self.fig[0, 0]
         self.plot.bgcolor = "#FFFFFF"
         self.img = np.full(shape=(512, 512), fill_value=0.0, dtype=np.float32)
@@ -64,6 +65,15 @@ class SpectrogramPlot:
 
         self.current_size = None
         self.timer = app.Timer(start=True, interval=1. / 30., connect=self.create_window)
+
+    def on_event(self, event):
+        if type(event) is not vispy.app.canvas.KeyEvent:
+            return
+        if event.type == "key_press":
+            if event.key == "Up":
+                self.max_value += 1.0
+            elif event.key == "Down":
+                self.max_value = max(2.0, self.max_value-1.0)
 
     def create_window(self, event):
         """Used to instantiate the window initially, has to be called from the main thread"""
@@ -143,10 +153,11 @@ class SpectrogramPlot:
 
 
 if __name__ == '__main__':
-    device_name = "Explore_AABC"
-    device_sr = 1000
-    update_window = 1./30. # in seconds
-    time_window = 10 # in seconds, determines the time window shown (approximately)
+    #device_name = "Explore_AABC"
+    device_name = "Explore_DABB"
+    device_sr = 250
+    update_window = 1./2. # in seconds
+    time_window = 20 # in seconds, determines the time window shown (approximately)
     # Note that the window will always show a little more than the time window chosen!
     use_usb = False  # whether to connect via USB instead of Bluetooth
 
@@ -159,7 +170,7 @@ if __name__ == '__main__':
     rt_spectrogram = SpectrogramPlot(device_sr=device_sr,
                                      update_window=update_window,
                                      time_window=time_window,
-                                     mode="overlapping",
+                                     mode="moving_fft",
                                      colormap="fire",
                                      config=config)
 
