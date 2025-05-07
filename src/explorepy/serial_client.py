@@ -146,10 +146,12 @@ class SharedBuffer:
     ):
         self._page = page if page else mp.Value("i", 0)
         self._len = buffer_len if buffer_len else mp.Value("i", 0)
-        self._create_shd(create)
+        self.shm: shared_memory.SharedMemory = None
 
         if sys.platform == "win32":
             self._shm_list: list[shared_memory.SharedMemory] = []
+
+        self._create_shm(create)
 
     @property
     def len(self):
@@ -177,9 +179,9 @@ class SharedBuffer:
             old_shd = self.shm
 
             try:
-                self._create_shd(True)
+                self._create_shm(True)
             except FileExistsError:
-                self._create_shd(False)
+                self._create_shm(False)
             except Exception as e:
                 logger.error(
                     f"Device Process - Got exception while trying to create a new shared memory block {e}"
@@ -223,7 +225,7 @@ class SharedBuffer:
 
             try:
                 page += 1
-                self._create_shd(False, page)
+                self._create_shm(False, page)
             except Exception as e:
                 logger.error(
                     f"Serial Client - Got exception while trying to connect to next shared memory block {e}"
@@ -257,8 +259,8 @@ class SharedBuffer:
     def _buffer_name(self, page: int | None = None):
         return f"explorepy-serial-{page if page else self.page}"
 
-    def _create_shd(self, create: bool, page: int | None = None):
-        if sys.platform == "win32" and create:
+    def _create_shm(self, create: bool, page: int | None = None):
+        if sys.platform == "win32" and create and self.shm is not None:
             self._shm_list.append(self.shm)
 
         self.shm = shared_memory.SharedMemory(
