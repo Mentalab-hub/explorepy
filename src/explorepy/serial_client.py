@@ -6,6 +6,7 @@ import logging
 import multiprocessing as mp
 import os
 import queue
+import sys
 import threading
 import time
 from copy import copy
@@ -15,7 +16,6 @@ import serial
 from serial.tools import list_ports
 
 from explorepy._exceptions import DeviceNotFoundError
-
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +41,7 @@ class SerialStream:
             socket (bluetooth.socket)
         """
         logger.info("Trying to connect")
-        self.device_process = mp.Process(
-            target=device_process_main, args=(self.state.clone(),)
-        )
+        self.device_process = mp.Process(target=device_process_main, args=(self.state.clone(),))
         self.device_process.start()
         while not self.state.is_connected:
             time.sleep(0.05)
@@ -86,20 +84,15 @@ class SerialStream:
                 raise Exception("not connected")
 
             while len(chunk) < n_bytes:
-                byte_received = False
-                while not byte_received:
-                    try:
-                        chunk, self.page, self.offset = self.state.buffer.read(
-                            n_bytes, self.page, self.offset
-                        )
-                        byte_received = True
-                    except IndexError:
-                        time.sleep(0.002)
+                try:
+                    chunk, self.page, self.offset = self.state.buffer.read(
+                        n_bytes, self.page, self.offset
+                    )
+                except IndexError:
+                    time.sleep(0.002)
             return chunk
         except Exception as error:
-            logger.warning(
-                f"Serial Client - Got error or read request {type(error)}: {error}"
-            )
+            logger.warning(f"Serial Client - Got error or read request {type(error)}: {error}")
             print("maziar Got error or read request: {}".format(error))
 
     def send(self, data):
@@ -109,9 +102,7 @@ class SerialStream:
             data (bytearray): Data to be sent
         """
         if not self.device_process.is_alive():
-            raise Exception(
-                "Device Process is not alive, cannot communicate with device"
-            )
+            raise Exception("Device Process is not alive, cannot communicate with device")
         self.state.write_queue.put(data)
 
 
@@ -157,6 +148,9 @@ class SharedBuffer:
         self._len = buffer_len if buffer_len else mp.Value("i", 0)
         self._create_shd(create)
 
+        if sys.platform == "win32":
+            self._shm_list: list[shared_memory.SharedMemory] = []
+
     @property
     def len(self):
         return self._len.value
@@ -178,9 +172,9 @@ class SharedBuffer:
             byte (byte): byte to be appended
         """
         write_off = copy(self.len)
-        if write_off >= self.shd.size:
+        if write_off >= self.shm.size:
             self._page.value += 1
-            old_shd = self.shd
+            old_shd = self.shm
 
             try:
                 self._create_shd(True)
@@ -195,9 +189,11 @@ class SharedBuffer:
 
             self._len.value = 0
             write_off = 0
-            old_shd.close()
 
-        self.shd.buf[write_off] = byte
+            if sys.platform != "win32":
+                old_shd.close()
+
+        self.shm.buf[write_off] = byte
         write_off += 1
         self._len.value = write_off
 
@@ -218,12 +214,12 @@ class SharedBuffer:
             IndexError: if either the page or offset are out of bound
         """
         end = offset + num_bytes
-        if end < self.shd.size and end < self.len and self.page >= page:
-            buf = bytes(self.shd.buf[offset:end])
+        if end < self.shm.size and end < self.len and self.page >= page:
+            buf = bytes(self.shm.buf[offset:end])
             assert len(buf) == num_bytes
             return buf, page, end
-        elif end >= self.shd.size and self.page > page:
-            old_shd = self.shd
+        elif end >= self.shm.size and self.page > page:
+            old_shd = self.shm
 
             try:
                 page += 1
@@ -235,29 +231,37 @@ class SharedBuffer:
                 page -= 1
                 raise IndexError("Index out of bound")
 
-            end = num_bytes - (self.shd.size - offset)
-            buf = bytes(old_shd.buf[offset : self.shd.size]) + bytes(
-                self.shd.buf[0:end]
-            )
+            end = num_bytes - (self.shm.size - offset)
+            buf = bytes(old_shd.buf[offset : self.shm.size]) + bytes(self.shm.buf[0:end])
+            assert len(buf) == num_bytes
 
-            old_shd.close()
-            old_shd.unlink()
+            if sys.platform != "win32":
+                old_shd.close()
+                old_shd.unlink()
 
             return buf, page, end
 
         raise IndexError("Index out of bound")
 
     def close(self):
-        self.shd.close()
+        if sys.platform != "win32":
+            self.shm.close()
 
     def unlink(self):
-        self.shd.unlink()
+        if sys.platform == "win32":
+            for shm in self._shm_list:
+                shm.close()
+
+        self.shm.unlink()
 
     def _buffer_name(self, page: int | None = None):
         return f"explorepy-serial-{page if page else self.page}"
 
     def _create_shd(self, create: bool, page: int | None = None):
-        self.shd = shared_memory.SharedMemory(
+        if sys.platform == "win32" and create:
+            self._shm_list.append(self.shm)
+
+        self.shm = shared_memory.SharedMemory(
             name=self._buffer_name(page),
             create=create,
             size=2048 * 100,
@@ -305,12 +309,15 @@ class SharedState:
         return state
 
     def close_buffers(self, start_page):
-        current_page = start_page
-        while current_page <= self.buffer.page:
-            shd = SharedBuffer(page=current_page)
-            shd.close()
-            shd.unlink()
-            current_page += 1
+        if sys.platform == "win32":
+            self.buffer.unlink()
+        else:
+            current_page = start_page
+            while current_page <= self.buffer.page:
+                shd = SharedBuffer(page=current_page)
+                shd.close()
+                shd.unlink()
+                current_page += 1
 
 
 def device_process_main(state: SharedState):
@@ -333,9 +340,7 @@ class DeviceProcess:
         for _ in range(5):
             try:
                 self.port = get_correct_com_port(self.state.device_name)
-                self.comm_manager = serial.Serial(
-                    port=self.port, baudrate=115200, timeout=0.5
-                )
+                self.comm_manager = serial.Serial(port=self.port, baudrate=115200, timeout=0.5)
                 self.comm_manager.timeout = 0.5
 
                 # stop stream
@@ -401,6 +406,9 @@ class DeviceProcess:
             if self.state.usb_stop_flag or not self.state.is_connected:
                 break
             time.sleep(0.1)
+
+        if sys.platform == "win32":
+            self.state.close_buffers()
 
         self.state.is_connected = False
         self.comm_manager.cancel_read()
