@@ -10,7 +10,6 @@ from scipy.fft import fft
 import numpy as np
 from vispy.visuals.transforms import STTransform
 
-
 valid_colormaps = ["autumn", "blues", "cool", "greens", "reds", "spring", "summer", "fire", "grays", "hot", "ice",
                    "winter", "light_blues", "orange", "viridis", "coolwarm", "PuGr", "GrBu", "GrBu_d", "RdBu",
                    "cubehelix", "single_hue", "hsl", "husl", "diverging", "RdYeBuCy"]  # taken from vispy
@@ -20,20 +19,23 @@ class SpectrogramPlot:
     """Class containing a vispy plot and logic to get ExG data from the Explore device, calculate the STFT on it and
     display it in real time."""
     def __init__(self, device_sr=250, update_window=0.5, time_window=10, mode="overlapping", colormap="viridis",
-                 config=None):
+                 config=None, f_cutoff=70):
         """
         Args:
             device_sr (int): The sampling rate of the device
             update_window (float): Time in seconds between updates of the canvas, for the mode "overlapping", this determines
             (together with the sampling rate) how many values are dropped before recalculating the STFT. For the mode
-            "moving", this determines how many values are considered for a calculation of the STFT
+            "moving_stft, this determines how many values are considered for a calculation of the STFT
             time_window (int): The time window to display in seconds. For the mode "overlapping", this determines how many
             values are considered for a calculation of the STFT, for the mode "moving", this determines the total time
             window of the plot
-            mode (str): The drawing mode of the plot, "overlapping" for a plot that updates completely every frame, "moving"
-            for a plot that adds a new segment to the plot for every frame. Note that "moving" doesn't overlap values
-            when recalculating the STFT and thus needs an increased update rate for better resolution!
-            colormap (str): The colormap to use for the plot, needs to be one of vispy.color.colormap.get_colormaps()
+            mode (str): The drawing mode of the plot, "overlapping" for a plot that updates completely every frame,
+            "moving_stft" or "moving_fft" for a plot that adds a new segment to the plot for every frame using either
+            the STFT (calculating chunks) or FFT (calculated for a single timestamp). Note that "moving" doesn't overlap
+            values when recalculating the STFT and thus needs an increased update rate for better resolution!
+            colormap (str): The initial colormap to use for the plot, needs to be one of
+            vispy.color.colormap.get_colormaps() (see "valid_colormaps")
+            config (dict): A config containing parameter values for the stft (when using moving_stft or overlapping)
         """
         self.fig = vispy.plot.Fig(size=(800, 600), show=False)
         self.fig.events.connect(self.on_event)
@@ -44,11 +46,12 @@ class SpectrogramPlot:
         self.plot_colorbar = None
         self.colormap = colormap
 
-        self.colourmap_index = 0
+        self.colormap_index = 0
 
         self.config = config
 
-        self.max_value = 128
+        self.clim_max = 128
+        self.f_cutoff = f_cutoff
 
         self.valid_modes = ["moving_fft", "moving_stft", "overlapping"]
         self.mode = mode
@@ -75,21 +78,21 @@ class SpectrogramPlot:
 
     def on_event(self, event):
         """Catches events and processes them, used to catch presses of the up and down key to adjust the maximum value
-        of the plotted image"""
+        of the plotted image. Additionally, pressing the c key will cycle between available colormaps"""
         if type(event) is not vispy.app.canvas.KeyEvent:
             return
         if event.type == "key_press":
             if event.key == "Up":
-                self.max_value += 1.0
+                self.clim_max += 1.0
             elif event.key == "Down":
-                self.max_value = max(2.0, self.max_value-1.0)
+                self.clim_max = max(1.0, self.clim_max - 1.0)
         if event.type == "key_release" and event.key == "C":
-            new_cmap = valid_colormaps[self.colourmap_index]
+            new_cmap = valid_colormaps[self.colormap_index]
             print(f"Switching to colourmap: {new_cmap}")
             self.plot_image.cmap = new_cmap
             self.plot_colorbar.cmap = new_cmap
-            self.colourmap_index += 1
-            self.colourmap_index %= len(valid_colormaps)
+            self.colormap_index += 1
+            self.colormap_index %= len(valid_colormaps)
 
     def create_window(self, event):
         """Used to instantiate the window initially, has to be called from the main thread"""
@@ -133,6 +136,7 @@ class SpectrogramPlot:
                 Zxx = np.reshape(Zxx, shape=(Zxx.shape[0], 1))
 
             y_max = Zxx.shape[0]
+            y_max = min(y_max, self.f_cutoff)
             x_max = Zxx.shape[1]
 
             if self.current_size is None:
@@ -142,7 +146,7 @@ class SpectrogramPlot:
                 self.img = np.full(shape=(self.current_size[1], self.current_size[0]), fill_value=0.0, dtype=np.float32)
 
             # Overwrite the next section in the numpy array with the new STFT values
-            self.img[0:y_max, self.current_index:self.current_index+x_max] = np.abs(Zxx)
+            self.img[0:y_max, self.current_index:self.current_index+x_max] = np.abs(Zxx[:y_max, :])
 
             if self.mode == "moving_stft" or self.mode == "moving_fft":
                 self.current_index += x_max
@@ -156,9 +160,9 @@ class SpectrogramPlot:
 
             if self.plot_image is not None:
                 self.plot_image.set_data(self.img)
-                self.plot_image.clim = (0.0, self.max_value)
+                self.plot_image.clim = (0.0, self.clim_max)
                 if self.plot_colorbar is not None:
-                    self.plot_colorbar.clim = ("0.0", f"{self.max_value}")
+                    self.plot_colorbar.clim = ("0.0", f"{self.clim_max}")
                 self.fig.update()
 
             if self.mode == "moving_stft" or self.mode == "moving_fft":
@@ -178,21 +182,20 @@ class SpectrogramPlot:
 
 
 if __name__ == '__main__':
-    #device_name = "Explore_AABC"
-    device_name = "Explore_DABB"
-    device_sr = 250
-    update_window = 1./2. # in seconds
+    vispy.app.use_app("glfw")
+    device_name = "Explore_AABD"
+    device_sr = 2000
+    update_window = 1./10. # in seconds
     time_window = 20 # in seconds, determines the time window shown (approximately)
-    # Note that the window will always show a little more than the time window chosen!
-    use_usb = False  # whether to connect via USB instead of Bluetooth
-
-
+    # Note that the window will always show a little more than the time window chosen (for STFT)!
+    use_usb = True  # whether to connect via USB instead of Bluetooth
+    notch = 50.  # set to None to disable
+    bp = (3., 30.)  # set to None to disable
 
     drawing_mode = "moving_fft"  # choose from overlapping, moving_fft and moving_stft
-    config = {"window": "hann",
-              "nperseg": 128,
-              "noverlap": 0}  # config for the stft, used for modes overlapping and moving_stft
-    config = None
+
+    config = {"window": "hann", "nperseg": 128, "noverlap": 0}
+    # config for the stft, used for modes overlapping and moving_stft, set to None to use default values
 
     rt_spectrogram = SpectrogramPlot(device_sr=device_sr,
                                      update_window=update_window,
@@ -206,7 +209,9 @@ if __name__ == '__main__':
     explore_device = Explore()
     explore_device.connect(device_name=device_name)
     explore_device.set_sampling_rate(device_sr)
-    explore_device.stream_processor.add_filter(cutoff_freq=50., filter_type="notch")
-    explore_device.stream_processor.add_filter(cutoff_freq=(3., 30.), filter_type="bandpass")
+
+    if notch: explore_device.stream_processor.add_filter(cutoff_freq=50., filter_type="notch")
+    if bp: explore_device.stream_processor.add_filter(cutoff_freq=(3., 30.), filter_type="bandpass")
+
     explore_device.stream_processor.subscribe(rt_spectrogram.on_exg, topic=TOPICS.filtered_ExG)
     app.run()
