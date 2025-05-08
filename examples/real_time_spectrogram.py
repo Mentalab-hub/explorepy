@@ -210,8 +210,8 @@ if __name__ == '__main__':
     explore_device.connect(device_name=device_name)
     explore_device.set_sampling_rate(device_sr)
 
-    if notch: explore_device.stream_processor.add_filter(cutoff_freq=50., filter_type="notch")
-    if bp: explore_device.stream_processor.add_filter(cutoff_freq=(3., 30.), filter_type="bandpass")
+    if notch: explore_device.stream_processor.add_filter(cutoff_freq=notch, filter_type="notch")
+    if bp: explore_device.stream_processor.add_filter(cutoff_freq=bp, filter_type="bandpass")
 
     explore_device.stream_processor.subscribe(rt_spectrogram.on_exg, topic=TOPICS.filtered_ExG)
     app.run()
