@@ -1,5 +1,7 @@
 import vispy.plot
 
+import argparse
+
 import explorepy
 from explorepy import Explore
 from explorepy.packet import EEG
@@ -181,37 +183,65 @@ class SpectrogramPlot:
             raise ValueError(f"Encountered unexpected drawing mode while trying to get initial size: {self.mode}")
 
 
-if __name__ == '__main__':
-    vispy.app.use_app("glfw")
-    device_name = "Explore_AABD"
-    device_sr = 2000
-    update_window = 1./10. # in seconds
-    time_window = 20 # in seconds, determines the time window shown (approximately)
-    # Note that the window will always show a little more than the time window chosen (for STFT)!
-    use_usb = True  # whether to connect via USB instead of Bluetooth
-    notch = 50.  # set to None to disable
-    bp = (3., 30.)  # set to None to disable
+from explorepy.tools import SettingsManager
 
-    drawing_mode = "moving_fft"  # choose from overlapping, moving_fft and moving_stft
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog="Real-time spectrogram example",
+                                     description="This program connects to an Explore device, optionally sets its "
+                                                 "sampling rate and adds filters to the stream and then displays the "
+                                                 "spectrogram of the signals in real-time.")
+    parser.add_argument("-n", "--name", nargs=1, required=True, type=str,
+                        help="The device name, i.e. Explore_ABCD (required)")
+    parser.add_argument("-sr", "--sampling_rate", nargs=1, type=int,
+                        help="The sampling rate to set the device to after connecting")
+    parser.add_argument("-uw", "--update_window", nargs=1, type=float,
+                        help="The time window between updates of the plot")
+    parser.add_argument("-tw", "--time_window", nargs=1, type=float,
+                        help="The total time window displayed by the plot")
+    parser.add_argument("-usb", action="store_true",
+                        help="Whether to connect via USB")
+    parser.add_argument("-fn", "--notch", nargs=1, default=None, type=float,
+                        help="The frequency for the notch filter")
+    parser.add_argument("-fbp", "--bandpass", nargs=2, default=None, type=float,
+                        help="The frequencies for the bandpass filter")
+    parser.add_argument("-m", "--drawing_mode", nargs=1,
+                        choices=["moving_fft", "overlapping", "moving_stft"], default="moving_fft", type=str,
+                        help="The mode to use for drawing the plot (default: %(default)s")
+    args = parser.parse_args()
+
+    uw = args.update_window[0]
+    if uw is None:
+        if args.drawing_mode[0] == "overlapping":
+            uw = 1./10.
+        else:
+            uw = 1./2.
+
+    tw = args.time_window[0]
+    if tw is None:
+        tw = 10
+
+    vispy.app.use_app("glfw")
 
     config = {"window": "hann", "nperseg": 128, "noverlap": 0}
     # config for the stft, used for modes overlapping and moving_stft, set to None to use default values
 
-    rt_spectrogram = SpectrogramPlot(device_sr=device_sr,
-                                     update_window=update_window,
-                                     time_window=time_window,
-                                     mode=drawing_mode,
+    if args.usb: explorepy.set_bt_interface("usb")
+
+    explore_device = Explore()
+    explore_device.connect(device_name=args.name[0])
+    if args.sampling_rate: explore_device.set_sampling_rate(args.sampling_rate[0])
+
+    dev_sr = SettingsManager(args.name[0]).get_sampling_rate()
+
+    rt_spectrogram = SpectrogramPlot(device_sr=dev_sr,
+                                     update_window=uw,
+                                     time_window=tw,
+                                     mode=args.drawing_mode[0],
                                      colormap="viridis",
                                      config=config)
 
-    if use_usb: explorepy.set_bt_interface("usb")
-
-    explore_device = Explore()
-    explore_device.connect(device_name=device_name)
-    explore_device.set_sampling_rate(device_sr)
-
-    if notch: explore_device.stream_processor.add_filter(cutoff_freq=notch, filter_type="notch")
-    if bp: explore_device.stream_processor.add_filter(cutoff_freq=bp, filter_type="bandpass")
+    if args.notch: explore_device.stream_processor.add_filter(cutoff_freq=args.notch[0], filter_type="notch")
+    if args.bandpass: explore_device.stream_processor.add_filter(cutoff_freq=(args.bandpass[0], args.bandpass[1]), filter_type="bandpass")
 
     explore_device.stream_processor.subscribe(rt_spectrogram.on_exg, topic=TOPICS.filtered_ExG)
     app.run()
