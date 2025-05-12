@@ -238,7 +238,8 @@ if __name__ == '__main__':
                                      time_window=tw,
                                      mode=args.drawing_mode[0],
                                      colormap="viridis",
-                                     config=config)
+                                     config=config,
+                                     f_cutoff=70)
 
     if args.notch: explore_device.stream_processor.add_filter(cutoff_freq=args.notch[0], filter_type="notch")
     if args.bandpass: explore_device.stream_processor.add_filter(cutoff_freq=(args.bandpass[0], args.bandpass[1]), filter_type="bandpass")
