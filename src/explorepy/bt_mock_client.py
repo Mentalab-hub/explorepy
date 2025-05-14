@@ -3,10 +3,8 @@
 import logging
 import time
 
-from explorepy import (
-    BLEClient,
-    settings_manager
-)
+from explorepy.BLEClient import BLEClient
+from explorepy import settings_manager
 from explorepy._exceptions import InputError
 from explorepy.bt_mock_server import MockBtServer
 
@@ -42,9 +40,9 @@ class MockBtClient:
         config_manager.set_mac_address(self.mac_address)
 
         # sets up necessary variables
-        self.bt_serial_port_manager = BLEClient(self.device_name)
+        self.bt_serial_port_manager = MockBtServer()
         self.bt_serial_port_manager.Connect()
-        logger.info('Connected to the device')
+        logger.info('Connected to the mock device')
         self.is_connected = True
 
     def reconnect(self):
