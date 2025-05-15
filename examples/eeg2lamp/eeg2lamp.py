@@ -1,3 +1,5 @@
+import argparse
+
 import explorepy
 import matplotlib.pyplot as plt
 import numpy as np
@@ -117,7 +119,8 @@ class ThresholdTracker:
 
 
 class EEGVisualizer:
-    def __init__(self, calculator: BandpowerCalculator, tracker: ThresholdTracker, serial_port=None, simulate_lamp=False, lamp_max=10.0):
+    def __init__(self, calculator: BandpowerCalculator, tracker: ThresholdTracker, serial_port=None,
+                 simulate_lamp=False, lamp_max=10.0):
         """Initializes a bandpower visualizer with the given parameters and creates a plot that is updated regularly.
         Args:
             calculator: A calculator that takes EEG data on updates and calculates bandpowers based on it
@@ -155,10 +158,12 @@ class EEGVisualizer:
         ax.set_ylabel('Relative Bandpower')
         ax.set_title('Real-Time EEG Bandpower')
         if self.simulate_lamp:
-            # Create a colourmap that attempts to look like the on and off states of a lamp
+            # Create a colourmap that attempts to look like the on and off states of a lamp (and matches the Arduino
+            # code vaguely)
             cmap = LinearSegmentedColormap.from_list("lamp",
-                                                     [(0.16, 0.14, 0.09), (1., 0.91, 0.58)],
+                                                     [(0.0, 0.2, 0.14), (1.0, 0.78, 0.0)],
                                                      N=int(self.lamp_max))
+
             self.lamp = self.ax[1].imshow([[0.0]], cmap=cmap, vmin=0.0, vmax=self.lamp_max)
             self.ax[1].set_title("Simulated lamp")
 
@@ -198,7 +203,7 @@ class EEGVisualizer:
 
 
 class EEGApp:
-    def __init__(self, device_name, port=None, simulate_lamp=False, lamp_max=10.0):
+    def __init__(self, device_name, sr=None, port=None, notch=None, bandpass=None, simulate_lamp=False, lamp_max=10.0):
         self.serial_port = None
         if port:
             try:
@@ -208,16 +213,19 @@ class EEGApp:
 
         self.device = explorepy.Explore()
         self.device.connect(device_name=device_name)
+        if sr: self.device.set_sampling_rate(sr)
 
         self.settings = SettingsManager(device_name)
         self.buffer = EEGBuffer(self.settings.get_channel_count())
         self.calculator = BandpowerCalculator(fs=self.settings.get_sampling_rate())
         self.tracker = ThresholdTracker()
 
-        self.visualizer = EEGVisualizer(self.calculator, self.tracker, self.serial_port, simulate_lamp=simulate_lamp, lamp_max=lamp_max)
+        self.visualizer = EEGVisualizer(self.calculator, self.tracker, self.serial_port, simulate_lamp=simulate_lamp,
+                                        lamp_max=lamp_max)
 
-        self.device.stream_processor.add_filter(cutoff_freq=50.0, filter_type="notch")
-        self.device.stream_processor.add_filter(cutoff_freq=(5.0, 40.0), filter_type="bandpass")
+        if notch: self.device.stream_processor.add_filter(cutoff_freq=notch, filter_type="notch")
+        if bandpass: self.device.stream_processor.add_filter(cutoff_freq=(bandpass[0], bandpass[1]),
+                                                             filter_type="bandpass")
 
         self.device.stream_processor.subscribe(callback=self.buffer.update, topic=TOPICS.filtered_ExG)
 
@@ -228,5 +236,33 @@ class EEGApp:
 
 
 if __name__ == "__main__":
-    app = EEGApp(device_name="Explore_DABB", simulate_lamp=True, lamp_max=20)
+    parser = argparse.ArgumentParser(prog="EEG2Lamp",
+                                     description="This script connects to an Arduino running the accompanying example "
+                                                 ".ino to control the brightness and colour of an LED strip based on "
+                                                 "the increasing and decreasing power in the alpha band (8, 13)")
+    parser.add_argument("-n", "--name", required=True, type=str, nargs=1,
+                        help="The name of the Explore device (i.e. Explore_ABCD")
+    parser.add_argument("-sr", "--sampling_rate", default=None, type=int, nargs=1,
+                        help="The sampling rate to set the device to (disabled by default)")
+    parser.add_argument("-p", "--port", default=None, type=str, nargs=1,
+                        help="The port used to connect and communicate with the Arduino controlling the LEDs")
+    parser.add_argument("-fn", "--notch", default=None, type=float, nargs=1,
+                        help="A value for the notch filter (disabled by default)")
+    parser.add_argument("-fbp", "--bandpass", default=None, type=float, nargs=2,
+                        help="Values for the bandpass filter (disabled by default)")
+    parser.add_argument("--simulate_lamp", action="store_true",
+                        help="Whether to add a second plot to the bandpower plot that simulates the lamp's colour "
+                             "change")
+
+    args = parser.parse_args()
+    print(args)
+
+    sr = args.sampling_rate[0] if args.sampling_rate else None
+    port = args.port[0] if args.port else None
+    notch = args.notch[0] if args.notch else None
+    bp = (args.bandpass[0], args.bandpass[1]) if args.bandpass else None
+
+    app = EEGApp(device_name=args.name[0], sr=sr, port=port, notch=notch,
+                 bandpass=bp, simulate_lamp=args.simulate_lamp,  lamp_max=20)
+
     app.run()
