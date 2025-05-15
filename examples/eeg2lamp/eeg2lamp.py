@@ -41,7 +41,7 @@ class BandpowerCalculator:
     def compute(self, data: NDArray[np.float64], method: str = "welch", relative: bool = True) -> dict:
         bandpowers = {}
         for name, band in self.bands.items():
-            bp = self._bandpower(data, self.fs, method, band, relative)
+            bp = self._bandpower(data, self.fs, method, band, relative)  # array of channels
             bandpowers[name] = np.mean(bp)
         return bandpowers
 
@@ -75,12 +75,14 @@ class BandpowerCalculator:
 
 
 class BandpowerSmoother:
-    # gleitender Mittelwert über Bandpower werte um Plot ruhiger zu machen
+    """Class that holds a number of calculated bandpower values and returns the mean of them (thereby smoothing larger
+    changes)."""
     def __init__(self, window_size=5):
         self.history = []
         self.window_size = window_size
 
     def smooth(self, new_values: dict):
+        """Add new values to the internal history and return a smoothed value per dict key"""
         self.history.append(new_values)
         if len(self.history) > self.window_size:
             self.history.pop(0)
@@ -91,6 +93,8 @@ class BandpowerSmoother:
 
 
 class ThresholdTracker:
+    """Class that uses the 10th and 90th percentile of a window of bandpower values to determine a moving threshold to
+    detect when the bandpower value is rising."""
     def __init__(self, window_size: int = 120):
         self.values = []
         self.window_size = window_size
@@ -102,6 +106,8 @@ class ThresholdTracker:
             self.values.pop(0)
 
     def get_threshold(self) -> float:
+        """Calculates a value threshold that is approximately the middle of the value range represented in the current
+        window of values"""
         if len(self.values) < 10:
             return 0.5
         q10 = np.percentile(self.values, 10)
@@ -111,8 +117,20 @@ class ThresholdTracker:
 
 
 class EEGVisualizer:
-    # Livevisualisierung mit matplot lib
     def __init__(self, calculator: BandpowerCalculator, tracker: ThresholdTracker, serial_port=None, simulate_lamp=False, lamp_max=10.0):
+        """Initializes a bandpower visualizer with the given parameters and creates a plot that is updated regularly.
+        Args:
+            calculator: A calculator that takes EEG data on updates and calculates bandpowers based on it
+            (according to its own dict of frequency bands)
+            tracker: A threshold tracker that holds a window of values and determines a suitable threshold on updates
+            for when a band is rising or high in power
+            serial_port: A serial port to write messages based on whether the power of a frequency band is above the
+            current threshold or not
+            simulate_lamp: Whether to add a second plot to the window that simulates a lamp increasing or decreasing in
+            brightness
+            lamp_max: The maximum value for the lamp above which values above the threshold stop influencing the
+            brightness of the lamp (only for the simulated lamp plot)
+        """
         self.calculator = calculator
         self.tracker = tracker
         self.smoother = BandpowerSmoother()
@@ -126,6 +144,7 @@ class EEGVisualizer:
         if self.simulate_lamp:
             n_cols = 2
         self.fig, self.ax = plt.subplots(1, n_cols)
+
         self.colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
         ax = self.ax[0] if self.simulate_lamp else self.ax
         self.bars = ax.bar(calculator.bands.keys(), [0] * len(calculator.bands), color=self.colors)
@@ -136,6 +155,7 @@ class EEGVisualizer:
         ax.set_ylabel('Relative Bandpower')
         ax.set_title('Real-Time EEG Bandpower')
         if self.simulate_lamp:
+            # Create a colourmap that attempts to look like the on and off states of a lamp
             cmap = LinearSegmentedColormap.from_list("lamp",
                                                      [(0.16, 0.14, 0.09), (1., 0.91, 0.58)],
                                                      N=int(self.lamp_max))
