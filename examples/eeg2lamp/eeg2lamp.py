@@ -209,8 +209,10 @@ class EEGVisualizer:
 
 
 class DataServer:
-    def __init__(self, data_file, callback=None):
+    def __init__(self, data_file, callback=None, loop_file=True):
         out = mne.io.read_raw_bdf(data_file)
+
+        self.loop_file = loop_file
 
         self.sr = out.info["sfreq"]
         self.update_rate = 1. / self.sr
@@ -243,13 +245,18 @@ class DataServer:
 
     def acquire(self):
         it = 0
-        while True:
+        while True and it < self.data.shape[1]:
             packet = self.dummy_packet
             packet.data = self.data[1:, it].reshape(self.n_ch, 1)
             packet.timestamp = self.data[0, it]
-            it+=1
             self.callback(packet)
+            it += 1
+            if it >= self.data.shape[1] and self.loop_file:
+                print("Reached end of file, starting from the beginning again...")
+                it = 0
             time.sleep(self.update_rate)
+        print("Reached end of file, returning from thread...")
+        return
 
     def get_channel_count(self):
         return self.n_ch
@@ -260,7 +267,7 @@ class DataServer:
 
 class EEGApp:
     def __init__(self, device_name, sr=None, port=None, notch=None, bandpass=None, simulate_lamp=False, lamp_max=10.0,
-                 file=None):
+                 file=None, loop=False):
         self.serial_port = None
         if port:
             print("Serial port supplied, attempting to open for communication...")
@@ -272,7 +279,7 @@ class EEGApp:
 
         if file and os.path.exists(file) and file.split(".")[-1] == "bdf":
             print("Simulating from file")
-            self.data_server = DataServer(file)
+            self.data_server = DataServer(file, loop_file=loop)
             self.buffer = EEGBuffer(self.data_server.get_channel_count())
             self.data_server.set_callback(self.buffer.update)
 
@@ -330,6 +337,9 @@ if __name__ == "__main__":
                         help="Supplying this argument causes the script to ignore the arguments related to device "
                              "streaming and simulate the changing of the bandpowers and lamp brightness from the "
                              "supplied .bdf file")
+    parser.add_argument("-l", "--loop", action="store_true",
+                        help="If a file is supplied for simulation, this flag tells the data server to start reading "
+                             "from the beginning of the file again if it reaches its end")
 
     args = parser.parse_args()
 
@@ -340,6 +350,6 @@ if __name__ == "__main__":
     file = args.from_file[0] if args.from_file else None
 
     app = EEGApp(device_name=args.name[0], sr=sr, port=port, notch=notch,
-                 bandpass=bp, simulate_lamp=args.simulate_lamp,  lamp_max=20, file=file)
+                 bandpass=bp, simulate_lamp=args.simulate_lamp,  lamp_max=20, file=file, loop=args.loop)
 
     app.run()
