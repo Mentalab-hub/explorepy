@@ -1,11 +1,17 @@
 import argparse
+import os.path
+import threading
+import time
+
+import mne.io
 
 import explorepy
 import matplotlib.pyplot as plt
 import numpy as np
 import serial
+
 from explorepy.tools import SettingsManager
-from explorepy.packet import EEG
+from explorepy.packet import EEG, EEG32_BLE, EEG16_BLE, EEG98_BLE
 from explorepy.stream_processor import TOPICS
 from matplotlib.animation import FuncAnimation
 from matplotlib.colors import LinearSegmentedColormap
@@ -202,14 +208,81 @@ class EEGVisualizer:
         return list(self.bars.patches) + self.labels
 
 
+class DataServer:
+    def __init__(self, data_file, callback=None):
+        out = mne.io.read_raw_bdf(data_file)
+
+        self.sr = out.info["sfreq"]
+        self.update_rate = 1. / self.sr
+        self.data = out.get_data()
+        self.n_ch = self.data.shape[0] - 1
+
+        self.dummy_packet = None
+        dummy_data = bytearray(b'\x80\x00\x00' * self.n_ch + b'\xaf\xbe\xad\xde')
+        if self.n_ch == 8:
+            self.dummy_packet = EEG98_BLE(0.0, dummy_data)
+        elif self.n_ch == 16:
+            self.dummy_packet = EEG16_BLE(0.0, dummy_data)
+        elif self.n_ch == 32:
+            self.dummy_packet = EEG32_BLE(0.0, dummy_data)
+        else:
+            raise ValueError("Got unexpected channel count")
+
+        self.callback = None
+        self.acquire_thread = None
+        self.set_callback(callback)
+
+    def set_callback(self, callback):
+        if self.callback or self.acquire_thread:
+            raise NotImplementedError("Changing the callback is not supported.")
+        if not callback:
+            return
+        self.callback = callback
+        self.acquire_thread = threading.Thread(target=self.acquire, daemon=True)
+        self.acquire_thread.start()
+
+    def acquire(self):
+        it = 0
+        while True:
+            packet = self.dummy_packet
+            packet.data = self.data[1:, it].reshape(self.n_ch, 1)
+            packet.timestamp = self.data[0, it]
+            it+=1
+            self.callback(packet)
+            time.sleep(self.update_rate)
+
+    def get_channel_count(self):
+        return self.n_ch
+
+    def get_sampling_rate(self):
+        return self.sr
+
+
 class EEGApp:
-    def __init__(self, device_name, sr=None, port=None, notch=None, bandpass=None, simulate_lamp=False, lamp_max=10.0):
+    def __init__(self, device_name, sr=None, port=None, notch=None, bandpass=None, simulate_lamp=False, lamp_max=10.0,
+                 file=None):
         self.serial_port = None
         if port:
+            print("Serial port supplied, attempting to open for communication...")
             try:
                 self.serial_port = serial.Serial(port, 9600)
+                print("Serial port opened for communication with Arduino")
             except Exception as e:
-                print(f"Couldn't open serial: {e}")
+                print(f"Couldn't open serial port: {e}")
+
+        if file and os.path.exists(file) and file.split(".")[-1] == "bdf":
+            print("Simulating from file")
+            self.data_server = DataServer(file)
+            self.buffer = EEGBuffer(self.data_server.get_channel_count())
+            self.data_server.set_callback(self.buffer.update)
+
+            self.calculator = BandpowerCalculator(fs=250)
+            self.tracker = ThresholdTracker()
+
+            self.visualizer = EEGVisualizer(self.calculator, self.tracker, self.serial_port,
+                                            simulate_lamp=simulate_lamp,
+                                            lamp_max=lamp_max)
+            return
 
         self.device = explorepy.Explore()
         self.device.connect(device_name=device_name)
@@ -253,16 +326,20 @@ if __name__ == "__main__":
     parser.add_argument("--simulate_lamp", action="store_true",
                         help="Whether to add a second plot to the bandpower plot that simulates the lamp's colour "
                              "change")
+    parser.add_argument("-f", "--from_file", default=None, type=str, nargs=1,
+                        help="Supplying this argument causes the script to ignore the arguments related to device "
+                             "streaming and simulate the changing of the bandpowers and lamp brightness from the "
+                             "supplied .bdf file")
 
     args = parser.parse_args()
-    print(args)
 
     sr = args.sampling_rate[0] if args.sampling_rate else None
     port = args.port[0] if args.port else None
     notch = args.notch[0] if args.notch else None
     bp = (args.bandpass[0], args.bandpass[1]) if args.bandpass else None
+    file = args.from_file[0] if args.from_file else None
 
     app = EEGApp(device_name=args.name[0], sr=sr, port=port, notch=notch,
-                 bandpass=bp, simulate_lamp=args.simulate_lamp,  lamp_max=20)
+                 bandpass=bp, simulate_lamp=args.simulate_lamp,  lamp_max=20, file=file)
 
     app.run()
