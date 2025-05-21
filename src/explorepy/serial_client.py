@@ -1,5 +1,107 @@
 # -*- coding: utf-8 -*-
-"""A module for bluetooth connection"""
+"""A module for usb connection"""
+
+# # Serial Client
+#
+# The Serial Client consists of two parts:
+#
+# 1. `SerialStream` exposes an API for reading packets and sending commands
+# 2. `DeviceProcess` handles the actual serial connection and runs in a separate
+#    Python process to ensure a stable and reliable connection to the device
+#
+# ## Why use multiple processes and not threads?
+#
+# Mainly because of tight timing constraints when reading packets from explore
+# devices.
+# When using threads (and just one process), we run into issues with Python's
+# Global Interpreter Lock (GIL). When reading from the serial port, we invoke a
+# blocking function and therefore block the current thread which releases the
+# GIL. This results in a different thread acquiring the GIL until it releases
+# the GIL, but there is no guarantee when the GIL is released next and if our
+# thread acquires it again in time. There are two ways to get around the GIL:
+#
+# 1. We write a Python extension in C, C++, Rust or some other compiled language
+#    without relying on Python types (as those, even in C, depend on the GIL)
+# 2. We use Python's multiprocessing library (mp) to start a new Python instance
+#    and communicate with it via mp's shared memory, queues, and value types.
+#    This is what we chose, as it is the easiest to implement and maintain.
+#
+# ## Separate Processes
+#
+# When connecting to a device via `SerialStream.connect` we create an object
+# holding our shared state and start a new process, let's call it device process,
+# running `DeviceProcess.run`, which then looks for the right serial port and
+# starts the normal connection process. Afterwards, three threads get started in
+# the device process. One which solely reads data coming from the device and
+# stores it in a custom shared buffer. Another one receives commands from the
+# main process via a queue and sends them to the device. And the last one
+# periodically checks if we are still connected.
+# Behind the scenes, the shared buffer uses multiple mp's shared memory objects
+# to facilitate an ever-growing amount of data. This is more complex compared to
+# using a pipe or queue. Both options are not viable from a performance
+# standpoint. When reading from the serial port, we read in chunks of 2048 bytes,
+# but when reading from the buffer in the main process, we might only read 8
+# bytes of data. We could send just one byte at a time down a queue from the
+# device process until the whole chunk is stored. Each read and write request
+# needs to acquire the queue's lock, which results in quite a performance hit
+# when reading and writing one byte at a time. When using shared memory, we can
+# write 2048 bytes at once into the buffer (the worst case into two shared
+# memory instances) without taking away the ability from the main process to
+# read only a few bytes at a time.
+#
+# ## Pros and Cons
+#
+# ### Pros
+# - Timing compliance no matter what the main application is doing
+#
+# ### Cons
+# - Communication overhead: when since two different processes can't directly
+#   share memory, we need to use different methods, for example, memory mapped
+#   files
+# - High memory consumption: we are running two instances of the Python
+#   interpreter
+# - mp's shared memory is not as performant on windows as it is on linux and
+#   macos
+#
+# ### Possible Compromise
+# Allow the user to chose whether to separate the device communication from the
+# main process or to keep them in one depending on their use case.
+# -> allow choosing between multiprocessing and threading
+#
+#                          ┌──────────────────────────────┐
+#                          │      Python Process #1       │
+#                          │                              │
+#                          │     main python process      │
+#                          │                              │
+#                          │ ┌──────────────────────────┐ │
+#                          │ │         Thread #         │ │
+#            ┌──reads from─┼▶│serial_client.SerialStream│─┼──appends cmd
+#            │             │ │                          │ │          │
+#            │             │ └──────────────────────────┘ │          │
+#            │             └──────────────────────────────┘          │
+#     ┌────────────┐                                                 ▼
+#     │            ├┐                                        ┌───────────────┐
+#     │   Shared   ││                                        │               │
+#     │   Buffer   ││                                        │ Command Queue │
+#     │            ││                                        │               │
+#     └┬───────────┘│                                        └───────────────┘
+#      └─────▲──────┘                                                │
+#            │       ┌──────────────────────────────────────────┐    │
+#            │       │            Python Process #2             │    │
+#            │       │                                          │    │
+#            │       │                                          │    │
+#            │       │                                          │    │
+#            │       │ ┌──────────────────────────────────────┐ │    │
+#            │       │ │     serial_client.DeviceProcess      │ │    │
+#       writes to    │ │                                      │ │    │
+#            │       │ │                                      │ │    │
+#            │       │ │ ┌───────────────┐  ┌───────────────┐ │ │    │
+#            │       │ │ │   Thread #1   │  │   Thread #2   │ │ │    │
+#            └───────┼─┼─│   read from   │  │ Write cmd to  │◀┼─┼────┘
+#                    │ │ │  serial conn  │  │    serial     │ │ │
+#                    │ │ └───────────────┘  └───────────────┘ │ │
+#                    │ └──────────────────────────────────────┘ │
+#                    └──────────────────────────────────────────┘
 
 import ctypes
 import logging
@@ -32,7 +134,6 @@ class SerialStream:
         self.device_process: mp.Process = None
         self.page = 0
         self.offset = 0
-        self.idx = 0
 
     def connect(self):
         """Connect to the device and return the socket
@@ -40,8 +141,9 @@ class SerialStream:
         Returns:
             socket (bluetooth.socket)
         """
-        logger.info("Trying to connect")
-        self.device_process = mp.Process(target=device_process_main, args=(self.state.clone(),))
+        self.device_process = mp.Process(
+            target=device_process_main, args=(self.state.clone(),)
+        )
         self.device_process.start()
         while not self.state.is_connected:
             time.sleep(0.05)
@@ -71,14 +173,6 @@ class SerialStream:
             list of bytes
         """
         chunk = bytearray()
-        if self.idx % 8000 == 0:
-            writer_page = self.state.buffer.page
-            reader_page = self.page
-            print(
-                f"Writer page :: {writer_page} - Reader page :: {reader_page} - offset :: {writer_page - reader_page}"
-            )
-        self.idx += 1
-
         try:
             if not self.state.is_connected:
                 raise Exception("not connected")
@@ -92,7 +186,9 @@ class SerialStream:
                     time.sleep(0.002)
             return chunk
         except Exception as error:
-            logger.warning(f"Serial Client - Got error or read request {type(error)}: {error}")
+            logger.warning(
+                f"Serial Client - Got error or read request {type(error)}: {error}"
+            )
             print("maziar Got error or read request: {}".format(error))
 
     def send(self, data):
@@ -102,8 +198,10 @@ class SerialStream:
             data (bytearray): Data to be sent
         """
         if not self.device_process.is_alive():
-            raise Exception("Device Process is not alive, cannot communicate with device")
-        self.state.write_queue.put(data)
+            raise Exception(
+                "Device Process is not alive, cannot communicate with device"
+            )
+        self.state.cmd_queue.put(data)
 
 
 def get_correct_com_port(device_name):
@@ -149,6 +247,8 @@ class SharedBuffer:
         self.shm: shared_memory.SharedMemory = None
 
         if sys.platform == "win32":
+            # When we close a shared memory object on windows, it gets automatically unlinked.
+            # Therefore, we need to store any open and yet unread but written pages.
             self._shm_list: list[shared_memory.SharedMemory] = []
 
         self._create_shm(create)
@@ -199,6 +299,37 @@ class SharedBuffer:
         write_off += 1
         self._len.value = write_off
 
+    def append_multiple(self, data):
+        """Append multiple bytes to the shared buffer
+
+        Args:
+            data (bytes): bytes to be appended
+        """
+        write_off = copy(self.len)
+        if write_off + len(data) <= self.shm.size:
+            self._len.value += len(data)
+            self.shm.buf[write_off : write_off + len(data)] = data
+        else:
+            end = self.shm.size - write_off
+            rem = len(data) - end
+            self._page.value += 1
+            old_shd = self.shm
+
+            try:
+                self._create_shm(True)
+            except FileExistsError:
+                self._create_shm(False)
+            except Exception as e:
+                logger.error(
+                    f"Device Process - Got exception while trying to create a new shared memory block {e}"
+                )
+                self._page.value -= 1
+                return
+
+            old_shd.buf[write_off : self.shm.size] = data[:end]
+            self.shm.buf[:rem] = data[end:]
+            self._len.value = rem
+
     def read(self, num_bytes: int, page: int, offset: int) -> tuple[bytes, int, int]:
         """Read a number of bytes from the buffer
 
@@ -234,7 +365,9 @@ class SharedBuffer:
                 raise IndexError("Index out of bound")
 
             end = num_bytes - (self.shm.size - offset)
-            buf = bytes(old_shd.buf[offset : self.shm.size]) + bytes(self.shm.buf[0:end])
+            buf = bytes(old_shd.buf[offset : self.shm.size]) + bytes(
+                self.shm.buf[0:end]
+            )
             assert len(buf) == num_bytes
 
             if sys.platform != "win32":
@@ -275,12 +408,12 @@ class SharedState:
         self,
         device_name,
         buffer: SharedBuffer | None = None,
-        write_queue=None,
+        cmd_queue=None,
     ):
         self.device_name = device_name
         self.block_read_size = 2048
         self.buffer = buffer if buffer else SharedBuffer(create=True)
-        self.write_queue = write_queue if write_queue else mp.Queue()
+        self.cmd_queue = cmd_queue if cmd_queue else mp.Queue()
         self._is_connected = mp.Value(ctypes.c_bool, False)
         self._usb_stop_flag = mp.Value(ctypes.c_bool, False)
 
@@ -304,7 +437,7 @@ class SharedState:
         state = SharedState(
             self.device_name,
             buffer=self.buffer.clone(),
-            write_queue=self.write_queue,
+            cmd_queue=self.cmd_queue,
         )
         state._is_connected = self._is_connected
         state._usb_stop_flag = self._usb_stop_flag
@@ -342,7 +475,9 @@ class DeviceProcess:
         for _ in range(5):
             try:
                 self.port = get_correct_com_port(self.state.device_name)
-                self.comm_manager = serial.Serial(port=self.port, baudrate=115200, timeout=0.5)
+                self.comm_manager = serial.Serial(
+                    port=self.port, baudrate=115200, timeout=0.5
+                )
                 self.comm_manager.timeout = 0.5
 
                 # stop stream
@@ -410,7 +545,7 @@ class DeviceProcess:
             time.sleep(0.1)
 
         if sys.platform == "win32":
-            self.state.close_buffers()
+            self.state.close_buffers(0)
 
         self.state.is_connected = False
         self.comm_manager.cancel_read()
@@ -426,8 +561,7 @@ class DeviceProcess:
             try:
                 data = self.comm_manager.read(self.state.block_read_size)
                 if data is not None:
-                    for byte in data:
-                        self.state.buffer.append(byte)
+                    self.state.buffer.append_multiple(data)
             except Exception as e:
                 logger.debug(f"Got Exception in USB read method: {e}")
 
@@ -436,7 +570,7 @@ class DeviceProcess:
     def write_serial(self):
         while True:
             try:
-                data = self.state.write_queue.get()
+                data = self.state.cmd_queue.get()
                 if data:
                     with threading.Lock():
                         self.comm_manager.write(data)
@@ -449,4 +583,4 @@ class DeviceProcess:
             if self.port not in open_ports:
                 self.state.is_connected = False
                 break
-            time.sleep(0.1)
+            time.sleep(0.5)
