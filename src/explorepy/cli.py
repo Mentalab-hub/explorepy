@@ -57,13 +57,6 @@ def verify_inputs(func):
 
 
 @cli.command()
-def find_device():
-    """List available Explore devices"""
-    explorepy.set_bt_interface(default_bt_backend)
-    explorepy.tools.run_ble_scanner()
-
-
-@cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-d", "--duration", type=int, help="Duration in seconds", metavar="<integer>")
