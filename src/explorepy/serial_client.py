@@ -1,108 +1,6 @@
 # -*- coding: utf-8 -*-
 """A module for usb connection"""
 
-# # Serial Client
-#
-# The Serial Client consists of two parts:
-#
-# 1. `SerialStream` exposes an API for reading packets and sending commands
-# 2. `DeviceProcess` handles the actual serial connection and runs in a separate
-#    Python process to ensure a stable and reliable connection to the device
-#
-# ## Why use multiple processes and not threads?
-#
-# Mainly because of tight timing constraints when reading packets from explore
-# devices.
-# When using threads (and just one process), we run into issues with Python's
-# Global Interpreter Lock (GIL). When reading from the serial port, we invoke a
-# blocking function and therefore block the current thread which releases the
-# GIL. This results in a different thread acquiring the GIL until it releases
-# the GIL, but there is no guarantee when the GIL is released next and if our
-# thread acquires it again in time. There are two ways to get around the GIL:
-#
-# 1. We write a Python extension in C, C++, Rust or some other compiled language
-#    without relying on Python types (as those, even in C, depend on the GIL)
-# 2. We use Python's multiprocessing library (mp) to start a new Python instance
-#    and communicate with it via mp's shared memory, queues, and value types.
-#    This is what we chose, as it is the easiest to implement and maintain.
-#
-# ## Separate Processes
-#
-# When connecting to a device via `SerialStream.connect` we create an object
-# holding our shared state and start a new process, let's call it device process,
-# running `DeviceProcess.run`, which then looks for the right serial port and
-# starts the normal connection process. Afterwards, three threads get started in
-# the device process. One which solely reads data coming from the device and
-# stores it in a custom shared buffer. Another one receives commands from the
-# main process via a queue and sends them to the device. And the last one
-# periodically checks if we are still connected.
-# Behind the scenes, the shared buffer uses multiple mp's shared memory objects
-# to facilitate an ever-growing amount of data. This is more complex compared to
-# using a pipe or queue. Both options are not viable from a performance
-# standpoint. When reading from the serial port, we read in chunks of 2048 bytes,
-# but when reading from the buffer in the main process, we might only read 8
-# bytes of data. We could send just one byte at a time down a queue from the
-# device process until the whole chunk is stored. Each read and write request
-# needs to acquire the queue's lock, which results in quite a performance hit
-# when reading and writing one byte at a time. When using shared memory, we can
-# write 2048 bytes at once into the buffer (the worst case into two shared
-# memory instances) without taking away the ability from the main process to
-# read only a few bytes at a time.
-#
-# ## Pros and Cons
-#
-# ### Pros
-# - Timing compliance no matter what the main application is doing
-#
-# ### Cons
-# - Communication overhead: when since two different processes can't directly
-#   share memory, we need to use different methods, for example, memory mapped
-#   files
-# - High memory consumption: we are running two instances of the Python
-#   interpreter
-# - mp's shared memory is not as performant on windows as it is on linux and
-#   macos
-#
-# ### Possible Compromise
-# Allow the user to chose whether to separate the device communication from the
-# main process or to keep them in one depending on their use case.
-# -> allow choosing between multiprocessing and threading
-#
-#                          ┌──────────────────────────────┐
-#                          │      Python Process #1       │
-#                          │                              │
-#                          │     main python process      │
-#                          │                              │
-#                          │ ┌──────────────────────────┐ │
-#                          │ │         Thread #         │ │
-#            ┌──reads from─┼▶│serial_client.SerialStream│─┼──appends cmd
-#            │             │ │                          │ │          │
-#            │             │ └──────────────────────────┘ │          │
-#            │             └──────────────────────────────┘          │
-#     ┌────────────┐                                                 ▼
-#     │            ├┐                                        ┌───────────────┐
-#     │   Shared   ││                                        │               │
-#     │   Buffer   ││                                        │ Command Queue │
-#     │            ││                                        │               │
-#     └┬───────────┘│                                        └───────────────┘
-#      └─────▲──────┘                                                │
-#            │       ┌──────────────────────────────────────────┐    │
-#            │       │            Python Process #2             │    │
-#            │       │                                          │    │
-#            │       │                                          │    │
-#            │       │                                          │    │
-#            │       │ ┌──────────────────────────────────────┐ │    │
-#            │       │ │     serial_client.DeviceProcess      │ │    │
-#       writes to    │ │                                      │ │    │
-#            │       │ │                                      │ │    │
-#            │       │ │ ┌───────────────┐  ┌───────────────┐ │ │    │
-#            │       │ │ │   Thread #1   │  │   Thread #2   │ │ │    │
-#            └───────┼─┼─│   read from   │  │ Write cmd to  │◀┼─┼────┘
-#                    │ │ │  serial conn  │  │    serial     │ │ │
-#                    │ │ └───────────────┘  └───────────────┘ │ │
-#                    │ └──────────────────────────────────────┘ │
-#                    └──────────────────────────────────────────┘
-
 import ctypes
 import logging
 import multiprocessing as mp
@@ -453,6 +351,109 @@ class SharedState:
                 shd.close()
                 shd.unlink()
                 current_page += 1
+
+
+# # Serial Client
+#
+# The Serial Client consists of two parts:
+#
+# 1. `SerialStream` exposes an API for reading packets and sending commands
+# 2. `DeviceProcess` handles the actual serial connection and runs in a separate
+#    Python process to ensure a stable and reliable connection to the device
+#
+# ## Why use multiple processes and not threads?
+#
+# Mainly because of tight timing constraints when reading packets from explore
+# devices.
+# When using threads (and just one process), we run into issues with Python's
+# Global Interpreter Lock (GIL). When reading from the serial port, we invoke a
+# blocking function and therefore block the current thread which releases the
+# GIL. This results in a different thread acquiring the GIL until it releases
+# the GIL, but there is no guarantee when the GIL is released next and if our
+# thread acquires it again in time. There are two ways to get around the GIL:
+#
+# 1. We write a Python extension in C, C++, Rust or some other compiled language
+#    without relying on Python types (as those, even in C, depend on the GIL)
+# 2. We use Python's multiprocessing library (mp) to start a new Python instance
+#    and communicate with it via mp's shared memory, queues, and value types.
+#    This is what we chose, as it is the easiest to implement and maintain.
+#
+# ## Separate Processes
+#
+# When connecting to a device via `SerialStream.connect` we create an object
+# holding our shared state and start a new process, let's call it device process,
+# running `DeviceProcess.run`, which then looks for the right serial port and
+# starts the normal connection process. Afterwards, three threads get started in
+# the device process. One which solely reads data coming from the device and
+# stores it in a custom shared buffer. Another one receives commands from the
+# main process via a queue and sends them to the device. And the last one
+# periodically checks if we are still connected.
+# Behind the scenes, the shared buffer uses multiple mp's shared memory objects
+# to facilitate an ever-growing amount of data. This is more complex compared to
+# using a pipe or queue. Both options are not viable from a performance
+# standpoint. When reading from the serial port, we read in chunks of 2048 bytes,
+# but when reading from the buffer in the main process, we might only read 8
+# bytes of data. We could send just one byte at a time down a queue from the
+# device process until the whole chunk is stored. Each read and write request
+# needs to acquire the queue's lock, which results in quite a performance hit
+# when reading and writing one byte at a time. When using shared memory, we can
+# write 2048 bytes at once into the buffer (the worst case into two shared
+# memory instances) without taking away the ability from the main process to
+# read only a few bytes at a time.
+#
+# ## Pros and Cons
+#
+# ### Pros
+# - Timing compliance no matter what the main application is doing
+#
+# ### Cons
+# - Communication overhead: when since two different processes can't directly
+#   share memory, we need to use different methods, for example, memory mapped
+#   files
+# - High memory consumption: we are running two instances of the Python
+#   interpreter
+# - mp's shared memory is not as performant on windows as it is on linux and
+#   macos
+#
+# ### Possible Compromise
+# Allow the user to choose whether to separate the device communication from the
+# main process or to keep them in one depending on their use case.
+# -> allow choosing between multiprocessing and threading
+#
+#                          ┌──────────────────────────────┐
+#                          │      Python Process #1       │
+#                          │                              │
+#                          │     main python process      │
+#                          │                              │
+#                          │ ┌──────────────────────────┐ │
+#                          │ │         Thread #         │ │
+#            ┌──reads from─┼▶│serial_client.SerialStream│─┼──appends cmd
+#            │             │ │                          │ │          │
+#            │             │ └──────────────────────────┘ │          │
+#            │             └──────────────────────────────┘          │
+#     ┌────────────┐                                                 ▼
+#     │            ├┐                                        ┌───────────────┐
+#     │   Shared   ││                                        │               │
+#     │   Buffer   ││                                        │ Command Queue │
+#     │            ││                                        │               │
+#     └┬───────────┘│                                        └───────────────┘
+#      └─────▲──────┘                                                │
+#            │       ┌──────────────────────────────────────────┐    │
+#            │       │            Python Process #2             │    │
+#            │       │                                          │    │
+#            │       │                                          │    │
+#            │       │                                          │    │
+#            │       │ ┌──────────────────────────────────────┐ │    │
+#            │       │ │     serial_client.DeviceProcess      │ │    │
+#       writes to    │ │                                      │ │    │
+#            │       │ │                                      │ │    │
+#            │       │ │ ┌───────────────┐  ┌───────────────┐ │ │    │
+#            │       │ │ │   Thread #1   │  │   Thread #2   │ │ │    │
+#            └───────┼─┼─│   read from   │  │ Write cmd to  │◀┼─┼────┘
+#                    │ │ │  serial conn  │  │    serial     │ │ │
+#                    │ │ └───────────────┘  └───────────────┘ │ │
+#                    │ └──────────────────────────────────────┘ │
+#                    └──────────────────────────────────────────┘
 
 
 def device_process_main(state: SharedState):
