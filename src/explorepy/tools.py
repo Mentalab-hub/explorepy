@@ -1024,8 +1024,6 @@ def find_free_port():
 
 
 def get_raw_data_from_csv(file_name):
-    print('File name is {}'.format(file_name))
-    base_file_name = os.path.basename(file_name).split(".")[0]
     meta_ending = "_Meta.csv"
     meta_file = file_name[:-8] + meta_ending
     if not os.path.isfile(file_name[:-8] + meta_ending):
