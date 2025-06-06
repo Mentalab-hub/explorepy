@@ -1024,6 +1024,7 @@ def find_free_port():
 
 
 def get_raw_data_from_csv(file_name):
+    print('File name is {}'.format(file_name))
     meta_ending = "_Meta.csv"
     meta_file = file_name[:-8] + meta_ending
     if not os.path.isfile(file_name[:-8] + meta_ending):
@@ -1032,16 +1033,18 @@ def get_raw_data_from_csv(file_name):
 
     sampling_freq = pandas.read_csv(meta_file, delimiter=',')['sr'][0]
     data_frame_exg = pandas.read_csv(file_name, delimiter=',')
+    first_exg_ts = data_frame_exg['TimeStamp'].tolist()[0]
     data_frame_exg = data_frame_exg.drop('TimeStamp', axis=1)
     ch_types = ["eeg"] * len(data_frame_exg.columns)
-    info = create_info(len(ch_types), sfreq=sampling_freq, ch_types=ch_types)
+    info = create_info(ch_names=data_frame_exg.columns.tolist(), sfreq=sampling_freq, ch_types=ch_types)
 
     data_frame_exg = data_frame_exg.div(1e6)
     data_frame_exg = data_frame_exg.transpose()
     raw_data = io.RawArray(data_frame_exg, info)
 
     data_frame_marker = pandas.read_csv(file_name[:-8] + '_Marker.csv', delimiter=',')
-    onsets = data_frame_marker['TimeStamp']
+    marker_ts = data_frame_marker['TimeStamp'].tolist()
+    onsets = [x - first_exg_ts for x in marker_ts]
     durations = [0 for _ in range(len(onsets))]
     descriptions = data_frame_marker['Code']
     annotations = Annotations(onset=onsets, duration=durations, description=descriptions)
