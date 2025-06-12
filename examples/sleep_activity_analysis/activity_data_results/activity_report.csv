@@ -1,0 +1,6 @@
+activity level,sum,mean,median,std,Time elapsed (min.),ID
+Sedentary,0.0,,,,0.0,processed_data/processed_acc_data.csv
+Light,12118.935017161717,12.118935017161718,11.387,1.9789273764997568,500.0,processed_data/processed_acc_data.csv
+Moderate,1885.5722970297031,25.829757493557576,23.093876237623764,8.075341358743886,36.5,processed_data/processed_acc_data.csv
+Vigorous,728.2869999999999,80.92077777777777,78.04899999999999,12.164052632426598,4.5,processed_data/processed_acc_data.csv
+Very Vigorous,0.0,,,,0.0,processed_data/processed_acc_data.csv

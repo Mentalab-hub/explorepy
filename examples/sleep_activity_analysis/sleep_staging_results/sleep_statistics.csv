@@ -1,0 +1,2 @@
+total_epochs,total_recording_time_min,total_sleep_time_min,sleep_efficiency,wake_pct,n1_pct,n2_pct,n3_pct,rem_pct,sleep_onset_latency_min,rem_latency_min,waso_min,number_of_awakenings
+992,496.0,432.0,87.09677419354838,12.903225806451612,1.2096774193548387,33.36693548387097,31.350806451612907,21.16935483870968,24.0,79.0,40.0,40
