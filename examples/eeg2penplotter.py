@@ -98,8 +98,9 @@ class BandpowerCalculator:
 
 class CommandGenerator:
     _valid_modes = ["rect_line", "rect_circle", "rect_spiral"]
-    def __init__(self, mode: str="rect_line", num_segments: int=250):
+    def __init__(self, mode: str="rect_line", num_segments: int=250, rotations=4):
         self.mode = mode if mode in self._valid_modes else "rect_line"
+        self.rotations = rotations
 
         self.canvas_width: float = 10.0
         self.canvas_height: float = 10.0
@@ -113,23 +114,28 @@ class CommandGenerator:
 
         self.num_segments: int = num_segments
         self.current_segment: int = 0
+        self.current_width = 1. / self.num_segments
+
+    def create_calib_command(self) -> list[str]:
+        cmds = []
+        cmds.append("G21\n")  # programming in mm
+        cmds.append("G90\n")  # programming in absolute positioning
+        cmds.append("G1 F8000\n")  # set speed/feedrate
+        # cmds.append("M03 S150")  # spindle on with 150RPM
+        return cmds
+
+    def create_raise_pen_command(self):
+        raise NotImplementedError
+
+    def create_lower_pen_command(self):
+        raise NotImplementedError
 
     def create_line_command(self, stop: Coordinate) -> str:
         stop_tuple = stop.as_tuple()
         return f"G1 X{np.round(stop_tuple[0], 3)} Y{np.round(stop_tuple[1], 3)}\n"
 
     def generate_segment_coordinates(self, width: float, offset: tuple[float, float], rotation: float, scale: tuple[float, float] = (1.0, 1.0), amplitude: float=0.1) -> list[Coordinate]:
-        #seg = []
         seg_coords = []
-        # width = self.canvas_width / (2 * self.num_segments)
-
-        #if self.current_segment >= self.num_segments:
-        #    return seg
-
-        # TODO: fix center of rotation being off for subsequent rotations!
-        # TODO: rotate first, then translate
-        # TODO: create a baseline rect signal at (0.0, 0.0), then move it
-        # TODO: idea: use polar coordinates and convert to cartesian (may be easier?)
 
         coord = Coordinate(0.0, 0.0)
 
@@ -159,7 +165,10 @@ class CommandGenerator:
             self.current_coord = ret[-1]
             self.current_segment += 1
             coordinates.extend(ret)
-        return self.coordinates_to_commands(coordinates)
+        cmds = []
+        cmds.extend(self.create_calib_command())
+        cmds.extend(self.coordinates_to_commands(coordinates))
+        return cmds
 
     def create_circle_commands(self):
         """Test method to create a whole list of commands to draw a circle with random amplitude segments"""
@@ -174,7 +183,10 @@ class CommandGenerator:
             self.current_coord = ret[-1]
             self.current_segment += 1
             coordinates.extend(ret)
-        return self.coordinates_to_commands(coordinates)
+        cmds = []
+        cmds.extend(self.create_calib_command())
+        cmds.extend(self.coordinates_to_commands(coordinates))
+        return cmds
 
     def create_spiral_commands(self, rotations=2):
         """Test method to create a whole list of commands to draw a spiral with random amplitude segments"""
@@ -190,7 +202,10 @@ class CommandGenerator:
             self.current_coord = ret[-1]
             self.current_segment += 1
             coordinates.extend(ret)
-        return self.coordinates_to_commands(coordinates)
+        cmds = []
+        cmds.extend(self.create_calib_command())
+        cmds.extend(self.coordinates_to_commands(coordinates))
+        return cmds
 
     def coordinates_to_commands(self, coordinates: list[Coordinate]) -> list[str]:
         cmds = []
@@ -205,6 +220,20 @@ class CommandGenerator:
             return self.create_circle_commands()
         elif self.mode == "rect_spiral":
             return self.create_spiral_commands(rotations=4)
+
+    def get_segment_commands(self, buffer):
+        rng = random.Random()
+        rng.seed(time.time())
+        r = self.rotations * 360. / self.num_segments
+
+        if self.current_segment >= self.num_segments: return []
+
+        amp = rng.randint(0, 100) / 500
+        ret = self.generate_segment_coordinates(width=self.current_width, offset=self.current_coord.as_tuple(), rotation=self.current_segment*r, amplitude=amp)
+        self.current_width += (self.rotations*0.1/self.num_segments)
+        self.current_coord = ret[-1]
+        self.current_segment += 1
+        return self.coordinates_to_commands(ret)
 
 
 class CommunicationInterface:
@@ -246,11 +275,13 @@ class CommunicationInterface:
             self.val_lengths[i] = min(self.val_lengths[i] + 1, self.val_buffer_max_length)
             self.val_current_indices[i] %= self.val_buffer_max_length
 
-    def write_command(self) -> None:
-        cmd = self.command_generator.get_command(self.bp_buffer)
+    def write_commands(self) -> None:
+        cmds = self.command_generator.get_segment_commands(self.bp_buffer)
+        print(cmds)
         if not self.serial_port:
             return
-        self.serial_port.write(cmd)
+        for cmd in cmds:
+            self.serial_port.write(cmd)
 
     def run(self):
         while True:
@@ -261,7 +292,7 @@ class CommunicationInterface:
                     self.bp_current_indices[k] += 1
                     self.bp_lengths[k] = min(self.bp_lengths[k] + 1, self.bp_buffer_max_length)
                     self.bp_current_indices[k] %= self.bp_buffer_max_length
-                self.write_command()
+                self.write_commands()
             time.sleep(1./self.update_rate)
 
 def main():
@@ -278,17 +309,17 @@ def main():
     p = None if args.port[0] == "debug" else args.port[0]
     baud = args.baud[0]
     device_name = args.name[0]
-    serial_port = serial.Serial(port=p, baudrate=baud)  # needs to match plotter
+    serial_port = serial.Serial(port=p, baudrate=baud) if p else None # needs to match plotter
     explore_device = explorepy.Explore()
     explore_device.connect(device_name)
 
-    gen = CommunicationInterface(explore_device, serial_port)
+    gen = CommunicationInterface(explore_device, serial_port if p else p)
     gen.run()
 
 
 def main_debug():
     """Creates gcode with """
-    command_generator = CommandGenerator(mode="rect_circle")
+    command_generator = CommandGenerator(mode="rect_spiral")
     gcode = command_generator.create_pattern_commands()
 
     with open(file="test_code.gcode", mode="w") as f:
@@ -296,4 +327,5 @@ def main_debug():
 
 
 if __name__ == '__main__':
-    main_debug()
+    main()
+    #main_debug()
