@@ -1,4 +1,5 @@
 import asyncio
+import os.path
 import random
 import time
 
@@ -100,7 +101,11 @@ class CommandGenerator:
     _valid_modes = ["rect_line", "rect_circle", "rect_spiral"]
     def __init__(self, mode: str="rect_line", num_segments: int=250, rotations=4):
         self.mode = mode if mode in self._valid_modes else "rect_line"
-        self.rotations = rotations
+        self.rotations = 0
+        if self.mode == "rect_circle":
+            self.rotations = 1
+        elif self.mode == "rect_spiral":
+            self.rotations = rotations
 
         self.canvas_width: float = 10.0
         self.canvas_height: float = 10.0
@@ -113,10 +118,12 @@ class CommandGenerator:
         self.current_angle: float = 0.0
 
         self.num_segments: int = num_segments
-        self.current_segment: int = 0
+        self.current_segment: int = -1
         self.current_width = 1. / self.num_segments
 
-    def create_calib_command(self) -> list[str]:
+        self.amp_factor = 0.2
+
+    def get_calibration_commands(self) -> list[str]:
         cmds = []
         cmds.append("G21\n")  # programming in mm
         cmds.append("G90\n")  # programming in absolute positioning
@@ -166,7 +173,7 @@ class CommandGenerator:
             self.current_segment += 1
             coordinates.extend(ret)
         cmds = []
-        cmds.extend(self.create_calib_command())
+        cmds.extend(self.get_calibration_commands())
         cmds.extend(self.coordinates_to_commands(coordinates))
         return cmds
 
@@ -178,13 +185,13 @@ class CommandGenerator:
         r = 360. / self.num_segments
         coordinates = []
         while self.current_segment < self.num_segments:
-            amp = rng.randint(0, 100) / 500
+            amp = rng.randint(0, 100) / 1000
             ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(), rotation=self.current_segment*r, amplitude=amp)
             self.current_coord = ret[-1]
             self.current_segment += 1
             coordinates.extend(ret)
         cmds = []
-        cmds.extend(self.create_calib_command())
+        cmds.extend(self.get_calibration_commands())
         cmds.extend(self.coordinates_to_commands(coordinates))
         return cmds
 
@@ -203,7 +210,7 @@ class CommandGenerator:
             self.current_segment += 1
             coordinates.extend(ret)
         cmds = []
-        cmds.extend(self.create_calib_command())
+        cmds.extend(self.get_calibration_commands())
         cmds.extend(self.coordinates_to_commands(coordinates))
         return cmds
 
@@ -221,31 +228,51 @@ class CommandGenerator:
         elif self.mode == "rect_spiral":
             return self.create_spiral_commands(rotations=4)
 
-    def get_segment_commands(self, buffer):
-        rng = random.Random()
-        rng.seed(time.time())
+    def get_segment_commands(self, buffer, val_min, val_max):
         r = self.rotations * 360. / self.num_segments
 
         if self.current_segment >= self.num_segments: return []
 
-        amp = rng.randint(0, 100) / 500
+        if abs(val_max - val_min) < 0.0001:
+            amp = 0.0
+        else:
+            amp = (np.mean(buffer) - val_min) / (val_max - val_min)
+            amp *= self.amp_factor
+
         ret = self.generate_segment_coordinates(width=self.current_width, offset=self.current_coord.as_tuple(), rotation=self.current_segment*r, amplitude=amp)
-        self.current_width += (self.rotations*0.1/self.num_segments)
+        if self.mode == "rect_spiral": self.current_width += (self.rotations*0.1/self.num_segments)
         self.current_coord = ret[-1]
         self.current_segment += 1
         return self.coordinates_to_commands(ret)
 
+    def get_commands(self, buffer, val_min, val_max):
+        if self.current_segment == -1:
+            self.current_segment = 0
+            return self.get_calibration_commands()
+        else:
+            return self.get_segment_commands(buffer, val_min, val_max)
+
 
 class CommunicationInterface:
-    def __init__(self, device: explorepy.Explore, port: serial.Serial, sr: int = 250, channel_num=32):
+    def __init__(self, device: explorepy.Explore, port: serial.Serial, sr: int = 250, channel_num=32, drawing_mode="rect_circle",file_path=None):
         self.explore_device = device
         self.serial_port = port
         self.sr = sr
+        self.file = None
+        if file_path:
+            p, _ = os.path.splitext(file_path)
+            p = f"{p}.gcode"
+            if os.path.isfile(p):
+                print(f"Given file path {file_path} exists already!")
+            else:
+                print(f"Opening file {file_path}")
+                self.file = open(p, "w")
 
         self.val_buffer_time = 8
         self.val_buffer_max_length = self.sr * 8
 
         self.update_rate = 30  # in Hz
+        self.sleep_after_write = 0.1  # in s
 
         self.bp_buffer_max_length = self.update_rate
 
@@ -254,17 +281,24 @@ class CommunicationInterface:
         self.val_lengths = [0] * channel_num
         self.val_max_lengths = np.full(channel_num, self.val_buffer_max_length)
 
-        self.bp_buffer = {'Delta': np.empty(self.update_rate), 'Theta': np.empty(self.update_rate),
+        self.bp_buffer = {'Delta': np.empty(self.update_rate), 'Theta': np.empty(self.update_rate), 'Alpha': np.empty(self.update_rate),
                           'Beta': np.empty(self.update_rate), 'Gamma': np.empty(self.update_rate)}
-        self.bp_current_indices = {'Delta': 0, 'Theta': 0, 'Beta': 0, 'Gamma': 0}
-        self.bp_lengths = {'Delta': 0, 'Theta': 0, 'Beta': 0, 'Gamma': 0}
-        self.bp_max_lengths = {'Delta': self.update_rate, 'Theta': self.update_rate, 'Beta': self.update_rate,
+        self.bp_current_indices = {'Delta': 0, 'Theta': 0, 'Alpha': 0, 'Beta': 0, 'Gamma': 0}
+        self.bp_lengths = {'Delta': 0, 'Theta': 0, 'Alpha': 0, 'Beta': 0, 'Gamma': 0}
+        self.bp_max_lengths = {'Delta': self.update_rate, 'Theta': self.update_rate, 'Alpha': self.update_rate, 'Beta': self.update_rate,
                                'Gamma': self.update_rate}
 
+        self.alpha_max = 0.0
+        self.alpha_min = 1.0
+
         self.bp_calculator = BandpowerCalculator(fs=float(sr))
-        self.command_generator = CommandGenerator()
+        self.command_generator = CommandGenerator(mode=drawing_mode)
 
         self.explore_device.stream_processor.subscribe(callback=self.on_exg, topic=TOPICS.filtered_ExG)
+
+        self.mode = 0  # 0 == calibrate, 1 == send
+        self.start_ts = -1
+        self.calibration_time = 20  # in s
 
     def on_exg(self, packet):
         p = packet.get_data()[1]
@@ -275,25 +309,54 @@ class CommunicationInterface:
             self.val_lengths[i] = min(self.val_lengths[i] + 1, self.val_buffer_max_length)
             self.val_current_indices[i] %= self.val_buffer_max_length
 
-    def write_commands(self) -> None:
-        cmds = self.command_generator.get_segment_commands(self.bp_buffer)
-        print(cmds)
-        if not self.serial_port:
-            return
+    def write_commands(self) -> bool:
+        cmds = self.command_generator.get_commands(self.bp_buffer, self.alpha_min, self.alpha_max)
+        if len(cmds) <= 0:
+            if self.file and not self.file.closed:
+                print(f"Closing file {self.file.name}")
+                self.file.close()
+            return False
+
+        if self.file and not self.file.closed:
+            self.file.writelines(cmds)
+
+        if not self.serial_port: return True
         for cmd in cmds:
             self.serial_port.write(cmd)
+            time.sleep(0.1)
+        return True
 
     def run(self):
         while True:
-            if np.array_equal(self.val_lengths, self.val_max_lengths):
-                ret = self.bp_calculator.compute(np.array(self.val_buffers))
-                for k in self.bp_buffer.keys():
-                    self.bp_buffer[k][self.bp_current_indices[k]] = ret[k]
-                    self.bp_current_indices[k] += 1
-                    self.bp_lengths[k] = min(self.bp_lengths[k] + 1, self.bp_buffer_max_length)
-                    self.bp_current_indices[k] %= self.bp_buffer_max_length
-                self.write_commands()
+            r = self.get_bandpowers()
+            if r and self.mode == 0:
+                if self.start_ts == -1:
+                    print(f"Starting calibration for {self.calibration_time}s...")
+                    self.start_ts = time.time()
+                diff = time.time() - self.start_ts
+                if diff > self.calibration_time:
+                    print(f"Finished calibrating, max alpha was: {self.alpha_max}, min alpha was: {self.alpha_min}")
+                    print("Starting stream to pen plotter now...")
+                    self.mode = 1
+            if self.mode == 1:
+                ret = self.write_commands()
+                if not ret:
+                    break
             time.sleep(1./self.update_rate)
+
+    def get_bandpowers(self):
+        if np.array_equal(self.val_lengths, self.val_max_lengths):
+            ret = self.bp_calculator.compute(np.array(self.val_buffers))
+            for k in self.bp_buffer.keys():
+                self.bp_buffer[k][self.bp_current_indices[k]] = ret[k]
+                self.bp_current_indices[k] += 1
+                self.bp_lengths[k] = min(self.bp_lengths[k] + 1, self.bp_buffer_max_length)
+                self.bp_current_indices[k] %= self.bp_buffer_max_length
+            self.alpha_max = max(np.mean(self.bp_buffer['Alpha'][:self.bp_lengths['Alpha']]), self.alpha_max)
+            self.alpha_min = min(np.mean(self.bp_buffer['Alpha'][:self.bp_lengths['Alpha']]), self.alpha_min)
+            return True
+        return False
+
 
 def main():
     arg_parser = argparse.ArgumentParser()
@@ -303,6 +366,11 @@ def main():
                             help="The baudrate for communicating with the pen plotter")
     arg_parser.add_argument("-n", "--name", nargs=1, type=str, required=True,
                             help="The name of the Explore device (i.e. \"Explore_ABCD\")")
+    arg_parser.add_argument("-f", "--file", nargs=1, type=str, default=[None],
+                            help="A filepath to save the generated GCode to.")
+    arg_parser.add_argument("-m", "--mode", nargs=1, type=str, default=["circle"],
+                            help="The pattern mode used for drawing, should be one of [line, circle, spiral]",
+                            choices=["line", "circle", "spiral"])
 
     args = arg_parser.parse_args()
 
@@ -313,19 +381,9 @@ def main():
     explore_device = explorepy.Explore()
     explore_device.connect(device_name)
 
-    gen = CommunicationInterface(explore_device, serial_port if p else p)
+    gen = CommunicationInterface(explore_device, serial_port if p else p, drawing_mode=f"rect_{args.mode[0]}",file_path=args.file[0])
     gen.run()
-
-
-def main_debug():
-    """Creates gcode with """
-    command_generator = CommandGenerator(mode="rect_spiral")
-    gcode = command_generator.create_pattern_commands()
-
-    with open(file="test_code.gcode", mode="w") as f:
-        f.writelines(gcode)
 
 
 if __name__ == '__main__':
     main()
-    #main_debug()
