@@ -55,6 +55,7 @@ The script will:
 2. Create a FieldTrip-compatible data structure
 3. Display the data using `ft_databrowser`
 
+![Fieldtrip Visualization Example](fieldtrip_viz.png "Title")
 
 ## References
 
