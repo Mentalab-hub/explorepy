@@ -1,4 +1,5 @@
-import asyncio
+# TODO implement impedance check for the start
+
 import os.path
 import random
 import time
@@ -47,6 +48,9 @@ class Coordinate:
         ret = np.matmul(s_mat, self._coord)
         if in_place: self._coord = ret
         return Coordinate(ret[0], ret[1])
+
+    def copy(self):
+        return Coordinate(self._coord[0], self._coord[1])
 
     def __str__(self):
         return f"({self._coord[0]}, {self._coord[1]})"
@@ -99,7 +103,7 @@ class BandpowerCalculator:
 
 class CommandGenerator:
     _valid_modes = ["rect_line", "rect_circle", "rect_spiral"]
-    def __init__(self, mode: str="rect_line", num_segments: int=250, rotations=4):
+    def __init__(self, mode: str="rect_line", num_segments: int=250, rotations=4, width: float=300., height: float=350.):
         self.mode = mode if mode in self._valid_modes else "rect_line"
         self.rotations = 0
         if self.mode == "rect_circle":
@@ -107,13 +111,14 @@ class CommandGenerator:
         elif self.mode == "rect_spiral":
             self.rotations = rotations
 
-        self.canvas_width: float = 10.0
-        self.canvas_height: float = 10.0
+        self.canvas_width: float = width
+        self.canvas_height: float = height
+        self.canvas_middle: Coordinate = Coordinate(np.round(self.canvas_width/2., 1),
+                                                    np.round(self.canvas_height/2., 1))
 
-        # Assume GL coordinate sytem, i.e. x, y in [-1.0; 1.0], P = (-1.0, -1.0) being bottom left
+        # Assume GL coordinate system, i.e. x, y in [-1.0; 1.0], P = (-1.0, -1.0) being bottom left
         # -> center of rotation is (0.0, 0.0)
-        self.start_coord: Coordinate = Coordinate(-1.0, 0.0)
-        self.end_coord: Coordinate = Coordinate(1.0, 0.0)
+        self.start_coord: Coordinate = Coordinate(0.0, 0.0)
         self.current_coord: Coordinate = self.start_coord
         self.current_angle: float = 0.0
 
@@ -121,14 +126,14 @@ class CommandGenerator:
         self.current_segment: int = -1
         self.current_width = 1. / self.num_segments
 
-        self.amp_factor = 0.2
+        self.amp_factor = 0.5
 
     def get_calibration_commands(self) -> list[str]:
-        cmds = []
-        cmds.append("G21\n")  # programming in mm
-        cmds.append("G90\n")  # programming in absolute positioning
-        cmds.append("G1 F8000\n")  # set speed/feedrate
-        # cmds.append("M03 S150")  # spindle on with 150RPM
+        cmds = ["G21\n", # programming in mm
+                "G90\n", # programming in absolute positioning
+                "F800\n", # set speed/feedrate
+                self.create_line_command(self.canvas_middle), # move to middle
+                ]
         return cmds
 
     def create_raise_pen_command(self):
@@ -141,7 +146,12 @@ class CommandGenerator:
         stop_tuple = stop.as_tuple()
         return f"G1 X{np.round(stop_tuple[0], 3)} Y{np.round(stop_tuple[1], 3)}\n"
 
-    def generate_segment_coordinates(self, width: float, offset: tuple[float, float], rotation: float, scale: tuple[float, float] = (1.0, 1.0), amplitude: float=0.1) -> list[Coordinate]:
+    def generate_segment_coordinates(self,
+                                     width: float,
+                                     offset: tuple[float, float],
+                                     rotation: float,
+                                     scale: tuple[float, float] = (1.0, 1.0),
+                                     amplitude: float=0.1) -> list[Coordinate]:
         seg_coords = []
 
         coord = Coordinate(0.0, 0.0)
@@ -155,7 +165,7 @@ class CommandGenerator:
         for coordinate in seg_coords:
             coordinate.scale(scale[0], scale[1], in_place=True)
             coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
-            coordinate.rotate(rotation, in_place=True)
+            coordinate.rotate(-rotation, in_place=True)
             coordinate.translate(offset[0], offset[1], in_place=True)
 
         return seg_coords
@@ -168,7 +178,8 @@ class CommandGenerator:
         coordinates = []
         for i in range(self.num_segments):
             amp = rng.randint(0, 100) / 500
-            ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(), rotation=0.0, amplitude=amp)
+            ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(), rotation=0.0,
+                                                    amplitude=amp)
             self.current_coord = ret[-1]
             self.current_segment += 1
             coordinates.extend(ret)
@@ -186,7 +197,8 @@ class CommandGenerator:
         coordinates = []
         while self.current_segment < self.num_segments:
             amp = rng.randint(0, 100) / 1000
-            ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(), rotation=self.current_segment*r, amplitude=amp)
+            ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(),
+                                                    rotation=self.current_segment*r, amplitude=amp)
             self.current_coord = ret[-1]
             self.current_segment += 1
             coordinates.extend(ret)
@@ -204,7 +216,8 @@ class CommandGenerator:
         coordinates = []
         while self.current_segment < self.num_segments:
             amp = rng.randint(0, 100) / 500
-            ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(), rotation=self.current_segment*r, amplitude=amp)
+            ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(),
+                                                    rotation=self.current_segment*r, amplitude=amp)
             w += (rotations*0.1/self.num_segments)
             self.current_coord = ret[-1]
             self.current_segment += 1
@@ -239,7 +252,8 @@ class CommandGenerator:
             amp = (np.mean(buffer) - val_min) / (val_max - val_min)
             amp *= self.amp_factor
 
-        ret = self.generate_segment_coordinates(width=self.current_width, offset=self.current_coord.as_tuple(), rotation=self.current_segment*r, amplitude=amp)
+        ret = self.generate_segment_coordinates(width=self.current_width, offset=self.current_coord.as_tuple(),
+                                                rotation=self.current_segment*r, amplitude=amp)
         if self.mode == "rect_spiral": self.current_width += (self.rotations*0.1/self.num_segments)
         self.current_coord = ret[-1]
         self.current_segment += 1
@@ -254,7 +268,8 @@ class CommandGenerator:
 
 
 class CommunicationInterface:
-    def __init__(self, device: explorepy.Explore, port: serial.Serial, sr: int = 250, channel_num=32, drawing_mode="rect_circle",file_path=None):
+    def __init__(self, device: explorepy.Explore, port: serial.Serial, sr: int = 250, channel_num=8,
+                 drawing_mode="rect_circle", file_path=None, canvas_size=[300., 350.]):
         self.explore_device = device
         self.serial_port = port
         self.sr = sr
@@ -281,24 +296,31 @@ class CommunicationInterface:
         self.val_lengths = [0] * channel_num
         self.val_max_lengths = np.full(channel_num, self.val_buffer_max_length)
 
-        self.bp_buffer = {'Delta': np.empty(self.update_rate), 'Theta': np.empty(self.update_rate), 'Alpha': np.empty(self.update_rate),
-                          'Beta': np.empty(self.update_rate), 'Gamma': np.empty(self.update_rate)}
+        self.bp_buffer = {'Delta': np.empty(self.update_rate),
+                          'Theta': np.empty(self.update_rate),
+                          'Alpha': np.empty(self.update_rate),
+                          'Beta': np.empty(self.update_rate),
+                          'Gamma': np.empty(self.update_rate)}
         self.bp_current_indices = {'Delta': 0, 'Theta': 0, 'Alpha': 0, 'Beta': 0, 'Gamma': 0}
         self.bp_lengths = {'Delta': 0, 'Theta': 0, 'Alpha': 0, 'Beta': 0, 'Gamma': 0}
-        self.bp_max_lengths = {'Delta': self.update_rate, 'Theta': self.update_rate, 'Alpha': self.update_rate, 'Beta': self.update_rate,
+        self.bp_max_lengths = {'Delta': self.update_rate,
+                               'Theta': self.update_rate,
+                               'Alpha': self.update_rate,
+                               'Beta': self.update_rate,
                                'Gamma': self.update_rate}
 
         self.alpha_max = 0.0
         self.alpha_min = 1.0
 
         self.bp_calculator = BandpowerCalculator(fs=float(sr))
-        self.command_generator = CommandGenerator(mode=drawing_mode)
+        self.command_generator = CommandGenerator(mode=drawing_mode, width=canvas_size[0], height=canvas_size[1])
 
         self.explore_device.stream_processor.subscribe(callback=self.on_exg, topic=TOPICS.filtered_ExG)
 
         self.mode = 0  # 0 == calibrate, 1 == send
         self.start_ts = -1
-        self.calibration_time = 20  # in s
+        #self.calibration_time = 20  # in s
+        self.calibration_time = 20
 
     def on_exg(self, packet):
         p = packet.get_data()[1]
@@ -310,7 +332,7 @@ class CommunicationInterface:
             self.val_current_indices[i] %= self.val_buffer_max_length
 
     def write_commands(self) -> bool:
-        cmds = self.command_generator.get_commands(self.bp_buffer, self.alpha_min, self.alpha_max)
+        cmds = self.command_generator.get_commands(self.bp_buffer['Alpha'], self.alpha_min, self.alpha_max)
         if len(cmds) <= 0:
             if self.file and not self.file.closed:
                 print(f"Closing file {self.file.name}")
@@ -371,17 +393,22 @@ def main():
     arg_parser.add_argument("-m", "--mode", nargs=1, type=str, default=["circle"],
                             help="The pattern mode used for drawing, should be one of [line, circle, spiral]",
                             choices=["line", "circle", "spiral"])
+    arg_parser.add_argument("-s", "--size", nargs=2, type=float, default=[200., 200.],
+                            help="The maximum canvas size of the pen plotter in mm, default is 200.0mm x 200.0mm",
+                            metavar=("WIDTH", "HEIGHT"))
 
     args = arg_parser.parse_args()
 
     p = None if args.port[0] == "debug" else args.port[0]
     baud = args.baud[0]
     device_name = args.name[0]
+    size = args.size if args.size[0] >= 50. and args.size[1] >= 50. else [50., 50.]
     serial_port = serial.Serial(port=p, baudrate=baud) if p else None # needs to match plotter
     explore_device = explorepy.Explore()
     explore_device.connect(device_name)
 
-    gen = CommunicationInterface(explore_device, serial_port if p else p, drawing_mode=f"rect_{args.mode[0]}",file_path=args.file[0])
+    gen = CommunicationInterface(explore_device, serial_port if p else p, drawing_mode=f"rect_{args.mode[0]}",
+                                 file_path=args.file[0], canvas_size=size)
     gen.run()
 
 
