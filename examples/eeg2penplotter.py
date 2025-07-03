@@ -124,8 +124,9 @@ class CommandGenerator:
 
         self.num_segments: int = num_segments
         self.current_segment: int = -1
-        self.current_width = 1. / self.num_segments
+        self.current_width = np.pi * 0.5 / self.num_segments
 
+        # Note: max amp should be half of pattern size to make sure we're inside the canvas boundaries
         self.amp_factor = 0.5
 
     def get_calibration_commands(self) -> list[str]:
@@ -144,7 +145,7 @@ class CommandGenerator:
 
     def create_line_command(self, stop: Coordinate) -> str:
         stop_tuple = stop.as_tuple()
-        return f"G1 X{np.round(stop_tuple[0], 3)} Y{np.round(stop_tuple[1], 3)}\n"
+        return f"G1 X{np.round(stop_tuple[0], 1)} Y{np.round(stop_tuple[1], 1)}\n"
 
     def generate_segment_coordinates(self,
                                      width: float,
@@ -162,11 +163,16 @@ class CommandGenerator:
         seg_coords.append(coord.translate(width/2., 0.0, in_place=True))
         seg_coords.append(coord.translate(0.0, amplitude, in_place=True))
 
+        middle = self.canvas_middle.as_tuple()
+
         for coordinate in seg_coords:
             coordinate.scale(scale[0], scale[1], in_place=True)
-            coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
             coordinate.rotate(-rotation, in_place=True)
             coordinate.translate(offset[0], offset[1], in_place=True)
+            self.current_coord = coordinate.copy()
+            coordinate.translate(0.0, 0.5, in_place=True)  # move 0.5 up since we start at Y = 0.0
+            coordinate.scale(self.canvas_width/2., self.canvas_height/2., in_place=True)
+            coordinate.translate(middle[0], middle[1], in_place=True)
 
         return seg_coords
 
@@ -252,10 +258,9 @@ class CommandGenerator:
             amp = (np.mean(buffer) - val_min) / (val_max - val_min)
             amp *= self.amp_factor
 
-        ret = self.generate_segment_coordinates(width=self.current_width, offset=self.current_coord.as_tuple(),
+        ret = self.generate_segment_coordinates(width=self.current_width*2, offset=self.current_coord.as_tuple(),
                                                 rotation=self.current_segment*r, amplitude=amp)
         if self.mode == "rect_spiral": self.current_width += (self.rotations*0.1/self.num_segments)
-        self.current_coord = ret[-1]
         self.current_segment += 1
         return self.coordinates_to_commands(ret)
 
