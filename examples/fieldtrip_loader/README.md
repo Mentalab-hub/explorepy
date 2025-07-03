@@ -48,6 +48,8 @@ mentalabcsv
 % When prompted, enter your ExG CSV filename (e.g., 'my_recording_ExG.csv')
 
 % When prompted, enter your Meta CSV filename (e.g., 'my_recording_Meta.csv')
+
+% When prompted, enter your Marker CSV filename (e.g., 'my_recording_Marker.csv')
 ```
 
 The script will:
