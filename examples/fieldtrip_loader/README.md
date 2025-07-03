@@ -12,18 +12,7 @@ Before using this guide, you need:
 
 ## Step 1: Recording Data with Mentalab
 
-Record your EEG data using the ExplorePy command line interface:
-
-```bash
-# Connect to your device and record data
-explorepy record-data -n Explore_XXXX -f my_recording --csv -ow
-
-# Parameters:
-# -n: Device name (replace Explore_XXXX with your device name)
-# -f: Output filename (without extension)
-# --csv: Record in CSV format (mandatory for current FieldTrip loader)
-# -ow: Overwrite existing files
-```
+Record your EEG data using ExplorePy CLI, Explore Desktop, or Explore Mobile.
 
 ## Step 2: Setting Up FieldTrip
 
