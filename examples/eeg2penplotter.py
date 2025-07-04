@@ -49,6 +49,37 @@ class Coordinate:
         if in_place: self._coord = ret
         return Coordinate(ret[0], ret[1])
 
+    def length(self):
+        return np.sqrt(self._coord[0]**2 + self._coord[1]**2)  # drop z == 1 since we're in the xy-plane
+
+    def __getitem__(self, item):
+        if item < 0 or item > 2:
+            raise ValueError(f"Can't access index {item}, valid indices for Coordinates are 0 (x) and 1 (y)")
+        return float(self._coord[item])
+
+    def __add__(self, other):
+        if type(other) != Coordinate:
+            raise ValueError(f"Addition to Coordinate not defined for type {type(other)}")
+        x = self.as_tuple()
+        y = other.as_tuple()
+        return Coordinate(x[0] + y[0], x[1] + y[1])
+
+    def __sub__(self, other):
+        if type(other) != Coordinate:
+            raise ValueError(f"Subtraction from Coordinate not defined for type {type(other)}")
+        x = self.as_tuple()
+        y = other.as_tuple()
+        return Coordinate(x[0] - y[0], x[1] - y[1])
+
+    def __mul__(self, other):
+        if type(other) not in [int, float]:
+            raise ValueError(f"Coordinate multiplication is currently only implemented for uniform scaling with int or float")
+        x = self.as_tuple()
+        return Coordinate(x[0] * other, x[1] * other)
+
+    def __rmul__(self, other):
+        return self * other
+
     def copy(self):
         return Coordinate(self._coord[0], self._coord[1])
 
@@ -101,9 +132,10 @@ class BandpowerCalculator:
 
         return bp
 
+
 class CommandGenerator:
     _valid_modes = ["rect_line", "rect_circle", "rect_spiral"]
-    def __init__(self, mode: str="rect_line", num_segments: int=250, rotations=4, width: float=300., height: float=350.):
+    def __init__(self, mode: str="rect_line", num_segments: int=250, rotations=5, width: float=300., height: float=350.):
         self.mode = mode if mode in self._valid_modes else "rect_line"
         self.rotations = 0
         if self.mode == "rect_circle":
@@ -127,7 +159,8 @@ class CommandGenerator:
         self.current_width = np.pi * 0.5 / self.num_segments
 
         # Note: max amp should be half of pattern size to make sure we're inside the canvas boundaries
-        self.amp_factor = 0.5
+        self.amp_factor = 0.5 if self.mode == "rect_circle" else 1.0
+        self.spiral_b = 0.5
 
     def get_calibration_commands(self) -> list[str]:
         cmds = ["G21\n", # programming in mm
@@ -147,9 +180,9 @@ class CommandGenerator:
         stop_tuple = stop.as_tuple()
         return f"G1 X{np.round(stop_tuple[0], 1)} Y{np.round(stop_tuple[1], 1)}\n"
 
-    def generate_segment_coordinates(self,
+    def generate_segment_coordinates_circle(self,
                                      width: float,
-                                     offset: tuple[float, float],
+                                     offset: Coordinate,
                                      rotation: float,
                                      scale: tuple[float, float] = (1.0, 1.0),
                                      amplitude: float=0.1) -> list[Coordinate]:
@@ -163,8 +196,6 @@ class CommandGenerator:
         seg_coords.append(coord.translate(width/2., 0.0, in_place=True))
         seg_coords.append(coord.translate(0.0, amplitude, in_place=True))
 
-        middle = self.canvas_middle.as_tuple()
-
         for coordinate in seg_coords:
             coordinate.scale(scale[0], scale[1], in_place=True)
             coordinate.rotate(-rotation, in_place=True)
@@ -172,9 +203,22 @@ class CommandGenerator:
             self.current_coord = coordinate.copy()
             coordinate.translate(0.0, 0.5, in_place=True)  # move 0.5 up since we start at Y = 0.0
             coordinate.scale(self.canvas_width/2., self.canvas_height/2., in_place=True)
-            coordinate.translate(middle[0], middle[1], in_place=True)
+            coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
 
         return seg_coords
+
+    def generate_segment_coordinates(self,
+                                     amplitude: float=0.1,
+                                     scale: tuple[float, float] = (1.0, 1.0)) -> list[Coordinate]:
+        offset = self.current_coord
+        if self.mode == "rect_circle":
+            r = self.current_segment * (self.rotations * 360. / self.num_segments)
+            return self.generate_segment_coordinates_circle(self.current_width*2, offset, r, scale, amplitude)
+        elif self.mode == "rect_spiral":
+            # x = b * theta * cos(theta)
+            # y = b * theta * sin(theta)
+            theta = np.deg2rad((self.current_segment / self.num_segments) * (self.rotations * 360))
+            return self.generate_segment_coordinates_spiral(offset, theta, amplitude, self.spiral_b)
 
     def create_line_commands(self):
         """Test method to create a whole list of commands to draw a line with random amplitude segments"""
@@ -248,21 +292,62 @@ class CommandGenerator:
             return self.create_spiral_commands(rotations=4)
 
     def get_segment_commands(self, buffer, val_min, val_max):
-        r = self.rotations * 360. / self.num_segments
-
         if self.current_segment >= self.num_segments: return []
 
-        if abs(val_max - val_min) < 0.0001:
+        if abs(val_max - val_min) < 0.0001 or True:
             amp = 0.0
         else:
             amp = (np.mean(buffer) - val_min) / (val_max - val_min)
             amp *= self.amp_factor
 
-        ret = self.generate_segment_coordinates(width=self.current_width*2, offset=self.current_coord.as_tuple(),
-                                                rotation=self.current_segment*r, amplitude=amp)
-        if self.mode == "rect_spiral": self.current_width += (self.rotations*0.1/self.num_segments)
+        amp = (self.current_segment % 2) * self.amp_factor  # debug
+
+        ret = self.generate_segment_coordinates(amplitude=amp)
         self.current_segment += 1
         return self.coordinates_to_commands(ret)
+
+    def generate_segment_coordinates_spiral(self, offset: Coordinate, theta: float, amplitude: float, b: float = 0.5):
+        seg_coords = []
+
+        start = offset
+        stop = Coordinate(b * theta * np.cos(theta), b * theta * np.sin(theta))
+        diff = stop - start
+        mid = start + 0.5 * diff
+
+        # find an orthogonal vector (vec_x * vec_y = 0) and scale it according to amplitude
+        if amplitude >= 0.05:
+            orth = Coordinate(-diff[1], diff[0])
+            orth_length = orth.length()  # length of orthogonal vector stays the same
+            if orth_length >= 0.05:
+                orth.scale(1. / orth_length, 1. / orth_length, in_place=True)
+                orth.scale(amplitude, amplitude, in_place=True)
+                orth.translate(start[0], start[1], in_place=True)
+                seg_coords.append(orth)  # seg_coords.append(coord.translate(0.0, amplitude, in_place=True))
+
+                orth = Coordinate(-diff[1], diff[0])
+                orth.scale(1. / orth_length, 1. / orth_length, in_place=True)
+                orth.scale(amplitude, amplitude, in_place=True)
+                orth.translate(mid[0], mid[1], in_place=True)
+                seg_coords.append(orth)  # seg_coords.append(coord.translate(width/2., 0.0, in_place=True))
+
+                orth = Coordinate(diff[1], -diff[0])
+                orth.scale(1. / orth_length, 1. / orth_length, in_place=True)
+                orth.scale(amplitude, amplitude, in_place=True)
+                orth.translate(mid[0], mid[1], in_place=True)
+                seg_coords.append(orth)  # seg_coords.append(coord.translate(0.0, -2 * amplitude, in_place=True))
+
+                orth = Coordinate(diff[1], -diff[0])
+                orth.scale(1. / orth_length, 1. / orth_length, in_place=True)
+                orth.scale(amplitude, amplitude, in_place=True)
+                orth.translate(stop[0], stop[1], in_place=True)
+                seg_coords.append(orth)  # seg_coords.append(coord.translate(width/2., 0.0, in_place=True))
+
+        seg_coords.append(stop)
+        self.current_coord = stop.copy()
+        for c in seg_coords:
+            c.scale(1.0, 1.0, in_place=True)
+            c.translate(0.0, 0.0, in_place=True)
+        return seg_coords
 
     def get_commands(self, buffer, val_min, val_max):
         if self.current_segment == -1:
@@ -388,7 +473,7 @@ class CommunicationInterface:
 def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("-p", "--port", nargs=1, type=str, required=True,
-                            help="The port that the pen plotter is gonnected to")
+                            help="The port that the pen plotter is connected to")
     arg_parser.add_argument("-b", "--baud", nargs=1, type=int, default=[115200],
                             help="The baudrate for communicating with the pen plotter")
     arg_parser.add_argument("-n", "--name", nargs=1, type=str, required=True,
