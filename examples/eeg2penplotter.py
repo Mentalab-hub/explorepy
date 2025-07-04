@@ -31,7 +31,6 @@ class Coordinate:
         if in_place: self._coord = ret
         return Coordinate(ret[0], ret[1])
 
-
     def rotate(self, angle: float, in_place: bool = False):
         angle = np.deg2rad(angle)
         r_mat = np.array([[np.cos(angle), -np.sin(angle), 0.0],
@@ -138,10 +137,17 @@ class CommandGenerator:
     def __init__(self, mode: str="rect_line", num_segments: int=250, rotations=5, width: float=300., height: float=350.):
         self.mode = mode if mode in self._valid_modes else "rect_line"
         self.rotations = 0
+        self.max_size = None
+        self.spiral_b = 0.5
+        self.amp_factor = 0.5 if self.mode == "rect_circle" else 1.0
+
         if self.mode == "rect_circle":
             self.rotations = 1
         elif self.mode == "rect_spiral":
             self.rotations = rotations
+            theta = np.deg2rad(self.rotations * 360.)
+            max_coordinate = Coordinate(self.spiral_b * theta * np.cos(theta), self.spiral_b * theta * np.sin(theta))
+            self.max_size = 2. * max_coordinate.length() + 2. * self.amp_factor
 
         self.canvas_width: float = width
         self.canvas_height: float = height
@@ -159,10 +165,8 @@ class CommandGenerator:
         self.current_width = np.pi * 0.5 / self.num_segments
 
         # Note: max amp should be half of pattern size to make sure we're inside the canvas boundaries
-        self.amp_factor = 0.5 if self.mode == "rect_circle" else 1.0
-        self.spiral_b = 0.5
 
-    def get_calibration_commands(self) -> list[str]:
+    def create_calibration_commands(self) -> list[str]:
         cmds = ["G21\n", # programming in mm
                 "G90\n", # programming in absolute positioning
                 "F800\n", # set speed/feedrate
@@ -207,106 +211,11 @@ class CommandGenerator:
 
         return seg_coords
 
-    def generate_segment_coordinates(self,
-                                     amplitude: float=0.1,
-                                     scale: tuple[float, float] = (1.0, 1.0)) -> list[Coordinate]:
-        offset = self.current_coord
-        if self.mode == "rect_circle":
-            r = self.current_segment * (self.rotations * 360. / self.num_segments)
-            return self.generate_segment_coordinates_circle(self.current_width*2, offset, r, scale, amplitude)
-        elif self.mode == "rect_spiral":
-            # x = b * theta * cos(theta)
-            # y = b * theta * sin(theta)
-            theta = np.deg2rad((self.current_segment / self.num_segments) * (self.rotations * 360))
-            return self.generate_segment_coordinates_spiral(offset, theta, amplitude, self.spiral_b)
-
-    def create_line_commands(self):
-        """Test method to create a whole list of commands to draw a line with random amplitude segments"""
-        rng = random.Random()
-        rng.seed(time.time())
-        w = 1./self.num_segments
-        coordinates = []
-        for i in range(self.num_segments):
-            amp = rng.randint(0, 100) / 500
-            ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(), rotation=0.0,
-                                                    amplitude=amp)
-            self.current_coord = ret[-1]
-            self.current_segment += 1
-            coordinates.extend(ret)
-        cmds = []
-        cmds.extend(self.get_calibration_commands())
-        cmds.extend(self.coordinates_to_commands(coordinates))
-        return cmds
-
-    def create_circle_commands(self):
-        """Test method to create a whole list of commands to draw a circle with random amplitude segments"""
-        rng = random.Random()
-        rng.seed(time.time())
-        w = 1./self.num_segments
-        r = 360. / self.num_segments
-        coordinates = []
-        while self.current_segment < self.num_segments:
-            amp = rng.randint(0, 100) / 1000
-            ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(),
-                                                    rotation=self.current_segment*r, amplitude=amp)
-            self.current_coord = ret[-1]
-            self.current_segment += 1
-            coordinates.extend(ret)
-        cmds = []
-        cmds.extend(self.get_calibration_commands())
-        cmds.extend(self.coordinates_to_commands(coordinates))
-        return cmds
-
-    def create_spiral_commands(self, rotations=2):
-        """Test method to create a whole list of commands to draw a spiral with random amplitude segments"""
-        rng = random.Random()
-        rng.seed(time.time())
-        w = 1./self.num_segments
-        r = rotations * 360. / self.num_segments
-        coordinates = []
-        while self.current_segment < self.num_segments:
-            amp = rng.randint(0, 100) / 500
-            ret = self.generate_segment_coordinates(width=w, offset=self.current_coord.as_tuple(),
-                                                    rotation=self.current_segment*r, amplitude=amp)
-            w += (rotations*0.1/self.num_segments)
-            self.current_coord = ret[-1]
-            self.current_segment += 1
-            coordinates.extend(ret)
-        cmds = []
-        cmds.extend(self.get_calibration_commands())
-        cmds.extend(self.coordinates_to_commands(coordinates))
-        return cmds
-
-    def coordinates_to_commands(self, coordinates: list[Coordinate]) -> list[str]:
-        cmds = []
-        for coordinate in coordinates:
-            cmds.append(self.create_line_command(coordinate))
-        return cmds
-
-    def create_pattern_commands(self):
-        if self.mode == "rect_line":
-            return self.create_line_commands()
-        elif self.mode == "rect_circle":
-            return self.create_circle_commands()
-        elif self.mode == "rect_spiral":
-            return self.create_spiral_commands(rotations=4)
-
-    def get_segment_commands(self, buffer, val_min, val_max):
-        if self.current_segment >= self.num_segments: return []
-
-        if abs(val_max - val_min) < 0.0001 or True:
-            amp = 0.0
-        else:
-            amp = (np.mean(buffer) - val_min) / (val_max - val_min)
-            amp *= self.amp_factor
-
-        amp = (self.current_segment % 2) * self.amp_factor  # debug
-
-        ret = self.generate_segment_coordinates(amplitude=amp)
-        self.current_segment += 1
-        return self.coordinates_to_commands(ret)
-
-    def generate_segment_coordinates_spiral(self, offset: Coordinate, theta: float, amplitude: float, b: float = 0.5):
+    def generate_segment_coordinates_spiral(self,
+                                            offset: Coordinate,
+                                            theta: float,
+                                            amplitude: float,
+                                            b: float = 0.5):
         seg_coords = []
 
         start = offset
@@ -344,15 +253,51 @@ class CommandGenerator:
 
         seg_coords.append(stop)
         self.current_coord = stop.copy()
-        for c in seg_coords:
-            c.scale(1.0, 1.0, in_place=True)
-            c.translate(0.0, 0.0, in_place=True)
+        for coordinate in seg_coords:
+            coordinate.scale(1./self.max_size, 1./self.max_size, in_place=True)
+            coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
+            coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
         return seg_coords
+
+    def generate_segment_coordinates(self,
+                                     amplitude: float=0.1,
+                                     scale: tuple[float, float] = (1.0, 1.0)) -> list[Coordinate]:
+        offset = self.current_coord
+        if self.mode == "rect_circle":
+            r = self.current_segment * (self.rotations * 360. / self.num_segments)
+            return self.generate_segment_coordinates_circle(self.current_width*2, offset, r, scale, amplitude)
+        elif self.mode == "rect_spiral":
+            # x = b * theta * cos(theta)
+            # y = b * theta * sin(theta)
+            theta = np.deg2rad((self.current_segment / self.num_segments) * (self.rotations * 360))
+            return self.generate_segment_coordinates_spiral(offset, theta, amplitude, self.spiral_b)
+
+
+    def coordinates_to_commands(self, coordinates: list[Coordinate]) -> list[str]:
+        cmds = []
+        for coordinate in coordinates:
+            cmds.append(self.create_line_command(coordinate))
+        return cmds
+
+    def get_segment_commands(self, buffer, val_min, val_max):
+        if self.current_segment >= self.num_segments: return []
+
+        if abs(val_max - val_min) < 0.0001 or True:
+            amp = 0.0
+        else:
+            amp = (np.mean(buffer) - val_min) / (val_max - val_min)
+            amp *= self.amp_factor
+
+        amp = (self.current_segment % 2) * self.amp_factor  # TODO: remove debug
+
+        ret = self.generate_segment_coordinates(amplitude=amp)
+        self.current_segment += 1
+        return self.coordinates_to_commands(ret)
 
     def get_commands(self, buffer, val_min, val_max):
         if self.current_segment == -1:
             self.current_segment = 0
-            return self.get_calibration_commands()
+            return self.create_calibration_commands()
         else:
             return self.get_segment_commands(buffer, val_min, val_max)
 
@@ -409,8 +354,7 @@ class CommunicationInterface:
 
         self.mode = 0  # 0 == calibrate, 1 == send
         self.start_ts = -1
-        #self.calibration_time = 20  # in s
-        self.calibration_time = 20
+        self.calibration_time = 20  # in s
 
     def on_exg(self, packet):
         p = packet.get_data()[1]
