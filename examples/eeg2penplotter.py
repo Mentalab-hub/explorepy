@@ -1,20 +1,20 @@
-# TODO implement impedance check for the start
-
+import argparse
 import os.path
-import random
 import time
 
 import numpy as np
 import serial
-import argparse
-
 from mne.time_frequency import psd_array_multitaper
 from numpy._typing import NDArray
 from scipy.integrate import simpson
-from scipy.signal import periodogram, welch
+from scipy.signal import (
+    periodogram,
+    welch
+)
 
 import explorepy
 from explorepy.stream_processor import TOPICS
+
 
 class Coordinate:
     """Helper class for 2D coordinate manipulation"""
@@ -31,7 +31,8 @@ class Coordinate:
                           [0., 1., y],
                           [0., 0., 1.]])
         ret = np.matmul(t_mat, self._coord)
-        if in_place: self._coord = ret
+        if in_place:
+            self._coord = ret
         return Coordinate(ret[0], ret[1])
 
     def rotate(self, angle: float, in_place: bool = False):
@@ -42,7 +43,8 @@ class Coordinate:
                           [np.sin(angle), np.cos(angle), 0.0],
                           [0.0, 0.0, 1.0]])
         ret = np.matmul(r_mat, self._coord)
-        if in_place: self._coord = ret
+        if in_place:
+            self._coord = ret
         return Coordinate(ret[0], ret[1])
 
     def scale(self, x: float, y: float, in_place: bool = False):
@@ -52,7 +54,8 @@ class Coordinate:
                           [0.0, y, 0.0],
                           [0.0, 0.0, 1.0]])
         ret = np.matmul(s_mat, self._coord)
-        if in_place: self._coord = ret
+        if in_place:
+            self._coord = ret
         return Coordinate(ret[0], ret[1])
 
     def length(self):
@@ -65,14 +68,14 @@ class Coordinate:
         return float(self._coord[item])
 
     def __add__(self, other):
-        if type(other) != Coordinate:
+        if type(other) is not Coordinate:
             raise ValueError(f"Addition to Coordinate not defined for type {type(other)}")
         x = self.as_tuple()
         y = other.as_tuple()
         return Coordinate(x[0] + y[0], x[1] + y[1])
 
     def __sub__(self, other):
-        if type(other) != Coordinate:
+        if type(other) is not Coordinate:
             raise ValueError(f"Subtraction from Coordinate not defined for type {type(other)}")
         x = self.as_tuple()
         y = other.as_tuple()
@@ -80,7 +83,8 @@ class Coordinate:
 
     def __mul__(self, other):
         if type(other) not in [int, float]:
-            raise ValueError(f"Coordinate multiplication is currently only implemented for uniform scaling with int or float")
+            raise ValueError("Coordinate multiplication is currently only implemented for uniform scaling with int or "
+                             "float")
         x = self.as_tuple()
         return Coordinate(x[0] * other, x[1] * other)
 
@@ -93,6 +97,7 @@ class Coordinate:
 
     def __str__(self):
         return f"({self._coord[0]}, {self._coord[1]})"
+
 
 class BandpowerCalculator:
     """Helper class that holds necessary data to calculate the bandpower(s) on a given signal"""
@@ -165,13 +170,15 @@ class BandpowerCalculator:
 class CommandGenerator:
     """Class that generates pattern commands as GCode that can be interpreted by CNC machines, i.e. pen plotters"""
     _valid_modes = ["rect_line", "rect_circle", "rect_spiral"]
+
     def __init__(self,
-                 mode: str="rect_line",
-                 num_segments: int=250,
-                 max_amp=1.0, spiral_b=0.5,
+                 mode: str = "rect_line",
+                 num_segments: int = 250,
+                 max_amp=1.0,
+                 spiral_b=0.5,
                  rotations=5,
-                 width: float=300.,
-                 height: float=350.):
+                 width: float = 300.,
+                 height: float = 350.):
         self.mode = mode if mode in self._valid_modes else "rect_line"
         self.rotations = 0
         self.max_size = None
@@ -190,8 +197,8 @@ class CommandGenerator:
 
         self.canvas_width: float = width
         self.canvas_height: float = height
-        self.canvas_middle: Coordinate = Coordinate(np.round(self.canvas_width/2., 1),
-                                                    np.round(self.canvas_height/2., 1))
+        self.canvas_middle: Coordinate = Coordinate(np.round(self.canvas_width / 2., 1),
+                                                    np.round(self.canvas_height / 2., 1))
 
         # Assume GL coordinate system, i.e. x, y in [-1.0; 1.0], P = (-1.0, -1.0) being bottom left
         # -> center of rotation is (0.0, 0.0)
@@ -200,14 +207,15 @@ class CommandGenerator:
         self.num_segments: int = num_segments
         self.current_segment: int = -1
         self.current_width = np.pi * 0.5 / self.num_segments
-        if self.mode == "rect_line": self.current_width = 1/self.num_segments
+        if self.mode == "rect_line":
+            self.current_width = 1 / self.num_segments
 
     def create_calibration_commands(self) -> list[str]:
         """Creates a set of calibration commands for the start of the GCode stream / file"""
-        cmds = ["G21\n", # programming in mm
-                "G90\n", # programming in absolute positioning
-                "F800\n", # set speed/feedrate
-                self.create_line_command(self.canvas_middle), # move to middle
+        cmds = ["G21\n",  # programming in mm
+                "G90\n",  # programming in absolute positioning
+                "F800\n",  # set speed/feedrate
+                self.create_line_command(self.canvas_middle),  # move to middle
                 ]
         return cmds
 
@@ -225,7 +233,7 @@ class CommandGenerator:
     def generate_segment_coordinates_line(self,
                                           width: float,
                                           offset: Coordinate,
-                                          amplitude: float=0.1) -> list[Coordinate]:
+                                          amplitude: float = 0.1) -> list[Coordinate]:
         """
         Generate a set of coordinates that represent one segment of a line. The segment is multiplied with a
         rectangular wave.
@@ -256,10 +264,10 @@ class CommandGenerator:
         return seg_coords
 
     def generate_segment_coordinates_circle(self,
-                                     width: float,
-                                     offset: Coordinate,
-                                     rotation: float,
-                                     amplitude: float=0.1) -> list[Coordinate]:
+                                            width: float,
+                                            offset: Coordinate,
+                                            rotation: float,
+                                            amplitude: float = 0.1) -> list[Coordinate]:
         """
         Generate a set of coordinates that represent one segment of a circle. The segment is a line multiplied by a
         rectangular wave.
@@ -275,9 +283,9 @@ class CommandGenerator:
         coord = Coordinate(0.0, 0.0)
 
         seg_coords.append(coord.translate(0.0, amplitude, in_place=True))
-        seg_coords.append(coord.translate(width/2., 0.0, in_place=True))
+        seg_coords.append(coord.translate(width / 2., 0.0, in_place=True))
         seg_coords.append(coord.translate(0.0, -2 * amplitude, in_place=True))
-        seg_coords.append(coord.translate(width/2., 0.0, in_place=True))
+        seg_coords.append(coord.translate(width / 2., 0.0, in_place=True))
         seg_coords.append(coord.translate(0.0, amplitude, in_place=True))
 
         for coordinate in seg_coords:
@@ -286,7 +294,7 @@ class CommandGenerator:
             self.current_coord = coordinate.copy()
             coordinate.translate(0.0, 0.5, in_place=True)  # move 0.5 up since we start at Y = 0.0
             # Scale all coordinates to fit the canvas and move to its middle
-            coordinate.scale(self.canvas_width/2., self.canvas_height/2., in_place=True)
+            coordinate.scale(self.canvas_width / 2., self.canvas_height / 2., in_place=True)
             coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
 
         return seg_coords
@@ -345,13 +353,12 @@ class CommandGenerator:
         self.current_coord = stop.copy()
         for coordinate in seg_coords:
             # Scale all coordinates to fit the canvas and move to its middle
-            coordinate.scale(1./self.max_size, 1./self.max_size, in_place=True)
+            coordinate.scale(1. / self.max_size, 1. / self.max_size, in_place=True)
             coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
             coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
         return seg_coords
 
-    def generate_segment_coordinates(self,
-                                     amplitude: float=0.1) -> list[Coordinate]:
+    def generate_segment_coordinates(self, amplitude: float = 0.1) -> list[Coordinate]:
         """
         Generates segment coordinates according to current mode (rect_circle, rect_spiral or rect_line)
 
@@ -361,15 +368,14 @@ class CommandGenerator:
         offset = self.current_coord
         if self.mode == "rect_circle":
             r = self.current_segment * (self.rotations * 360. / self.num_segments)
-            return self.generate_segment_coordinates_circle(self.current_width*2, offset, r, amplitude)
+            return self.generate_segment_coordinates_circle(self.current_width * 2, offset, r, amplitude)
         elif self.mode == "rect_line":
-            return self.generate_segment_coordinates_line(self.current_width*2, offset, amplitude)
+            return self.generate_segment_coordinates_line(self.current_width * 2, offset, amplitude)
         elif self.mode == "rect_spiral":
             # x = b * theta * cos(theta)
             # y = b * theta * sin(theta)
             theta = np.deg2rad((self.current_segment / self.num_segments) * (self.rotations * 360))
             return self.generate_segment_coordinates_spiral(offset, theta, amplitude, self.spiral_b)
-
 
     def coordinates_to_commands(self, coordinates: list[Coordinate]) -> list[str]:
         """
@@ -398,7 +404,8 @@ class CommandGenerator:
 
         Returns: The list of GCode commands for the next segment
         """
-        if self.current_segment >= self.num_segments: return []
+        if self.current_segment >= self.num_segments:
+            return []
 
         if abs(val_max - val_min) < 0.0001 or True:
             amp = 0.0
@@ -477,7 +484,9 @@ class CommunicationInterface:
         self.alpha_min = 1.0
 
         self.bp_calculator = BandpowerCalculator(fs=float(sr))
-        self.command_generator = CommandGenerator(mode=drawing_mode, num_segments=n_segments, max_amp=max_amp, spiral_b=spiral_b, rotations=rotations, width=canvas_size[0], height=canvas_size[1],)
+        self.command_generator = CommandGenerator(mode=drawing_mode, num_segments=n_segments, max_amp=max_amp,
+                                                  spiral_b=spiral_b, rotations=rotations, width=canvas_size[0],
+                                                  height=canvas_size[1],)
 
         self.explore_device.stream_processor.subscribe(callback=self.on_exg, topic=TOPICS.filtered_ExG)
 
@@ -507,7 +516,8 @@ class CommunicationInterface:
         if self.file and not self.file.closed:
             self.file.writelines(cmds)
 
-        if not self.serial_port: return True
+        if not self.serial_port:
+            return True
         for cmd in cmds:
             self.serial_port.write(cmd)
             time.sleep(0.1)
@@ -531,7 +541,7 @@ class CommunicationInterface:
                 ret = self.write_commands()
                 if not ret:
                     break
-            time.sleep(1./self.update_rate)
+            time.sleep(1. / self.update_rate)
 
     def get_bandpowers(self):
         """Get the bandpowers for the current value buffers and write them into the internal bandpower circular
@@ -584,7 +594,7 @@ def main():
     baud = args.baud[0]
     device_name = args.name[0]
     size = args.size if args.size[0] >= 50. and args.size[1] >= 50. else [50., 50.]
-    serial_port = serial.Serial(port=p, baudrate=baud) if p else None # needs to match plotter
+    serial_port = serial.Serial(port=p, baudrate=baud) if p else None  # needs to match plotter
     explore_device = explorepy.Explore()
     explore_device.connect(device_name)
 
