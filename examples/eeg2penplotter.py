@@ -226,6 +226,15 @@ class CommandGenerator:
                                           width: float,
                                           offset: Coordinate,
                                           amplitude: float=0.1) -> list[Coordinate]:
+        """
+        Generate a set of coordinates that represent one segment of a line. The segment is multiplied with a
+        rectangular wave.
+
+        Args:
+            width (float): The width of the segment
+            offset (Coordinate): The offset to translate the segment to
+            amplitude (float): The amplitude of the overlaid rectangular wave
+        """
         seg_coords = []
 
         coord = Coordinate(0.0, 0.0)
