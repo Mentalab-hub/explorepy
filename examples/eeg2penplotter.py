@@ -200,6 +200,7 @@ class CommandGenerator:
         self.num_segments: int = num_segments
         self.current_segment: int = -1
         self.current_width = np.pi * 0.5 / self.num_segments
+        if self.mode == "rect_line": self.current_width = 1/self.num_segments
 
     def create_calibration_commands(self) -> list[str]:
         """Creates a set of calibration commands for the start of the GCode stream / file"""
@@ -220,6 +221,30 @@ class CommandGenerator:
         """Create a GCode command to move to a given coordinate"""
         stop_tuple = stop.as_tuple()
         return f"G1 X{np.round(stop_tuple[0], 1)} Y{np.round(stop_tuple[1], 1)}\n"
+
+    def generate_segment_coordinates_line(self,
+                                          width: float,
+                                          offset: Coordinate,
+                                          amplitude: float=0.1) -> list[Coordinate]:
+        seg_coords = []
+
+        coord = Coordinate(0.0, 0.0)
+
+        seg_coords.append(coord.translate(0.0, amplitude, in_place=True))
+        seg_coords.append(coord.translate(width / 2., 0.0, in_place=True))
+        seg_coords.append(coord.translate(0.0, -2 * amplitude, in_place=True))
+        seg_coords.append(coord.translate(width / 2., 0.0, in_place=True))
+        seg_coords.append(coord.translate(0.0, amplitude, in_place=True))
+
+        for coordinate in seg_coords:
+            coordinate.translate(offset[0], offset[1], in_place=True)
+            self.current_coord = coordinate.copy()
+            coordinate.translate(-1.0, 0.0, in_place=True)
+            # Scale all coordinates to fit the canvas and move to its middle
+            coordinate.scale(self.canvas_width / 2., self.canvas_height / 2., in_place=True)
+            coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
+
+        return seg_coords
 
     def generate_segment_coordinates_circle(self,
                                      width: float,
@@ -328,6 +353,8 @@ class CommandGenerator:
         if self.mode == "rect_circle":
             r = self.current_segment * (self.rotations * 360. / self.num_segments)
             return self.generate_segment_coordinates_circle(self.current_width*2, offset, r, amplitude)
+        elif self.mode == "rect_line":
+            return self.generate_segment_coordinates_line(self.current_width*2, offset, amplitude)
         elif self.mode == "rect_spiral":
             # x = b * theta * cos(theta)
             # y = b * theta * sin(theta)
@@ -552,7 +579,8 @@ def main():
     explore_device = explorepy.Explore()
     explore_device.connect(device_name)
 
-    gen = CommunicationInterface(explore_device, serial_port if p else p,
+    gen = CommunicationInterface(explore_device,
+                                 serial_port if p else p,
                                  drawing_mode=f"rect_{args.mode[0]}",
                                  file_path=args.file[0],
                                  canvas_size=size,
