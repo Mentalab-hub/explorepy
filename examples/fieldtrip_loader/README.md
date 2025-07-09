@@ -30,7 +30,6 @@ ft_defaults;  % Initialize FieldTrip
 After recording, you should have these files in your working directory:
 - `my_recording_ExG.csv` - EEG data
 - `my_recording_Meta.csv` - Recording metadata
-- `my_recording_ORN.csv` - Orientation data
 - `my_recording_Marker.csv` - Event markers
 
 In order to load ExG data to FieldTrip we will use `*_ExG.csv` and `*_Meta.csv` files.
@@ -55,7 +54,10 @@ mentalabcsv
 The script will:
 1. Load the CSV data
 2. Create a FieldTrip-compatible data structure
-3. Display the data using `ft_databrowser`
+3. **Apply preprocessing filters:**
+   - **Bandpass filter (0.5-35 Hz)**
+   - **Notch filter (50 Hz)**
+4. Display the filtered data using `ft_databrowser`
 
 ![Fieldtrip Visualization Example](fieldtrip_viz.png "Title")
 
