@@ -31,7 +31,7 @@ For example, if you want to quickly visualize and record data and don't need the
 
 If you intend to call ``explorepy`` from the command line or a Python script (e.g. from an experiment script), install ``explorepy`` via Anaconda/pip instead.
 
-For Windows and Mac, the standalone desktop software ExploreDesktop can be installed using the installer files uploaded to the
+For Windows, Mac and Linux the standalone desktop software ExploreDesktop can be installed using the installer files uploaded to the
 `release page <https://github.com/Mentalab-hub/explore-desktop-release/releases/latest/>`_. Please note that the dependencies will be installed automatically and bundled locally with the installed software.
 
 
