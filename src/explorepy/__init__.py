@@ -20,7 +20,7 @@ from .explore import Explore  # noqa
 
 
 __all__ = ["Explore", "command", "tools", "log_config"]
-__version__ = '4.1.0'
+__version__ = '4.2.0'
 
 this = sys.modules[__name__]
 # TODO appropriate library
