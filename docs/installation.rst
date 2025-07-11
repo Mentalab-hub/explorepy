@@ -19,25 +19,12 @@ Recommended Requirements
 How to install
 --------------
 
-Option 1: Installing via installer file (basic)
-"""""""""""""""""""""""""""""""""""""""""""""""
-
-Windows and Mac
-^^^^^^^^^^^^^^^
-
-*This option is best for users who only intend to use functionalities offered by* ``explorepy`` *via a graphical user interface*
-
-For example, if you want to quickly visualize and record data and don't need the command line interface or to use it in your own Python script, use this option.
-
-If you intend to call ``explorepy`` from the command line or a Python script (e.g. from an experiment script), install ``explorepy`` via Anaconda/pip instead.
-
-For Windows, Mac and Linux the standalone desktop software ExploreDesktop can be installed using the installer files uploaded to the
-`release page <https://github.com/Mentalab-hub/explore-desktop-release/releases/latest/>`_. Please note that the dependencies will be installed automatically and bundled locally with the installed software.
-
-
-Option 2: Installing from Python Package Index (PyPI) and pip (advanced)
+Installing from Python Package Index (PyPI)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+.. note::
+    For Windows, Mac and Linux the standalone desktop software ExploreDesktop can be installed using the installer files uploaded to the
+    `release page <https://github.com/Mentalab-hub/explore-desktop-release/releases/latest/>`_.
 
 .. note::
 
