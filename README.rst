@@ -99,12 +99,6 @@ In Python you can connect to the Explore device and print data using:
     explorer.connect(device_name="Explore_XXXX")  # Use correct device ID here
     explorer.acquire()
 
-::
-
-    import explorepy
-    explorer = explorepy.Explore()
-    explorer.connect(device_name="Explore_XXXX")  # Use correct device ID here
-
 Documentation
 =============
 
