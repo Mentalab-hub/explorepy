@@ -44,7 +44,7 @@
 
 ``explorepy`` is an open-source Python API designed to collect and process ExG data using Mentalab's Explore device. Amongst other things, ``explorepy`` provides the following features:
 
-* Real-time streaming of ExG, orientation, and environmental data.
+* Real-time streaming of ExG, orientation and environmental data.
 * Data recording in CSV and BDF+ formats.
 * Integration with LabStreaming Layer.
 * Electrode impedance measurements.
