@@ -17,9 +17,9 @@
     :target: https://pypi.org/project/explorepy
 
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v4.1.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v4.2.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v4.1.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v4.2.0...master
 
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
@@ -44,7 +44,7 @@
 
 ``explorepy`` is an open-source Python API designed to collect and process ExG data using Mentalab's Explore device. Amongst other things, ``explorepy`` provides the following features:
 
-* Real-time streaming of ExG, orientation, and environmental data.
+* Real-time streaming of ExG, orientation and environmental data.
 * Data recording in CSV and BDF+ formats.
 * Integration with LabStreaming Layer.
 * Electrode impedance measurements.
