@@ -242,49 +242,6 @@ class MemoryFormat(Command2B):
         return "Format memory command"
 
 
-class ModuleDisable(Command2B):
-    """Module disable command"""
-
-    def __init__(self, module_name):
-        """
-
-        Args:
-            module_name (str): Module name to be disabled. Options: "EXG", "ORN", "ENV"
-        """
-        super().__init__()
-        self.opcode = OpcodeID.CMD_MODULE_DISABLE
-        if module_name == "ENV":
-            self.param = b'\x01'
-        elif module_name == "ORN":
-            self.param = b'\x02'
-        elif module_name == "EXG":
-            self.param = b'\x03'
-
-    def __str__(self):
-        return "Module disable command"
-
-
-class ModuleEnable(Command2B):
-    """Module enable command"""
-
-    def __init__(self, module_name):
-        """
-        Args:
-            module_name (str): Module name to be disabled. Options: "EXG", "ORN", "ENV"
-        """
-        super().__init__()
-        self.opcode = OpcodeID.CMD_MODULE_ENABLE
-        if module_name == "ENV":
-            self.param = b'\x01'
-        elif module_name == "ORN":
-            self.param = b'\x02'
-        elif module_name == "EXG":
-            self.param = b'\x03'
-
-    def __str__(self):
-        return "Module enable command"
-
-
 class ZMeasurementDisable(Command2B):
     """Enables Z measurement mode"""
 
