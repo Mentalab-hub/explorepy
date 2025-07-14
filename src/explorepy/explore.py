@@ -20,13 +20,10 @@ import time
 from threading import Timer
 
 import numpy as np
-from appdirs import user_cache_dir
 
 import explorepy
 from explorepy.command import (
     MemoryFormat,
-    ModuleDisable,
-    ModuleEnable,
     SetChTest,
     SetSPS,
     SoftReset
@@ -39,7 +36,6 @@ from explorepy.stream_processor import (
 )
 from explorepy.tools import (
     LslServer,
-    PhysicalOrientation,
     check_bin_compatibility,
     create_exg_recorder,
     create_marker_recorder,
