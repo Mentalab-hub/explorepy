@@ -27,6 +27,14 @@ For example to get help about the visualize command, run: ``explorepy push2lsl -
 Available Commands
 """"""""""""""""""
 
+find-device
+%%%%
+Scans for nearby Mentalab Explore devices. Prints out the Name and MAC address of found devices.
+
+    Options:
+      -h, --help                      Show this message and exit.
+
+
 acquire
 %%%%
 Connects to a device with selected name or address. Only one input is necessary.
