@@ -134,8 +134,7 @@ class SerialStream:
                 chunk.append(self.copy_buffer.popleft())
             return chunk
         except Exception as error:
-            logger.debug('Got error or read request: {}'.format(error))
-            print('maziar Got error or read request: {}'.format(error))
+            logger.debug('Got error on read request: {}'.format(error))
 
     def send(self, data):
         """Send data to the device

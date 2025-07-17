@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """Some useful tools such as file recorder, heart rate estimation, etc. used in explorepy"""
-import configparser
-import copy
 import csv
 import datetime
 import logging
@@ -15,11 +13,8 @@ import numpy as np
 import pandas
 import pyedflib
 import serial
-from appdirs import (
-    user_cache_dir,
-    user_config_dir
-)
 from mne import (
+    Annotations,
     create_info,
     export,
     io
@@ -811,204 +806,6 @@ class ImpedanceMeasurement:
             return temp_packet
 
 
-class PhysicalOrientation:
-    """
-    Movement sensors modules
-    """
-
-    def __init__(self):
-        self.ED_prv = None
-        self.theta = 0.
-        self.axis = np.array([0, 0, -1])
-        self.matrix = np.identity(3)
-        self.init_set = None
-        self.calibre_set = None
-        self.status = "NOT READY"
-
-    def calculate(self, packet):
-        packet = copy.deepcopy(packet)
-        if self.init_set:
-            self._map(packet)
-        else:
-            self._get_rest_orn(packet)
-        return packet
-
-    def _get_rest_orn(self, packet):
-        D = packet.acc / (np.dot(packet.acc, packet.acc) ** 0.5)
-        # [kx, ky, kz, mx_offset, my_offset, mz_offset] = self.calibre_set
-        packet.mag[0] = self.calibre_set[0] * \
-            (packet.mag[0] - self.calibre_set[3])
-        packet.mag[1] = self.calibre_set[1] * \
-            (packet.mag[1] - self.calibre_set[4])
-        packet.mag[2] = self.calibre_set[2] * \
-            (packet.mag[2] - self.calibre_set[5])
-        E = -1 * np.cross(D, packet.mag)
-        E = E / (np.dot(E, E) ** 0.5)
-        # here you can find an estimation of actual north from packet.mag, it is perpendicular to D and still
-        # co-planar with D and mag, somehow reducing error
-        N = -1 * np.cross(E, D)
-        N = N / (np.dot(N, N) ** 0.5)
-        T_init = np.column_stack((E, N, D))
-        N_init = np.matmul(np.transpose(T_init), N)
-        E_init = np.matmul(np.transpose(T_init), E)
-        D_init = np.matmul(np.transpose(T_init), D)
-        self.init_set = [T_init, N_init, E_init, D_init]
-        self.ED_prv = [E, D]
-
-    def read_calibre_data(self, device_name):
-        config = configparser.ConfigParser()
-        calibre_file = user_config_dir(
-            appname="explorepy", appauthor="Mentalab") + "/conf.ini"
-        if os.path.isfile(calibre_file):
-            config.read(calibre_file)
-            try:
-                calibre_coef = config[device_name]
-                self.calibre_set = np.asarray([float(calibre_coef['kx']), float(calibre_coef['ky']),
-                                               float(calibre_coef['kz']), float(
-                                                   calibre_coef['mx']),
-                                               float(calibre_coef['my']), float(calibre_coef['mz'])])
-                return True
-            except KeyError:
-                return False
-        else:
-            return False
-
-    def _map(self, packet):
-        acc = packet.acc
-        acc = acc / (np.dot(acc, acc) ** 0.5)
-        gyro = packet.gyro * 1.745329e-5  # radian per second
-        packet.mag[0] = self.calibre_set[0] * \
-            (packet.mag[0] - self.calibre_set[3])
-        packet.mag[1] = self.calibre_set[1] * \
-            (packet.mag[1] - self.calibre_set[4])
-        packet.mag[2] = self.calibre_set[2] * \
-            (packet.mag[2] - self.calibre_set[5])
-        mag = packet.mag
-        D = acc
-        dD = D - self.ED_prv[1]
-        da = np.cross(self.ED_prv[1], dD)
-        E = -1 * np.cross(D, mag)
-        E = E / (np.dot(E, E) ** 0.5)
-        dE = E - self.ED_prv[0]
-        dm = np.cross(self.ED_prv[0], dE)
-        dg = 0.05 * gyro
-        dth = -0.95 * dg + 0.025 * da + 0.025 * dm
-        D = self.ED_prv[1] + np.cross(dth, self.ED_prv[1])
-        D = D / (np.dot(D, D) ** 0.5)
-        Err = np.dot(D, E)
-        D_tmp = D - 0.5 * Err * E
-        E_tmp = E - 0.5 * Err * D
-        D = D_tmp / (np.dot(D_tmp, D_tmp) ** 0.5)
-        E = E_tmp / (np.dot(E_tmp, E_tmp) ** 0.5)
-        N = -1 * np.cross(E, D)
-        N = N / (np.dot(N, N) ** 0.5)
-        '''
-        If you comment this block it will give you the absolute orientation based on {East,North,Up} coordinate system.
-        If you keep this block of code it will give you the relative orientation based on initial state of the device.
-        So, it is important to keep the device steady, so that the device can capture the initial direction properly.
-        '''
-        ##########################
-        T = np.zeros((3, 3))
-        [T_init, N_init, E_init, D_init] = self.init_set
-        T = np.column_stack((E, N, D))
-        T_test = np.matmul(T, T_init.transpose())
-        N = np.matmul(T_test.transpose(), N_init)
-        E = np.matmul(T_test.transpose(), E_init)
-        D = np.matmul(T_test.transpose(), D_init)
-        ##########################
-        matrix = np.identity(3)
-        matrix = np.column_stack((E, N, D))
-        N = N / (np.dot(N, N) ** 0.5)
-        E = E / (np.dot(E, E) ** 0.5)
-        D = D / (np.dot(D, D) ** 0.5)
-        self.ED_prv = [E, D]
-        self.matrix = self.matrix * 0.9 + 0.1 * matrix
-        [theta, rot_axis] = packet.compute_angle(matrix=self.matrix)
-        self.theta = self.theta * 0.9 + 0.1 * theta
-        packet.theta = self.theta
-        self.axis = self.axis * 0.9 + 0.1 * rot_axis
-        packet.rot_axis = self.axis
-
-    @staticmethod
-    def init_dir():
-        if not os.path.isfile(user_config_dir(appname="explorepy", appauthor="Mentalab") + "/conf.ini"):
-            os.makedirs(user_config_dir(appname="explorepy",
-                        appauthor="Mentalab"), exist_ok=True)
-            calibre_out_file = user_config_dir(
-                appname="explorepy", appauthor="Mentalab") + "/conf.ini"
-            with open(calibre_out_file, "w") as f_coef:
-                config = configparser.ConfigParser()
-                config['DEFAULT'] = {
-                    'description': 'configurations for Explorepy'}
-                config.write(f_coef)
-                f_coef.close()
-
-        if not os.path.isdir(user_cache_dir(appname="explorepy", appauthor="Mentalab")):
-            os.makedirs(user_cache_dir(appname="explorepy",
-                        appauthor="Mentalab"), exist_ok=True)
-
-    @staticmethod
-    def calibrate(cache_dir, device_name):
-        calibre_out_file = user_config_dir(
-            appname="explorepy", appauthor="Mentalab") + "/conf.ini"
-        parser = configparser.ConfigParser()
-        parser.read(calibre_out_file)
-        with open((cache_dir + "_ORN.csv"), "r") as f_set:
-            csv_reader = csv.reader(f_set, delimiter=",")
-            np_set = list(csv_reader)
-            np_set = np.array(np_set[1:], dtype=float)
-            mag_set_x = np.sort(np_set[:, -3])
-            mag_set_y = np.sort(np_set[:, -2])
-            mag_set_z = np.sort(np_set[:, -1])
-            mx_offset = 0.5 * (mag_set_x[0] + mag_set_x[-1])
-            my_offset = 0.5 * (mag_set_y[0] + mag_set_y[-1])
-            mz_offset = 0.5 * (mag_set_z[0] + mag_set_z[-1])
-            kx = 0.5 * (mag_set_x[-1] - mag_set_x[0])
-            ky = 0.5 * (mag_set_y[-1] - mag_set_y[0])
-            kz = 0.5 * (mag_set_z[-1] - mag_set_z[0])
-            # k = np.sort(np.array([kx, ky, kz]))  # Not used here but might be needed in the future
-            kx = 1 / kx
-            ky = 1 / ky
-            kz = 1 / kz
-            f_set.close()
-        os.remove((cache_dir + "_ORN.csv"))
-        os.remove((cache_dir + "_ExG.csv"))
-        os.remove((cache_dir + "_Marker.csv"))
-        if parser.has_section(device_name):
-            parser = configparser.ConfigParser()
-            parser.read(calibre_out_file)
-            with open(calibre_out_file, "w") as f_coef:
-                parser.set(device_name, 'kx', str(kx))
-                parser.set(device_name, 'ky', str(ky))
-                parser.set(device_name, 'kz', str(kz))
-                parser.set(device_name, 'mx', str(mx_offset))
-                parser.set(device_name, 'my', str(my_offset))
-                parser.set(device_name, 'mz', str(mz_offset))
-                parser.write(f_coef)
-                f_coef.close()
-        else:
-            with open(calibre_out_file, "w") as f_coef:
-                parser[device_name] = {'kx': str(kx),
-                                       'ky': str(ky),
-                                       'kz': str(kz),
-                                       'mx': str(mx_offset),
-                                       'my': str(mx_offset),
-                                       'mz': str(mx_offset)}
-                parser.write(f_coef)
-                f_coef.close()
-
-    @staticmethod
-    def check_calibre_data(device_name):
-        config = configparser.ConfigParser()
-        calibre_file = user_config_dir(
-            appname="explorepy", appauthor="Mentalab") + "/conf.ini"
-        if os.path.isfile(calibre_file):
-            config.read(calibre_file)
-            if config.has_section(device_name):
-                return True
-        return False
-
-
 def find_free_port():
     """Find a free port on the localhost
 
@@ -1023,25 +820,31 @@ def find_free_port():
 
 
 def get_raw_data_from_csv(file_name):
-    base_file_name = os.path.basename(file_name).split(".")[0]
+    print('File name is {}'.format(file_name))
     meta_ending = "_Meta.csv"
     meta_file = file_name[:-8] + meta_ending
-    if base_file_name[-4:] != "_ExG":
-        logger.error("File name does not end in _ExG for trying to convert from csv, quitting...")
-        return None
-    elif not os.path.isfile(file_name[:-8] + meta_ending):
+    if not os.path.isfile(file_name[:-8] + meta_ending):
         logger.error("Could not find Meta file while trying to convert from csv, quitting...")
         return None
 
     sampling_freq = pandas.read_csv(meta_file, delimiter=',')['sr'][0]
-    data_frame = pandas.read_csv(file_name, delimiter=',')
-    data_frame = data_frame.drop('TimeStamp', axis=1)
-    ch_types = ["eeg"] * len(data_frame.columns)
-    info = create_info(len(ch_types), sfreq=sampling_freq, ch_types=ch_types)
+    data_frame_exg = pandas.read_csv(file_name, delimiter=',')
+    first_exg_ts = data_frame_exg['TimeStamp'].tolist()[0]
+    data_frame_exg = data_frame_exg.drop('TimeStamp', axis=1)
+    ch_types = ["eeg"] * len(data_frame_exg.columns)
+    info = create_info(ch_names=data_frame_exg.columns.tolist(), sfreq=sampling_freq, ch_types=ch_types)
 
-    data_frame = data_frame.div(1e6)
-    data_frame = data_frame.transpose()
-    raw_data = io.RawArray(data_frame, info)
+    data_frame_exg = data_frame_exg.div(1e6)
+    data_frame_exg = data_frame_exg.transpose()
+    raw_data = io.RawArray(data_frame_exg, info)
+
+    data_frame_marker = pandas.read_csv(file_name[:-8] + '_Marker.csv', delimiter=',')
+    marker_ts = data_frame_marker['TimeStamp'].tolist()
+    onsets = [x - first_exg_ts for x in marker_ts]
+    durations = [0 for _ in range(len(onsets))]
+    descriptions = data_frame_marker['Code']
+    annotations = Annotations(onset=onsets, duration=durations, description=descriptions)
+    raw_data.set_annotations(annotations)
 
     return raw_data
 

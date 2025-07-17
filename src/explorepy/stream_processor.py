@@ -39,7 +39,6 @@ from explorepy.parser import Parser
 from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
     ImpedanceMeasurement,
-    PhysicalOrientation,
     get_local_time,
     is_explore_pro_device,
     is_usb_mode
@@ -47,7 +46,7 @@ from explorepy.tools import (
 
 
 TOPICS =\
-    Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn mapped_orn cmd_ack env cmd_status imp packet_bin')
+    Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn cmd_ack env cmd_status imp packet_bin')
 logger = logging.getLogger(__name__)
 lock = Lock()
 
@@ -68,7 +67,6 @@ class StreamProcessor:
         self.imp_calculator = None
         self.is_connected = False
         self._is_imp_mode = False
-        self.physical_orn = PhysicalOrientation()
         self._last_packet_timestamp = 0
         self._last_packet_rcv_time = 0
         self.is_bt_streaming = True
@@ -124,7 +122,6 @@ class StreamProcessor:
             callback=self._device_configurator.update_ack, topic=TOPICS.cmd_ack)
         self.subscribe(
             callback=self._device_configurator.update_cmd_status, topic=TOPICS.cmd_status)
-        self.orn_initialize(device_name)
 
     def open_file(self, bin_file, progress_callback=None):
         """Open the binary file and read until it gets device info packet
@@ -267,10 +264,6 @@ class StreamProcessor:
     def _process_orientation_batch(self, packets: List[Tuple]):
         raw_packets = [packet for packet, _ in packets]
         self.dispatch(topic=TOPICS.raw_orn, packet=raw_packets)
-        for packet, _ in packets:
-            if self.physical_orn.status == "READY":
-                processed_packet = self.physical_orn.calculate(packet=packet)
-                self.dispatch(topic=TOPICS.mapped_orn, packet=processed_packet)
 
     def _process_device_info_batch(self, packets: List[Tuple]):
         for packet, _ in packets:
@@ -317,9 +310,6 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.packet_bin, packet=packet)
         elif isinstance(packet, Orientation):
             self.dispatch(topic=TOPICS.raw_orn, packet=packet)
-            if self.physical_orn.status == "READY":
-                packet = self.physical_orn.calculate(packet=packet)
-                self.dispatch(topic=TOPICS.mapped_orn, packet=packet)
         elif isinstance(packet, EEG):
             self.last_exg_packet_timestamp = get_local_time()
             missing_timestamps = self.fill_missing_packet(packet)
@@ -482,15 +472,6 @@ class StreamProcessor:
         print("WARNING: Couldn't disable impedance measurement mode. "
               "Please restart your device manually.")
         return False
-
-    def orn_initialize(self, device_name):
-        res = self.physical_orn.read_calibre_data(device_name)
-        if res:
-            self.physical_orn.status = "READY"
-        else:
-            self.physical_orn.status = "NOT READY"
-            logger.debug('Calibration coefficients for physical orientation do not exist. '
-                         'If you need physical orientation, calibrate the device first.')
 
     def set_marker(self, code):
         """Set a marker in the stream"""

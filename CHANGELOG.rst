@@ -2,6 +2,15 @@
 Changelog
 =========
 
+4.2.0 (15.7.2025)
+------------------
+* Add ExplorePy and Arduino interfacing example
+* Add fieldtrip integration example
+* Add live exg and impedance acquisition example
+* Update MNE integration
+* Remove deprecated functions
+* Update documentation
+
 4.1.0 (31.3.2025)
 ------------------
 * Improve bluetooth connection UX

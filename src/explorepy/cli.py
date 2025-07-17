@@ -57,13 +57,6 @@ def verify_inputs(func):
 
 
 @cli.command()
-def find_device():
-    """List available Explore devices"""
-    explorepy.set_bt_interface(default_bt_backend)
-    explorepy.tools.run_ble_scanner()
-
-
-@cli.command()
 @click.option("--address", "-a", type=str, help="Explore device's MAC address")
 @click.option("--name", "-n", type=str, help="Name of the device")
 @click.option("-d", "--duration", type=int, help="Duration in seconds", metavar="<integer>")
@@ -174,39 +167,3 @@ def set_channels(address, name, channel_mask):
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
     explore.set_channels(channel_mask)
-
-
-@cli.command()
-@click.option("--address", "-a", type=str, help="Explore device's MAC address")
-@click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("-m", "--module", required=True, type=str, help="Module name to be disabled, options: ORN, ENV, EXG")
-@verify_inputs
-def disable_module(address, name, module):
-    """Disable a module of Explore device"""
-    explore = explorepy.explore.Explore()
-    explore.connect(mac_address=address, device_name=name)
-    explore.disable_module(module)
-
-
-@cli.command()
-@click.option("--address", "-a", type=str, help="Explore device's MAC address")
-@click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("-m", "--module", required=True, type=str, help="Module name to be enabled, options: ORN, ENV, EXG")
-@verify_inputs
-def enable_module(address, name, module):
-    """Enable a module of Explore device"""
-    explore = explorepy.explore.Explore()
-    explore.connect(mac_address=address, device_name=name)
-    explore.enable_module(module)
-
-
-@cli.command()
-@click.option("--address", "-a", type=str, help="Explore device's MAC address")
-@click.option("--name", "-n", type=str, help="Name of the device")
-@click.option("-ow", "--overwrite", is_flag=True, help="Overwrite existing file")
-@verify_inputs
-def calibrate_orn(address, name, overwrite):
-    """Calibrate the orientation module"""
-    explore = explorepy.explore.Explore()
-    explore.connect(mac_address=address, device_name=name)
-    explore.calibrate_orn(do_overwrite=overwrite)

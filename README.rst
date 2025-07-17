@@ -1,4 +1,4 @@
-.. image:: logo.png
+.. image:: https://raw.githubusercontent.com/Mentalab-hub/explorepy/master/docs/logo.jpg
    :scale: 100 %
    :align: left
 
@@ -17,9 +17,9 @@
     :target: https://pypi.org/project/explorepy
 
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v4.1.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v4.2.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v4.1.0...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v4.2.0...master
 
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
@@ -37,6 +37,7 @@
 
 .. end-badges
 
+
 =========================
 ``explorepy`` overview
 =========================
@@ -44,17 +45,10 @@
 ``explorepy`` is an open-source Python API designed to collect and process ExG data using Mentalab's Explore device. Amongst other things, ``explorepy`` provides the following features:
 
 * Real-time streaming of ExG, orientation and environmental data.
-* Real-time visualization of ExG, orientation and environmental data.
 * Data recording in CSV and BDF+ formats.
 * Integration with LabStreaming Layer.
 * Electrode impedance measurements.
 * Explore device configuration.
-
-Quick installation
-==================
-For Windows users, the best way to install ``explorepy`` is to download the latest ``explorepy`` version from the `release page <https://github.com/Mentalab-hub/explorepy/releases>`_. Please note that dependencies will install automatically from the release page.
-
-For other operating systems, or to build the package manually on Windows, please refer to the information below.
 
 
 Requirements
@@ -76,7 +70,7 @@ To install ``explorepy`` from PyPI run:
 To install the latest development version (git must be installed before running this command):
 ::
 
-    pip install git+https://github.com/Mentalab-hub/explorepy
+    pip install git+https://github.com/Mentalab-hub/explorepy.git@develop
 
 
 Get started
@@ -102,16 +96,8 @@ In Python you can connect to the Explore device and print data using:
 
     import explorepy
     explorer = explorepy.Explore()
-    explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
+    explorer.connect(device_name="Explore_XXXX")  # Use correct device ID here
     explorer.acquire()
-
-You can also visualize the data in real-time.
-
-::
-
-    import explorepy
-    explorer = explorepy.Explore()
-    explorer.connect(device_name="Explore_XXXX")  # Put your device Bluetooth name
 
 Documentation
 =============
@@ -140,7 +126,7 @@ Authors
 - `Sonja Stefani`_
 - `Alex Platt`_
 - `Andreas Gutsche`_
-- `Masooma Fazelian`_
+- `Masoome Fazelian`_
 - `Philipp Jakovleski`_
 - `Florian Sesser`_
 - `Sebastian Herberger`_
@@ -152,7 +138,7 @@ Authors
 .. _Sonja Stefani: https://github.com/SonjaSt
 .. _Alex Platt: https://github.com/Nujanauss
 .. _Andreas Gutsche: https://github.com/andyman410
-.. _Masooma Fazelian: https://github.com/fazelian
+.. _Masoome Fazelian: https://github.com/fazelian
 .. _Philipp Jakovleski: https://github.com/philippjak
 .. _Florian Sesser : https://github.com/hacklschorsch
 .. _Sebastian Herberger: https://github.com/SHerberger

@@ -27,14 +27,6 @@ For example to get help about the visualize command, run: ``explorepy push2lsl -
 Available Commands
 """"""""""""""""""
 
-find-device
-%%%%
-Scans for nearby Mentalab Explore devices. Prints out the Name and MAC address of found devices.
-
-    Options:
-      -h, --help                      Show this message and exit.
-
-
 acquire
 %%%%
 Connects to a device with selected name or address. Only one input is necessary.
@@ -135,18 +127,6 @@ Example (overwrite):
 ::
     explorepy bin2edf -f input_file.BIN -ow
 
-calibrate-orn
-%%%%
-
-Calibrates the orientation module of a device. This module stores calibration parameters in ``explorepy``'s configuration file. Once calibrated, ``explorepy`` computes the device's orientation (degree and rotation axis).
-::
-
-    Options:
-      -a, --address TEXT   Explore device's MAC address
-      -n, --name TEXT      Name of the device
-      -ow, --overwrite     Overwrite existing file
-      -h, --help           Show this message and exit.
-
 
 format-memory
 %%%%
@@ -180,18 +160,6 @@ Sets a device's ExG sampling rate. Acceptable values: 250, 500 or 1000 (beta). T
 Example:
 ::
     explorepy set-sampling-rate -n Explore_XXXX -sr 500
-
-disable-module
-%%%%
-
-Disables a device module (orientation, environment and ExG).
-::
-
-    Options:
-      -a, --address TEXT  Explore device's MAC address
-      -n, --name TEXT     Name of the device
-      -m, --module TEXT   Module name to be disabled, options: ORN, ENV, EXG
-                          [required]
 
 
 soft-reset
