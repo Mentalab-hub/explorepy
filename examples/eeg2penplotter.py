@@ -58,9 +58,20 @@ class Coordinate:
             self._coord = ret
         return Coordinate(ret[0], ret[1])
 
+    def to_polar(self, in_place: bool = False):
+        x = self._coord[0]
+        y = self._coord[1]
+        r = np.sqrt(x**2 + y**2)
+        angle = np.arctan2(y, x)
+        return r, angle
+
     def length(self):
         """Returns the length of this coordinate if interpreted as a vector"""
         return np.sqrt(self._coord[0]**2 + self._coord[1]**2)  # drop z == 1 since we're in the xy-plane
+
+    def copy(self):
+        """Returns a new coordinate with the same values as the given one"""
+        return Coordinate(self._coord[0], self._coord[1])
 
     def __getitem__(self, item):
         if item < 0 or item > 2:
@@ -90,10 +101,6 @@ class Coordinate:
 
     def __rmul__(self, other):
         return self * other
-
-    def copy(self):
-        """Returns a new coordinate with the same values as the given one"""
-        return Coordinate(self._coord[0], self._coord[1])
 
     def __str__(self):
         return f"({self._coord[0]}, {self._coord[1]})"
@@ -178,8 +185,10 @@ class CommandGenerator:
                  spiral_b=0.5,
                  rotations=5,
                  width: float = 300.,
-                 height: float = 350.):
+                 height: float = 350.,
+                 coordinate_system="cartesian"):
         self.mode = mode if mode in self._valid_modes else "rect_line"
+        self.coord_mode = coordinate_system
         self.rotations = 0
         self.max_size = None
         self.spiral_b = spiral_b
@@ -198,7 +207,7 @@ class CommandGenerator:
         self.canvas_width: float = width
         self.canvas_height: float = height
         self.canvas_middle: Coordinate = Coordinate(np.round(self.canvas_width / 2., 1),
-                                                    np.round(self.canvas_height / 2., 1))
+                       np.round(self.canvas_height / 2., 1))
 
         # Assume GL coordinate system, i.e. x, y in [-1.0; 1.0], P = (-1.0, -1.0) being bottom left
         # -> center of rotation is (0.0, 0.0)
@@ -212,11 +221,17 @@ class CommandGenerator:
 
     def create_calibration_commands(self) -> list[str]:
         """Creates a set of calibration commands for the start of the GCode stream / file"""
-        cmds = ["G21\n",  # programming in mm
-                "G90\n",  # programming in absolute positioning
-                "F800\n",  # set speed/feedrate
-                self.create_line_command(self.canvas_middle),  # move to middle
-                ]
+        if self.coord_mode == "cartesian":
+            cmds = ["G21\n",  # programming in mm
+                    "G90\n",  # programming in absolute positioning
+                    "F800\n",  # set speed/feedrate
+                    self.create_line_command(self.canvas_middle),  # move to middle
+                    ]
+        else:
+            cmds = ["G21\n",  # programming in mm
+                    "G90\n",  # programming in absolute positioning
+                    "F800\n",  # set speed/feedrate
+                    ]
         return cmds
 
     def create_raise_pen_command(self):
@@ -259,9 +274,14 @@ class CommandGenerator:
             coordinate.translate(-1.0, 0.0, in_place=True)
             # Scale all coordinates to fit the canvas and move to its middle
             coordinate.scale(self.canvas_width / 2., self.canvas_height / 2., in_place=True)
-            coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
+            if self.coord_mode == "cartesian":
+                coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
+            else:
+                coordinate.to_polar(in_place=True)
 
         return seg_coords
+
+    # TODO write code for polar coordinates
 
     def generate_segment_coordinates_circle(self,
                                             width: float,
@@ -295,7 +315,10 @@ class CommandGenerator:
             coordinate.translate(0.0, 0.5, in_place=True)  # move 0.5 up since we start at Y = 0.0
             # Scale all coordinates to fit the canvas and move to its middle
             coordinate.scale(self.canvas_width / 2., self.canvas_height / 2., in_place=True)
-            coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
+            if self.coord_mode == "cartesian":
+                coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
+            else:
+                coordinate.to_polar(in_place=True)
 
         return seg_coords
 
@@ -355,7 +378,10 @@ class CommandGenerator:
             # Scale all coordinates to fit the canvas and move to its middle
             coordinate.scale(1. / self.max_size, 1. / self.max_size, in_place=True)
             coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
-            coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
+            if self.coord_mode == "cartesian":
+                coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
+            else:
+                coordinate.to_polar(in_place=True)
         return seg_coords
 
     def generate_segment_coordinates(self, amplitude: float = 0.1) -> list[Coordinate]:
@@ -440,7 +466,7 @@ class CommunicationInterface:
     """Class that handles communicating with the device, the bandpower calculator and the command generator"""
     def __init__(self, device: explorepy.Explore, port: serial.Serial, sr: int = 250, channel_num=8,
                  drawing_mode="rect_circle", file_path=None, canvas_size=[300., 350.], n_segments=250, max_amp=1.0,
-                 spiral_b=0.5, rotations=5):
+                 spiral_b=0.5, rotations=5, coordinate_system="cartesian"):
         self.explore_device = device
         self.serial_port = port
         self.sr = sr
@@ -486,7 +512,7 @@ class CommunicationInterface:
         self.bp_calculator = BandpowerCalculator(fs=float(sr))
         self.command_generator = CommandGenerator(mode=drawing_mode, num_segments=n_segments, max_amp=max_amp,
                                                   spiral_b=spiral_b, rotations=rotations, width=canvas_size[0],
-                                                  height=canvas_size[1],)
+                                                  height=canvas_size[1], coordinate_system=coordinate_system)
 
         self.explore_device.stream_processor.subscribe(callback=self.on_exg, topic=TOPICS.filtered_ExG)
 
@@ -587,6 +613,9 @@ def main():
                                  "(determines the distance between the lines, defaults to 0.5)")
     arg_parser.add_argument("--rotations", nargs=1, type=int, default=[5],
                             help="The number of rotations the archimedean spiral is supposed to cover (default: 5)")
+    arg_parser.add_argument("--coordinate_system", nargs=1, type=str, default=["cartesian"],
+                            help="The coordinate system used for plotting",
+                            choices=["cartesian", "polar"])
 
     args = arg_parser.parse_args()
 
@@ -606,7 +635,8 @@ def main():
                                  n_segments=args.num_segments[0],
                                  max_amp=args.amplitude_factor[0],
                                  spiral_b=args.spiral_b[0],
-                                 rotations=args.rotations[0])
+                                 rotations=args.rotations[0],
+                                 coordinate_system=args.coordinate_system[0])
     gen.run()
 
 
