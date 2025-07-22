@@ -58,12 +58,19 @@ class Coordinate:
             self._coord = ret
         return Coordinate(ret[0], ret[1])
 
-    def to_polar(self, in_place: bool = False):
+    def to_polar(self):
         x = self._coord[0]
         y = self._coord[1]
         r = np.sqrt(x**2 + y**2)
         angle = np.arctan2(y, x)
         return r, angle
+
+    def from_polar(self):
+        r = self._coord[0]
+        phi = self._coord[1]
+        x = r * np.cos(phi)
+        y = r * np.sin(phi)
+        return x, y
 
     def length(self):
         """Returns the length of this coordinate if interpreted as a vector"""
@@ -245,6 +252,22 @@ class CommandGenerator:
         stop_tuple = stop.as_tuple()
         return f"G1 X{np.round(stop_tuple[0], 1)} Y{np.round(stop_tuple[1], 1)}\n"
 
+    def segment_line(self, start: Coordinate, stop: Coordinate, step_distance: float = 0.1):
+        """Takes a start and stop Coordinate and outputs a list of coordinates on the line between start and stop
+        (according to distance requested between coordinates)"""
+        subdivison_line = [start]
+        line = (stop - start)
+        line_length = line.length()
+        line.scale(1. / line_length, 1. / line_length, in_place=True)
+        current_distance = step_distance
+        while current_distance < line_length:
+            step = line.scale(current_distance, current_distance)
+            step = step.translate(start[0], start[1])
+            subdivison_line.append(step)
+            current_distance += step_distance
+        subdivison_line.append(stop)
+        return subdivison_line
+
     def generate_segment_coordinates_line(self,
                                           width: float,
                                           offset: Coordinate,
@@ -277,7 +300,7 @@ class CommandGenerator:
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
-                coordinate.to_polar(in_place=True)
+                coordinate.to_polar()
 
         return seg_coords
 
@@ -318,7 +341,7 @@ class CommandGenerator:
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
-                coordinate.to_polar(in_place=True)
+                coordinate.to_polar()
 
         return seg_coords
 
@@ -381,7 +404,7 @@ class CommandGenerator:
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
-                coordinate.to_polar(in_place=True)
+                coordinate.to_polar()
         return seg_coords
 
     def generate_segment_coordinates(self, amplitude: float = 0.1) -> list[Coordinate]:
