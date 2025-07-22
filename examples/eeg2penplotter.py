@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 import serial
+import vispy
 from mne.time_frequency import psd_array_multitaper
 from numpy._typing import NDArray
 from scipy.integrate import simpson
@@ -14,6 +15,14 @@ from scipy.signal import (
 
 import explorepy
 from explorepy.stream_processor import TOPICS
+
+_VISPY_AVAILABLE = False
+
+try:
+    from vispy import gloo, app
+    _VISPY_AVAILABLE = True
+except ModuleNotFoundError:
+    print("Vispy is not installed, drawing on screen will not be available.")
 
 
 class Coordinate:
@@ -186,9 +195,17 @@ class CommandGenerator:
                  rotations=5,
                  width: float = 300.,
                  height: float = 350.,
-                 coordinate_system="cartesian"):
+                 coordinate_system="cartesian",
+                 canvas=None):
+        self.canvas: PatternCanvas = canvas
         self.mode = mode if mode in self._valid_modes else "rect_line"
         self.coord_mode = coordinate_system
+        if self.canvas:
+            if self.coord_mode == "cartesian":
+                self.canvas.set_uniforms(0.0, 0.0, width, height)
+            else:
+                self.canvas.set_uniforms(-width/2., -height/2., width/2., height/2.)
+            self.canvas.show()
         self.rotations = 0
         self.max_size = None
         self.spiral_b = spiral_b
@@ -440,7 +457,9 @@ class CommandGenerator:
             amp *= self.amp_factor
 
         ret = self.generate_segment_coordinates(amplitude=amp)
-        self.current_segment += 1
+        if self.canvas:
+            self.canvas.update_vbo(ret)
+            self.current_segment += 1
         return self.coordinates_to_commands(ret)
 
     def get_commands(self, buffer, val_min, val_max):
@@ -466,7 +485,7 @@ class CommunicationInterface:
     """Class that handles communicating with the device, the bandpower calculator and the command generator"""
     def __init__(self, device: explorepy.Explore, port: serial.Serial, sr: int = 250, channel_num=8,
                  drawing_mode="rect_circle", file_path=None, canvas_size=[300., 350.], n_segments=250, max_amp=1.0,
-                 spiral_b=0.5, rotations=5, coordinate_system="cartesian"):
+                 spiral_b=0.5, rotations=5, coordinate_system="cartesian", canvas=None):
         self.explore_device = device
         self.serial_port = port
         self.sr = sr
@@ -512,7 +531,8 @@ class CommunicationInterface:
         self.bp_calculator = BandpowerCalculator(fs=float(sr))
         self.command_generator = CommandGenerator(mode=drawing_mode, num_segments=n_segments, max_amp=max_amp,
                                                   spiral_b=spiral_b, rotations=rotations, width=canvas_size[0],
-                                                  height=canvas_size[1], coordinate_system=coordinate_system)
+                                                  height=canvas_size[1], coordinate_system=coordinate_system,
+                                                  canvas=canvas)
 
         self.explore_device.stream_processor.subscribe(callback=self.on_exg, topic=TOPICS.filtered_ExG)
 
@@ -549,10 +569,10 @@ class CommunicationInterface:
             time.sleep(0.1)
         return True
 
-    def run(self):
+    def run(self, event = None):
         """Main loop that's run to get the bandpowers from the internal value buffer and keep track of current mode
         (calibration vs. streaming)"""
-        while True:
+        if _VISPY_AVAILABLE:
             r = self.get_bandpowers()
             if r and self.mode == 0:
                 if self.start_ts == -1:
@@ -566,8 +586,24 @@ class CommunicationInterface:
             if self.mode == 1:
                 ret = self.write_commands()
                 if not ret:
-                    break
-            time.sleep(1. / self.update_rate)
+                    app.quit()
+        else:
+            while True:
+                r = self.get_bandpowers()
+                if r and self.mode == 0:
+                    if self.start_ts == -1:
+                        print(f"Starting calibration for {self.calibration_time}s...")
+                        self.start_ts = time.time()
+                    diff = time.time() - self.start_ts
+                    if diff > self.calibration_time:
+                        print(f"Finished calibrating, max alpha was: {self.alpha_max}, min alpha was: {self.alpha_min}")
+                        print("Starting stream to pen plotter now...")
+                        self.mode = 1
+                if self.mode == 1:
+                    ret = self.write_commands()
+                    if not ret:
+                        break
+                time.sleep(1. / self.update_rate)
 
     def get_bandpowers(self):
         """Get the bandpowers for the current value buffers and write them into the internal bandpower circular
@@ -585,7 +621,87 @@ class CommunicationInterface:
         return False
 
 
+v_shader = """
+#version 120
+
+attribute vec2 pos;
+
+uniform float min_x;
+uniform float min_y;
+uniform float max_y;
+uniform float max_x;
+
+uniform float aspect_ratio;
+
+void main() {
+    float new_x = (2.0f * (pos.x + min_x) / (max_x - min_x) - 1.0f) aspect_ratio;
+    float new_y = 2.0f * (pos.y + min_y) / (max_y - min_y) - 1.0f;
+
+    gl_Position = vec4(new_x, new_y, 0.0f, 1.0f);
+}
+"""
+
+f_shader = """
+#version 120
+
+void main()
+{
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+"""
+
+
+class PatternCanvas(app.Canvas):
+    def __init__(self):
+        super().__init__()
+        max_coordinates = 10000
+
+        self.background_color = (1., 1., 1., 1.)
+
+        self.vbo = gloo.VertexBuffer(np.zeros(max_coordinates, dtype=[("pos", np.float32, 2)]))
+        self.vbo_offset = 0
+        self.indices = gloo.IndexBuffer(np.arange(1, dtype=np.uint16))
+
+        self.pattern_program = gloo.Program(vert=v_shader, frag=f_shader)
+        self.pattern_program.bind(self.vbo)
+        self.pattern_program["aspect_ratio"] = self.size[0] / self.size[1]
+        self.show()
+
+    def set_uniforms(self, min_x, min_y, max_x, max_y):
+        self.pattern_program["min_x"] = min_x
+        self.pattern_program["min_y"] = min_y
+        self.pattern_program["max_x"] = max_x
+        self.pattern_program["max_y"] = max_y
+
+    def update_vbo(self, coordinates: list[Coordinate]):
+        n_coords = len(coordinates)
+        coords = np.empty(n_coords, dtype=[("pos", np.float32, 2)])
+        for i in range(n_coords):
+            coords["pos"][i] = coordinates[i].as_tuple()
+        self.vbo.set_subdata(coords, offset=self.vbo_offset, copy=True)
+        self.vbo_offset += n_coords
+        self.indices = gloo.IndexBuffer(np.arange(self.vbo_offset, dtype=np.uint16))
+
+    def on_timer(self, event):
+        self.update()
+
+    def on_draw(self, event):
+        gloo.clear(self.background_color)
+        self.pattern_program.draw(mode="line_strip", indices=self.indices)
+
+    def on_resize(self, event):
+        width, height = event.physical_size
+        if hasattr(self, "pattern_program"):
+            self.pattern_program["aspect_ratio"] = width/height
+        gloo.set_viewport(0, 0, width, height)
+
+
 def main():
+    draw_canvas = True
+    if _VISPY_AVAILABLE:
+        vispy.use("Glfw")
+    pattern_canvas = PatternCanvas() if draw_canvas and _VISPY_AVAILABLE else None
+
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("-p", "--port", nargs=1, type=str, required=True,
                             help="The port that the pen plotter is connected to")
@@ -636,8 +752,15 @@ def main():
                                  max_amp=args.amplitude_factor[0],
                                  spiral_b=args.spiral_b[0],
                                  rotations=args.rotations[0],
-                                 coordinate_system=args.coordinate_system[0])
-    gen.run()
+                                 coordinate_system=args.coordinate_system[0],
+                                 canvas=pattern_canvas)
+    if _VISPY_AVAILABLE and pattern_canvas:
+        run_update_rate = 1./10.
+        t = app.Timer(interval=run_update_rate, connect=gen.run, start=True)
+        t2 = app.Timer(interval=run_update_rate, connect=pattern_canvas.on_timer, start=True)
+        app.run()
+    else:
+        gen.run()
 
 
 if __name__ == '__main__':
