@@ -235,9 +235,10 @@ class CommandGenerator:
                     self.create_line_command(self.canvas_middle),  # move to middle
                     ]
         else:
-            cmds = ["G21\n",  # programming in mm
-                    "G90\n",  # programming in absolute positioning
-                    "F800\n",  # set speed/feedrate
+            cmds = ["$HY\n",
+                    "G92X0Y0\n",
+                    "G1Y44F2000\n",
+                    "G92X0Y0\n",
                     ]
         return cmds
 
