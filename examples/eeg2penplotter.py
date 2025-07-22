@@ -4,7 +4,6 @@ import time
 
 import numpy as np
 import serial
-import vispy
 from mne.time_frequency import psd_array_multitaper
 from numpy._typing import NDArray
 from scipy.integrate import simpson
@@ -19,6 +18,7 @@ from explorepy.stream_processor import TOPICS
 _VISPY_AVAILABLE = False
 
 try:
+    import vispy
     from vispy import gloo, app
     _VISPY_AVAILABLE = True
 except ModuleNotFoundError:
@@ -459,7 +459,7 @@ class CommandGenerator:
         ret = self.generate_segment_coordinates(amplitude=amp)
         if self.canvas:
             self.canvas.update_vbo(ret)
-            self.current_segment += 1
+        self.current_segment += 1
         return self.coordinates_to_commands(ret)
 
     def get_commands(self, buffer, val_min, val_max):
@@ -621,79 +621,84 @@ class CommunicationInterface:
         return False
 
 
-v_shader = """
-#version 120
+if _VISPY_AVAILABLE:
+    v_shader = """
+    #version 120
 
-attribute vec2 pos;
+    attribute vec2 pos;
 
-uniform float min_x;
-uniform float min_y;
-uniform float max_y;
-uniform float max_x;
+    uniform float min_x;
+    uniform float min_y;
+    uniform float max_y;
+    uniform float max_x;
 
-uniform float aspect_ratio;
+    uniform float aspect_ratio;
 
-void main() {
-    float new_x = (2.0f * (pos.x + min_x) / (max_x - min_x) - 1.0f) aspect_ratio;
-    float new_y = 2.0f * (pos.y + min_y) / (max_y - min_y) - 1.0f;
+    void main() {
+        float new_x = (2.0f * (pos.x + min_x) / (max_x - min_x) - 1.0f) / aspect_ratio;
+        float new_y = 2.0f * (pos.y + min_y) / (max_y - min_y) - 1.0f;
 
-    gl_Position = vec4(new_x, new_y, 0.0f, 1.0f);
-}
-"""
+        gl_Position = vec4(new_x, new_y, 0.0f, 1.0f);
+    }
+    """
 
-f_shader = """
-#version 120
+    f_shader = """
+    #version 120
 
-void main()
-{
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-}
-"""
+    void main()
+    {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+    """
 
+    class PatternCanvas(app.Canvas):
+        def __init__(self, mode="cartesian"):
+            super().__init__()
+            max_coordinates = 10000
 
-class PatternCanvas(app.Canvas):
-    def __init__(self):
-        super().__init__()
-        max_coordinates = 10000
+            self.mode = mode
 
-        self.background_color = (1., 1., 1., 1.)
+            self.background_color = (1., 1., 1., 1.)
 
-        self.vbo = gloo.VertexBuffer(np.zeros(max_coordinates, dtype=[("pos", np.float32, 2)]))
-        self.vbo_offset = 0
-        self.indices = gloo.IndexBuffer(np.arange(1, dtype=np.uint16))
+            self.vbo = gloo.VertexBuffer(np.zeros(max_coordinates, dtype=[("pos", np.float32, 2)]))
+            self.vbo_offset = 0
+            self.indices = gloo.IndexBuffer(np.arange(1, dtype=np.uint16))
 
-        self.pattern_program = gloo.Program(vert=v_shader, frag=f_shader)
-        self.pattern_program.bind(self.vbo)
-        self.pattern_program["aspect_ratio"] = self.size[0] / self.size[1]
-        self.show()
+            self.pattern_program = gloo.Program(vert=v_shader, frag=f_shader)
+            self.pattern_program.bind(self.vbo)
+            self.pattern_program["aspect_ratio"] = self.size[0] / self.size[1]
+            self.show()
 
-    def set_uniforms(self, min_x, min_y, max_x, max_y):
-        self.pattern_program["min_x"] = min_x
-        self.pattern_program["min_y"] = min_y
-        self.pattern_program["max_x"] = max_x
-        self.pattern_program["max_y"] = max_y
+        def set_uniforms(self, min_x, min_y, max_x, max_y):
+            self.pattern_program["min_x"] = min_x
+            self.pattern_program["min_y"] = min_y
+            self.pattern_program["max_x"] = max_x
+            self.pattern_program["max_y"] = max_y
 
-    def update_vbo(self, coordinates: list[Coordinate]):
-        n_coords = len(coordinates)
-        coords = np.empty(n_coords, dtype=[("pos", np.float32, 2)])
-        for i in range(n_coords):
-            coords["pos"][i] = coordinates[i].as_tuple()
-        self.vbo.set_subdata(coords, offset=self.vbo_offset, copy=True)
-        self.vbo_offset += n_coords
-        self.indices = gloo.IndexBuffer(np.arange(self.vbo_offset, dtype=np.uint16))
+        def update_vbo(self, coordinates: list[Coordinate]):
+            n_coords = len(coordinates)
+            coords = np.empty(n_coords, dtype=[("pos", np.float32, 2)])
+            for i in range(n_coords):
+                if self.mode == "cartesian":
+                    coords["pos"][i] = coordinates[i].as_tuple()
+                else:
+                    raise NotImplementedError
+            self.vbo.set_subdata(coords, offset=self.vbo_offset, copy=True)
+            self.vbo_offset += n_coords
+            self.indices = gloo.IndexBuffer(np.arange(self.vbo_offset, dtype=np.uint16))
 
-    def on_timer(self, event):
-        self.update()
+        def on_timer(self, event):
+            self.update()
 
-    def on_draw(self, event):
-        gloo.clear(self.background_color)
-        self.pattern_program.draw(mode="line_strip", indices=self.indices)
+        def on_draw(self, event):
+            gloo.clear(self.background_color)
+            self.pattern_program.draw(mode="line_strip", indices=self.indices)
 
-    def on_resize(self, event):
-        width, height = event.physical_size
-        if hasattr(self, "pattern_program"):
-            self.pattern_program["aspect_ratio"] = width/height
-        gloo.set_viewport(0, 0, width, height)
+        def on_resize(self, event):
+            width, height = event.physical_size
+            if hasattr(self, "pattern_program"):
+                self.pattern_program["aspect_ratio"] = width/height
+            gloo.set_viewport(0, 0, width, height)
 
 
 def main():
