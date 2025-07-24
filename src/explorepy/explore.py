@@ -13,13 +13,17 @@ Examples:
     >>> explore.visualize(bp_freq=(1, 40), notch_freq=50)
 """
 
+import csv
 import logging
 import os
 import re
 import time
 from threading import Timer
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from scipy import signal
 
 import explorepy
 from explorepy._exceptions import IncompatibleFwError
@@ -602,3 +606,112 @@ class Explore:
 
     def get_channel_mask(self):
         return SettingsManager(self.device_name).get_adc_mask()
+
+    def live_impedance_mode(self, file_name='exg_data_imp_mode.csv', duration=40, sampling_rate=250, notch_freq=50.0,
+                            do_overwrite=False, plot=False, block=False):
+        """Record data in impedance mode with live impedance monitoring
+
+        Args:
+            file_name (str): Output CSV file name
+            duration (int): Recording duration in seconds
+            sampling_rate (int): Sampling rate in Hz
+            notch_freq (float): Notch frequency for impedance mode initialization
+            do_overwrite (bool): Overwrite existing file
+            plot (bool): Show filtered signal plot after recording
+            block (bool): Record in blocking mode if 'block' is True
+        """
+        self._check_connection()
+
+        if os.path.exists(file_name) and not do_overwrite:
+            logger.warning(f"File {file_name} already exists. Use do_overwrite=True to replace it.")
+            return
+
+        FS = sampling_rate
+        CHANNEL_LABELS = [f"ch{i}" for i in range(1, 33)]
+
+        logger.info(f"Starting impedance mode recording for {duration} seconds...")
+        logger.info(f"Output file: {file_name}")
+        logger.info(f"Sampling rate: {FS} Hz")
+        logger.info(f"Notch frequency: {notch_freq} Hz")
+
+        csv_file = open(file_name, 'w', newline='\n')
+        csv_writer = csv.writer(csv_file, delimiter=",")
+        csv_writer.writerow(['Timestamp'] + CHANNEL_LABELS[:8])
+
+        def apply_bandpass_filter(signal_data, low_freq, high_freq, fs, order=3):
+            """Apply a Butterworth bandpass filter to the signal."""
+            b, a = signal.butter(order, [low_freq / fs, high_freq / fs], btype='bandpass')
+            return signal.filtfilt(b, a, signal_data)
+
+        def apply_notch_filter(signal_data, fs, freq=50, quality_factor=30.0):
+            """Apply a notch filter at the specified frequency."""
+            b, a = signal.iirnotch(freq, quality_factor, fs)
+            return signal.filtfilt(b, a, signal_data)
+
+        def handle_exg_packet(packet):
+            """Callback to handle incoming ExG data packets."""
+            timestamps, signals = packet.get_data(FS)
+            data = np.concatenate((np.array(timestamps)[:, np.newaxis].T, np.array(signals)), axis=0)
+            np.savetxt(csv_file, np.round(data.T, 4), fmt='%4f', delimiter=',')
+
+        def handle_impedance_packet(packet):
+            """Callback to handle incoming impedance packets."""
+            impedance_values = packet.get_impedances()
+            print("Impedance:", impedance_values)
+
+        try:
+            self.stream_processor.subscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
+            self.stream_processor.subscribe(callback=handle_exg_packet, topic=TOPICS.raw_ExG)
+            self.stream_processor.imp_initialize(notch_freq=notch_freq)
+
+            logger.info("Impedance mode initialized. Recording started...")
+
+            if block:
+                try:
+                    for _ in range(duration):
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    logger.info("Recording interrupted by user.")
+            else:
+                time.sleep(duration)
+
+        except Exception as e:
+            logger.error(f"Error during recording: {e}")
+            csv_file.close()
+            return
+
+        try:
+            self.stream_processor.disable_imp()
+            self.stream_processor.unsubscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
+            self.stream_processor.unsubscribe(callback=handle_exg_packet, topic=TOPICS.raw_ExG)
+            csv_file.close()
+            logger.info(f"Recording completed. Data saved to {file_name}")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+
+        if plot:
+            try:
+                logger.info("Loading and processing data for visualization...")
+                df = pd.read_csv(file_name, delimiter=',', dtype=np.float64)
+
+                if 'ch1' in df.columns and len(df) > 0:
+                    raw_ch1 = df['ch1']
+
+                    filtered = apply_notch_filter(raw_ch1, FS, freq=62.5)
+                    filtered = apply_notch_filter(filtered, FS, freq=50)
+                    filtered = apply_bandpass_filter(filtered, low_freq=0.5, high_freq=30, fs=FS)
+
+                    plt.figure(figsize=(10, 4))
+                    plt.plot(df['Timestamp'], filtered, label='Filtered ch1')
+                    plt.xlabel("Time (s)")
+                    plt.ylabel("Amplitude (µV)")
+                    plt.title("Filtered EEG Signal - Channel 1")
+                    plt.grid(True)
+                    plt.tight_layout()
+                    plt.show()
+                else:
+                    logger.info("No data available for plotting.")
+
+            except Exception as e:
+                logger.error(f"Error during plotting: {e}")
+                logger.info("Plotting failed, but data was recorded successfully.")
