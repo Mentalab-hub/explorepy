@@ -235,3 +235,66 @@ class BLEClient(BTClient):
         self.data = data
         logger.debug('sending data to device')
         self.read_event.set()
+        
+
+
+    #Telemetry functions
+    #See explore.py get_rssi()
+    async def get_rssi(self):
+        """
+        Asynchronously get the RSSI value of the connected BLE device.
+
+        Returns:
+            int: The RSSI value in dBm, or None if not available.
+        """
+        if self.client is None:
+            raise RuntimeError("BLE client is not initialized.")
+
+        if not self.client.is_connected:
+            raise RuntimeError("BLE client is not connected.")
+
+        try:
+            rssi = await self.client.get_rssi()
+            return rssi
+        except Exception as e:
+            logger.warning(f"Failed to get RSSI: {e}")
+            return None
+
+    async def measure_rtt(self, timeout=2.0):
+        """
+        Measures the round-trip time (RTT) to the device by writing a timestamp and waiting for an echo notification.
+
+        Args:
+            timeout (float): Maximum time to wait for the echo in seconds.
+
+        Returns:
+            float: RTT in milliseconds, or None if timed out or error.
+        """
+        import time
+        if self.client is None or not self.client.is_connected:
+            raise RuntimeError("BLE client is not initialized or connected.")
+
+        rtt_result = {}
+        event = asyncio.Event()
+
+        def notification_handler(sender, data):
+            try:
+                sent_time = float(data.decode())
+                rtt_result['rtt'] = (time.time() - sent_time) * 1000  # ms
+                event.set()
+            except Exception as e:
+                logger.warning(f"RTT notification handler error: {e}")
+
+        await self.client.start_notify(self.eeg_tx_char_uuid, notification_handler)
+        try:
+            sent_time = time.time()
+            await self.client.write_gatt_char(self.eeg_tx_char_uuid, str(sent_time).encode(), response=True)
+            try:
+                await asyncio.wait_for(event.wait(), timeout=timeout)
+                return rtt_result.get('rtt')
+            except asyncio.TimeoutError:
+                logger.warning("RTT measurement timed out.")
+                return None
+        finally:
+            await self.client.stop_notify(self.eeg_tx_char_uuid)
+

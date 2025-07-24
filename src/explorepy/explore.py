@@ -63,6 +63,7 @@ class Explore:
         self.initial_count = None
         self.last_rec_stat = 0
         self.last_rec_start_time = 0
+        self._latest_battery_level = None  # Cache for latest battery value
 
     @property
     def is_measuring_imp(self):
@@ -105,6 +106,16 @@ class Explore:
             'Device info packet has been received. Connection has been established. Streaming...')
         logger.info("Device info: " + str(self.stream_processor.device_info))
         self.is_connected = True
+        # Subscribe to ENV packets, necessary for telemetry
+        def _env_callback(packet):
+            try:
+                data = packet.get_data()
+                if 'battery' in data and data['battery']:
+                    self._latest_battery_level = data['battery'][0]
+            except Exception as e:
+                logger.debug(f"Error in ENV callback: {e}")
+        self.stream_processor.subscribe(
+            callback=_env_callback, topic=TOPICS.env)
         if self.debug:
             self.stream_processor.subscribe(
                 callback=self.debug.process_bin, topic=TOPICS.packet_bin)
@@ -596,3 +607,42 @@ class Explore:
 
     def get_channel_mask(self):
         return SettingsManager(self.device_name).get_adc_mask()
+
+    def get_battery_level(self):
+        """Fetch the latest device battery percentage if available (from ENV packets)."""
+        return self._latest_battery_level
+
+    def get_firmware_version(self):
+        """Return the firmware version string if available, else None."""
+        if self.stream_processor and hasattr(self.stream_processor, 'device_info'):
+            return self.stream_processor.device_info.get('firmware_version')
+        return None
+
+    #See BLEClient.py get_rssi()
+    def get_rssi(self):
+        """Fetch the RSSI value from the BLE client, synchronously.
+
+        Returns:
+            int: The RSSI value in dBm, or None if not available.
+        """
+        if self.stream_processor and hasattr(self.stream_processor, 'get_rssi'):
+            import asyncio
+            return asyncio.run(self.stream_processor.get_rssi())
+        else:
+            raise RuntimeError("No BLE client available to fetch RSSI.")
+
+ 
+    #RTT/2 = estimated one-way latency
+    #See BLEClient.py measure_rtt()
+    def get_rtt(self):
+        """
+        Measure the BLE round-trip time (RTT) in milliseconds.
+
+        Returns:
+            float: RTT in ms, or None if not available.
+        """
+        if self.stream_processor and hasattr(self.stream_processor, 'measure_rtt'):
+            import asyncio
+            return asyncio.run(self.stream_processor.measure_rtt())
+        else:
+            raise RuntimeError("No BLE client available to measure RTT.")
