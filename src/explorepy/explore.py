@@ -156,7 +156,8 @@ class Explore:
             callback=callback, topic=TOPICS.raw_ExG)
 
     def record_data(
-        self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False, exg_ch_names=None
+        self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False, exg_ch_names=None,
+        imp_mode=False, notch_freq=50.0
     ):
         r"""Records the data in real-time
 
@@ -167,6 +168,8 @@ class Explore:
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
             block (bool): Record in blocking mode if 'block' is True
             exg_ch_names (list): list of channel names. If None, default names are used.
+            imp_mode (bool): Enable impedance mode with live monitoring
+            notch_freq (float): Notch frequency for impedance mode initialization
         """
         self._check_connection()
 
@@ -182,6 +185,13 @@ class Explore:
         orn_out_file = file_name + "_ORN"
         marker_out_file = file_name + "_Marker"
         meta_out_file = file_name + "_Meta"
+
+        self.recorders = {}
+        if imp_mode:
+            self.recorders['impedance_mode'] = True
+            self.recorders['exg_data_buffer'] = []
+            self.recorders['notch_freq'] = notch_freq
+            impedance_out_file = file_name + "_Impedance"
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=file_type,
@@ -209,18 +219,47 @@ class Explore:
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
+            if imp_mode:
+                self.recorders['imp_csv_file'] = open(f"{impedance_out_file}.csv", 'w', newline='\n')
+                self.recorders['imp_csv_writer'] = csv.writer(self.recorders['imp_csv_file'], delimiter=",")
+                self.recorders['imp_csv_writer'].writerow(['TimeStamp'] + [f"imp_ch{i}" for i in range(1, 9)])
+
         elif file_type == 'edf':
             self.recorders['marker'] = self.recorders['exg']
             logger.warning("Markers' timing might not be precise in EDF files. We recommend recording in CSV format "
                            "if you are setting markers during the recording.")
 
-        self.stream_processor.subscribe(
-            callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-        self.stream_processor.subscribe(
-            callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-        self.stream_processor.subscribe(
-            callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
-        logger.info("Recording...")
+        if imp_mode:
+            def handle_exg_impedance_packet(packet):
+                timestamps, signals = packet.get_data(self.stream_processor.device_info['sampling_rate'])
+                for i, timestamp in enumerate(timestamps):
+                    row_data = [timestamp]
+                    for ch_idx in range(len(signals)):
+                        value = signals[ch_idx][i] if i < len(signals[ch_idx]) else 0.0
+                        row_data.append(value)
+                    self.recorders['exg_data_buffer'].append(row_data)
+
+            def handle_impedance_packet(packet):
+                impedance_values = packet.get_impedances()
+                timestamp = packet.timestamp
+                print("Impedance:", impedance_values)
+                if file_type == 'csv':
+                    row_data = [timestamp] + list(impedance_values)
+                    self.recorders['imp_csv_writer'].writerow(row_data)
+
+            self.recorders['handle_exg_impedance_callback'] = handle_exg_impedance_packet
+            self.recorders['handle_impedance_callback'] = handle_impedance_packet
+
+            self.stream_processor.subscribe(callback=handle_exg_impedance_packet, topic=TOPICS.raw_ExG)
+            self.stream_processor.subscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
+            self.stream_processor.imp_initialize(notch_freq=notch_freq)
+            logger.info("Recording with impedance mode...")
+        else:
+            self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+            logger.info("Recording...")
+
+        self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+        self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
 
         self.recorders['timer'] = Timer(duration, self.stop_recording)
         self.last_rec_start_time = local_clock()
@@ -231,8 +270,7 @@ class Explore:
                 while 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
                     time.sleep(.3)
             except KeyboardInterrupt:
-                logger.info(
-                    "Got Keyboard Interrupt while recording in blocked mode!")
+                logger.info("Got Keyboard Interrupt while recording in blocked mode!")
                 self.stop_recording()
                 self.stream_processor.stop()
                 time.sleep(1)
@@ -240,20 +278,90 @@ class Explore:
     def stop_recording(self):
         """Stop recording"""
         if self.recorders:
-            self.stream_processor.unsubscribe(
-                callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-            self.stream_processor.unsubscribe(
-                callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-            self.stream_processor.unsubscribe(
-                callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
-            self.recorders['exg'].stop()
-            self.recorders['orn'].stop()
-            if self.recorders['exg'].file_type == 'csv':
-                self.recorders['marker'].stop()
-            if 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
-                self.recorders['timer'].cancel()
-            self.recorders = {}
-            logger.info('Recording stopped.')
+            is_impedance_mode = self.recorders.get('impedance_mode', False)
+
+            if is_impedance_mode:
+                try:
+                    self.stream_processor.disable_imp()
+
+                    if 'handle_exg_impedance_callback' in self.recorders:
+                        self.stream_processor.unsubscribe(
+                            callback=self.recorders['handle_exg_impedance_callback'], topic=TOPICS.raw_ExG)
+                    if 'handle_impedance_callback' in self.recorders:
+                        self.stream_processor.unsubscribe(
+                            callback=self.recorders['handle_impedance_callback'], topic=TOPICS.imp)
+
+                    self.stream_processor.unsubscribe(
+                        callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+                    self.stream_processor.unsubscribe(
+                        callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+
+                    self.recorders['orn'].stop()
+                    if self.recorders['exg'].file_type == 'csv':
+                        self.recorders['marker'].stop()
+
+                    if 'imp_csv_file' in self.recorders:
+                        self.recorders['imp_csv_file'].close()
+
+                    if 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
+                        self.recorders['timer'].cancel()
+
+                    logger.info("Processing ExG data with 62.5Hz notch filter...")
+                    if self.recorders['exg_data_buffer']:
+
+                        def apply_notch_filter(signal_data, fs, freq=62.5, quality_factor=30.0):
+                            """Apply a notch filter at the specified frequency."""
+                            try:
+                                b, a = scipy_signal.iirnotch(freq, quality_factor, fs)
+                                return scipy_signal.filtfilt(b, a, signal_data)
+                            except (ValueError, RuntimeError, TypeError) as e:
+                                print(f"Filter error: {e}")
+                                return signal_data
+
+                        exg_array = np.array(self.recorders['exg_data_buffer'])
+
+                        for ch_idx in range(1, exg_array.shape[1]):
+                            if len(exg_array[:, ch_idx]) > 10:
+                                exg_array[:, ch_idx] = apply_notch_filter(
+                                    exg_array[:, ch_idx],
+                                    self.stream_processor.device_info['sampling_rate']
+                                )
+
+                        class FilteredPacket:
+                            def __init__(self, timestamps, signals):
+                                self.timestamps = timestamps
+                                self.signals = signals
+
+                            def get_data(self, fs):
+                                return self.timestamps, self.signals
+
+                        timestamps = exg_array[:, 0]
+                        signals = [exg_array[:, i] for i in range(1, exg_array.shape[1])]
+
+                        filtered_packet = FilteredPacket(timestamps, signals)
+                        self.recorders['exg'].write_data(filtered_packet)
+
+                    self.recorders['exg'].stop()
+
+                    logger.info('Impedance mode recording stopped.')
+
+                except Exception as e:
+                    logger.error(f"Error during impedance recording cleanup: {e}")
+            else:
+                self.stream_processor.unsubscribe(
+                    callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                self.stream_processor.unsubscribe(
+                    callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+                self.stream_processor.unsubscribe(
+                    callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+                self.recorders['exg'].stop()
+                self.recorders['orn'].stop()
+                if self.recorders['exg'].file_type == 'csv':
+                    self.recorders['marker'].stop()
+                if 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
+                    self.recorders['timer'].cancel()
+                logger.info('Recording stopped.')
+
             try:
                 self.last_rec_stat = (
                     (self.stream_processor.packet_count - self.initial_count) / (
@@ -261,17 +369,15 @@ class Explore:
                         * self.stream_processor.device_info['sampling_rate']
                     )
                 )
-                # clamp the stat variable
-                self.last_rec_stat = max(1, min(self.last_rec_stat, 1))
-                logger.info('last recording stat : {}'.format(
-                    self.last_rec_stat))
-            except TypeError:
-                # handle uninitialized state
+                self.last_rec_stat = max(0, min(self.last_rec_stat, 1))
+                logger.info('Last recording stat: {}'.format(self.last_rec_stat))
+            except (TypeError, AttributeError):
                 pass
+
             self.initial_count = None
+            self.recorders = {}
         else:
-            logger.debug(
-                "Tried to stop recording while no recorder is running!")
+            logger.debug("Tried to stop recording while no recorder is running!")
 
     def get_last_record_stat(self):
         """Gets the last recording statistics as a number between 0 and 1"""
@@ -604,210 +710,3 @@ class Explore:
 
     def get_channel_mask(self):
         return SettingsManager(self.device_name).get_adc_mask()
-
-    def live_impedance_mode(self, file_name='exg_data_imp_mode', duration=None,
-                            do_overwrite=False, notch_freq=50.0, block=False):
-        """Record data in impedance mode with live impedance monitoring
-
-        Args:
-            file_name (str): Output file name (without extension)
-            duration (float): Duration of recording in seconds
-            do_overwrite (bool): Overwrite existing files
-            notch_freq (float): Notch frequency for impedance mode initialization
-            block (bool): Record in blocking mode if 'block' is True
-        """
-        self._check_connection()
-
-        if set(r'<>{}[]~`*%').intersection(file_name):
-            raise ValueError("Invalid character in file name")
-
-        duration = self._check_duration(duration)
-
-        self.imp_recorders = {
-            'file_name': file_name,
-            'notch_freq': notch_freq,
-            'exg_data_buffer': []
-        }
-
-        exg_out_file = file_name + "_ExG"
-        orn_out_file = file_name + "_ORN"
-        marker_out_file = file_name + "_Marker"
-        impedance_out_file = file_name + "_Impedance"
-        meta_out_file = file_name + "_Meta"
-
-        self.imp_recorders['exg'] = create_exg_recorder(
-            filename=exg_out_file,
-            file_type='csv',
-            fs=self.stream_processor.device_info['sampling_rate'],
-            adc_mask=SettingsManager(self.device_name).get_adc_mask(),
-            do_overwrite=do_overwrite
-        )
-
-        self.imp_recorders['orn'] = create_orn_recorder(
-            filename=orn_out_file,
-            file_type='csv',
-            do_overwrite=do_overwrite,
-            n_chan=get_orn_chan_len(self.stream_processor.device_info)
-        )
-
-        self.imp_recorders['marker'] = create_marker_recorder(
-            filename=marker_out_file,
-            do_overwrite=do_overwrite
-        )
-
-        meta_recorder = create_meta_recorder(
-            filename=meta_out_file,
-            fs=self.stream_processor.device_info['sampling_rate'],
-            adc_mask=SettingsManager(self.device_name).get_adc_mask(),
-            device_name=self.device_name,
-            do_overwrite=do_overwrite,
-            timestamp=str(self.stream_processor.parser._time_offset)
-        )
-        meta_recorder.write_meta()
-        meta_recorder.stop()
-
-        self.imp_recorders['imp_csv_file'] = open(f"{impedance_out_file}.csv", 'w', newline='\n')
-        self.imp_recorders['imp_csv_writer'] = csv.writer(self.imp_recorders['imp_csv_file'], delimiter=",")
-        self.imp_recorders['imp_csv_writer'].writerow(['TimeStamp'] + [f"imp_ch{i}" for i in range(1, 9)])
-
-        def handle_exg_packet_with_filter(packet):
-            """Handle ExG packets with buffering for filtering."""
-            timestamps, signals = packet.get_data(self.stream_processor.device_info['sampling_rate'])
-
-            for i, timestamp in enumerate(timestamps):
-                row_data = [timestamp]
-                for ch_idx in range(len(signals)):
-                    value = signals[ch_idx][i] if i < len(signals[ch_idx]) else 0.0
-                    row_data.append(value)
-                self.imp_recorders['exg_data_buffer'].append(row_data)
-
-        def handle_impedance_packet(packet):
-            """Handle incoming impedance packets."""
-            impedance_values = packet.get_impedances()
-            timestamp = packet.timestamp
-            print("Impedance:", impedance_values)
-
-            row_data = [timestamp] + list(impedance_values)
-            self.imp_recorders['imp_csv_writer'].writerow(row_data)
-
-        self.imp_recorders['handle_exg_callback'] = handle_exg_packet_with_filter
-        self.imp_recorders['handle_impedance_callback'] = handle_impedance_packet
-
-        self.stream_processor.subscribe(callback=handle_exg_packet_with_filter, topic=TOPICS.raw_ExG)
-        self.stream_processor.subscribe(callback=self.imp_recorders['orn'].write_data, topic=TOPICS.raw_orn)
-        self.stream_processor.subscribe(callback=self.imp_recorders['marker'].set_marker, topic=TOPICS.marker)
-        self.stream_processor.subscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
-
-        self.stream_processor.imp_initialize(notch_freq=notch_freq)
-        logger.info("Impedance mode recording started...")
-
-        self.imp_recorders['timer'] = Timer(duration, self.stop_impedance_mode)
-        self.last_imp_start_time = local_clock()
-        self.initial_imp_count = self.stream_processor.packet_count
-        self.imp_recorders['timer'].start()
-
-        if block:
-            try:
-                while 'timer' in self.imp_recorders.keys() and self.imp_recorders['timer'].is_alive():
-                    time.sleep(.3)
-            except KeyboardInterrupt:
-                logger.info("Got Keyboard Interrupt while recording impedance in blocked mode!")
-                self.stop_impedance_mode()
-                self.stream_processor.stop()
-                time.sleep(1)
-
-    def stop_impedance_mode(self):
-        """Stop impedance mode recording"""
-        if hasattr(self, 'imp_recorders') and self.imp_recorders:
-            try:
-                self.stream_processor.disable_imp()
-                self.stream_processor.unsubscribe(
-                    callback=self.imp_recorders['handle_exg_callback'], topic=TOPICS.raw_ExG)
-                self.stream_processor.unsubscribe(
-                    callback=self.imp_recorders['orn'].write_data, topic=TOPICS.raw_orn)
-                self.stream_processor.unsubscribe(
-                    callback=self.imp_recorders['marker'].set_marker, topic=TOPICS.marker)
-                self.stream_processor.unsubscribe(
-                    callback=self.imp_recorders['handle_impedance_callback'], topic=TOPICS.imp)
-
-                self.imp_recorders['orn'].stop()
-                self.imp_recorders['marker'].stop()
-
-                if 'timer' in self.imp_recorders.keys() and self.imp_recorders['timer'].is_alive():
-                    self.imp_recorders['timer'].cancel()
-
-                self.imp_recorders['imp_csv_file'].close()
-
-                logger.info("Processing ExG data with 62.5Hz notch filter...")
-
-                if self.imp_recorders['exg_data_buffer']:
-                    def apply_notch_filter(signal_data, fs, freq=62.5, quality_factor=30.0):
-                        """Apply a notch filter at the specified frequency."""
-                        try:
-                            b, a = scipy_signal.iirnotch(freq, quality_factor, fs)
-                            return scipy_signal.filtfilt(b, a, signal_data)
-                        except (ValueError, RuntimeError, TypeError) as e:
-                            print(f"Filter error: {e}")
-                            return signal_data
-
-                    exg_array = np.array(self.imp_recorders['exg_data_buffer'])
-
-                    for ch_idx in range(1, exg_array.shape[1]):
-                        if len(exg_array[:, ch_idx]) > 10:
-                            exg_array[:, ch_idx] = apply_notch_filter(
-                                exg_array[:, ch_idx],
-                                self.stream_processor.device_info['sampling_rate']
-                            )
-
-                    class FilteredPacket:
-                        def __init__(self, timestamps, signals):
-                            self.timestamps = timestamps
-                            self.signals = signals
-
-                        def get_data(self, fs):
-                            return self.timestamps, self.signals
-
-                    timestamps = exg_array[:, 0]
-                    signals = [exg_array[:, i] for i in range(1, exg_array.shape[1])]
-
-                    filtered_packet = FilteredPacket(timestamps, signals)
-                    self.imp_recorders['exg'].write_data(filtered_packet)
-
-                self.imp_recorders['exg'].stop()
-
-                file_name = self.imp_recorders['file_name']
-                logger.info(
-                    f'Impedance mode recording stopped. Data saved to {file_name}_ExG.csv, '
-                    f'{file_name}_ORN.csv, {file_name}_Marker.csv, and {file_name}_Impedance.csv'
-                )
-
-                self.imp_recorders = {}
-
-                try:
-                    self.last_imp_stat = (
-                        (self.stream_processor.packet_count - self.initial_imp_count) / (
-                            (local_clock() - self.last_imp_start_time)
-                            * self.stream_processor.device_info['sampling_rate']
-                        )
-                    )
-
-                    self.last_imp_stat = max(0, min(self.last_imp_stat, 1))
-                    logger.info('Last impedance recording stat: {}'.format(self.last_imp_stat))
-                except (TypeError, AttributeError):
-                    pass
-                self.initial_imp_count = None
-
-            except Exception as e:
-                logger.error(f"Error during impedance recording cleanup: {e}")
-                self.imp_recorders = {}
-        else:
-            logger.debug("Tried to stop impedance recording while no impedance recorder is running!")
-
-    def get_last_impedance_stat(self):
-        """Gets the last impedance recording statistics as a number between 0 and 1"""
-        return getattr(self, 'last_imp_stat', 0)
-
-    @property
-    def is_impedance_recording(self):
-        """Return impedance recording status"""
-        return hasattr(self, 'imp_recorders') and bool(self.imp_recorders)
