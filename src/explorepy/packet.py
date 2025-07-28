@@ -246,13 +246,7 @@ class EEG(Packet):
         If exg_fs is given, it returns time vector and data. If exg_fs is not given, it returns the timestamp of the
         packet alongside with the data
         """
-        if exg_fs:
-            n_sample = self.data.shape[1]
-            time_vector = np.linspace(self.timestamp,
-                                      self.timestamp + (n_sample - 1) / exg_fs,
-                                      n_sample)
-            return time_vector, self.data
-        return self.timestamp, self.data
+        return np.array([self.timestamp]), self.data
 
     def get_impedances(self):
         """get electrode impedances"""
