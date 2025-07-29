@@ -241,10 +241,12 @@ class Explore:
 
             def handle_impedance_packet(packet):
                 impedance_values = packet.get_impedances()
-                timestamp = packet.timestamp
-                print("Impedance:", impedance_values)
+
+                real_values = np.array(impedance_values) / 2
+                print("Impedance:", real_values.tolist())
+
                 if file_type == 'csv':
-                    row_data = [timestamp] + list(impedance_values)
+                    row_data = [packet.timestamp, *real_values]
                     self.recorders['imp_csv_writer'].writerow(row_data)
 
             self.recorders['handle_exg_impedance_callback'] = handle_exg_impedance_packet
