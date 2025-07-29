@@ -189,13 +189,19 @@ class BLEClient(BTClient):
     def disconnect(self):
         """Disconnect from the device"""
         self.is_connected = False
-        self.notify_task.cancel()
+        if self.client and self.client.is_connected:
+            try:
+                asyncio.run(self.client.stop_notify(self.eeg_tx_char_uuid))
+            except RuntimeError:
+                # nothing to do here, this works even though there is an exception
+                pass
+        if self.notify_task:
+            self.notify_task.cancel()
         self.read_event.set()
         time.sleep(1)
         self.stop_read_loop()
         self.ble_device = None
         self.buffer = Queue()
-        logger.info('ExplorePy disconnecting from device')
 
     def _find_mac_address(self):
         raise NotImplementedError
@@ -221,7 +227,8 @@ class BLEClient(BTClient):
                 raise ConnectionAbortedError('Error reading data from BLE stream, too many bytes requested')
             return ret
         except Empty:
-            raise ConnectionAbortedError
+            if self.is_connected:
+                raise ConnectionAbortedError
         except Exception as error:
             logger.error('Unknown error reading data from BLE stream, error is {}'.format(error))
             raise ConnectionAbortedError(str(error))
