@@ -67,16 +67,21 @@ class Coordinate:
             self._coord = ret
         return Coordinate(ret[0], ret[1])
 
-    def to_polar(self):
+    def to_polar(self, in_place=False):
         x = self._coord[0]
         y = self._coord[1]
         r = np.sqrt(x**2 + y**2)
         angle = np.arctan2(y, x)
-        return r, angle
+        angle = np.rad2deg(angle)
+        if in_place:
+            self._coord[0] = angle
+            self._coord[1] = -r
+        return angle, -r  # plotter takes X=angle, Y=radius
 
     def from_polar(self):
-        r = self._coord[0]
-        phi = self._coord[1]
+        phi = self._coord[0]
+        phi = np.deg2rad(phi)
+        r = -self._coord[1]
         x = r * np.cos(phi)
         y = r * np.sin(phi)
         return x, y
@@ -208,6 +213,7 @@ class CommandGenerator:
         self.mode = mode if mode in self._valid_modes else "rect_line"
         self.coord_mode = coordinate_system
         if self.canvas:
+            self.canvas.set_mode(coordinate_system)
             if self.coord_mode == "cartesian":
                 self.canvas.set_uniforms(0.0, 0.0, width, height)
             else:
@@ -236,6 +242,7 @@ class CommandGenerator:
         # Assume GL coordinate system, i.e. x, y in [-1.0; 1.0], P = (-1.0, -1.0) being bottom left
         # -> center of rotation is (0.0, 0.0)
         self.current_coord: Coordinate = Coordinate(0.0, 0.0)
+        self.prev: Coordinate = Coordinate(0.0, 0.0)
 
         self.num_segments: int = num_segments
         self.current_segment: int = -1
@@ -254,7 +261,7 @@ class CommandGenerator:
         else:
             cmds = ["$HY\n",
                     "G92X0Y0\n",
-                    "G1Y44F2000\n",
+                    f"G1Y{int(self.canvas_width/2.)}F2000\n",
                     "G92X0Y0\n",
                     ]
         return cmds
@@ -322,7 +329,13 @@ class CommandGenerator:
 
         return seg_coords
 
-    # TODO write code for polar coordinates
+    def check_oob(self, coord: Coordinate):
+        if self.coord_mode == "cartesian":
+            if coord[0] < 0 or coord[0] > self.canvas_width or coord[1] < 0 or coord[1] > self.canvas_height:
+                raise ValueError(f"Coordinate is out of bounds, got: {coord} ({self.coord_mode})")
+        else:
+            if coord[1] >= self.canvas_height/2. or coord[1] >= self.canvas_width/2.:
+                raise ValueError(f"Coordinate is out of bounds, got: {coord} ({self.coord_mode})")
 
     def generate_segment_coordinates_circle(self,
                                             width: float,
@@ -359,7 +372,13 @@ class CommandGenerator:
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
-                coordinate.to_polar()
+                if self.prev[0] - coordinate[0] >= 180:
+                    coordinate.translate(0., 360., in_place=True)
+                if self.prev[0] - coordinate[0] <= -180:
+                    coordinate.translate(0., 360., in_place=True)
+                coordinate.to_polar(in_place=True)
+                self.prev = coordinate.copy()
+            self.check_oob(coordinate)
 
         return seg_coords
 
@@ -474,7 +493,7 @@ class CommandGenerator:
         if self.current_segment >= self.num_segments:
             return []
 
-        if abs(val_max - val_min) < 0.0001 or True:
+        if abs(val_max - val_min) < 0.0001:
             amp = 0.0
         else:
             amp = (np.mean(buffer) - val_min) / (val_max - val_min)
@@ -656,11 +675,13 @@ if _VISPY_AVAILABLE:
     uniform float max_y;
     uniform float max_x;
 
+    uniform float middle_not_zero;
+
     uniform float aspect_ratio;
 
     void main() {
-        float new_x = (2.0f * (pos.x + min_x) / (max_x - min_x) - 1.0f) / aspect_ratio;
-        float new_y = 2.0f * (pos.y + min_y) / (max_y - min_y) - 1.0f;
+        float new_x = (2.0f * (pos.x + middle_not_zero * min_x) / (max_x - min_x) - middle_not_zero * 1.0f) / aspect_ratio;
+        float new_y = 2.0f * (pos.y + middle_not_zero * min_y) / (max_y - min_y) - middle_not_zero * 1.0f;
 
         gl_Position = vec4(new_x, new_y, 0.0f, 1.0f);
     }
@@ -693,11 +714,18 @@ if _VISPY_AVAILABLE:
             self.pattern_program["aspect_ratio"] = self.size[0] / self.size[1]
             self.show()
 
+        def set_mode(self, mode):
+            self.mode = mode
+
         def set_uniforms(self, min_x, min_y, max_x, max_y):
             self.pattern_program["min_x"] = min_x
             self.pattern_program["min_y"] = min_y
             self.pattern_program["max_x"] = max_x
             self.pattern_program["max_y"] = max_y
+            if self.mode == "polar":
+                self.pattern_program["middle_not_zero"] = 0.0
+            else:
+                self.pattern_program["middle_not_zero"] = 1.0
 
         def update_vbo(self, coordinates: list[Coordinate]):
             n_coords = len(coordinates)
@@ -706,7 +734,7 @@ if _VISPY_AVAILABLE:
                 if self.mode == "cartesian":
                     coords["pos"][i] = coordinates[i].as_tuple()
                 else:
-                    raise NotImplementedError
+                    coords["pos"][i] = coordinates[i].from_polar()
             self.vbo.set_subdata(coords, offset=self.vbo_offset, copy=True)
             self.vbo_offset += n_coords
             self.indices = gloo.IndexBuffer(np.arange(self.vbo_offset, dtype=np.uint16))
