@@ -1,6 +1,7 @@
 import asyncio
 import atexit
 import logging
+import os
 import threading
 import time
 from queue import (
@@ -189,12 +190,13 @@ class BLEClient(BTClient):
     def disconnect(self):
         """Disconnect from the device"""
         self.is_connected = False
-        if self.client and self.client.is_connected:
-            try:
-                asyncio.run(self.client.stop_notify(self.eeg_tx_char_uuid))
-            except RuntimeError:
-                # nothing to do here, this works even though there is an exception
-                pass
+        if os.name != 'nt':
+            if self.client and self.client.is_connected:
+                try:
+                    asyncio.run(self.client.stop_notify(self.eeg_tx_char_uuid))
+                except RuntimeError:
+                    # nothing to do here, this works even though there is an exception
+                    pass
         if self.notify_task:
             self.notify_task.cancel()
         self.read_event.set()
