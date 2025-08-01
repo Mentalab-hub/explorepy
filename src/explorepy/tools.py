@@ -651,37 +651,43 @@ class FileRecorder:
 class LslServer:
     """Class for LabStreamingLayer integration"""
     def __init__(self, device_info, stream_name=None):
+        self.device_name = device_info["device_name"]
+        self.marker_outlet = None
+        self.exg_outlet = None
+        self.orn_outlet = None
         self.adc_mask = SettingsManager(
             device_info["device_name"]).get_adc_mask()
         if len(SettingsManager(device_info["device_name"]).get_channel_names()) == len(self.adc_mask):
-            channel_names = SettingsManager(device_info["device_name"]).get_channel_names()
+            self.channel_names = SettingsManager(device_info["device_name"]).get_channel_names()
         else:
-            channel_names = EXG_CHANNELS
-        stream_name = stream_name or device_info["device_name"]
-        n_chan = self.adc_mask.count(1)
+            self.channel_names = EXG_CHANNELS
+        self.stream_name = stream_name or device_info["device_name"]
+        self.n_chan = self.adc_mask.count(1)
         self.exg_fs = device_info['sampling_rate']
-        orn_fs = 20
-        info_exg = StreamInfo(name=device_info["device_name"] + "_ExG",
+        self.orn_fs = 20
+        self.orn_ch = get_orn_chan_len(device_info)
+
+    def initialize_outlets(self):
+        info_exg = StreamInfo(name=self.device_name + "_ExG",
                               type='ExG',
-                              channel_count=n_chan,
+                              channel_count=self.n_chan,
                               nominal_srate=self.exg_fs,
                               channel_format='float32',
-                              source_id=device_info["device_name"] + "_ExG")
+                              source_id=self.device_name + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
         for i, mask in enumerate(self.adc_mask):
             if mask == 1:
                 channels.append_child("channel") \
-                    .append_child_value("name", channel_names[i]) \
+                    .append_child_value("name", self.channel_names[i]) \
                     .append_child_value("unit", EXG_UNITS[i]) \
                     .append_child_value("type", "ExG")
-        orn_ch = get_orn_chan_len(device_info)
-        info_orn = StreamInfo(name=device_info["device_name"] + "_ORN",
+        info_orn = StreamInfo(name=self.device_name + "_ORN",
                               type='ORN',
-                              channel_count=orn_ch,
-                              nominal_srate=orn_fs,
+                              channel_count=self.orn_ch,
+                              nominal_srate=self.orn_fs,
                               channel_format='float32',
-                              source_id=device_info["device_name"] + "_ORN")
+                              source_id=self.device_name + "_ORN")
         info_orn.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_orn.desc().append_child("channels")
         for chan, unit in zip(ORN_CHANNELS, ORN_UNITS):
@@ -689,19 +695,17 @@ class LslServer:
                 .append_child_value("name", chan) \
                 .append_child_value("unit", unit) \
                 .append_child_value("type", "ORN")
-
-        info_marker = StreamInfo(name=device_info["device_name"] + "_Marker",
+        info_marker = StreamInfo(name=self.device_name + "_Marker",
                                  type='Markers',
                                  channel_count=1,
                                  nominal_srate=0,
                                  channel_format='string',
-                                 source_id=device_info["device_name"] + "_Markers")
-
+                                 source_id=self.device_name + "_Markers")
         logger.info(
             f"LSL Streams have been created with names/source IDs as the following:\n"
-            f"\t\t\t\t\t {device_info['device_name']}_ExG\n"
-            f"\t\t\t\t\t {device_info['device_name']}_ORN\n"
-            f"\t\t\t\t\t {device_info['device_name']}_Markers\n"
+            f"\t\t\t\t\t {self.device_name}_ExG\n"
+            f"\t\t\t\t\t {self.device_name}_ORN\n"
+            f"\t\t\t\t\t {self.device_name}_Markers\n"
         )
         self.orn_outlet = StreamOutlet(info_orn)
         self.exg_outlet = StreamOutlet(info_exg)

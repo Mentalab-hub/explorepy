@@ -434,6 +434,7 @@ class Explore:
 
         self.lsl['timer'] = Timer(duration, self.stop_lsl)
         self.lsl['server'] = LslServer(self.stream_processor.device_info)
+        self.lsl['server'].initialize_outlets()
         self.stream_processor.subscribe(
             topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
         self.stream_processor.subscribe(

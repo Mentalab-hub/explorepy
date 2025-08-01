@@ -68,6 +68,7 @@ class Parser:
         self.progress = 0
         self.progress_callback = progress_callback
         self.header_len = 8
+        self.data_len = self.header_len - 4
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -239,7 +240,7 @@ class Parser:
             logger.debug('Got exception in payload determination, raising fletcher error')
             raise FletcherError
 
-        payload_data = self.stream_interface.read(payload - 4)
+        payload_data = self.stream_interface.read(payload - self.data_len)
         if self.debug:
             self.callback(packet=PacketBIN(raw_header + payload_data))
         try:
@@ -247,7 +248,7 @@ class Parser:
         except (AssertionError, TypeError, ValueError, struct.error) as error:
             logger.debug('Raising Fletcher error for: {}'.format(error))
             raise FletcherError
-        packet_size = self.header_len + (payload - 4)
+        packet_size = self.header_len + payload - self.data_len
         return packet, packet_size
 
     def _parse_packet(self, pid, timestamp, bin_data):
