@@ -22,7 +22,6 @@ from threading import Timer
 import numpy as np
 
 import explorepy
-from explorepy._exceptions import IncompatibleFwError
 from explorepy.command import (
     MemoryFormat,
     SetChTest,
@@ -100,11 +99,6 @@ class Explore:
                 raise ConnectionAbortedError(
                     "Could not get info packet from the device")
             cnt += 1
-        # check if fw_version follows x.x.x pattern, abort connection otherwise
-        if len(str.split(self.stream_processor.device_info['firmware_version'], '.')) > 3:
-
-            self.stream_processor.stop()
-            raise IncompatibleFwError('This firmware is not supported. Please use a compatible firmware')
         if self.stream_processor.device_info['is_imp_mode'] is True:
             self.stream_processor.disable_imp()
         logger.info(
