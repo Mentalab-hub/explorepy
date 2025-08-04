@@ -294,19 +294,19 @@ class CommandGenerator:
         if self.mode == "rect_line":
             self.current_width = 1 / self.num_segments
 
-    def create_calibration_commands(self) -> list[str]:
+    def create_calibration_commands(self) -> list[bytes]:
         """Creates a set of calibration commands for the start of the GCode stream / file"""
         if self.coord_mode == "cartesian":
-            cmds = ["G21\n",  # programming in mm
-                    "G90\n",  # programming in absolute positioning
-                    "F800\n",  # set speed/feedrate
+            cmds = [b"G21\n",  # programming in mm
+                    b"G90\n",  # programming in absolute positioning
+                    b"F800\n",  # set speed/feedrate
                     self.create_line_command(self.canvas_middle),  # move to middle
                     ]
         else:
-            cmds = ["$HY\n",
-                    "G92X0Y0\n",
-                    f"G1Y{int(self.canvas_width/2.)}F2000\n",
-                    "G92X0Y0\n",
+            cmds = [b"$HY\n",
+                    b"G92X0Y0\n",
+                    f"G1Y{int(self.canvas_width)}F2000\n".encode(),
+                    b"G92X0Y0\n",
                     ]
         return cmds
 
@@ -319,7 +319,8 @@ class CommandGenerator:
     def create_line_command(self, stop: Coordinate) -> str:
         """Create a GCode command to move to a given coordinate"""
         stop_tuple = stop.as_tuple()
-        return f"G1 X{np.round(stop_tuple[0], 1)} Y{np.round(stop_tuple[1], 1)}\n"
+        cmd = f"G1 X{np.round(stop_tuple[0], 1)} Y{np.round(stop_tuple[1], 1)}\n"
+        return cmd.encode()
 
     def segment_line(self, start: Coordinate, stop: Coordinate, step_distance: float = 0.1):
         """Takes a start and stop Coordinate and outputs a list of coordinates on the line between start and stop
@@ -416,10 +417,6 @@ class CommandGenerator:
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
-                if self.prev[0] - coordinate[0] >= 180:
-                    coordinate.translate(0., 360., in_place=True)
-                if self.prev[0] - coordinate[0] <= -180:
-                    coordinate.translate(0., 360., in_place=True)
                 coordinate.to_polar(in_place=True)
                 self.prev = coordinate.copy()
             self.check_oob(coordinate)
@@ -497,12 +494,15 @@ class CommandGenerator:
 
         coordinates = multiply_line_with_rect_wave(start, stop, amplitude)
 
+        self.current_coord = stop.copy()
+
         for coordinate in coordinates:
             coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
-                coordinate.to_polar()
+                coordinate.to_polar(in_place=True)
+            self.check_oob(coordinate)
 
         return coordinates
 
@@ -514,6 +514,7 @@ class CommandGenerator:
             amplitude (float): The amplitude of the overlaid rectangular wave
         """
         offset = self.current_coord
+        amplitude = 0.1
         if self.mode == "rect_circle":
             r = self.current_segment * (self.rotations * 360. / self.num_segments)
             return self.generate_segment_coordinates_circle(self.current_width * 2, offset, r, amplitude)
@@ -529,7 +530,7 @@ class CommandGenerator:
             t2 = ((self.current_segment + 1) / self.num_segments) * self.max_t
             return self.generate_segment_coordinates_heart(t1, t2, amplitude)
 
-    def coordinates_to_commands(self, coordinates: list[Coordinate]) -> list[str]:
+    def coordinates_to_commands(self, coordinates: list[Coordinate]) -> list[bytes]:
         """
         Converts a list of Coordinates to a list of GCode commands
 
@@ -583,11 +584,14 @@ class CommandGenerator:
 
         Returns: The list of GCode commands for the next segment
         """
-        if self.current_segment == -1:
-            self.current_segment = 0
-            return self.create_calibration_commands()
-        else:
-            return self.get_segment_commands(buffer, val_min, val_max)
+        #if self.current_segment == -1:
+        #    self.current_segment = 0
+        #    return self.create_calibration_commands()
+        #else:
+        return self.get_segment_commands(buffer, val_min, val_max)
+
+
+import threading
 
 
 class CommunicationInterface:
@@ -597,6 +601,8 @@ class CommunicationInterface:
                  spiral_b=0.5, rotations=5, coordinate_system="cartesian", canvas=None):
         self.explore_device = device
         self.serial_port = port
+        self.calibration_thread = threading.Thread(target=self.write_calibration_commands)
+        self.calibration_thread_started = False
         self.sr = sr
         self.file = None
         if file_path:
@@ -659,6 +665,56 @@ class CommunicationInterface:
             self.val_lengths[i] = min(self.val_lengths[i] + 1, self.val_buffer_max_length)
             self.val_current_indices[i] %= self.val_buffer_max_length
 
+    def wait_for_idle(self):
+        print("Waiting until plotter is idle...")
+        self.serial_port.write(b"?")
+        ret = self.serial_port.read_until()
+        while ret[1:4] == b'Run':
+            time.sleep(0.05)
+            self.serial_port.write(b"?")
+            ret = self.serial_port.read_until()
+
+    def write_calibration_commands(self) -> bool:
+        print("Getting calibration commands...")
+        cmds = self.command_generator.create_calibration_commands()
+        if len(cmds) <= 0:
+            raise ValueError("Got no calibration commands!")
+
+        if self.file and not self.file.closed:
+            print("Writing calibration commands to file...")
+            for c in cmds:
+                self.file.write(c.decode("utf-8"))
+
+        if not self.serial_port:
+            return True
+
+        # Read from stream
+        print("Reading starting information from plotter...")
+        it = 0
+        ret = b''
+        comm = b''
+        while ret != b"[MSG:'$H'|'$X' to unlock]\r\n":
+            if it >= 10:
+                raise ConnectionError(
+                    f"Not getting expected starting phrases from plotter! Serial input read so far: {comm}, it: {it}")
+            ret = self.serial_port.read_until()
+            comm += ret
+            it += 1
+        print("Finished reading starting information from plotter!")
+
+        # Write calibration commands and check replies
+        print("Writing calibration commands to plotter...")
+        for cmd in cmds:
+            self.serial_port.write(cmd)
+            ret = self.serial_port.read_until()
+            while ret != b'ok\r\n':
+                print("Waiting for ok...")
+                if ret != '':
+                    raise ValueError(f"Got unexpected reply from plotter: {ret}")
+                ret = self.serial_port.read_until()
+        print("Finished writing calibration commands to plotter!")
+        return True
+
     def write_commands(self) -> bool:
         """Gets commands based on the bandpower buffer and write them to a file and the port (if available)"""
         cmds = self.command_generator.get_commands(self.bp_buffer['Alpha'], self.alpha_min, self.alpha_max)
@@ -669,49 +725,63 @@ class CommunicationInterface:
             return False
 
         if self.file and not self.file.closed:
-            self.file.writelines(cmds)
+            print("Writing commands to file:")
+            print(cmds)
+            for c in cmds:
+                self.file.write(c.decode("utf-8"))
 
         if not self.serial_port:
             return True
+
+        print("Writing commands to plotter...")
         for cmd in cmds:
+            print(f"Writing: {cmd}")
             self.serial_port.write(cmd)
-            time.sleep(0.1)
+            ret = self.serial_port.read_until()
+            while ret != b'ok\r\n':
+                print("Waiting for ok...")
+                if ret != '':
+                    raise ValueError(f"Got unexpected reply from plotter: {ret}")
+                ret = self.serial_port.read_until()
+            self.wait_for_idle()
+        print("Finished writing commands to plotter!")
         return True
+
+    def run_logic(self):
+        #print("Start of run logic")
+        ret = True
+        r = self.get_bandpowers()
+        if r and self.mode == 0:
+            if not self.calibration_thread.is_alive() and not self.calibration_thread_started:
+                print("Starting calibration thread for pen plotter...")
+                self.calibration_thread.start()
+                self.calibration_thread_started = True
+            if self.start_ts == -1:
+                print(f"Starting bandpower calibration for {self.calibration_time}s...")
+                self.start_ts = time.time()
+            diff = time.time() - self.start_ts
+            if diff > self.calibration_time:
+                print(f"Finished calibrating, max alpha was: {self.alpha_max}, min alpha was: {self.alpha_min}")
+                print("Starting stream to pen plotter now...")
+                self.mode = 1
+        if self.mode == 1:
+            if self.calibration_thread.is_alive():
+                print("Calibration thread for pen plotter is still alive, attempting to wait for it to finish...")
+                self.calibration_thread.join()
+                print("Calibration thread for pen plotter has finished, continuing...")
+            ret = self.write_commands()
+        return ret
 
     def run(self, event = None):
         """Main loop that's run to get the bandpowers from the internal value buffer and keep track of current mode
         (calibration vs. streaming)"""
         if _VISPY_AVAILABLE:
-            r = self.get_bandpowers()
-            if r and self.mode == 0:
-                if self.start_ts == -1:
-                    print(f"Starting calibration for {self.calibration_time}s...")
-                    self.start_ts = time.time()
-                diff = time.time() - self.start_ts
-                if diff > self.calibration_time:
-                    print(f"Finished calibrating, max alpha was: {self.alpha_max}, min alpha was: {self.alpha_min}")
-                    print("Starting stream to pen plotter now...")
-                    self.mode = 1
-            if self.mode == 1:
-                ret = self.write_commands()
-                if not ret:
-                    app.quit()
+            if not self.run_logic():
+                app.quit()
         else:
             while True:
-                r = self.get_bandpowers()
-                if r and self.mode == 0:
-                    if self.start_ts == -1:
-                        print(f"Starting calibration for {self.calibration_time}s...")
-                        self.start_ts = time.time()
-                    diff = time.time() - self.start_ts
-                    if diff > self.calibration_time:
-                        print(f"Finished calibrating, max alpha was: {self.alpha_max}, min alpha was: {self.alpha_min}")
-                        print("Starting stream to pen plotter now...")
-                        self.mode = 1
-                if self.mode == 1:
-                    ret = self.write_commands()
-                    if not ret:
-                        break
+                if not self.run_logic():
+                    break
                 time.sleep(1. / self.update_rate)
 
     def get_bandpowers(self):
@@ -858,10 +928,12 @@ def main():
 
     args = arg_parser.parse_args()
 
+    print(f"Using port {args.port[0]}")
+
     p = None if args.port[0] == "debug" else args.port[0]
     baud = args.baud[0]
     device_name = args.name[0]
-    size = args.size if args.size[0] >= 50. and args.size[1] >= 50. else [50., 50.]
+    size = args.size
     serial_port = serial.Serial(port=p, baudrate=baud) if p else None  # needs to match plotter
     explore_device = explorepy.Explore()
     explore_device.connect(device_name)
