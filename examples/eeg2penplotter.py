@@ -195,9 +195,52 @@ class BandpowerCalculator:
         return bp
 
 
+def multiply_line_with_rect_wave(start: Coordinate, stop: Coordinate, amplitude: float):
+    diff = stop - start
+    mid = start + 0.5 * diff
+
+    # get an orthogonal vector to our start -> stop vector
+    orth = Coordinate(-diff[1], diff[0])
+    orth_length = orth.length()
+    orth.scale(1. / orth_length, 1. / orth_length, in_place=True)  # normalize orthogonal vector
+
+    c1 = orth.scale(amplitude, amplitude)  # scale orthogonal vector according to amplitude
+    c1.translate(start[0], start[1], in_place=True)  # add orthogonal vector to start coordinate
+
+    c2 = orth.scale(amplitude, amplitude)
+    c2.translate(mid[0], mid[1], in_place=True)
+
+    c3 = orth.scale(-amplitude, -amplitude)
+    c3.translate(mid[0], mid[1], in_place=True)
+
+    c4 = orth.scale(-amplitude, -amplitude)
+    c4.translate(stop[0], stop[1], in_place=True)
+
+    return [start, c1, c2, c3, c4, stop]
+
+
+def get_heart_coordinates_cartesian(t: float, max_amplitude:float = 0.1):
+    # original equation (use i.e. t in range [0., 6.5] for a full rotation)
+    x = -np.sqrt(2) * np.sin(t) ** 3
+    cos_t = np.cos(t)
+    y = 2 * cos_t - cos_t ** 2 - cos_t ** 3
+
+    # scale and center (range and offset for this equation are pre-calculated)
+    y_range = 2.6311290113857355
+    y_offset = -0.23987051829473616
+    x /= y_range
+    y /= y_range
+    y += y_offset
+    y += 0.5
+    range_after_amplitude = 1 - 2 * max_amplitude
+    y *= range_after_amplitude
+    x *= range_after_amplitude
+    return x, y
+
+
 class CommandGenerator:
     """Class that generates pattern commands as GCode that can be interpreted by CNC machines, i.e. pen plotters"""
-    _valid_modes = ["rect_line", "rect_circle", "rect_spiral"]
+    _valid_modes = ["rect_line", "rect_circle", "rect_spiral", "rect_heart"]
 
     def __init__(self,
                  mode: str = "rect_line",
@@ -224,8 +267,9 @@ class CommandGenerator:
         self.spiral_b = spiral_b
         self.amp_factor = 0.4 * max_amp if self.mode == "rect_circle" else max_amp
         # Note: max amp should be less than half of circle pattern size to make sure we're inside the canvas boundaries
+        self.max_t = 6.5  # maximum parameter t for drawing a heart shape (assuming start is 0.0)
 
-        if self.mode == "rect_circle":
+        if self.mode == "rect_circle" or self.mode == "rect_heart":
             self.rotations = 1
         elif self.mode == "rect_spiral":
             self.rotations = rotations
@@ -444,6 +488,24 @@ class CommandGenerator:
                 coordinate.to_polar()
         return seg_coords
 
+    def generate_segment_coordinates_heart(self, t1: float, t2: float, amplitude: float):
+        x, y = get_heart_coordinates_cartesian(t1, self.amp_factor)
+        start = Coordinate(x, y)
+
+        x, y = get_heart_coordinates_cartesian(t2, self.amp_factor)
+        stop = Coordinate(x, y)
+
+        coordinates = multiply_line_with_rect_wave(start, stop, amplitude)
+
+        for coordinate in coordinates:
+            coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
+            if self.coord_mode == "cartesian":
+                coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
+            else:
+                coordinate.to_polar()
+
+        return coordinates
+
     def generate_segment_coordinates(self, amplitude: float = 0.1) -> list[Coordinate]:
         """
         Generates segment coordinates according to current mode (rect_circle, rect_spiral or rect_line)
@@ -462,6 +524,10 @@ class CommandGenerator:
             # y = b * theta * sin(theta)
             theta = np.deg2rad((self.current_segment / self.num_segments) * (self.rotations * 360))
             return self.generate_segment_coordinates_spiral(offset, theta, amplitude, self.spiral_b)
+        elif self.mode == "rect_heart":
+            t1 = (self.current_segment / self.num_segments) * self.max_t
+            t2 = ((self.current_segment + 1) / self.num_segments) * self.max_t
+            return self.generate_segment_coordinates_heart(t1, t2, amplitude)
 
     def coordinates_to_commands(self, coordinates: list[Coordinate]) -> list[str]:
         """
@@ -769,8 +835,8 @@ def main():
     arg_parser.add_argument("-f", "--file", nargs=1, type=str, default=[None],
                             help="A filepath to save the generated GCode to.")
     arg_parser.add_argument("-m", "--mode", nargs=1, type=str, default=["circle"],
-                            help="The pattern mode used for drawing, should be one of [line, circle, spiral]",
-                            choices=["line", "circle", "spiral"])
+                            help="The pattern mode used for drawing, should be one of [line, circle, spiral, heart]",
+                            choices=["line", "circle", "spiral", "heart"])
     arg_parser.add_argument("-s", "--size", nargs=2, type=float, default=[200., 200.],
                             help="The maximum canvas size of the pen plotter in mm, default is 200.0mm x 200.0mm",
                             metavar=("WIDTH", "HEIGHT"))
