@@ -25,9 +25,24 @@ except ModuleNotFoundError:
     print("Vispy is not installed, drawing on screen will not be available.")
 
 
+def correct_zero_crossing(current_angle: float, next_angle: float) -> float:
+    # simple implementation, could be more efficient but this is easier to read
+    if next_angle > current_angle:
+        diff = abs(next_angle - current_angle)
+        while diff > 180:
+            if next_angle > current_angle:
+                next_angle -= 360
+            else:
+                next_angle += 360
+            diff = abs(next_angle - current_angle)
+    return next_angle
+
+
 class Coordinate:
     """Helper class for 2D coordinate manipulation"""
     def __init__(self, x: float, y: float):
+        """Initialize a coordinate with x and y. If this coordinate is a polar coordinate, x doubles as the angle (phi)
+         and y as the radius (r)"""
         self._coord = np.array([x, y, 1.], dtype=np.float64)
 
     def as_tuple(self) -> tuple[float, float]:
@@ -35,7 +50,7 @@ class Coordinate:
 
     def translate(self, x: float, y: float, in_place: bool = False):
         """Translates this coordinate by given x and y, updates itself if in_place is True and returns the resulting
-        coordinate."""
+        coordinate. Note that the output of this method only makes sense for cartesian coordinates."""
         t_mat = np.array([[1., 0., x],
                           [0., 1., y],
                           [0., 0., 1.]])
@@ -46,7 +61,7 @@ class Coordinate:
 
     def rotate(self, angle: float, in_place: bool = False):
         """Rotates this coordinate by a given angle, updates itself if in_place is True and returns the resulting
-        coordinate."""
+        coordinate. Note that the output of this method only makes sense for cartesian coordinates."""
         angle = np.deg2rad(angle)
         r_mat = np.array([[np.cos(angle), -np.sin(angle), 0.0],
                           [np.sin(angle), np.cos(angle), 0.0],
@@ -58,7 +73,7 @@ class Coordinate:
 
     def scale(self, x: float, y: float, in_place: bool = False):
         """Scales this coordinate by a given x and y factor, updates itself if in_place is True and returns the
-        resulting coordinate."""
+        resulting coordinate. Note that the output of this method only makes sense for cartesian coordinates."""
         s_mat = np.array([[x, 0.0, 0.0],
                           [0.0, y, 0.0],
                           [0.0, 0.0, 1.0]])
@@ -87,7 +102,8 @@ class Coordinate:
         return x, y
 
     def length(self):
-        """Returns the length of this coordinate if interpreted as a vector"""
+        """Returns the length of this coordinate if interpreted as a vector. Note that the output of this method only
+        makes sense for cartesian coordinates."""
         return np.sqrt(self._coord[0]**2 + self._coord[1]**2)  # drop z == 1 since we're in the xy-plane
 
     def copy(self):
@@ -95,9 +111,18 @@ class Coordinate:
         return Coordinate(self._coord[0], self._coord[1])
 
     def __getitem__(self, item):
+        if type(item) != int:
+            raise ValueError(f"Indexing is only supported for indices of type int.")
         if item < 0 or item > 2:
             raise ValueError(f"Can't access index {item}, valid indices for Coordinates are 0 (x) and 1 (y)")
         return float(self._coord[item])
+
+    def __setitem__(self, key, value):
+        if type(key) != int:
+            raise ValueError(f"Indexing is only supported for indices of type int.")
+        if key < 0 or key > 2:
+            raise ValueError(f"Can't set index {key}, valid indices for Coordinates are 0 (x) and 1 (y)")
+        self._coord[key] = value
 
     def __add__(self, other):
         if type(other) is not Coordinate:
@@ -303,10 +328,10 @@ class CommandGenerator:
                     self.create_line_command(self.canvas_middle),  # move to middle
                     ]
         else:
-            cmds = [b"$HY\n",
-                    b"G92X0Y0\n",
-                    f"G1Y{int(self.canvas_width)}F2000\n".encode(),
-                    b"G92X0Y0\n",
+            cmds = [b"$HY\n",  # Homing sequence
+                    b"G92X0Y0\n",  # Set as (0, 0)
+                    f"G1Y{int(self.canvas_width)}F2000\n".encode(),  # Move to middle of the circle
+                    b"G92X0Y0\n",  # Set as (0, 0)
                     ]
         return cmds
 
@@ -316,7 +341,7 @@ class CommandGenerator:
     def create_lower_pen_command(self):
         raise NotImplementedError
 
-    def create_line_command(self, stop: Coordinate) -> str:
+    def create_line_command(self, stop: Coordinate) -> bytes:
         """Create a GCode command to move to a given coordinate"""
         stop_tuple = stop.as_tuple()
         cmd = f"G1 X{np.round(stop_tuple[0], 1)} Y{np.round(stop_tuple[1], 1)}\n"
@@ -370,7 +395,10 @@ class CommandGenerator:
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
-                coordinate.to_polar()
+                coordinate.to_polar(in_place=True)
+                coordinate[0] = correct_zero_crossing(self.prev[0], coordinate[0])
+                self.prev = coordinate.copy()
+            self.check_oob(coordinate)
 
         return seg_coords
 
@@ -413,11 +441,15 @@ class CommandGenerator:
             self.current_coord = coordinate.copy()
             coordinate.translate(0.0, 0.5, in_place=True)  # move 0.5 up since we start at Y = 0.0
             # Scale all coordinates to fit the canvas and move to its middle
-            coordinate.scale(self.canvas_width / 2., self.canvas_height / 2., in_place=True)
             if self.coord_mode == "cartesian":
+                coordinate.scale(self.canvas_width / 2., self.canvas_height / 2., in_place=True)
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
+                coordinate.translate(-0.25, 0.0, in_place=True)  # move 0.5 up since we start at Y = 0.0
+                coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
                 coordinate.to_polar(in_place=True)
+                ret = correct_zero_crossing(self.prev[0], coordinate[0])
+                coordinate[0] = ret
                 self.prev = coordinate.copy()
             self.check_oob(coordinate)
 
@@ -482,7 +514,10 @@ class CommandGenerator:
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
-                coordinate.to_polar()
+                coordinate.to_polar(in_place=True)
+                coordinate[0] = correct_zero_crossing(self.prev[0], coordinate[0])
+                self.prev = coordinate.copy()
+            self.check_oob(coordinate)
         return seg_coords
 
     def generate_segment_coordinates_heart(self, t1: float, t2: float, amplitude: float):
@@ -502,6 +537,8 @@ class CommandGenerator:
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
                 coordinate.to_polar(in_place=True)
+                coordinate[0] = correct_zero_crossing(self.prev[0], coordinate[0])
+                self.prev = coordinate.copy()
             self.check_oob(coordinate)
 
         return coordinates
@@ -514,7 +551,6 @@ class CommandGenerator:
             amplitude (float): The amplitude of the overlaid rectangular wave
         """
         offset = self.current_coord
-        amplitude = 0.1
         if self.mode == "rect_circle":
             r = self.current_segment * (self.rotations * 360. / self.num_segments)
             return self.generate_segment_coordinates_circle(self.current_width * 2, offset, r, amplitude)
@@ -653,7 +689,7 @@ class CommunicationInterface:
 
         self.mode = 0  # 0 == calibrate, 1 == send
         self.start_ts = -1
-        self.calibration_time = 20  # in s
+        self.calibration_time = 5  # in s
 
     def on_exg(self, packet):
         """Get a packet and input it into the internal circular buffer"""
