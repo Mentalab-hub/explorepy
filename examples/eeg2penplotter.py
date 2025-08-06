@@ -16,6 +16,7 @@ import explorepy
 from explorepy.stream_processor import TOPICS
 
 _VISPY_AVAILABLE = False
+_WINSOUND_AVAILABLE = False
 
 try:
     import vispy
@@ -23,6 +24,12 @@ try:
     _VISPY_AVAILABLE = True
 except ModuleNotFoundError:
     print("Vispy is not installed, drawing on screen will not be available.")
+
+try:
+    import winsound
+    _WINSOUND_AVAILABLE = True
+except ModuleNotFoundError:
+    print("Could not import winsound.")
 
 
 def correct_zero_crossing(current_angle: float, next_angle: float) -> float:
@@ -330,7 +337,7 @@ class CommandGenerator:
         else:
             cmds = [b"$HY\n",  # Homing sequence
                     b"G92X0Y0\n",  # Set as (0, 0)
-                    f"G1Y{int(self.canvas_width)}F2000\n".encode(),  # Move to middle of the circle
+                    f"G1Y{int(self.canvas_width)}F2500\n".encode(),  # Move to middle of the circle
                     b"G92X0Y0\n",  # Set as (0, 0)
                     ]
         return cmds
@@ -407,7 +414,7 @@ class CommandGenerator:
             if coord[0] < 0 or coord[0] > self.canvas_width or coord[1] < 0 or coord[1] > self.canvas_height:
                 raise ValueError(f"Coordinate is out of bounds, got: {coord} ({self.coord_mode})")
         else:
-            if coord[1] >= self.canvas_height/2. or coord[1] >= self.canvas_width/2.:
+            if abs(coord[1]) >= self.canvas_height or abs(coord[1]) >= self.canvas_width or coord[1] > 0.:
                 raise ValueError(f"Coordinate is out of bounds, got: {coord} ({self.coord_mode})")
 
     def generate_segment_coordinates_circle(self,
@@ -445,7 +452,6 @@ class CommandGenerator:
                 coordinate.scale(self.canvas_width / 2., self.canvas_height / 2., in_place=True)
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
-                coordinate.translate(-0.25, 0.0, in_place=True)  # move 0.5 up since we start at Y = 0.0
                 coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
                 coordinate.to_polar(in_place=True)
                 ret = correct_zero_crossing(self.prev[0], coordinate[0])
@@ -628,17 +634,37 @@ class CommandGenerator:
 
 
 import threading
+import sys
 
+_use_speech = True
+_indicate_seconds_passed = True
+_indicate_diff_s = 5
+
+def indicate_next_step(next_mode: int):
+    # mode = -1: 5s passed, mode = 0: calibration, mode 1: calibration finished
+    try:
+        if sys.platform == "darwin" and _use_speech and not next_mode == -1:
+            tts = "Calibration started" if next_mode == 0 else "Calibration finished"
+            os.system(f"say {tts}")
+        elif _WINSOUND_AVAILABLE and not next_mode == -1:
+            winsound.Beep(440, 1000)
+        else:
+            print("\a")
+    except Exception as e:
+        print(f"Could not use speaker output, got error: {e}")
+        print(f"Printing bell character as fallback.")
+        print("\a")
 
 class CommunicationInterface:
     """Class that handles communicating with the device, the bandpower calculator and the command generator"""
     def __init__(self, device: explorepy.Explore, port: serial.Serial, sr: int = 250, channel_num=8,
-                 drawing_mode="rect_circle", file_path=None, canvas_size=[300., 350.], n_segments=250, max_amp=1.0,
-                 spiral_b=0.5, rotations=5, coordinate_system="cartesian", canvas=None):
+                 drawing_mode="rect_circle", calibration_time=20, file_path=None, canvas_size=[300., 350.],
+                 n_segments=250, max_amp=1.0, spiral_b=0.5, rotations=5, coordinate_system="cartesian", canvas=None):
         self.explore_device = device
         self.serial_port = port
         self.calibration_thread = threading.Thread(target=self.write_calibration_commands)
         self.calibration_thread_started = False
+        self.has_beeped = False
         self.sr = sr
         self.file = None
         if file_path:
@@ -689,7 +715,7 @@ class CommunicationInterface:
 
         self.mode = 0  # 0 == calibrate, 1 == send
         self.start_ts = -1
-        self.calibration_time = 5  # in s
+        self.calibration_time = calibration_time  # in s
 
     def on_exg(self, packet):
         """Get a packet and input it into the internal circular buffer"""
@@ -736,7 +762,7 @@ class CommunicationInterface:
             ret = self.serial_port.read_until()
             comm += ret
             it += 1
-        print("Finished reading starting information from plotter!")
+        print("Finished reading starting information from plotter!\n")
 
         # Write calibration commands and check replies
         print("Writing calibration commands to plotter...")
@@ -748,7 +774,7 @@ class CommunicationInterface:
                 if ret != '':
                     raise ValueError(f"Got unexpected reply from plotter: {ret}")
                 ret = self.serial_port.read_until()
-        print("Finished writing calibration commands to plotter!")
+        print("Finished writing calibration commands to plotter!\n")
         return True
 
     def write_commands(self) -> bool:
@@ -784,7 +810,6 @@ class CommunicationInterface:
         return True
 
     def run_logic(self):
-        #print("Start of run logic")
         ret = True
         r = self.get_bandpowers()
         if r and self.mode == 0:
@@ -794,10 +819,18 @@ class CommunicationInterface:
                 self.calibration_thread_started = True
             if self.start_ts == -1:
                 print(f"Starting bandpower calibration for {self.calibration_time}s...")
+                indicate_next_step(0)
                 self.start_ts = time.time()
             diff = time.time() - self.start_ts
+            if _indicate_seconds_passed:
+                if not self.has_beeped and int(diff) % _indicate_diff_s == 0:
+                    indicate_next_step(-1)
+                    self.has_beeped = True
+                elif int(diff) % _indicate_diff_s != 0:
+                    self.has_beeped = False
             if diff > self.calibration_time:
                 print(f"Finished calibrating, max alpha was: {self.alpha_max}, min alpha was: {self.alpha_min}")
+                indicate_next_step(1)
                 print("Starting stream to pen plotter now...")
                 self.mode = 1
         if self.mode == 1:
@@ -961,6 +994,8 @@ def main():
     arg_parser.add_argument("--coordinate_system", nargs=1, type=str, default=["cartesian"],
                             help="The coordinate system used for plotting",
                             choices=["cartesian", "polar"])
+    arg_parser.add_argument("--calibration_time", nargs=1, type=int, default=[20],
+                            help="The amount of time to gather alpha power data for calibration")
 
     args = arg_parser.parse_args()
 
@@ -977,6 +1012,7 @@ def main():
     gen = CommunicationInterface(explore_device,
                                  serial_port if p else p,
                                  drawing_mode=f"rect_{args.mode[0]}",
+                                 calibration_time=args.calibration_time[0],
                                  file_path=args.file[0],
                                  canvas_size=size,
                                  n_segments=args.num_segments[0],
