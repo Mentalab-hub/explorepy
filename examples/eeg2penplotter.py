@@ -32,16 +32,16 @@ except ModuleNotFoundError:
     print("Could not import winsound.")
 
 
-def correct_zero_crossing(current_angle: float, next_angle: float) -> float:
+def correct_angle(current_angle: float, next_angle: float) -> float:
+    """Corrects angles that are further apart than 180° to be closer together in terms of degree delta (not location)"""
     # simple implementation, could be more efficient but this is easier to read
-    if next_angle > current_angle:
+    diff = abs(next_angle - current_angle)
+    while diff > 180:
+        if next_angle > current_angle:
+            next_angle -= 360
+        else:
+            next_angle += 360
         diff = abs(next_angle - current_angle)
-        while diff > 180:
-            if next_angle > current_angle:
-                next_angle -= 360
-            else:
-                next_angle += 360
-            diff = abs(next_angle - current_angle)
     return next_angle
 
 
@@ -253,6 +253,8 @@ def multiply_line_with_rect_wave(start: Coordinate, stop: Coordinate, amplitude:
 
 def get_heart_coordinates_cartesian(t: float, max_amplitude:float = 0.1):
     # original equation (use i.e. t in range [0., 6.5] for a full rotation)
+    if max_amplitude > 0.5:
+        raise ValueError(f"Maximum amplitude cannot greater than 0.5 (25% of the canvas width/height)")
     x = -np.sqrt(2) * np.sin(t) ** 3
     cos_t = np.cos(t)
     y = 2 * cos_t - cos_t ** 2 - cos_t ** 3
@@ -277,7 +279,7 @@ class CommandGenerator:
     def __init__(self,
                  mode: str = "rect_line",
                  num_segments: int = 250,
-                 max_amp=1.0,
+                 max_amp=0.2,  # % of 1.
                  spiral_b=0.5,
                  rotations=5,
                  width: float = 300.,
@@ -297,7 +299,7 @@ class CommandGenerator:
         self.rotations = 0
         self.max_size = None
         self.spiral_b = spiral_b
-        self.amp_factor = 0.4 * max_amp if self.mode == "rect_circle" else max_amp
+        self.amp_factor = 4. * max_amp if self.mode == "rect_circle" else max_amp
         # Note: max amp should be less than half of circle pattern size to make sure we're inside the canvas boundaries
         self.max_t = 6.5  # maximum parameter t for drawing a heart shape (assuming start is 0.0)
 
@@ -403,7 +405,7 @@ class CommandGenerator:
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
                 coordinate.to_polar(in_place=True)
-                coordinate[0] = correct_zero_crossing(self.prev[0], coordinate[0])
+                coordinate[0] = correct_angle(self.prev[0], coordinate[0])
                 self.prev = coordinate.copy()
             self.check_oob(coordinate)
 
@@ -414,6 +416,7 @@ class CommandGenerator:
             if coord[0] < 0 or coord[0] > self.canvas_width or coord[1] < 0 or coord[1] > self.canvas_height:
                 raise ValueError(f"Coordinate is out of bounds, got: {coord} ({self.coord_mode})")
         else:
+            print(coord)
             if abs(coord[1]) >= self.canvas_height or abs(coord[1]) >= self.canvas_width or coord[1] > 0.:
                 raise ValueError(f"Coordinate is out of bounds, got: {coord} ({self.coord_mode})")
 
@@ -454,7 +457,7 @@ class CommandGenerator:
             else:
                 coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
                 coordinate.to_polar(in_place=True)
-                ret = correct_zero_crossing(self.prev[0], coordinate[0])
+                ret = correct_angle(self.prev[0], coordinate[0])
                 coordinate[0] = ret
                 self.prev = coordinate.copy()
             self.check_oob(coordinate)
@@ -521,7 +524,7 @@ class CommandGenerator:
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
                 coordinate.to_polar(in_place=True)
-                coordinate[0] = correct_zero_crossing(self.prev[0], coordinate[0])
+                coordinate[0] = correct_angle(self.prev[0], coordinate[0])
                 self.prev = coordinate.copy()
             self.check_oob(coordinate)
         return seg_coords
@@ -543,7 +546,7 @@ class CommandGenerator:
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
             else:
                 coordinate.to_polar(in_place=True)
-                coordinate[0] = correct_zero_crossing(self.prev[0], coordinate[0])
+                coordinate[0] = correct_angle(self.prev[0], coordinate[0])
                 self.prev = coordinate.copy()
             self.check_oob(coordinate)
 
@@ -659,7 +662,7 @@ class CommunicationInterface:
     """Class that handles communicating with the device, the bandpower calculator and the command generator"""
     def __init__(self, device: explorepy.Explore, port: serial.Serial, sr: int = 250, channel_num=8,
                  drawing_mode="rect_circle", calibration_time=20, file_path=None, canvas_size=[300., 350.],
-                 n_segments=250, max_amp=1.0, spiral_b=0.5, rotations=5, coordinate_system="cartesian", canvas=None):
+                 n_segments=250, max_amp=0.1, spiral_b=0.5, rotations=5, coordinate_system="cartesian", canvas=None):
         self.explore_device = device
         self.serial_port = port
         self.calibration_thread = threading.Thread(target=self.write_calibration_commands)
@@ -984,7 +987,7 @@ def main():
     arg_parser.add_argument("--num_segments", nargs=1, type=int, default=[250],
                             help="Number of segments to draw (this determines how often the EEG data will be queried "
                                  "for one session)")
-    arg_parser.add_argument("--amplitude_factor", nargs=1, type=float, default=[1.0],
+    arg_parser.add_argument("--amplitude_factor", nargs=1, type=float, default=[0.1],
                             help="The factor determine the maximal amplitude of the rectangular signal (default: 1.0)")
     arg_parser.add_argument("--spiral_b", nargs=1, type=float, default=[0.5],
                             help="The factor b used to calculate the segment positions inside the archimedean spiral "
