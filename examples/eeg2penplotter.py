@@ -266,7 +266,7 @@ def get_heart_coordinates_cartesian(t: float, max_amplitude:float = 0.1):
     y /= y_range
     y += y_offset
     y += 0.5
-    range_after_amplitude = 1 - 2 * max_amplitude
+    range_after_amplitude = 0.8 - 2 * max_amplitude
     y *= range_after_amplitude
     x *= range_after_amplitude
     return x, y
@@ -310,7 +310,7 @@ class CommandGenerator:
         self.spiral_b = spiral_b
         if max_amp <=0:
             if self.mode == "rect_circle":
-                self.amp_factor = 1.0
+                self.amp_factor = 1.0  # 0.8 - 0.9 might prevent crossing over 0 accidentally
             elif self.mode == "rect_spiral":
                 self.amp_factor = 2.0
             elif self.mode == "rect_line":
@@ -516,6 +516,7 @@ class CommandGenerator:
         self.current_coord = stop.copy()
 
         for coordinate in coordinates:
+            coordinate.scale(2.0, 2.0, in_place=True)
             coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
@@ -609,6 +610,8 @@ class CommandGenerator:
             amp = 0.0
         else:
             amp = (np.mean(buffer) - val_min) / (val_max - val_min)
+            amp = 1.0 if amp > 1.0 else amp
+            amp = -1.0 if amp < -1.0 else amp
             amp *= self.amp_factor
 
         ret = self.generate_segment_coordinates(amplitude=amp)
@@ -629,10 +632,6 @@ class CommandGenerator:
 
         Returns: The list of GCode commands for the next segment
         """
-        #if self.current_segment == -1:
-        #    self.current_segment = 0
-        #    return self.create_calibration_commands()
-        #else:
         return self.get_segment_commands(buffer, val_min, val_max)
 
 
@@ -792,8 +791,7 @@ class CommunicationInterface:
             time.sleep(1.)  # Add artificial delay
         self.cmd_thread_started = True
         alpha = self.bp_buffer['Alpha']
-        print(f"Buffer mean: {np.mean(alpha)}, max: {self.alpha_max}, min: {self.alpha_min}")
-        cmds = self.command_generator.get_commands(alpha, self.alpha_min, self.alpha_max)
+        cmds = self.command_generator.get_commands([alpha], self.alpha_min, self.alpha_max)
         self.cmd_ret = False
         if len(cmds) <= 0:
             if self.file and not self.file.closed:
