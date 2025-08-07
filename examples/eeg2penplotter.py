@@ -668,6 +668,11 @@ class CommunicationInterface:
         self.calibration_thread = threading.Thread(target=self.write_calibration_commands)
         self.calibration_thread_started = False
 
+        self.cmd_thread = threading.Thread(target=self.write_commands)
+        self.cmd_thread_started = False
+        self.cmd_ret = False
+        self.on_last_segment = False
+
         self.has_beeped = False
         self.sr = sr
         self.file = None
@@ -781,15 +786,23 @@ class CommunicationInterface:
         print("Finished writing calibration commands to plotter!\n")
         return True
 
-    def write_commands(self) -> bool:
+    def write_commands(self):
         """Gets commands based on the bandpower buffer and write them to a file and the port (if available)"""
+        if not self.serial_port:
+            time.sleep(1.)  # Add artificial delay
+        self.cmd_thread_started = True
         alpha = self.bp_buffer['Alpha']
+        print(f"Buffer mean: {np.mean(alpha)}, max: {self.alpha_max}, min: {self.alpha_min}")
         cmds = self.command_generator.get_commands(alpha, self.alpha_min, self.alpha_max)
+        self.cmd_ret = False
         if len(cmds) <= 0:
             if self.file and not self.file.closed:
                 print(f"Closing file {self.file.name}")
                 self.file.close()
-            return False
+            self.cmd_ret = False
+            self.cmd_thread_started = False
+            self.on_last_segment = True
+            return
 
         if self.file and not self.file.closed:
             print("Writing commands to file:")
@@ -798,7 +811,9 @@ class CommunicationInterface:
                 self.file.write(c.decode("utf-8"))
 
         if not self.serial_port:
-            return True
+            self.cmd_ret = True
+            self.cmd_thread_started = False
+            return
 
         print("Writing commands to plotter...")
         for cmd in cmds:
@@ -812,7 +827,9 @@ class CommunicationInterface:
                 ret = self.serial_port.read_until()
             self.wait_for_idle()
         print("Finished writing commands to plotter!")
-        return True
+        self.cmd_ret = True
+        self.cmd_thread_started = False
+        return
 
     def run_logic(self):
         ret = True
@@ -843,7 +860,17 @@ class CommunicationInterface:
                 print("Calibration thread for pen plotter is still alive, attempting to wait for it to finish...")
                 self.calibration_thread.join()
                 print("Calibration thread for pen plotter has finished, continuing...")
-            ret = self.write_commands()
+            if not self.cmd_thread.is_alive() and not self.cmd_thread_started:
+                print("Starting command thread...")
+                self.cmd_thread = threading.Thread(target=self.write_commands)
+                self.cmd_thread.start()
+                self.cmd_thread_started = True
+            if self.cmd_thread.is_alive():
+                ret = True
+            else:
+                ret = self.cmd_ret
+            if self.on_last_segment:
+                ret = False
         return ret
 
     def run(self, event = None):
@@ -868,8 +895,10 @@ class CommunicationInterface:
                 self.bp_current_indices[k] += 1
                 self.bp_lengths[k] = min(self.bp_lengths[k] + 1, self.bp_buffer_max_length)
                 self.bp_current_indices[k] %= self.bp_buffer_max_length
-            self.alpha_max = max(np.mean(self.bp_buffer['Alpha'][:self.bp_lengths['Alpha']]), self.alpha_max)
-            self.alpha_min = min(np.mean(self.bp_buffer['Alpha'][:self.bp_lengths['Alpha']]), self.alpha_min)
+
+            if self.mode == 0:
+                self.alpha_max = max(np.mean(self.bp_buffer['Alpha'][:self.bp_lengths['Alpha']]), self.alpha_max)
+                self.alpha_min = min(np.mean(self.bp_buffer['Alpha'][:self.bp_lengths['Alpha']]), self.alpha_min)
             return True
         return False
 
