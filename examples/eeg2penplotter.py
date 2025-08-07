@@ -202,7 +202,7 @@ class BandpowerCalculator:
         if method == "periodogram":
             freqs, psd = periodogram(data, fs, window='hann')
         elif method == "welch":
-            freqs, psd = welch(data, fs, window='hann', nperseg=500, noverlap=250)
+            freqs, psd = welch(data, fs, window='hann',)
         elif method == "multitaper":
             psd, freqs = psd_array_multitaper(data, fs, verbose="ERROR")
         else:
@@ -272,6 +272,15 @@ def get_heart_coordinates_cartesian(t: float, max_amplitude:float = 0.1):
     return x, y
 
 
+def get_circle_coordinates_from_degree(theta: float, max_amplitude:float = 0.1):
+    x = np.cos(np.deg2rad(theta))
+    y = np.sin(np.deg2rad(theta))
+    range_after_amplitude = 1 - 2 * max_amplitude
+    y *= range_after_amplitude
+    x *= range_after_amplitude
+    return x, y
+
+
 class CommandGenerator:
     """Class that generates pattern commands as GCode that can be interpreted by CNC machines, i.e. pen plotters"""
     _valid_modes = ["rect_line", "rect_circle", "rect_spiral", "rect_heart"]
@@ -299,7 +308,17 @@ class CommandGenerator:
         self.rotations = 0
         self.max_size = None
         self.spiral_b = spiral_b
-        self.amp_factor = 4. * max_amp if self.mode == "rect_circle" else max_amp
+        if max_amp <=0:
+            if self.mode == "rect_circle":
+                self.amp_factor = 1.0
+            elif self.mode == "rect_spiral":
+                self.amp_factor = 2.0
+            elif self.mode == "rect_line":
+                self.amp_factor = 0.5
+            elif self.mode == "rect_heart":
+                self.amp_factor = 0.1
+        else:
+            self.amp_factor = max_amp
         # Note: max amp should be less than half of circle pattern size to make sure we're inside the canvas boundaries
         self.max_t = 6.5  # maximum parameter t for drawing a heart shape (assuming start is 0.0)
 
@@ -416,53 +435,8 @@ class CommandGenerator:
             if coord[0] < 0 or coord[0] > self.canvas_width or coord[1] < 0 or coord[1] > self.canvas_height:
                 raise ValueError(f"Coordinate is out of bounds, got: {coord} ({self.coord_mode})")
         else:
-            print(coord)
-            if abs(coord[1]) >= self.canvas_height or abs(coord[1]) >= self.canvas_width or coord[1] > 0.:
+            if abs(coord[1]) > self.canvas_height or abs(coord[1]) > self.canvas_width or coord[1] > 0.:
                 raise ValueError(f"Coordinate is out of bounds, got: {coord} ({self.coord_mode})")
-
-    def generate_segment_coordinates_circle(self,
-                                            width: float,
-                                            offset: Coordinate,
-                                            rotation: float,
-                                            amplitude: float = 0.1) -> list[Coordinate]:
-        """
-        Generate a set of coordinates that represent one segment of a circle. The segment is a line multiplied by a
-        rectangular wave.
-
-        Args:
-            width (float): The width of the segment
-            offset (Coordinate): The offset to translate the segment to
-            rotation (float): The target rotation of the segment
-            amplitude (float): The amplitude of the overlaid rectangular wave
-        """
-        seg_coords = []
-
-        coord = Coordinate(0.0, 0.0)
-
-        seg_coords.append(coord.translate(0.0, amplitude, in_place=True))
-        seg_coords.append(coord.translate(width / 2., 0.0, in_place=True))
-        seg_coords.append(coord.translate(0.0, -2 * amplitude, in_place=True))
-        seg_coords.append(coord.translate(width / 2., 0.0, in_place=True))
-        seg_coords.append(coord.translate(0.0, amplitude, in_place=True))
-
-        for coordinate in seg_coords:
-            coordinate.rotate(-rotation, in_place=True)
-            coordinate.translate(offset[0], offset[1], in_place=True)
-            self.current_coord = coordinate.copy()
-            coordinate.translate(0.0, 0.5, in_place=True)  # move 0.5 up since we start at Y = 0.0
-            # Scale all coordinates to fit the canvas and move to its middle
-            if self.coord_mode == "cartesian":
-                coordinate.scale(self.canvas_width / 2., self.canvas_height / 2., in_place=True)
-                coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
-            else:
-                coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
-                coordinate.to_polar(in_place=True)
-                ret = correct_angle(self.prev[0], coordinate[0])
-                coordinate[0] = ret
-                self.prev = coordinate.copy()
-            self.check_oob(coordinate)
-
-        return seg_coords
 
     def generate_segment_coordinates_spiral(self,
                                             offset: Coordinate,
@@ -518,7 +492,8 @@ class CommandGenerator:
         self.current_coord = stop.copy()
         for coordinate in seg_coords:
             # Scale all coordinates to fit the canvas and move to its middle
-            coordinate.scale(1. / self.max_size, 1. / self.max_size, in_place=True)
+            coordinate.scale(1. / self.max_size, 1. / self.max_size, in_place=True)  # -0.5; 0.5
+            coordinate.scale(2., 2., in_place=True)  # -1.0, 1.0
             coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
             if self.coord_mode == "cartesian":
                 coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
@@ -552,6 +527,30 @@ class CommandGenerator:
 
         return coordinates
 
+    def generate_segment_coordinates_circle(self, t1: float, t2: float, amplitude: float):
+        x, y = get_circle_coordinates_from_degree(t1, self.amp_factor)
+        start = Coordinate(x, y)
+
+        x, y = get_circle_coordinates_from_degree(t2, self.amp_factor)
+        stop = Coordinate(x, y)
+
+        coordinates = multiply_line_with_rect_wave(start, stop, amplitude)
+
+        self.current_coord = stop.copy()
+
+        for coordinate in coordinates:
+            coordinate.scale(0.5, 0.5, in_place=True)
+            coordinate.scale(self.canvas_width, self.canvas_height, in_place=True)
+            if self.coord_mode == "cartesian":
+                coordinate.translate(self.canvas_middle[0], self.canvas_middle[1], in_place=True)
+            else:
+                coordinate.to_polar(in_place=True)
+                coordinate[0] = correct_angle(self.prev[0], coordinate[0])
+                self.prev = coordinate.copy()
+            self.check_oob(coordinate)
+
+        return coordinates
+
     def generate_segment_coordinates(self, amplitude: float = 0.1) -> list[Coordinate]:
         """
         Generates segment coordinates according to current mode (rect_circle, rect_spiral or rect_line)
@@ -561,8 +560,9 @@ class CommandGenerator:
         """
         offset = self.current_coord
         if self.mode == "rect_circle":
-            r = self.current_segment * (self.rotations * 360. / self.num_segments)
-            return self.generate_segment_coordinates_circle(self.current_width * 2, offset, r, amplitude)
+            t1 = (self.current_segment / self.num_segments) * 360.
+            t2 = ((self.current_segment + 1) / self.num_segments) * 360.
+            return self.generate_segment_coordinates_circle(t1, t2, amplitude)
         elif self.mode == "rect_line":
             return self.generate_segment_coordinates_line(self.current_width * 2, offset, amplitude)
         elif self.mode == "rect_spiral":
@@ -667,6 +667,7 @@ class CommunicationInterface:
         self.serial_port = port
         self.calibration_thread = threading.Thread(target=self.write_calibration_commands)
         self.calibration_thread_started = False
+
         self.has_beeped = False
         self.sr = sr
         self.file = None
@@ -679,8 +680,8 @@ class CommunicationInterface:
                 print(f"Opening file {file_path}")
                 self.file = open(p, "w")
 
-        self.val_buffer_time = 8
-        self.val_buffer_max_length = self.sr * 8
+        self.val_buffer_time = 1
+        self.val_buffer_max_length = self.sr * self.val_buffer_time
 
         self.update_rate = 30  # in Hz
         self.sleep_after_write = 0.1  # in s
@@ -782,7 +783,8 @@ class CommunicationInterface:
 
     def write_commands(self) -> bool:
         """Gets commands based on the bandpower buffer and write them to a file and the port (if available)"""
-        cmds = self.command_generator.get_commands(self.bp_buffer['Alpha'], self.alpha_min, self.alpha_max)
+        alpha = self.bp_buffer['Alpha']
+        cmds = self.command_generator.get_commands(alpha, self.alpha_min, self.alpha_max)
         if len(cmds) <= 0:
             if self.file and not self.file.closed:
                 print(f"Closing file {self.file.name}")
@@ -987,7 +989,7 @@ def main():
     arg_parser.add_argument("--num_segments", nargs=1, type=int, default=[250],
                             help="Number of segments to draw (this determines how often the EEG data will be queried "
                                  "for one session)")
-    arg_parser.add_argument("--amplitude_factor", nargs=1, type=float, default=[0.1],
+    arg_parser.add_argument("--amplitude_factor", nargs=1, type=float, default=[-1.0],
                             help="The factor determine the maximal amplitude of the rectangular signal (default: 1.0)")
     arg_parser.add_argument("--spiral_b", nargs=1, type=float, default=[0.5],
                             help="The factor b used to calculate the segment positions inside the archimedean spiral "
