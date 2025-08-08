@@ -196,8 +196,7 @@ class Explore:
                                                           adc_mask=SettingsManager(
                                                               self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
-                                                          do_overwrite=do_overwrite,
-                                                          timestamp=str(self.stream_processor.parser._time_offset))  # noqa: E501
+                                                          do_overwrite=do_overwrite)  # noqa: E501
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
