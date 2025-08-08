@@ -358,16 +358,17 @@ class CommandGenerator:
         else:
             cmds = [b"$HY\n",  # Homing sequence
                     b"G92X0Y0\n",  # Set as (0, 0)
+                    self.create_raise_pen_command(),
                     f"G1Y{int(self.canvas_width)}F2500\n".encode(),  # Move to middle of the circle
                     b"G92X0Y0\n",  # Set as (0, 0)
                     ]
         return cmds
 
     def create_raise_pen_command(self):
-        raise NotImplementedError
+        return b"M3 S120\n"
 
     def create_lower_pen_command(self):
-        raise NotImplementedError
+        return b"M3 S30\n"
 
     def create_line_command(self, stop: Coordinate) -> bytes:
         """Create a GCode command to move to a given coordinate"""
@@ -589,6 +590,9 @@ class CommandGenerator:
         cmds = []
         for coordinate in coordinates:
             cmds.append(self.create_line_command(coordinate))
+        if self.current_segment == 0:
+            print("Writing command to lower pen...")
+            cmds.insert(1, self.create_lower_pen_command())
         return cmds
 
     def get_segment_commands(self, buffer, val_min, val_max):
@@ -666,6 +670,8 @@ class CommunicationInterface:
         self.serial_port = port
         self.calibration_thread = threading.Thread(target=self.write_calibration_commands)
         self.calibration_thread_started = False
+        self.bandpower_over_time = []
+        self.bandpower_over_time_when_written = []
 
         self.cmd_thread = threading.Thread(target=self.write_commands)
         self.cmd_thread_started = False
@@ -788,9 +794,10 @@ class CommunicationInterface:
     def write_commands(self):
         """Gets commands based on the bandpower buffer and write them to a file and the port (if available)"""
         if not self.serial_port:
-            time.sleep(1.)  # Add artificial delay
+            time.sleep(.2)  # Add artificial delay
         self.cmd_thread_started = True
         alpha = self.bp_buffer['Alpha']
+        self.bandpower_over_time_when_written.append((time.time(), np.mean(alpha)))
         cmds = self.command_generator.get_commands([alpha], self.alpha_min, self.alpha_max)
         self.cmd_ret = False
         if len(cmds) <= 0:
@@ -832,6 +839,7 @@ class CommunicationInterface:
     def run_logic(self):
         ret = True
         r = self.get_bandpowers()
+        self.bandpower_over_time.append((time.time(), np.mean(self.bp_buffer['Alpha'])))
         if r and self.mode == 0:
             if not self.calibration_thread.is_alive() and not self.calibration_thread_started:
                 print("Starting calibration thread for pen plotter...")
@@ -989,6 +997,7 @@ if _VISPY_AVAILABLE:
                 self.pattern_program["aspect_ratio"] = width/height
             gloo.set_viewport(0, 0, width, height)
 
+import matplotlib.pyplot as plt
 
 def main():
     draw_canvas = True
@@ -1060,6 +1069,15 @@ def main():
         app.run()
     else:
         gen.run()
+
+    print(gen.bandpower_over_time)
+    print(gen.bandpower_over_time_when_written)
+    fig, ax = plt.subplots(2, 1)
+    arr1 = np.array(gen.bandpower_over_time)
+    arr2 = np.array(gen.bandpower_over_time_when_written)
+    ax[0].plot(arr1[:, 0], arr1[:, 1])
+    ax[1].plot(arr2[:, 0], arr2[:, 1])
+    plt.show()
 
 
 if __name__ == '__main__':
