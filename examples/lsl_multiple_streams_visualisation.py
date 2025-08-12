@@ -76,6 +76,8 @@ class LslModule:
                 self.signal_buffers[s.name()] = SignalBuffer(name=s.name(),
                                                              ch_count=s.channel_count(),
                                                              max_samples=self.max_samples)
+        if len(self.inlet_dicts) <= 0:
+            self.quit()
 
     def pull_data(self):
         for inlet_dict in self.inlet_dicts:
@@ -93,7 +95,8 @@ class LslModule:
 
 class SignalViewer:
     def __init__(self):
-        self.canvas = scene.SceneCanvas
+        self.canvas = scene.SceneCanvas()
+        self.canvas.show()
         self.lines = {}
 
     def add_line(self, name, pos, col=(1.,1.,1.,1.)):
@@ -107,7 +110,7 @@ class SignalViewer:
         self.lines[name].set_data(pos=pos, color=col)
         self.lines[name].transform.scale = [1./x_width, 1.]
 
-    def on_timer(self):
+    def on_timer(self, event):
         pass
 
 
