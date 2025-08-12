@@ -1,6 +1,7 @@
 import argparse
 import os.path
 import time
+from typing import Union
 
 import numpy as np
 import serial
@@ -161,7 +162,8 @@ class Coordinate:
 
 class BandpowerCalculator:
     """Helper class that holds necessary data to calculate the bandpower(s) on a given signal"""
-    def __init__(self, fs: float = 250.0):
+    def __init__(self, fs: float = 250.0, active_channels:Union[list, None] = None):
+        self.ch_mask = active_channels
         self.fs = fs
         self.bands = {
             'Delta': (0.5, 4),
@@ -182,6 +184,9 @@ class BandpowerCalculator:
             relative (bool): Whether to calculate the bandpower relative to the other bandpowers
         """
         bandpowers = {}
+        if self.ch_mask:
+            if len(self.ch_mask) == data.shape[0]:
+                data = data[self.ch_mask, :]
         for name, band in self.bands.items():
             bp = self._bandpower(data, self.fs, method, band, relative)  # array of channels
             bandpowers[name] = np.mean(bp)
@@ -199,28 +204,15 @@ class BandpowerCalculator:
             band (str): The band to calculate the power on (Alpha, Gamma, Beta etc.)
             relative (bool): Whether to calculate the bandpower relative to the other bandpowers
         """
-        if method == "periodogram":
-            freqs, psd = periodogram(data, fs, window='hann')
-        elif method == "welch":
-            freqs, psd = welch(data, fs, window='hann',)
-        elif method == "multitaper":
-            psd, freqs = psd_array_multitaper(data, fs, verbose="ERROR")
-        else:
-            raise ValueError(f"Unknown method: {method}")
+        freqs, psd = periodogram(data, fs)
 
         freq_res = freqs[1] - freqs[0]
         idx_band = np.logical_and(freqs >= band[0], freqs <= band[1])
-        if psd.ndim == 1:
-            bp = simpson(psd[idx_band], dx=freq_res)
-        else:
-            bp = simpson(psd[:, idx_band], dx=freq_res)
+        bp = np.trapezoid(psd[:, idx_band], dx=freq_res)
 
         if relative:
             idx_total = np.logical_and(freqs >= 0.5, freqs <= 50.0)
-            if psd.ndim == 1:
-                total = simpson(psd[idx_total], dx=freq_res)
-            else:
-                total = simpson(psd[:, idx_total], dx=freq_res)
+            total = np.trapezoid(psd[:, idx_total], dx=freq_res)
             with np.errstate(divide='ignore', invalid='ignore'):
                 bp = np.divide(bp, total, out=np.zeros_like(bp), where=total != 0)
 
@@ -663,7 +655,7 @@ def indicate_next_step(next_mode: int):
 
 class CommunicationInterface:
     """Class that handles communicating with the device, the bandpower calculator and the command generator"""
-    def __init__(self, device: explorepy.Explore, port: serial.Serial, sr: int = 250, channel_num=8,
+    def __init__(self, device: explorepy.Explore, port: serial.Serial, bp_channel_mask:Union[list, None]=None, sr: int = 250, channel_num=8,
                  drawing_mode="rect_circle", calibration_time=20, file_path=None, canvas_size=[300., 350.],
                  n_segments=250, max_amp=0.1, spiral_b=0.5, rotations=5, coordinate_system="cartesian", canvas=None):
         self.explore_device = device
@@ -671,7 +663,9 @@ class CommunicationInterface:
         self.calibration_thread = threading.Thread(target=self.write_calibration_commands)
         self.calibration_thread_started = False
         self.bandpower_over_time = []
+        self.bandpowers_over_time = []
         self.bandpower_over_time_when_written = []
+        self.exg_over_time = []
 
         self.cmd_thread = threading.Thread(target=self.write_commands)
         self.cmd_thread_started = False
@@ -719,7 +713,7 @@ class CommunicationInterface:
         self.alpha_max = 0.0
         self.alpha_min = 1.0
 
-        self.bp_calculator = BandpowerCalculator(fs=float(sr))
+        self.bp_calculator = BandpowerCalculator(fs=float(sr), active_channels=None)
         self.command_generator = CommandGenerator(mode=drawing_mode, num_segments=n_segments, max_amp=max_amp,
                                                   spiral_b=spiral_b, rotations=rotations, width=canvas_size[0],
                                                   height=canvas_size[1], coordinate_system=coordinate_system,
@@ -733,13 +727,17 @@ class CommunicationInterface:
 
     def on_exg(self, packet):
         """Get a packet and input it into the internal circular buffer"""
-        p = packet.get_data()[1]
+        p = packet.get_data()
+        exg_line = [p[0]]
+        p = p[1]
         for i in range(len(p)):
+            exg_line.append(p[i][0])
             # Small implementation of a circular buffer for the packet
             self.val_buffers[i][self.val_current_indices[i]] = p[i][0]
             self.val_current_indices[i] += 1
             self.val_lengths[i] = min(self.val_lengths[i] + 1, self.val_buffer_max_length)
             self.val_current_indices[i] %= self.val_buffer_max_length
+        self.exg_over_time.append(exg_line)
 
     def wait_for_idle(self):
         print("Waiting until plotter is idle...")
@@ -840,6 +838,12 @@ class CommunicationInterface:
         ret = True
         r = self.get_bandpowers()
         self.bandpower_over_time.append((time.time(), np.mean(self.bp_buffer['Alpha'])))
+        self.bandpowers_over_time.append([time.time(),
+                                          self.bp_buffer['Delta'][self.bp_current_indices['Delta']],
+                                          self.bp_buffer['Theta'][self.bp_current_indices['Theta']],
+                                          self.bp_buffer['Alpha'][self.bp_current_indices['Alpha']],
+                                          self.bp_buffer['Beta'][self.bp_current_indices['Beta']],
+                                          self.bp_buffer['Gamma'][self.bp_current_indices['Gamma']]])
         if r and self.mode == 0:
             if not self.calibration_thread.is_alive() and not self.calibration_thread_started:
                 print("Starting calibration thread for pen plotter...")
@@ -998,6 +1002,7 @@ if _VISPY_AVAILABLE:
             gloo.set_viewport(0, 0, width, height)
 
 import matplotlib.pyplot as plt
+import pandas as pd
 
 def main():
     draw_canvas = True
@@ -1021,7 +1026,6 @@ def main():
                             help="The maximum canvas size of the pen plotter in mm, default is 200.0mm x 200.0mm",
                             metavar=("WIDTH", "HEIGHT"))
     # TODO add varying b, varying number of rotations, num segments
-    # TODO test line again
     arg_parser.add_argument("--num_segments", nargs=1, type=int, default=[250],
                             help="Number of segments to draw (this determines how often the EEG data will be queried "
                                  "for one session)")
@@ -1037,6 +1041,9 @@ def main():
                             choices=["cartesian", "polar"])
     arg_parser.add_argument("--calibration_time", nargs=1, type=int, default=[20],
                             help="The amount of time to gather alpha power data for calibration")
+    arg_parser.add_argument("--channel_mask", nargs=1, type=str, default=[None],
+                            help="A channel mask to apply for the bandpower calculation (i.e. 00111111 means ch1 and "
+                                 "ch2 are deactivated)")
 
     args = arg_parser.parse_args()
 
@@ -1050,8 +1057,13 @@ def main():
     explore_device = explorepy.Explore()
     explore_device.connect(device_name)
 
+    ch_mask = args.channel_mask[0]
+    if ch_mask:
+        ch_mask = [element == "1" for element in args.channel_mask]
+
     gen = CommunicationInterface(explore_device,
                                  serial_port if p else p,
+                                 bp_channel_mask=ch_mask,
                                  drawing_mode=f"rect_{args.mode[0]}",
                                  calibration_time=args.calibration_time[0],
                                  file_path=args.file[0],
@@ -1070,11 +1082,30 @@ def main():
     else:
         gen.run()
 
-    print(gen.bandpower_over_time)
-    print(gen.bandpower_over_time_when_written)
+    analyse(gen.exg_over_time[:-5],
+            gen.bandpowers_over_time[:-5],
+            gen.bandpower_over_time,
+            gen.bandpower_over_time_when_written)
+
+
+def analyse(exg_over_time, bandpowers_over_time, alpha_over_time, alpha_over_time_when_written, write_to_file=False):
+    if write_to_file:
+        as_np = np.array(exg_over_time)
+        as_df = pd.DataFrame(data=as_np[:, 1:],
+                             columns=["ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7", "ch8"], index=as_np[:, 0])
+        as_df.index.name = "TimeStamp"
+        as_df.to_csv("test_recording_exg.csv")
+
+        bandpowers_np = np.array(bandpowers_over_time)
+        bandpowers_df = pd.DataFrame(data=bandpowers_np[:, 1:],
+                                     columns=["Delta", "Theta", "Alpha", "Beta", "Gamma"], index=bandpowers_np[:, 0])
+        bandpowers_df.index.name = "TimeStamp"
+
+        bandpowers_df.to_csv("test_recording_bandpowers.csv")
+
     fig, ax = plt.subplots(2, 1)
-    arr1 = np.array(gen.bandpower_over_time)
-    arr2 = np.array(gen.bandpower_over_time_when_written)
+    arr1 = np.array(alpha_over_time)
+    arr2 = np.array(alpha_over_time_when_written)
     ax[0].plot(arr1[:, 0], arr1[:, 1])
     ax[1].plot(arr2[:, 0], arr2[:, 1])
     plt.show()
