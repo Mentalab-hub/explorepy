@@ -9,22 +9,33 @@ from pylsl import StreamInlet
 import threading
 
 class SignalBuffer:
-    def __init__(self, name, ch_count, max_samples):
+    _DEFAULT_SCALE = 100  # in uV
+    _OFFSET_MODES = ["mean", "fixed"]
+    _DEFAULT_OFFSET_MODE = _OFFSET_MODES[0]
+    def __init__(self, name, ch_count, max_samples, offset_mode="mean", fixed_offset=0.0):
         self.name = name
-        self.max_samples = max_samples
         self.ch_count = ch_count
+        self.max_samples = max_samples
+
+        self.offset_mode = offset_mode if offset_mode in self._OFFSET_MODES else self._DEFAULT_OFFSET_MODE
+
+        self.offsets = [fixed_offset] * ch_count
+        self.scales = [self._DEFAULT_SCALE] * ch_count
 
         self.current_index = 0
 
         self.buffer = np.empty(shape=self.max_samples,
-                               dtype=[("samples", np.float32, ch_count),
-                                      ("timestamps", np.float32, 1)])
+                               dtype=[("samples", np.float64, ch_count),
+                                      ("timestamps", np.float64, 1)])
 
     def insert_sample(self, samples, timestamp):
         self.buffer["samples"][self.current_index] = samples
         self.buffer["timestamps"][self.current_index] = timestamp
         self.current_index += 1
         self.current_index %= self.max_samples
+        if self.offset_mode == "mean":
+            for i in range(self.buffer["samples"].shape[1]):
+                self.offsets[i] = -self.buffer["samples"][:, i].mean()
 
     def get_all(self, sorted: bool = True):
         if sorted:
@@ -35,17 +46,29 @@ class SignalBuffer:
     def get_all_as_pos(self):
         """Return the internal buffer as buffer of positions"""
         rolled = self.get_all()
-        as_pos = np.empty(shape=(self.max_samples, self.ch_count), dtype=[("pos", np.float32, 2)])
+        as_pos = np.empty(shape=(self.max_samples, self.ch_count), dtype=[("pos", np.float64, 2)])
         for i in range(self.ch_count):
             as_pos["pos"][:, i] = np.stack((rolled["timestamps"][:].flatten(), rolled["samples"][:, i]), axis=1)
         return as_pos
+
+    def get_scales(self):
+        return self.scales
+
+    def set_scales(self, new_scales):
+        self.scales = new_scales
+
+    def get_offsets(self):
+        return self.offsets
+
+    def set_offsets(self, new_offsets):
+        self.offsets = new_offsets
 
 class LslModule:
     def __init__(self,
                  inlet_type: str = "ExG",
                  on_quit: Union[Callable, None] = None,
                  timeout: float = 10.,
-                 pull_timeout: float = .1):
+                 pull_timeout: float = .2):
         self.resolution_timeout = timeout
         self.pull_timeout = pull_timeout
         self.inlet_type = inlet_type
@@ -98,65 +121,93 @@ class LslModule:
 
 
 class SignalViewer:
+    _LINE_COLOURS = [(.8, .1, .1, 1.0),
+                     (.1, .8, .1, 1.0),
+                     (.1, .1, .8, 1.0),
+                     (.8, .8, .1, 1.0),
+                     (.1, .8, .8, 1.0),
+                     (.8, .1, .8, 1.0),
+                     (.8, .1, .8, 1.0),]
     def __init__(self, lsl_module: LslModule):
         self.lsl_module = lsl_module
         self.time_window = 10.
-        self.bg_colour = (0., 0., 0., 1.)  # black
-        self.line_colour = (1., 0., 0., 1.)  # red
+        self.bg_colour = (0.1, 0.1, 0.1, 1.)  # black
+        self.line_colour = (0., 0., 1., 1.)  # blue, default
         self.canvas = scene.SceneCanvas(bgcolor=self.bg_colour)
         self.canvas.show()
         self.lines = {}
+        self.line_scales = {}
+        self.lsl_time = 0.0
+        self.device_colors = {}
 
-    def add_line(self, name, pos, col=None):
+    def add_line(self, name, pos, offset=0.0, scale=1.0, col=None):
         if not col:
             col = self.line_colour
         self.lines[name] = []
+        pos[:, 0] -= self.lsl_time - self.time_window
+        pos[:, 1] += offset
         line = scene.visuals.Line(pos=pos, color=col, parent=self.canvas.scene)
         line.transform = scene.transforms.STTransform()
         self.lines[name] = line
+        self.line_scales[name] = scale
 
-    def update_line(self, name, pos, col=None):
+    def update_line(self, name, pos, offset=0.0, scale=1.0, col=None):
         if not col:
             col = self.line_colour
+        # start at 0 (x), center at 0 (y)
+        # this mitigates loss of precision from the float32 limit from vispy / OpenGL, to preserve precision totally,
+        # scaling could also be performed here instead of with the line's transform
+        # however, if this is run on the GPU, leaving scaling up to the transform will be a LOT more efficient than
+        # doing it here (this holds true for offsetting the line as well but slower offsetting is preferable to
+        # precision loss...)
+        pos[:, 0] -= self.lsl_time - self.time_window
+        pos[:, 1] += offset
         self.lines[name].set_data(pos=pos, color=col)
+        self.line_scales[name] = scale
 
     def update_transforms(self):
-        right_x = pylsl.local_clock()
-        left_x = right_x - self.time_window
         line_keys = list(self.lines)
         n_keys = len(line_keys)
         for i in range(len(line_keys)):
-            self.lines[line_keys[i]].transform.scale = [1. / self.time_window * self.canvas.size[0], 1.]
-            # translate is applied *after* scaling - which includes scaling with window size!
-            self.lines[line_keys[i]].transform.translate = [-left_x/self.time_window * self.canvas.size[0],
-                                                    400000. + ((i+1)/(n_keys+1)) * self.canvas.size[1]]  # mean (or baseline) + line offset in [0., 1.] * self.canvas.size[0]
+            self.lines[line_keys[i]].transform.scale = [1. / self.time_window * self.canvas.size[0],  # x (timestamp)
+                                                        1./self.line_scales[line_keys[i]]]  # y (signal)
+            self.lines[line_keys[i]].transform.translate = [0.0, # x (timestamp)
+                                                            ((i+1)/(n_keys+1)) * self.canvas.size[1]]  # y (signal)
+
+    def set_device_color(self, name, n):
+        self.device_colors[name] = self._LINE_COLOURS[n%len(self._LINE_COLOURS)]
 
     def on_timer(self, event):
         buffers = self.lsl_module.get_signal_buffers()
+        self.lsl_time = pylsl.local_clock()  # get local clock as common reference for all signals
         for name in buffers.keys():
+            if name not in self.device_colors:
+                self.set_device_color(name, len(self.device_colors.keys()))
             lines = buffers[name].get_all_as_pos()
+            offsets = buffers[name].get_offsets()
+            scales = buffers[name].get_scales()
             n_lines = lines.shape[1]
             for i in range(n_lines):
                 line = lines["pos"][:, i]
                 line_name = f"{name}_{i}"
                 if line_name not in self.lines.keys():
-                    self.add_line(name=line_name, pos=line)
+                    self.add_line(name=line_name, pos=line, offset=offsets[i], scale=scales[i], col=self.device_colors[name])
                 else:
-                    self.update_line(name=line_name, pos=line)
+                    self.update_line(name=line_name, pos=line, offset=offsets[i], scale=scales[i], col=self.device_colors[name])
         self.update_transforms()
 
 
 class Communicator:
     def __init__(self):
         app.use_app("glfw")
-        self.canvas_refresh_rate = 1. / 30.
-        self.lsl_refresh_rate = 1. / 30.
+        self.canvas_refresh_rate = 1. / 20.
+        self.lsl_refresh_rate = 1. / 20.
         self.status_refresh_rate = 1. / 10.
         self.quit_flag = False
 
         self.lsl_module = LslModule(inlet_type="ExG", on_quit=self.quit)
         self.signal_module = SignalViewer(self.lsl_module)
-        # note that the signal module is limited in update rate by LSL!
+        # note that the signal module is limited in update rate by LSL, not the other way around!
 
         self.canvas_timer = app.Timer(start=True, interval=self.canvas_refresh_rate, connect=self.signal_module.on_timer)
         self.lsl_timer = app.Timer(start=True, interval=self.lsl_refresh_rate, connect=self.lsl_module.on_timer)
