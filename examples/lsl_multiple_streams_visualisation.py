@@ -37,14 +37,15 @@ class SignalBuffer:
         rolled = self.get_all()
         as_pos = np.empty(shape=(self.max_samples, self.ch_count), dtype=[("pos", np.float32, 2)])
         for i in range(self.ch_count):
-            as_pos["pos"][:, i] = np.stack((rolled["samples"][:, i], rolled["timestamps"][:].flatten()), axis=1)
+            as_pos["pos"][:, i] = np.stack((rolled["timestamps"][:].flatten(), rolled["samples"][:, i]), axis=1)
+        return as_pos
 
 class LslModule:
     def __init__(self,
                  inlet_type: str = "ExG",
                  on_quit: Union[Callable, None] = None,
                  timeout: float = 10.,
-                 pull_timeout: float = 1.):
+                 pull_timeout: float = .1):
         self.resolution_timeout = timeout
         self.pull_timeout = pull_timeout
         self.inlet_type = inlet_type
@@ -72,7 +73,7 @@ class LslModule:
                 self.inlet_dicts.append({"name": s.name(),
                                          "type": s.type(),
                                          "ch_count": s.channel_count(),
-                                         "inlet": StreamInlet(s)})
+                                         "inlet": StreamInlet(s, processing_flags=pylsl.proc_clocksync)})
                 self.signal_buffers[s.name()] = SignalBuffer(name=s.name(),
                                                              ch_count=s.channel_count(),
                                                              max_samples=self.max_samples)
@@ -92,38 +93,70 @@ class LslModule:
             return
         self.pull_data()
 
+    def get_signal_buffers(self):
+        return self.signal_buffers
+
 
 class SignalViewer:
-    def __init__(self):
-        self.canvas = scene.SceneCanvas()
+    def __init__(self, lsl_module: LslModule):
+        self.lsl_module = lsl_module
+        self.time_window = 10.
+        self.bg_colour = (0., 0., 0., 1.)  # black
+        self.line_colour = (1., 0., 0., 1.)  # red
+        self.canvas = scene.SceneCanvas(bgcolor=self.bg_colour)
         self.canvas.show()
         self.lines = {}
 
-    def add_line(self, name, pos, col=(1.,1.,1.,1.)):
+    def add_line(self, name, pos, col=None):
+        if not col:
+            col = self.line_colour
         self.lines[name] = []
         line = scene.visuals.Line(pos=pos, color=col, parent=self.canvas.scene)
         line.transform = scene.transforms.STTransform()
-        self.lines[name].append(line)
+        self.lines[name] = line
 
-    def update_line(self, name, pos, col=(1.,1.,1.,1.)):
-        x_width = pos[-1, 1] - pos[0, 1]
+    def update_line(self, name, pos, col=None):
+        if not col:
+            col = self.line_colour
         self.lines[name].set_data(pos=pos, color=col)
-        self.lines[name].transform.scale = [1./x_width, 1.]
+
+    def update_transforms(self):
+        right_x = pylsl.local_clock()
+        left_x = right_x - self.time_window
+        line_keys = list(self.lines)
+        n_keys = len(line_keys)
+        for i in range(len(line_keys)):
+            self.lines[line_keys[i]].transform.scale = [1. / self.time_window * self.canvas.size[0], 1.]
+            # translate is applied *after* scaling - which includes scaling with window size!
+            self.lines[line_keys[i]].transform.translate = [-left_x/self.time_window * self.canvas.size[0],
+                                                    400000. + ((i+1)/(n_keys+1)) * self.canvas.size[1]]  # mean (or baseline) + line offset in [0., 1.] * self.canvas.size[0]
 
     def on_timer(self, event):
-        pass
+        buffers = self.lsl_module.get_signal_buffers()
+        for name in buffers.keys():
+            lines = buffers[name].get_all_as_pos()
+            n_lines = lines.shape[1]
+            for i in range(n_lines):
+                line = lines["pos"][:, i]
+                line_name = f"{name}_{i}"
+                if line_name not in self.lines.keys():
+                    self.add_line(name=line_name, pos=line)
+                else:
+                    self.update_line(name=line_name, pos=line)
+        self.update_transforms()
 
 
 class Communicator:
     def __init__(self):
         app.use_app("glfw")
-        self.canvas_refresh_rate = 1. / 5.
-        self.lsl_refresh_rate = 1. / 5.
-        self.status_refresh_rate = 1. / 5.
+        self.canvas_refresh_rate = 1. / 30.
+        self.lsl_refresh_rate = 1. / 30.
+        self.status_refresh_rate = 1. / 10.
         self.quit_flag = False
 
         self.lsl_module = LslModule(inlet_type="ExG", on_quit=self.quit)
-        self.signal_module = SignalViewer()
+        self.signal_module = SignalViewer(self.lsl_module)
+        # note that the signal module is limited in update rate by LSL!
 
         self.canvas_timer = app.Timer(start=True, interval=self.canvas_refresh_rate, connect=self.signal_module.on_timer)
         self.lsl_timer = app.Timer(start=True, interval=self.lsl_refresh_rate, connect=self.lsl_module.on_timer)
