@@ -10,7 +10,7 @@ from pylsl import StreamInlet
 import threading
 
 class SignalBuffer:
-    _DEFAULT_SCALE = 100  # in uV
+    _DEFAULT_SCALE = 100.  # in uV
     _OFFSET_MODES = ["mean", "fixed"]
     _DEFAULT_OFFSET_MODE = _OFFSET_MODES[0]
     def __init__(self, name, ch_count, max_samples, offset_mode="mean", fixed_offset=0.0):
@@ -72,18 +72,22 @@ class LslModule:
                  pull_timeout: float = .2,
                  devices=None,
                  offset_mode="mean",
-                 offset=0.0):
+                 offset=0.0,
+                 max_sr=1000,
+                 use_hypersync=True):
         self.resolution_timeout = timeout
         self.pull_timeout = pull_timeout
         self.inlet_type = inlet_type
         self.on_quit = on_quit
+
+        self.use_hypersync = use_hypersync
 
         self.devices = devices
         self.offset_mode = offset_mode
         self.fixed_offset = offset
 
         self.signal_buffers = {}
-        self.max_samples = 10 * 250  # assume 10s at 250Hz
+        self.max_samples = 10 * max_sr  # assume 10s at 250Hz
 
         self.inlet_dicts: list[dict[str, StreamInlet]] = []
         self.inlet_finder = threading.Thread(target=self.find_inlets)
@@ -101,17 +105,24 @@ class LslModule:
             self.quit()
         for s in found_streams:
             stream_name = s.name()
-            if s.type() == self.inlet_type and "HyperSync" in stream_name:
-                add_stream = False
+            stream_found = s.type() == self.inlet_type
+            if self.use_hypersync:
+                stream_found = stream_found and "HyperSync" in stream_name
+            else:
+                stream_found = stream_found and "HyperSync" not in stream_name
+
+            if stream_found:
+                print(f"Found stream that matches inlet type (ExG): {stream_name}")
+                stream_found = False
 
                 if not self.devices:
-                    add_stream = True
+                    stream_found = True
                 else:
                     for device_id in self.devices:
                         if device_id in stream_name:
-                            add_stream = True
+                            stream_found = True
 
-                if add_stream:
+                if stream_found:
                     self.inlet_dicts.append({"name": s.name(),
                                              "type": s.type(),
                                              "ch_count": s.channel_count(),
@@ -219,14 +230,15 @@ class SignalViewer:
 
 
 class Communicator:
-    def __init__(self, devices=None, offset_mode="mean", offset=0.0):
+    def __init__(self, scale=100., devices=None, offset_mode="mean", offset=0.0, hypersync=True):
         app.use_app("glfw")
         self.canvas_refresh_rate = 1. / 20.
         self.lsl_refresh_rate = 1. / 20.
         self.status_refresh_rate = 1. / 10.
         self.quit_flag = False
 
-        self.lsl_module = LslModule(inlet_type="ExG", on_quit=self.quit, devices=devices, offset_mode=offset_mode, offset=offset)
+        self.lsl_module = LslModule(inlet_type="ExG", on_quit=self.quit, devices=devices, offset_mode=offset_mode,
+                                    offset=offset, use_hypersync=hypersync)
         self.signal_module = SignalViewer(self.lsl_module)
         # note that the signal module is limited in update rate by LSL, not the other way around!
 
@@ -246,6 +258,9 @@ class Communicator:
 
 def main():
     args = ArgumentParser()
+    args.add_argument("-s", "--scale", default=100.0, type=float, required=False,
+                      help="The scale (in uV) to apply to the plots (the plots will scale to +- scale, meaning that "
+                           "the range it will be scaled to is twice the chosen scale value)")
     args.add_argument("-d", "--devices", nargs='*', required=False, default=None, type=str,
                       help="The device IDs to connect to (default is None, meaning all found Explore HyperSync streams "
                            "will be connected to)")
@@ -255,8 +270,17 @@ def main():
                            "visible signal will be subtracted from the signal to center it in the plot.")
     args.add_argument("--offset", default=0.0, type=float, required=False,
                       help="The offset to add to the signal values if the offset mode is \"fixed\"")
+    if __debug__:
+        args.add_argument("--hypersync", default=1, type=int, required=False,
+                          help="Whether to fetch hypersync streams or \"raw\" streams")
     args = args.parse_args()
-    c = Communicator(devices=args.devices, offset_mode=args.offset_mode, offset=args.offset)
+    use_hypersync = True
+    if __debug__:
+        use_hypersync = bool(args.hypersync)
+        print(f"Hypersync is {use_hypersync}")
+
+    c = Communicator(scale=args.scale, devices=args.devices, offset_mode=args.offset_mode, offset=args.offset,
+                     hypersync=use_hypersync)
     app.run()
 
 if __name__ == '__main__':
