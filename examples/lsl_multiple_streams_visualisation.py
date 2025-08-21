@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from collections.abc import Callable
 from typing import Union
 
+import vispy.visuals
 from vispy import app, gloo, scene
 import numpy as np
 import pylsl
@@ -69,7 +70,7 @@ class LslModule:
                  inlet_type: str = "ExG",
                  on_quit: Union[Callable, None] = None,
                  timeout: float = 10.,
-                 pull_timeout: float = .2,
+                 pull_timeout: float = .1,
                  devices=None,
                  offset_mode="mean",
                  offset=0.0,
@@ -169,8 +170,19 @@ class SignalViewer:
         self.canvas.show()
         self.lines = {}
         self.line_scales = {}
+        self.tick_lines: list[scene.visuals.Line] = []  # x == time,
         self.lsl_time = 0.0
         self.device_colors = {}
+
+        self.create_tick_lines()
+
+    def create_tick_lines(self):
+        start_time = int(pylsl.local_clock() - self.time_window)
+        for i in range(int(self.time_window) + 1):
+            pos = [[start_time+i, 10000.0], [start_time+i, -10000.0]]
+            col = (1., 1., 1., 1.)
+            line = scene.visuals.Line(pos=pos, color=col, parent=self.canvas.scene)
+            self.tick_lines.append(line)
 
     def add_line(self, name, pos, offset=0.0, scale=1.0, col=None):
         if not col:
@@ -196,6 +208,16 @@ class SignalViewer:
         pos[:, 1] += offset
         self.lines[name].set_data(pos=pos, color=col)
         self.line_scales[name] = scale
+
+    def update_tick_lines(self):
+        start_time = self.lsl_time - self.time_window  # ground 0
+        current_ts = int(start_time)
+        for l in self.tick_lines:
+            x = current_ts - start_time
+            pos = [[x/self.time_window * self.canvas.size[0], 10000.0], [x/self.time_window * self.canvas.size[0], -10000.0]]
+            col = (1., 1., 1., 1.)
+            l.set_data(pos=pos, color=col)
+            current_ts += 1.0
 
     def update_transforms(self):
         line_keys = list(self.lines)
@@ -226,6 +248,7 @@ class SignalViewer:
                     self.add_line(name=line_name, pos=line, offset=offsets[i], scale=scales[i], col=self.device_colors[name])
                 else:
                     self.update_line(name=line_name, pos=line, offset=offsets[i], scale=scales[i], col=self.device_colors[name])
+        self.update_tick_lines()
         self.update_transforms()
 
 
