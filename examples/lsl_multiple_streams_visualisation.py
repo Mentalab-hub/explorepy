@@ -1,4 +1,5 @@
 import time
+from argparse import ArgumentParser
 from collections.abc import Callable
 from typing import Union
 
@@ -68,11 +69,18 @@ class LslModule:
                  inlet_type: str = "ExG",
                  on_quit: Union[Callable, None] = None,
                  timeout: float = 10.,
-                 pull_timeout: float = .2):
+                 pull_timeout: float = .2,
+                 devices=None,
+                 offset_mode="mean",
+                 offset=0.0):
         self.resolution_timeout = timeout
         self.pull_timeout = pull_timeout
         self.inlet_type = inlet_type
         self.on_quit = on_quit
+
+        self.devices = devices
+        self.offset_mode = offset_mode
+        self.fixed_offset = offset
 
         self.signal_buffers = {}
         self.max_samples = 10 * 250  # assume 10s at 250Hz
@@ -92,14 +100,27 @@ class LslModule:
             print("Could not find any streams.")
             self.quit()
         for s in found_streams:
-            if s.type() == self.inlet_type and "HyperSync" in s.name():
-                self.inlet_dicts.append({"name": s.name(),
-                                         "type": s.type(),
-                                         "ch_count": s.channel_count(),
-                                         "inlet": StreamInlet(s, processing_flags=pylsl.proc_clocksync)})
-                self.signal_buffers[s.name()] = SignalBuffer(name=s.name(),
-                                                             ch_count=s.channel_count(),
-                                                             max_samples=self.max_samples)
+            stream_name = s.name()
+            if s.type() == self.inlet_type and "HyperSync" in stream_name:
+                add_stream = False
+
+                if not self.devices:
+                    add_stream = True
+                else:
+                    for device_id in self.devices:
+                        if device_id in stream_name:
+                            add_stream = True
+
+                if add_stream:
+                    self.inlet_dicts.append({"name": s.name(),
+                                             "type": s.type(),
+                                             "ch_count": s.channel_count(),
+                                             "inlet": StreamInlet(s, processing_flags=pylsl.proc_clocksync)})
+                    self.signal_buffers[s.name()] = SignalBuffer(name=s.name(),
+                                                                 ch_count=s.channel_count(),
+                                                                 max_samples=self.max_samples,
+                                                                 offset_mode=self.offset_mode,
+                                                                 fixed_offset=self.fixed_offset)
         if len(self.inlet_dicts) <= 0:
             self.quit()
 
@@ -198,14 +219,14 @@ class SignalViewer:
 
 
 class Communicator:
-    def __init__(self):
+    def __init__(self, devices=None, offset_mode="mean", offset=0.0):
         app.use_app("glfw")
         self.canvas_refresh_rate = 1. / 20.
         self.lsl_refresh_rate = 1. / 20.
         self.status_refresh_rate = 1. / 10.
         self.quit_flag = False
 
-        self.lsl_module = LslModule(inlet_type="ExG", on_quit=self.quit)
+        self.lsl_module = LslModule(inlet_type="ExG", on_quit=self.quit, devices=devices, offset_mode=offset_mode, offset=offset)
         self.signal_module = SignalViewer(self.lsl_module)
         # note that the signal module is limited in update rate by LSL, not the other way around!
 
@@ -224,7 +245,18 @@ class Communicator:
             app.quit()
 
 def main():
-    c = Communicator()
+    args = ArgumentParser()
+    args.add_argument("-d", "--devices", nargs='*', required=False, default=None, type=str,
+                      help="The device IDs to connect to (default is None, meaning all found Explore HyperSync streams "
+                           "will be connected to)")
+    args.add_argument("--offset_mode", default="mean", type=str, choices=["fixed", "mean"],
+                      help="The mode to calculate the offset for the signals to center them in the plot. If \"fixed\", "
+                           "a fixed value should be supplied to add to the signals. If \"mean\", the mean of the "
+                           "visible signal will be subtracted from the signal to center it in the plot.")
+    args.add_argument("--offset", default=0.0, type=float, required=False,
+                      help="The offset to add to the signal values if the offset mode is \"fixed\"")
+    args = args.parse_args()
+    c = Communicator(devices=args.devices, offset_mode=args.offset_mode, offset=args.offset)
     app.run()
 
 if __name__ == '__main__':
