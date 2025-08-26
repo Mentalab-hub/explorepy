@@ -67,7 +67,7 @@ class Parser:
         self.total_packet_size_read = 0
         self.progress = 0
         self.progress_callback = progress_callback
-        self.header_len = 8
+        self.header_len = 12
         self.data_len = self.header_len - 4
 
     def start_streaming(self, device_name, mac_address):
@@ -291,7 +291,7 @@ class Parser:
                     continue
                 payload_start = time.time()
                 payload_start_idx = header_start + self.header_len
-                payload_end = payload_start_idx + payload_length - 4
+                payload_end = payload_start_idx + payload_length - (self.header_len -4)
                 if payload_end > len(buffer):
                     continue
                 payload_data = buffer[payload_start_idx:payload_end]

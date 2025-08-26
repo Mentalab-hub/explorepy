@@ -26,9 +26,10 @@ class PACKET_ID(IntEnum):
     DISCONNECT = 111
     # Info packet from BLE devices, applies to Explore Pro
     INFO_BLE = 98
+    INFO_HYP = 99
     # New info packet containing memory and board ID: this applies to all Explore+ systems
     INFO_V2 = 97
-    INFO = 99
+    INFO = 96
     EEG94 = 144
     EEG98 = 146
     EEG32 = 148
@@ -46,6 +47,7 @@ class PACKET_ID(IntEnum):
     CALIBINFO_USBC = 197
     TRIGGER_OUT = 177  # Trigger-out of Explore device
     TRIGGER_IN = 178  # Trigger-in to Explore device
+    VERSION_INFO = 199
 
 
 EXG_UNIT = 1e-6
@@ -534,15 +536,16 @@ class SoftwareMarker(EventMarker):
 class ExternalMarker(EventMarker):
     """External marker packet"""
 
-    def __init__(self, timestamp, payload, time_offset=0):
+    def __init__(self, timestamp, payload, name):
         super().__init__(timestamp, payload, 0)
-        self._label_prefix = "sw_"
+        self._label_prefix = "lsl_"
+        self.name = name
 
     def _convert(self, bin_data):
         self.code = bin_data[:15].decode('utf-8', errors='ignore')
 
     @staticmethod
-    def create(lsl_time, marker_string):
+    def create(lsl_time, marker_string, name):
         """Create a software marker
 
         Args:
@@ -554,15 +557,15 @@ class ExternalMarker(EventMarker):
         """
         if not isinstance(marker_string, str):
             raise ValueError("Marker label must be a string")
-        if len(marker_string) > 7 or len(marker_string) < 1:
+        if len(marker_string) > 20 or len(marker_string) < 1:
             raise ValueError(
                 "Marker label length must be between 1 and 7 characters")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,
             payload=bytearray(byte_array + b"\xaf\xbe\xad\xde"),
+            name=name
         )
-
 
 class Trigger(EventMarker):
     @abc.abstractmethod
@@ -677,6 +680,8 @@ class DeviceInfoBLE(DeviceInfoV2):
         as_dict['is_imp_mode'] = self.is_imp_mode
         return as_dict
 
+class DeviceInfoHyp(DeviceInfoBLE):
+    pass
 
 class CommandRCV(Packet):
     """Command Status packet"""
@@ -776,6 +781,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.INFO: DeviceInfo,
     PACKET_ID.INFO_V2: DeviceInfoV2,
     PACKET_ID.INFO_BLE: DeviceInfoBLE,
+    PACKET_ID.INFO_HYP: DeviceInfoHyp,
     PACKET_ID.EEG94: EEG94,
     PACKET_ID.EEG98: EEG98,
     PACKET_ID.EEG99: EEG99,
@@ -793,4 +799,5 @@ PACKET_CLASS_DICT = {
     PACKET_ID.PUSHMARKER: PushButtonMarker,
     PACKET_ID.TRIGGER_IN: TriggerIn,
     PACKET_ID.TRIGGER_OUT: TriggerOut,
+    PACKET_ID.VERSION_INFO: VersionInfoPacket,
 }
