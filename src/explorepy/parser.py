@@ -67,8 +67,8 @@ class Parser:
         self.total_packet_size_read = 0
         self.progress = 0
         self.progress_callback = progress_callback
-        self.header_len = 12
-        self.data_len = self.header_len - 4
+        self.header_len = 0
+        self.data_len = 0
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -99,6 +99,7 @@ class Parser:
             self.stream_interface = None
             if self.usb_marker_port is not None:
                 self.usb_marker_port.close()
+            self.header_len = 0
 
     def start_reading(self, filename):
         """Open the binary file and start reading packets
@@ -228,7 +229,7 @@ class Parser:
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
                 self.seek_new_pid.clear()
                 break
-        raw_header = self.stream_interface.read(self.header_len)
+        raw_header = self.get_header_bytes()
         try:
             pid, timestamp, payload = self.parser_header(raw_header)
         except BaseException:
@@ -240,7 +241,7 @@ class Parser:
             logger.debug('Got exception in payload determination, raising fletcher error')
             raise FletcherError
 
-        payload_data = self.stream_interface.read(payload - self.data_len)
+        payload_data = self.stream_interface.read((payload - self.data_len))
         if self.debug:
             self.callback(packet=PacketBIN(raw_header + payload_data))
         try:
@@ -351,6 +352,15 @@ class Parser:
         timestamp = self.unpack_timestamp(raw_timestamp) / TIMESTAMP_SCALE_BLE
         payload = struct.unpack('<H', raw_payload)[0]
         return pid, timestamp, payload
+
+    def get_header_bytes(self):
+        if self.header_len == 0:
+            pid_bin = self.stream_interface.read(1)
+            self.header_len = 12 if pid_bin[0] == 99 else 8
+            self.data_len = self.header_len -4
+            return pid_bin + self.stream_interface.read(self.header_len - 1)
+        else:
+            return self.stream_interface.read(self.header_len)
 
 
 class FileHandler:
