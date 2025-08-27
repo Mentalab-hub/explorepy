@@ -77,13 +77,22 @@ def acquire(name, address, duration):
 @click.option("-d", "--duration", type=int, help="Recording duration in seconds", metavar="<integer>")
 @click.option("--edf", 'file_type', flag_value='edf', help="Write in EDF file")
 @click.option("--csv", 'file_type', flag_value='csv', help="Write in csv file (default type)", default=True)
+@click.option("--imp-mode", is_flag=True, help="Enable impedance mode with live monitoring")
+@click.option("-nf", "--notch-freq", help="Notch frequency for impedance mode initialization", type=float, default=50.0)
 @verify_inputs
-def record_data(address, name, filename, overwrite, duration, file_type):
+def record_data(address, name, filename, overwrite, duration, file_type, imp_mode, notch_freq):
     """Record data from Explore to a file"""
     explore = explorepy.explore.Explore()
     explore.connect(mac_address=address, device_name=name)
-    explore.record_data(file_name=filename, file_type=file_type,
-                        do_overwrite=overwrite, duration=duration, block=True)
+    explore.record_data(
+        file_name=filename,
+        file_type=file_type,
+        do_overwrite=overwrite,
+        duration=duration,
+        imp_mode=imp_mode,
+        notch_freq=notch_freq,
+        block=True
+    )
 
 
 @cli.command()
