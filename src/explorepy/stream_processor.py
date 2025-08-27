@@ -495,7 +495,7 @@ class StreamProcessor:
                 marker_string=marker_string, lsl_time=time_lsl, name=name)
         else:
             ext_marker = ExternalMarker.create(
-            marker_string=marker_string, lsl_time=time_lsl, name=name)
+                marker_string=marker_string, lsl_time=time_lsl, name=name)
         self.process(ext_marker)
 
     def compare_device_info(self, new_device_info):

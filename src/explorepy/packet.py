@@ -3,7 +3,6 @@
 import abc
 import binascii
 import logging
-import struct
 from enum import IntEnum
 
 import numba as nb
@@ -539,10 +538,11 @@ class ExternalMarker(EventMarker):
             name=name
         )
 
+
 class SoftwareMarker(ExternalMarker):
     def __init__(self, timestamp, payload, name):
-        super().__init__(timestamp, payload, 0)
-        _label_prefix = 'sw_'
+        super().__init__(timestamp, payload, name)
+        self._label_prefix = 'sw_'
 
 
 class Trigger(EventMarker):
