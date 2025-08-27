@@ -64,7 +64,7 @@ class Packet(abc.ABC):
             time_offset (double): Time offset defined by parser. It will be the timestamp of the first packet when
                                     streaming in realtime. It will be zero while converting a binary file.
         """
-        self.timestamp = timestamp + time_offset
+        self.timestamp = timestamp
         self._convert(payload[:-4])
         self._check_fletcher(payload[-4:])
 

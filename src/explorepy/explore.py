@@ -24,7 +24,6 @@ import numpy as np
 from scipy import signal as scipy_signal
 
 import explorepy
-from explorepy._exceptions import IncompatibleFwError
 from explorepy.command import (
     MemoryFormat,
     SetChTest,
@@ -102,11 +101,6 @@ class Explore:
                 raise ConnectionAbortedError(
                     "Could not get info packet from the device")
             cnt += 1
-        # check if fw_version follows x.x.x pattern, abort connection otherwise
-        if len(str.split(self.stream_processor.device_info['firmware_version'], '.')) > 3:
-
-            self.stream_processor.stop()
-            raise IncompatibleFwError('This firmware is not supported. Please use a compatible firmware')
         if self.stream_processor.device_info['is_imp_mode'] is True:
             self.stream_processor.disable_imp()
         logger.info(
@@ -214,8 +208,7 @@ class Explore:
                                                           adc_mask=SettingsManager(
                                                               self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
-                                                          do_overwrite=do_overwrite,
-                                                          timestamp=str(self.stream_processor.parser._time_offset))  # noqa: E501
+                                                          do_overwrite=do_overwrite)  # noqa: E501
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
@@ -550,6 +543,7 @@ class Explore:
 
         self.lsl['timer'] = Timer(duration, self.stop_lsl)
         self.lsl['server'] = LslServer(self.stream_processor.device_info)
+        self.lsl['server'].initialize_outlets()
         self.stream_processor.subscribe(
             topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
         self.stream_processor.subscribe(
