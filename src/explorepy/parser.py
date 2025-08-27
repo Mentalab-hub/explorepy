@@ -291,7 +291,8 @@ class Parser:
                     continue
                 payload_start = time.time()
                 payload_start_idx = header_start + self.header_len
-                payload_end = payload_start_idx + payload_length - (self.header_len -4)
+                payload_end = payload_start_idx + payload_length - self.data_len
+                payload_end = payload_start_idx + payload_length - 4
                 if payload_end > len(buffer):
                     continue
                 payload_data = buffer[payload_start_idx:payload_end]
