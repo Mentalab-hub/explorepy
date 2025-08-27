@@ -580,15 +580,16 @@ class Explore:
         else:
             logger.debug("Tried to stop LSL while no LSL server is running!")
 
-    def set_marker(self, marker_string, time_lsl=None):
+    def set_marker(self, marker_string, time_lsl=None, soft_marker=False):
         """Sets a digital event marker while streaming
 
         Args:
             time_lsl (timestamp): timestamp from external marker)
             marker_string (string): string to save as experiment marker)
+            external
         """
         self._check_connection()
-        self.stream_processor.set_ext_marker(marker_string=str(marker_string))
+        self.stream_processor.set_ext_marker(marker_string=str(marker_string), time_lsl=time_lsl, soft_marker=soft_marker)
 
     def send_8_bit_trigger(self, eight_bit_value):
         eight_bit_value = eight_bit_value % 256

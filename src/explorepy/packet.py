@@ -504,35 +504,6 @@ class PushButtonMarker(EventMarker):
                                       np.uint16).newbyteorder("<"))[0]
 
 
-class SoftwareMarker(EventMarker):
-    """Software marker packet"""
-
-    def __init__(self, timestamp, payload, time_offset=0):
-        super().__init__(timestamp, payload, time_offset)
-        self._label_prefix = "sw_"
-
-    def _convert(self, bin_data):
-        self.code = np.frombuffer(bin_data,
-                                  dtype=np.dtype(
-                                      np.uint16).newbyteorder("<"))[0]
-
-    @staticmethod
-    def create(local_time, code):
-        """Create a software marker
-
-        Args:
-            local_time (double): Local time from LSL
-            code (int): Event marker code
-
-        Returns:
-            SoftwareMarker
-        """
-        return SoftwareMarker(
-            local_time * 10000,
-            payload=bytearray(struct.pack("<H", code) + b"\xaf\xbe\xad\xde"),
-        )
-
-
 class ExternalMarker(EventMarker):
     """External marker packet"""
 
@@ -551,6 +522,7 @@ class ExternalMarker(EventMarker):
         Args:
             lsl_time (double): Local time from LSL
             marker_string (string): Event marker code
+            name (string): Marker stream name
 
         Returns:
             SoftwareMarker
@@ -566,6 +538,11 @@ class ExternalMarker(EventMarker):
             payload=bytearray(byte_array + b"\xaf\xbe\xad\xde"),
             name=name
         )
+
+class SoftwareMarker(ExternalMarker):
+    def __init__(self, timestamp, payload, name):
+        super().__init__(timestamp, payload, 0)
+        _label_prefix = 'sw_'
 
 
 class Trigger(EventMarker):

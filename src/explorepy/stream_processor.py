@@ -485,12 +485,16 @@ class StreamProcessor:
         marker = SoftwareMarker.create(self._get_sw_marker_time(), code)
         self.process(marker)
 
-    def set_ext_marker(self, marker_string, time_lsl=None, name='mkr'):
+    def set_ext_marker(self, marker_string, time_lsl=None, name='mkr', soft_marker=False):
         """Set an external marker in the stream"""
         logger.info(f"Setting a software marker with code: {marker_string}")
         if time_lsl is None:
             time_lsl = self._get_sw_marker_time()
-        ext_marker = ExternalMarker.create(
+        if soft_marker:
+            ext_marker = SoftwareMarker.create(
+                marker_string=marker_string, lsl_time=time_lsl, name=name)
+        else:
+            ext_marker = ExternalMarker.create(
             marker_string=marker_string, lsl_time=time_lsl, name=name)
         self.process(ext_marker)
 
