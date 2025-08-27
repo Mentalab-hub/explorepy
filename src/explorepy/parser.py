@@ -357,7 +357,7 @@ class Parser:
         if self.header_len == 0:
             pid_bin = self.stream_interface.read(1)
             self.header_len = 12 if pid_bin[0] == 99 else 8
-            self.data_len = self.header_len -4
+            self.data_len = self.header_len - 4
             return pid_bin + self.stream_interface.read(self.header_len - 1)
         else:
             return self.stream_interface.read(self.header_len)
