@@ -567,6 +567,7 @@ class ExternalMarker(EventMarker):
             name=name
         )
 
+
 class Trigger(EventMarker):
     @abc.abstractmethod
     def __init__(self, timestamp, payload, time_offset=0):
@@ -680,8 +681,10 @@ class DeviceInfoBLE(DeviceInfoV2):
         as_dict['is_imp_mode'] = self.is_imp_mode
         return as_dict
 
+
 class DeviceInfoHyp(DeviceInfoBLE):
     pass
+
 
 class CommandRCV(Packet):
     """Command Status packet"""
