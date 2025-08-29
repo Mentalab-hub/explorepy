@@ -355,7 +355,12 @@ class Parser:
 
     def get_header_bytes(self):
         if self.header_len == 0:
-            pid_bin = self.stream_interface.read(1)
+            for _ in range(10):
+                pid_bin = self.stream_interface.read(1)
+                if pid_bin is not None:
+                    break
+            if pid_bin is None:
+                raise ValueError
             self.header_len = 12 if pid_bin[0] == 99 else 8
             self.data_len = self.header_len - 4
             return pid_bin + self.stream_interface.read(self.header_len - 1)
