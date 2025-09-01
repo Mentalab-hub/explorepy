@@ -530,7 +530,7 @@ class ExternalMarker(EventMarker):
             raise ValueError("Marker label must be a string")
         if len(marker_string) > 20 or len(marker_string) < 1:
             raise ValueError(
-                "Marker label length must be between 1 and 7 characters")
+                "Marker label length must be between 1 and 20 characters")
         byte_array = bytes(marker_string, 'utf-8')
         return ExternalMarker(
             lsl_time,
@@ -543,6 +543,30 @@ class SoftwareMarker(ExternalMarker):
     def __init__(self, timestamp, payload, name):
         super().__init__(timestamp, payload, name)
         self._label_prefix = 'sw_'
+
+    @staticmethod
+    def create(lsl_time, marker_string, name):
+        """Create a software marker
+
+        Args:
+            lsl_time (double): Local time from LSL
+            marker_string (string): Event marker code
+            name (string): Marker stream name
+
+        Returns:
+            SoftwareMarker
+        """
+        if not isinstance(marker_string, str):
+            raise ValueError("Marker label must be a string")
+        if len(marker_string) > 20 or len(marker_string) < 1:
+            raise ValueError(
+                "Marker label length must be between 1 and 20 characters")
+        byte_array = bytes(marker_string, 'utf-8')
+        return SoftwareMarker(
+            lsl_time,
+            payload=bytearray(byte_array + b"\xaf\xbe\xad\xde"),
+            name=name
+        )
 
 
 class Trigger(EventMarker):
