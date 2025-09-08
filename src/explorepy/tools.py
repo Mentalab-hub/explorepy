@@ -24,7 +24,6 @@ from pylsl import (
     StreamOutlet,
     local_clock
 )
-from scipy import signal
 from serial.tools import list_ports
 
 import explorepy
