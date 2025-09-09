@@ -701,7 +701,7 @@ def setup_usb_marker_port():
 def check_bin_compatibility(file_name):
     with open(file_name, "rb") as f:
         b = f.read(1).hex()
-        if b != "62":
+        if b != "62" and b != "63":
             raise ExplorePyDeprecationError()
 
 
