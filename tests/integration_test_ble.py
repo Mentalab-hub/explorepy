@@ -1,48 +1,100 @@
-"""Integration test script for explorepy
+"""
+Integration test script for explorepy
 
 Examples:
     $ python integration_test_ble.py -n Explore_1438
 """
+import argparse
 import time
+import traceback
 
 import explorepy
-import argparse
 from explorepy.settings_manager import SettingsManager
 
 
-def main():
-    parser = argparse.ArgumentParser(description="BLE Integration test at different sapling rates")
-    parser.add_argument("-n", "--name", dest="name", type=str, help="Name of the device.")
-    parser.add_argument("-d", "--duration", dest="duration", type=str, help="Duration of recording")
+SPS_BY_CHANNELS = {8: 1000, 16: 500, 32: 250}  # starting SPS per device channel count
 
-    args = parser.parse_args()
-    # Create an Explore object
-    exp_device = explorepy.Explore()
-    # Connect to the Explore device using device bluetooth name or mac address
+
+def resolve_start_sps(dev_name: str) -> int:
+    """Infer starting SPS from device channel count."""
     try:
-        exp_device.connect(device_name=args.name)
-        duration = args.duration or 120
-        sps_dict = {8: 1000, 16: 500, 32: 250}
-        dev_ch = SettingsManager(args.name).get_channel_count()
-        current_sps = sps_dict[dev_ch]
-        exp_device.disconnect()
-    except Exception as e:
-        print('Got exception in setup of type {} and message {}'.format(type(e), e))
+        dev_ch = SettingsManager(dev_name).get_channel_count()
+    except Exception:
+        raise RuntimeError("Could not read channel count via SettingsManager.")
 
+    if dev_ch not in SPS_BY_CHANNELS:
+        raise ValueError(
+            f"Unexpected channel count {dev_ch!r}. "
+            f"Known: {sorted(SPS_BY_CHANNELS)}. "
+            "If this is a new model, update SPS_BY_CHANNELS."
+        )
+    return SPS_BY_CHANNELS[dev_ch]
+
+
+def run_once(exp_device: explorepy.Explore, dev_name: str, sps: int, duration: int):
+    """Run a single recording at the given sampling rate, with full cleanup."""
+    filename = f"{dev_name}_{sps}.csv"
+    try:
+        exp_device.connect(device_name=dev_name)
+        exp_device.set_sampling_rate(sampling_rate=sps)
+        # Creates LSL streams (ExG, ORN, marker)
+        exp_device.push2lsl()
+        exp_device.record_data(
+            file_name=filename,
+            do_overwrite=True,
+            duration=duration,
+            block=True,
+        )
+    finally:
+        try:
+            exp_device.disconnect()
+        except Exception:
+            # might throw threading error
+            pass
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="BLE Integration test at different sampling rates"
+    )
+    parser.add_argument(
+        "-n", "--name", dest="name", type=str, required=True,
+        help="Bluetooth name or MAC of the device (required)."
+    )
+    parser.add_argument(
+        "-d", "--duration", dest="duration", type=int, default=120,
+        help="Duration of each recording in seconds (default: 120)."
+    )
+    parser.add_argument(
+        "--sleep", dest="sleep_s", type=int, default=5,
+        help="Pause between runs in seconds (default: 5)."
+    )
+    args = parser.parse_args()
+
+    exp_device = explorepy.Explore()
+
+    # Determine starting SPS from channel count
+    try:
+        current_sps = resolve_start_sps(args.name)
+    except Exception as e:
+        print(f"[setup] Failed to resolve starting SPS: {e}")
+        traceback.print_exc()
+        return
+
+    # Run at 1000 → 500 → 250 as applicable, halving each time
     while 250 <= current_sps <= 1000:
         try:
-            exp_device.connect(device_name=args.name)
-            exp_device.set_sampling_rate(sampling_rate=current_sps)
-            # Push data to lsl. Note that this function creates three lsl streams, ExG, ORN and marker.
-            exp_device.push2lsl()
-            exp_device.record_data(f'{args.name + '_' + str(current_sps)}.csv',
-                                   do_overwrite=True, duration=duration, block=True)
-            exp_device.stop_lsl()
-            exp_device.disconnect()
-            time.sleep(5)
-            current_sps = int(current_sps / 2)
+            print(f"[run] {args.name}: sampling_rate={current_sps}, duration={args.duration}s")
+            run_once(exp_device, args.name, current_sps, args.duration)
+            print(f"[ok]  Saved {args.name}_{current_sps}.csv")
         except Exception as e:
-            print('Got exception {}', type(e))
+            print(f"[error] Run at {current_sps} SPS failed: {e}")
+            traceback.print_exc()
+        finally:
+            # Next SPS
+            current_sps //= 2
+            if current_sps >= 250:
+                time.sleep(args.sleep_s)
 
 
 if __name__ == "__main__":
