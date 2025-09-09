@@ -7,6 +7,8 @@ Examples:
 import argparse
 import time
 import traceback
+from datetime import datetime
+from pathlib import Path
 
 import explorepy
 from explorepy.settings_manager import SettingsManager
@@ -31,16 +33,16 @@ def resolve_start_sps(dev_name: str) -> int:
     return SPS_BY_CHANNELS[dev_ch]
 
 
-def run_once(exp_device: explorepy.Explore, dev_name: str, sps: int, duration: int):
+def run_once(exp_device: explorepy.Explore, dev_name: str, sps: int, duration: int, out_dir: Path):
     """Run a single recording at the given sampling rate, with full cleanup."""
-    filename = f"{dev_name}_{sps}.csv"
+    out_path = out_dir / f"{dev_name}_{sps}.csv"
     try:
         exp_device.connect(device_name=dev_name)
         exp_device.set_sampling_rate(sampling_rate=sps)
         # Creates LSL streams (ExG, ORN, marker)
         exp_device.push2lsl()
         exp_device.record_data(
-            file_name=filename,
+            file_name=str(out_path),
             do_overwrite=True,
             duration=duration,
             block=True,
@@ -69,9 +71,19 @@ def main():
         "--sleep", dest="sleep_s", type=int, default=5,
         help="Pause between runs in seconds (default: 5)."
     )
+    parser.add_argument(
+        "-o", "--output", dest="output_root", type=Path, default=Path.cwd(),
+        help="Root directory to place the session folder (default: current working dir)."
+    )
     args = parser.parse_args()
 
     exp_device = explorepy.Explore()
+
+    # Create a session folder like: <output_root>/<device>_<YYYY-MM-DD_HH-MM-SS>
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    session_dir = args.output_root / f"{args.name}_{timestamp}"
+    session_dir.mkdir(parents=True, exist_ok=False)
+    print(f"[setup] Session directory: {session_dir}")
 
     # Determine starting SPS from channel count
     try:
@@ -85,8 +97,8 @@ def main():
     while 250 <= current_sps <= 1000:
         try:
             print(f"[run] {args.name}: sampling_rate={current_sps}, duration={args.duration}s")
-            run_once(exp_device, args.name, current_sps, args.duration)
-            print(f"[ok]  Saved {args.name}_{current_sps}.csv")
+            run_once(exp_device, args.name, current_sps, args.duration, out_dir=session_dir)
+            print(f"[ok]  Saved {session_dir / f'{args.name}_{current_sps}.csv'}")
         except Exception as e:
             print(f"[error] Run at {current_sps} SPS failed: {e}")
             traceback.print_exc()
@@ -95,6 +107,8 @@ def main():
             current_sps //= 2
             if current_sps >= 250:
                 time.sleep(args.sleep_s)
+
+    print(f"[done] All recordings saved in: {session_dir}")
 
 
 if __name__ == "__main__":
