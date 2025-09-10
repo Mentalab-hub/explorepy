@@ -53,8 +53,16 @@ logger = logging.getLogger(__name__)
 
 
 class Explore:
-    r"""Mentalab Explore device"""
-
+    r"""Interface for Mentalab Explore devices.
+        Core capabilities:
+          - :meth:`connect` / :meth:`disconnect`
+          - :meth:`set_sampling_rate` (250, 500, 1000, 2000, 4000, 8000, 16000)
+          - Live streaming to LSL via :meth:`push2lsl` / :meth:`stop_lsl`
+          - Real-time recording to CSV/EDF via :meth:`record_data` (with optional impedance mode)
+          - Marker injection via :meth:`set_marker`
+          - USB trigger output via :meth:`send_8_bit_trigger`
+          - Offline BIN conversion via :meth:`convert_bin`
+    """
     def __init__(self, debug=False, debug_settings=None):
         self.debug = Debug(settings=debug_settings) if debug else None
         self.is_connected = False

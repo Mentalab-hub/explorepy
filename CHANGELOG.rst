@@ -2,6 +2,13 @@
 Changelog
 =========
 
+4.3.0 (9.9.2025)
+------------------
+* Live impedance acquisition and recording
+* Improve parser efficiency
+* Bugfix for Linux release
+* Refactor codebase
+
 4.2.0 (15.7.2025)
 ------------------
 * Add ExplorePy and Arduino interfacing example
