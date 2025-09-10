@@ -170,7 +170,7 @@ def get_correct_com_port(device_name):
                 print('got data as zero')
                 serial_port.close()
                 return p.device
-            name = data[8:-4].decode('utf-8', errors='ignore')
-            if name == device_name:
+            name = data.decode('utf-8', errors='ignore')
+            if device_name in name:
                 return p.device
     raise DeviceNotFoundError()
