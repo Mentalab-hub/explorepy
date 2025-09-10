@@ -12,7 +12,6 @@ class BTClient(abc.ABC):
         self.mac_address = mac_address
         self.device_name = device_name
         self.bt_serial_port_manager = None
-        self.device_manager = None
 
     @abc.abstractmethod
     def connect(self):
@@ -35,10 +34,6 @@ class BTClient(abc.ABC):
         """Disconnect from the device"""
 
     @abc.abstractmethod
-    def _find_mac_address(self):
-        pass
-
-    @abc.abstractmethod
     def read(self, n_bytes):
         """Read n_bytes from the socket
 
@@ -56,7 +51,3 @@ class BTClient(abc.ABC):
         Args:
             data (bytearray): Data to be sent
         """
-
-    @staticmethod
-    def _check_mac_address(device_name, mac_address):
-        return (device_name[-4:-2] == mac_address[-5:-3]) and (device_name[-2:] == mac_address[-2:])

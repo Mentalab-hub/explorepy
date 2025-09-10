@@ -24,7 +24,6 @@ class SerialStream:
         self.device_name = device_name
         self.comm_manager = None
         self.device_manager = None
-        self.bt_sdk = None
         self.usb_stop_flag = threading.Event()
         self.copy_buffer = deque()
         self.reader_thread = None

@@ -293,7 +293,6 @@ class Parser:
                 payload_start = time.time()
                 payload_start_idx = header_start + self.header_len
                 payload_end = payload_start_idx + payload_length - self.data_len
-                payload_end = payload_start_idx + payload_length - 4
                 if payload_end > len(buffer):
                     continue
                 payload_data = buffer[payload_start_idx:payload_end]
@@ -311,7 +310,8 @@ class Parser:
         num_threads = multiprocessing.cpu_count()
         try:
             # Time: File reading
-            buffer = bytearray(self.stream_interface.read())
+            first_header = self.get_header_bytes()
+            buffer = first_header + bytearray(self.stream_interface.read())
             # Time: Finding markers
             arr = np.frombuffer(buffer, dtype=np.uint8)
             marker_arr = np.frombuffer(PACKET_MARKER, dtype=np.uint8)

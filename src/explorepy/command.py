@@ -23,21 +23,10 @@ class OpcodeID(Enum):
     CMD_SPS_SET = b'\xA1'
     CMD_CH_SET = b'\xA2'
     CMD_MEM_FORMAT = b'\xA3'
-    CMD_REC_TIME_SET = b'\xB1'
-    CMD_MODULE_DISABLE = b'\xA4'
-    CMD_MODULE_ENABLE = b'\xA5'
     CMD_ZM_DISABLE = b'\xA6'
     CMD_ZM_ENABLE = b'\xA7'
     CMD_SOFT_RESET = b'\xA8'
     CMD_TEST_SIG = b'\xAA'
-
-
-class Result(Enum):
-    """Results of the command execution"""
-    API_CMD_SUCCESSFUL = b'\x01'
-    API_CMD_ILLEGAL = b'\x02'
-    API_CMD_FAILED = b'\x00'
-    API_CMD_NA = b'\xFF'
 
 
 class DeviceConfiguration:
@@ -51,10 +40,6 @@ class DeviceConfiguration:
         self._bt_interface = bt_interface
         self._last_ack_message = None
         self._last_status_message = None
-
-    def get_device_info(self):
-        """Get device information including adc mask, sampling rate and firmware version."""
-        raise NotImplementedError
 
     def change_setting(self, command):
         """Change the settings of the device based on the input command
@@ -147,8 +132,6 @@ class Command:
         self.opcode = None
         self.param = None
         self.fletcher = b'\xaf\xbe\xad\xde'
-
-        self.delivery_state = None
         self.result = None
 
     def translate(self):
@@ -264,26 +247,6 @@ class ZMeasurementEnable(Command2B):
 
     def __str__(self):
         return "Impedance measurement enable command"
-
-
-class SetCh(Command2B):
-    """Change channel mask command"""
-
-    def __init__(self, ch_mask):
-        """
-
-        Args:
-            ch_mask (int): ExG channel mask. It should be integers between 1 and 255.
-        """
-        super().__init__()
-        self.opcode = OpcodeID.CMD_CH_SET
-        if 1 <= ch_mask <= 255:
-            self.param = bytes([ch_mask])
-        else:
-            raise ValueError("Invalid input")
-
-    def __str__(self):
-        return "Channel set command"
 
 
 class SoftReset(Command2B):

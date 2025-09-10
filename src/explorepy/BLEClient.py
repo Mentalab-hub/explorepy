@@ -205,9 +205,6 @@ class BLEClient(BTClient):
         self.ble_device = None
         self.buffer = Queue()
 
-    def _find_mac_address(self):
-        raise NotImplementedError
-
     def read(self, n_bytes):
         """Read n_bytes from the socket
 

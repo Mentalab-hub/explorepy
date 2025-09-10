@@ -57,7 +57,6 @@ class StreamProcessor:
     def __init__(self, debug=False):
         self.parser = None
         self.filters = []
-        self.orn_calibrator = None
         self.device_info = {}
         self.old_device_info = {}
         self.imp_calib_info = {}
