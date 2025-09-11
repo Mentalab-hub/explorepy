@@ -2,7 +2,7 @@
 Changelog
 =========
 
-4.3.0 (9.9.2025)
+4.3.0 (10.9.2025)
 ------------------
 * Live impedance acquisition and recording
 * Improve parser efficiency
