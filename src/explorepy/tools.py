@@ -428,7 +428,7 @@ class FileRecorder:
                     logger.debug('Value error on file write: {}'.format(e))
             else:
                 data = self._process_batch_csv(packet)
-                np.savetxt(self._file_obj, data.T, fmt='%4f', delimiter=',')
+                np.savetxt(self._file_obj, data.T, fmt='%.12g', delimiter=',')
 
 
 class LslServer:
