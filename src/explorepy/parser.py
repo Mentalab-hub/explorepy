@@ -221,11 +221,9 @@ class Parser:
             try:
                 bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
             except TypeError:
-                if is_usb_mode():
-                    self.stop_streaming()
-                    break
-                logger.info('No data in interface, seeking again.....')
-                continue
+                logger.info('TypeError when seeking end of packet, disconnecting..')
+                self.stop_streaming()
+                break
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
                 self.seek_new_pid.clear()
                 break
