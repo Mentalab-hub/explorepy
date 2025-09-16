@@ -181,6 +181,9 @@ class Explore:
         if file_type not in ['edf', 'csv']:
             raise ValueError(
                 '{} is not a supported file extension!'.format(file_type))
+        if file_type == 'edf' and imp_mode:
+            raise ValueError(
+                '{} is not a supported file extension for recording impedance!'.format(file_type))
         duration = self._check_duration(duration)
 
         exg_out_file = file_name + "_ExG"
