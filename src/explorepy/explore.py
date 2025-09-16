@@ -170,7 +170,7 @@ class Explore:
             file_type (str): File type of the recorded file. Supported file types: 'csv', 'edf'
             block (bool): Record in blocking mode if 'block' is True
             exg_ch_names (list): list of channel names. If None, default names are used.
-            imp_mode (bool): Enable impedance mode with live monitoring
+            imp_mode (bool): Enable impedance mode with live monitoring(only for CSV files)
             notch_freq (float): Notch frequency for impedance mode initialization
         """
         self._check_connection()

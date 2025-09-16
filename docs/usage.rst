@@ -55,7 +55,7 @@ Connects to a device and records ExG and orientation data into two separate file
       -d, --duration <integer>        Recording duration in seconds
       --edf                           Write in EDF file
       --csv                           Write in csv file (default type)
-      --imp-mode                      Enable impedance mode with live monitoring
+      --imp-mode                      Enable impedance mode with real-time monitoring (CSV only)
       -h, --help                      Show this message and exit.
 
 
@@ -222,14 +222,13 @@ Recording
 You can record data in realtime to EDF (BDF+) or CSV files using:
 ::
     explore.record_data(file_name='test', duration=120, file_type='csv')
+This will record data in three separate files: "``test_ExG.csv``", "``test_ORN.csv``" and "``test_marker.csv``", which contain ExG data, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. It is also possible to add arguments to overwrite files.
 
-To also record impedance data, use:
+Enable imp_mode argument to record impedance data as well:
 ::
     explore.record_data(file_name='test', duration=120, file_type='csv', imp_mode=True)
 
-This will record data in three separate files: "``test_ExG.csv``", "``test_ORN.csv``" and "``test_marker.csv``", which contain ExG data, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. Add command arguments to overwrite files and set the duration of the recording (in seconds).
-::
-    explore.record_data(file_name='test', do_overwrite=True, file_type='csv', duration=120)
+.. note:: Impedance recording is only supported for CSV files!
 
 .. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or `mne <https://github.com/mne-tools/mne-python>`_ (for mne, you may need to change the file extension to ``bdf`` manually) in Python.
 
