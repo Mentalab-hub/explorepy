@@ -37,6 +37,7 @@ from explorepy.stream_processor import (
     StreamProcessor
 )
 from explorepy.tools import (
+    EXG_CHANNELS,
     LslServer,
     check_bin_compatibility,
     create_exg_recorder,
@@ -223,7 +224,14 @@ class Explore:
             if imp_mode:
                 self.recorders['imp_csv_file'] = open(f"{impedance_out_file}.csv", 'w', newline='\n')
                 self.recorders['imp_csv_writer'] = csv.writer(self.recorders['imp_csv_file'], delimiter=",")
-                self.recorders['imp_csv_writer'].writerow(['TimeStamp'] + [f"imp_ch{i}" for i in range(1, 9)])
+                self.recorders['imp_csv_writer'].writerow(
+                    ['TimeStamp'] + (
+                        exg_ch_names
+                        if exg_ch_names is not None
+                        else [EXG_CHANNELS[i] for i, flag in enumerate(reversed(SettingsManager(
+                            self.device_name).get_adc_mask())) if flag == 1]
+                    )
+                )
 
         elif file_type == 'edf':
             self.recorders['marker'] = self.recorders['exg']
@@ -247,7 +255,7 @@ class Explore:
                 print("Impedance:", real_values.tolist())
 
                 if file_type == 'csv':
-                    row_data = [packet.timestamp, *real_values]
+                    row_data = [float(packet.timestamp), *real_values]
                     self.recorders['imp_csv_writer'].writerow(row_data)
 
             self.recorders['handle_exg_impedance_callback'] = handle_exg_impedance_packet
