@@ -2,6 +2,12 @@
 Changelog
 =========
 
+4.3.1 (17.9.2025)
+------------------
+* Bugfix for 32 channel impedance recording
+* Bugfix for BLE connection drop
+* Update binary converter
+
 4.3.0 (10.9.2025)
 ------------------
 * Live impedance acquisition and recording
