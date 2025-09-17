@@ -49,6 +49,7 @@ from explorepy.tools import (
     setup_usb_marker_port
 )
 
+
 logger = logging.getLogger(__name__)
 
 
