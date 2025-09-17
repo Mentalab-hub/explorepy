@@ -24,7 +24,6 @@ class SerialStream:
         self.device_name = device_name
         self.comm_manager = None
         self.device_manager = None
-        self.bt_sdk = None
         self.usb_stop_flag = threading.Event()
         self.copy_buffer = deque()
         self.reader_thread = None
@@ -171,7 +170,7 @@ def get_correct_com_port(device_name):
                 print('got data as zero')
                 serial_port.close()
                 return p.device
-            name = data[8:-4].decode('utf-8', errors='ignore')
-            if name == device_name:
+            name = data.decode('utf-8', errors='ignore')
+            if device_name in name:
                 return p.device
     raise DeviceNotFoundError()

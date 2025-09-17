@@ -55,6 +55,7 @@ Connects to a device and records ExG and orientation data into two separate file
       -d, --duration <integer>        Recording duration in seconds
       --edf                           Write in EDF file
       --csv                           Write in csv file (default type)
+      --imp-mode                      Enable impedance mode with real-time monitoring (CSV only)
       -h, --help                      Show this message and exit.
 
 
@@ -221,10 +222,13 @@ Recording
 You can record data in realtime to EDF (BDF+) or CSV files using:
 ::
     explore.record_data(file_name='test', duration=120, file_type='csv')
+This will record data in three separate files: "``test_ExG.csv``", "``test_ORN.csv``" and "``test_marker.csv``", which contain ExG data, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. It is also possible to add arguments to overwrite files.
 
-This will record data in three separate files: "``test_ExG.csv``", "``test_ORN.csv``" and "``test_marker.csv``", which contain ExG data, orientation data (accelerometer, gyroscope, magnetometer) and event markers respectively. Add command arguments to overwrite files and set the duration of the recording (in seconds).
+Enable imp_mode argument to record impedance data as well:
 ::
-    explore.record_data(file_name='test', do_overwrite=True, file_type='csv', duration=120)
+    explore.record_data(file_name='test', duration=120, file_type='csv', imp_mode=True)
+
+.. note:: Impedance recording is only supported for CSV files!
 
 .. note:: To load EDF files, you can use `pyedflib <https://github.com/holgern/pyedflib>`_ or `mne <https://github.com/mne-tools/mne-python>`_ (for mne, you may need to change the file extension to ``bdf`` manually) in Python.
 
@@ -376,34 +380,100 @@ Impedance data acquisition in real-time
 """""""""""""""""""""""""""""""""""""""
 ::
 
-    # An example code for impedance data acquisition from Explore device
-
+    import argparse
+    import csv
     import time
+
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from scipy import signal
+
     import explorepy
     from explorepy.stream_processor import TOPICS
 
 
-    def handle_imp(packet):
-        """A function that receives impedance packet values"""
-        imp_values = packet.get_impedances()
-        print(imp_values)
+    # ----------------------------- Argument Parsing ----------------------------- #
+    parser = argparse.ArgumentParser(description="Acquire and filter impedance-mode ExG data from an Explore device.")
+    parser.add_argument("--device-name", required=True, help="Name of the Explore device (e.g., Explore_AAXX)")
+    args = parser.parse_args()
 
 
-    exp_device = explorepy.Explore()
+    # ----------------------------- Configuration ----------------------------- #
+    FS = 250  # Sampling rate in Hz
+    CHANNEL_LABELS = [f"ch{i}" for i in range(1, 33)]
+    OUTPUT_FILENAME = "exg_data_imp_mode.csv"
+    RECORD_SECONDS = 40
 
-    # Connect to the Explore device using device bluetooth name or mac address
-    exp_device.connect('Explore_XXXX')
 
-    exp_device.stream_processor.subscribe(callback=handle_imp, topic=TOPICS.imp)
+    # ----------------------------- CSV Setup ----------------------------- #
+    csv_file = open(OUTPUT_FILENAME, 'w', newline='\n')
+    csv_writer = csv.writer(csv_file, delimiter=",")
+    csv_writer.writerow(['Timestamp'] + CHANNEL_LABELS[:8])  # Log only first 8 channels
 
-    # enable impedance mode
-    exp_device.stream_processor.imp_initialize(notch_freq=50)
 
-    count = 0
-    while count < 15:
+    # ----------------------------- Packet Handlers ----------------------------- #
+    def handle_exg_packet(packet):
+        """Callback to handle incoming ExG data packets."""
+        timestamps, signals = packet.get_data(FS)
+        data = np.concatenate((np.array(timestamps)[:, np.newaxis].T, np.array(signals)), axis=0)
+        np.savetxt(csv_file, np.round(data.T, 4), fmt='%4f', delimiter=',')
+
+
+    def handle_impedance_packet(packet):
+        """Callback to handle incoming impedance packets."""
+        impedance_values = packet.get_impedances()
+        print("Impedance:", impedance_values)
+
+
+    # ----------------------------- Device Initialization ----------------------------- #
+    device = explorepy.Explore()
+    device.connect(args.device_name)
+    device.stream_processor.subscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
+    device.stream_processor.subscribe(callback=handle_exg_packet, topic=TOPICS.raw_ExG)
+    device.stream_processor.imp_initialize(notch_freq=50)
+
+
+    # ----------------------------- Data Acquisition Loop ----------------------------- #
+    for _ in range(RECORD_SECONDS):
         time.sleep(1)
-        count += 1
 
-    exp_device.stream_processor.disable_imp()
-    exp_device.stream_processor.unsubscribe(callback=handle_imp, topic=TOPICS.imp)
+
+    # ----------------------------- Cleanup ----------------------------- #
+    device.stream_processor.disable_imp()
+    device.stream_processor.unsubscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
+    device.stream_processor.unsubscribe(callback=handle_exg_packet, topic=TOPICS.raw_ExG)
+    csv_file.close()
+
+
+    # ----------------------------- Signal Processing ----------------------------- #
+    def apply_bandpass_filter(signal_data, low_freq, high_freq, fs, order=3):
+        """Apply a Butterworth bandpass filter to the signal."""
+        b, a = signal.butter(order, [low_freq / fs, high_freq / fs], btype='bandpass')
+        return signal.filtfilt(b, a, signal_data)
+
+
+    def apply_notch_filter(signal_data, fs, freq=50, quality_factor=30.0):
+        """Apply a notch filter at the specified frequency."""
+        b, a = signal.iirnotch(freq, quality_factor, fs)
+        return signal.filtfilt(b, a, signal_data)
+
+
+    # ----------------------------- Load and Filter Data ----------------------------- #
+    df = pd.read_csv(OUTPUT_FILENAME, delimiter=',', dtype=np.float64)
+    raw_ch1 = df['ch1']
+    filtered = apply_notch_filter(raw_ch1, FS, freq=62.5)
+    filtered = apply_notch_filter(filtered, FS, freq=50)
+    filtered = apply_bandpass_filter(filtered, low_freq=0.5, high_freq=30, fs=FS)
+
+
+    # ----------------------------- Plot Filtered Signal ----------------------------- #
+    plt.figure(figsize=(10, 4))
+    plt.plot(df['Timestamp'], filtered, label='Filtered ch1')
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude (µV)")
+    plt.title("Filtered EEG Signal - Channel 1")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 

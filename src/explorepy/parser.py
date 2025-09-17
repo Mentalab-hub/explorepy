@@ -33,7 +33,6 @@ from explorepy.packet import (
 from explorepy.settings_manager import SettingsManager
 from explorepy.tools import (
     TIMESTAMP_SCALE_BLE,
-    get_local_time,
     is_ble_mode,
     is_explore_pro_device,
     is_usb_mode
@@ -59,11 +58,6 @@ class Parser:
         self.device_configurator = None
         self.callback = callback
 
-        if self.mode == 'file':
-            self._time_offset = 0
-        else:
-            self._time_offset = None
-
         self._do_streaming = False
         self.is_waiting = False
         self._stream_thread = None
@@ -73,6 +67,8 @@ class Parser:
         self.total_packet_size_read = 0
         self.progress = 0
         self.progress_callback = progress_callback
+        self.header_len = 0
+        self.data_len = 0
 
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
@@ -103,6 +99,7 @@ class Parser:
             self.stream_interface = None
             if self.usb_marker_port is not None:
                 self.usb_marker_port.close()
+            self.header_len = 0
 
     def start_reading(self, filename):
         """Open the binary file and start reading packets
@@ -224,38 +221,25 @@ class Parser:
             try:
                 bytes_out = binascii.hexlify(bytearray(self.stream_interface.read(1)))
             except TypeError:
-                if is_usb_mode():
-                    self.stop_streaming()
-                    break
-                logger.info('No data in interface, seeking again.....')
-                continue
+                logger.info('TypeError when seeking end of packet, disconnecting..')
+                self.stop_streaming()
+                break
             if bytes_out == b'af' and binascii.hexlify(bytearray(self.stream_interface.read(3))) == b'beadde':
                 self.seek_new_pid.clear()
                 break
-        raw_header = self.stream_interface.read(8)
+        raw_header = self.get_header_bytes()
         try:
-            pid = raw_header[0]
-            raw_payload = raw_header[2:4]
-            raw_timestamp = raw_header[4:8]
-
+            pid, timestamp, payload = self.parser_header(raw_header)
         except BaseException:
             raise FletcherError
 
-        # pid = struct.unpack('B', raw_pid)[0]
-        payload = struct.unpack('<H', raw_payload)[0]
         # max payload among all devices is 503, we need to make sure there is no corrupted data in payload length field
         if payload > 550:
             print('payload is {}'.format(payload))
             logger.debug('Got exception in payload determination, raising fletcher error')
             raise FletcherError
 
-        timestamp = struct.unpack('<I', raw_timestamp)[0]
-        timestamp /= TIMESTAMP_SCALE_BLE
-        # Timestamp conversion
-        if self._time_offset is None:
-            self._time_offset = get_local_time() - timestamp
-
-        payload_data = self.stream_interface.read(payload - 4)
+        payload_data = self.stream_interface.read((payload - self.data_len))
         if self.debug:
             self.callback(packet=PacketBIN(raw_header + payload_data))
         try:
@@ -263,7 +247,7 @@ class Parser:
         except (AssertionError, TypeError, ValueError, struct.error) as error:
             logger.debug('Raising Fletcher error for: {}'.format(error))
             raise FletcherError
-        packet_size = 8 + (payload - 4)
+        packet_size = self.header_len + payload - self.data_len
         return packet, packet_size
 
     def _parse_packet(self, pid, timestamp, bin_data):
@@ -279,7 +263,7 @@ class Parser:
         """
 
         if pid in PACKET_CLASS_DICT:
-            packet = PACKET_CLASS_DICT[pid](timestamp, bin_data, self._time_offset)
+            packet = PACKET_CLASS_DICT[pid](timestamp, bin_data)
         else:
             logger.debug("Unknown Packet ID:" + str(pid))
             packet = None
@@ -297,22 +281,20 @@ class Parser:
             try:
                 parse_start = time.time()
                 header_start = current_pos + len(PACKET_MARKER)
-                if header_start + 8 > len(buffer):
+                if header_start + self.header_len > len(buffer):
                     continue
-                raw_header = buffer[header_start:header_start + 8]
-                pid = raw_header[0]
-                payload_length = struct.unpack_from('<H', raw_header, 2)[0]
-                timestamp = struct.unpack_from('<I', raw_header, 4)[0] / TIMESTAMP_SCALE_BLE
+                raw_header = buffer[header_start:header_start + self.header_len]
+                pid, timestamp, payload_length = self.parser_header(raw_header)
                 parse_time += time.time() - parse_start
                 if payload_length > 550:
                     continue
                 payload_start = time.time()
-                payload_start_idx = header_start + 8
-                payload_end = payload_start_idx + payload_length - 4
+                payload_start_idx = header_start + self.header_len
+                payload_end = payload_start_idx + payload_length - self.data_len
                 if payload_end > len(buffer):
                     continue
                 payload_data = buffer[payload_start_idx:payload_end]
-                chunk_packets.append((pid, timestamp, payload_data, self._time_offset))
+                chunk_packets.append((pid, timestamp, payload_data))
                 payload_time += time.time() - payload_start
             except (IndexError, struct.error) as e:
                 logger.debug(f'Error parsing packet at position {current_pos}: {e}')
@@ -326,7 +308,8 @@ class Parser:
         num_threads = multiprocessing.cpu_count()
         try:
             # Time: File reading
-            buffer = bytearray(self.stream_interface.read())
+            first_header = self.get_header_bytes()
+            buffer = first_header + bytearray(self.stream_interface.read())
             # Time: Finding markers
             arr = np.frombuffer(buffer, dtype=np.uint8)
             marker_arr = np.frombuffer(PACKET_MARKER, dtype=np.uint8)
@@ -344,7 +327,8 @@ class Parser:
                     try:
                         chunk_packets = future.result()
                         processed_packets = Packet.parse_packets_batch(chunk_packets)
-                        batch = [(packet, 8 + len(info[2])) for packet, info in zip(processed_packets, chunk_packets)]
+                        batch = [(packet, self.header_len + len(info[2])) for packet, info in
+                                 zip(processed_packets, chunk_packets)]
                         yield batch, len(marker_positions)
                     except FletcherError:
                         print('Fletcher checksum error in batch, skipping affected packets')
@@ -352,6 +336,34 @@ class Parser:
         except (IOError, ValueError) as e:
             print(f'Error reading file: {e}')
             raise
+
+    @staticmethod
+    def unpack_timestamp(raw_bytes):
+        # choose right unpacking format, unsigned long long/unsigned int
+        fmt = '<Q' if len(raw_bytes) == 8 else '<I'
+        return struct.unpack(fmt, raw_bytes)[0]
+
+    def parser_header(self, raw_header):
+        pid = raw_header[0]
+        raw_payload = raw_header[2:4]
+        raw_timestamp = raw_header[4:self.header_len]
+        timestamp = self.unpack_timestamp(raw_timestamp) / TIMESTAMP_SCALE_BLE
+        payload = struct.unpack('<H', raw_payload)[0]
+        return pid, timestamp, payload
+
+    def get_header_bytes(self):
+        if self.header_len == 0:
+            for _ in range(10):
+                pid_bin = self.stream_interface.read(1)
+                if pid_bin is not None:
+                    break
+            if pid_bin is None:
+                raise ValueError
+            self.header_len = 12 if pid_bin[0] == 99 else 8
+            self.data_len = self.header_len - 4
+            return pid_bin + self.stream_interface.read(self.header_len - 1)
+        else:
+            return self.stream_interface.read(self.header_len)
 
 
 class FileHandler:

@@ -2,6 +2,19 @@
 Changelog
 =========
 
+4.3.1 (17.9.2025)
+------------------
+* Bugfix for 32 channel impedance recording
+* Bugfix for BLE connection drop
+* Update binary converter
+
+4.3.0 (10.9.2025)
+------------------
+* Live impedance acquisition and recording
+* Improve parser efficiency
+* Bugfix for Linux release
+* Refactor codebase
+
 4.2.0 (15.7.2025)
 ------------------
 * Add ExplorePy and Arduino interfacing example
