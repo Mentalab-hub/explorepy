@@ -49,7 +49,6 @@ from explorepy.tools import (
     setup_usb_marker_port
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -160,7 +159,7 @@ class Explore:
 
     def record_data(
         self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False, exg_ch_names=None,
-        imp_mode=False, notch_freq=50.0
+        imp_mode=False, notch_freq=None
     ):
         r"""Records the data in real-time
 
@@ -182,9 +181,14 @@ class Explore:
         if file_type not in ['edf', 'csv']:
             raise ValueError(
                 '{} is not a supported file extension!'.format(file_type))
-        if file_type == 'edf' and imp_mode:
-            raise ValueError(
-                '{} is not a supported file extension for recording impedance!'.format(file_type))
+        if imp_mode:
+            if file_type == 'edf':
+                raise ValueError(
+                    '{} is not a supported file extension for recording impedance!'.format(file_type))
+            if notch_freq is None:
+                raise ValueError(
+                    'Missing notch frequency argument, please provide the notch frequency to get live impedance values')
+
         duration = self._check_duration(duration)
 
         exg_out_file = file_name + "_ExG"
