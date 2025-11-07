@@ -78,6 +78,7 @@ class StreamProcessor:
         self.reset_timer()
         self.packet_count = 0
         self.progress = 0
+        self.asr_struct = {}
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -330,6 +331,10 @@ class StreamProcessor:
                     self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
 
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
+            if not self._is_imp_mode and self.imp_calculator is None:
+                self.asr_struct['data'][:, self.packet_count % self.asr_struct['pnts']] = packet.get_data()[1].flatten()
+            if self.packet_count % self.asr_struct['pnts'] == 0 and self.packet_count > 0:
+
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
             print(self.old_device_info)
@@ -339,6 +344,7 @@ class StreamProcessor:
                     self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
+            self.initialize_asr_config()
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
         elif isinstance(packet, CommandStatus):
@@ -582,3 +588,20 @@ class StreamProcessor:
                     timestamps = np.linspace(self._last_packet_timestamp + sps,
                                              packet.timestamp, num=missing_samples, endpoint=True)
         return timestamps[:-1]
+
+    def initialize_asr_config(self):
+        self.asr_struct = {}
+        settings_manager = SettingsManager(self.device_info["device_name"])
+        settings_manager.load_current_settings()
+        n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
+        sampling_rate = self.device_info['sampling_rate']
+        sample_num = 1000
+        self.asr_struct = {
+            'data': np.zeros((n_chan, sample_num), dtype='float64'),
+            'srate': sampling_rate,
+            'nbchan': n_chan,
+            'pnts': sample_num,
+            'trials': 1,
+        }
+        # reset packet count
+        self.packet_count = 0
