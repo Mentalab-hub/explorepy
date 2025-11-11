@@ -6,6 +6,7 @@ import copy
 import logging
 import threading
 import time
+from eegprep import clean_asr
 from enum import Enum
 from threading import Lock
 from typing import (
@@ -14,7 +15,7 @@ from typing import (
 )
 
 import numpy as np
-
+from copy import deepcopy
 from explorepy.command import (
     DeviceConfiguration,
     ZMeasurementDisable,
@@ -43,9 +44,10 @@ from explorepy.tools import (
     is_usb_mode
 )
 
+from explorepy.packet import BleImpedancePacket
 
 TOPICS =\
-    Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn cmd_ack env cmd_status imp packet_bin')
+    Enum('Topics', 'raw_ExG filtered_ExG asr_ExG device_info marker raw_orn cmd_ack env cmd_status imp packet_bin')
 logger = logging.getLogger(__name__)
 lock = Lock()
 
@@ -79,6 +81,7 @@ class StreamProcessor:
         self.packet_count = 0
         self.progress = 0
         self.asr_struct = {}
+        self.asr_packet_count = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -145,6 +148,7 @@ class StreamProcessor:
         self.cmd_event.clear()
         self.parser.stop_streaming()
         self.packet_count = 0
+        self.asr_packet_count = 0
 
     def group_packets_by_base_type(self, packet_batch: List[Tuple]):
         """Group packets by their base type (EEG, Orientation, etc)
@@ -315,6 +319,7 @@ class StreamProcessor:
             self._update_last_time_point(packet, received_time)
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             self.packet_count += 1
+            self.asr_packet_count += 1
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(
                     packet=copy.deepcopy(packet))
@@ -329,12 +334,26 @@ class StreamProcessor:
                 for t in missing_timestamps:
                     packet.timestamp = t
                     self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
+                    self.asr_packet_count += 1
+                    self.asr_struct['data'] = np.insert(self.asr_struct['data'], self.asr_packet_count % self.asr_struct['pnts'], packet.get_data()[1], axis=1)
 
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
             if not self._is_imp_mode and self.imp_calculator is None:
-                self.asr_struct['data'][:, self.packet_count % self.asr_struct['pnts']] = packet.get_data()[1].flatten()
-            if self.packet_count % self.asr_struct['pnts'] == 0 and self.packet_count > 0:
+                p = packet.get_data()[1]
+                #print('data shape asr struct {} and packet length: {}'.format(self.asr_struct['data'].shape, p.shape))
+                self.asr_struct['data'] = np.insert(self.asr_struct['data'], self.asr_packet_count % self.asr_struct['pnts'], p, axis=1)
+                #self.asr_struct['data'][:, self.asr_packet_count % self.asr_struct['pnts']] = packet.get_data()[1]
 
+            if self.asr_packet_count % self.asr_struct['pnts'] == 0 and self.asr_packet_count > 0:
+                # run through ASR, then clean the array(not sure but let's keep it for now)
+                print('############ ASR packet count: {} and data length: {}'.format(self.asr_packet_count, self.asr_struct['data'].shape))
+                cleaned = clean_asr(deepcopy(self.asr_struct), cutoff=20)
+                asr_packet = BleImpedancePacket(
+                timestamp=packet.timestamp, payload=None)
+                asr_packet.data = cleaned['data']
+                self.dispatch(topic=TOPICS.asr_ExG, packet=asr_packet)
+                self.initialize_asr_config()
+                print(cleaned['data'].shape)
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
             print(self.old_device_info)
@@ -604,4 +623,4 @@ class StreamProcessor:
             'trials': 1,
         }
         # reset packet count
-        self.packet_count = 0
+        self.asr_packet_count = 0
