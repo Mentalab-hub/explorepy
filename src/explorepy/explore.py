@@ -734,3 +734,11 @@ class Explore:
 
     def get_channel_mask(self):
         return SettingsManager(self.device_name).get_adc_mask()
+
+    def start_asr_calib(self):
+        self.stream_processor.is_calib_running = True
+
+    def stop_asr_calib(self):
+        self.stream_processor.is_calib_running = False
+
+
