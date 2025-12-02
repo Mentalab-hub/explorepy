@@ -322,7 +322,7 @@ class StreamProcessor:
             self._update_last_time_point(packet, received_time)
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             self.packet_count += 1
-            self.asr_packet_count += 1
+
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(
                     packet=copy.deepcopy(packet))
@@ -337,25 +337,26 @@ class StreamProcessor:
                 for t in missing_timestamps:
                     packet.timestamp = t
                     self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
-                    self.asr_packet_count += 1
-                    self.asr_struct['data'] = np.insert(self.asr_struct['data'], self.asr_packet_count % self.asr_struct['pnts'], packet.get_data()[1], axis=1)
+                    # self.asr_packet_count += 1
+                    # self.asr_struct['data'] = np.insert(self.asr_struct['data'], self.asr_packet_count % self.asr_struct['pnts'], packet.get_data()[1], axis=1)
 
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
             if not self._is_imp_mode and self.imp_calculator is None:
                 t, p = packet.get_data()
                 if self.is_calib_running and self.asr_calib_data is not None:
-                    print('calib data shape: {}'.format(self.asr_calib_data.shape))
+
                     self.asr_calib_data = np.insert(self.asr_calib_data, self.calib_packet_count % 250, p, axis=1)
                     self.calib_packet_count += 1
 
                 #print('data shape asr struct {} and packet length: {}'.format(self.asr_struct['data'].shape, p.shape))
-                self.asr_struct['data'] = np.insert(self.asr_struct['data'], self.asr_packet_count % self.asr_struct['pnts'], p, axis=1)
+                i = self.asr_packet_count % self.asr_struct['pnts']
+                self.asr_struct['data'][:, i] = p[:, 0]
                 self.asr_struct['ts'][self.asr_packet_count % self.asr_struct['pnts']] = t[0]
-                #self.asr_struct['data'][:, self.asr_packet_count % self.asr_struct['pnts']] = packet.get_data()[1]
+                self.asr_packet_count += 1
 
             if self.asr_packet_count % self.asr_struct['pnts'] == 0 and self.asr_packet_count > 0:
                 # run through ASR, then clean the array(not sure but let's keep it for now)
-                print('############ ASR packet count: {} and data length: {}'.format(self.asr_packet_count, self.asr_struct['data'].shape))
+                #print('############ ASR packet count: {} and data length: {}'.format(self.asr_packet_count, self.asr_struct['data'].shape))
                 if self.calib_packet_count > 500:
                     cleaned = clean_asr(deepcopy(self.asr_struct), ref_maxbadchannels=self.asr_calib_data, cutoff=20)
                 cleaned = clean_asr(deepcopy(self.asr_struct), cutoff=20)
