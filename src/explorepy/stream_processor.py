@@ -342,7 +342,7 @@ class StreamProcessor:
 
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
             if not self._is_imp_mode and self.imp_calculator is None:
-                p = packet.get_data()[1]
+                t, p = packet.get_data()
                 if self.is_calib_running and self.asr_calib_data is not None:
                     print('calib data shape: {}'.format(self.asr_calib_data.shape))
                     self.asr_calib_data = np.insert(self.asr_calib_data, self.calib_packet_count % 250, p, axis=1)
@@ -350,6 +350,7 @@ class StreamProcessor:
 
                 #print('data shape asr struct {} and packet length: {}'.format(self.asr_struct['data'].shape, p.shape))
                 self.asr_struct['data'] = np.insert(self.asr_struct['data'], self.asr_packet_count % self.asr_struct['pnts'], p, axis=1)
+                self.asr_struct['ts'][self.asr_packet_count % self.asr_struct['pnts']] = t[0]
                 #self.asr_struct['data'][:, self.asr_packet_count % self.asr_struct['pnts']] = packet.get_data()[1]
 
             if self.asr_packet_count % self.asr_struct['pnts'] == 0 and self.asr_packet_count > 0:
@@ -359,7 +360,7 @@ class StreamProcessor:
                     cleaned = clean_asr(deepcopy(self.asr_struct), ref_maxbadchannels=self.asr_calib_data, cutoff=20)
                 cleaned = clean_asr(deepcopy(self.asr_struct), cutoff=20)
                 asr_packet = BleImpedancePacket(
-                timestamp=packet.timestamp, payload=None)
+                timestamp=self.asr_struct['ts'], payload=None)
                 asr_packet.data = cleaned['data']
                 self.dispatch(topic=TOPICS.asr_ExG, packet=asr_packet)
                 self.initialize_asr_config()
@@ -627,6 +628,7 @@ class StreamProcessor:
         sample_num = 1000
         self.asr_struct = {
             'data': np.zeros((n_chan, sample_num), dtype='float64'),
+            'ts':   np.zeros(sample_num),
             'srate': sampling_rate,
             'nbchan': n_chan,
             'pnts': sample_num,
