@@ -82,6 +82,9 @@ class StreamProcessor:
         self.progress = 0
         self.asr_struct = {}
         self.asr_packet_count = 0
+        self.is_calib_running = False
+        self.asr_calib_data = None
+        self.calib_packet_count = 0
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -340,6 +343,11 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
             if not self._is_imp_mode and self.imp_calculator is None:
                 p = packet.get_data()[1]
+                if self.is_calib_running and self.asr_calib_data is not None:
+                    print('calib data shape: {}'.format(self.asr_calib_data.shape))
+                    self.asr_calib_data = np.insert(self.asr_calib_data, self.calib_packet_count % 250, p, axis=1)
+                    self.calib_packet_count += 1
+
                 #print('data shape asr struct {} and packet length: {}'.format(self.asr_struct['data'].shape, p.shape))
                 self.asr_struct['data'] = np.insert(self.asr_struct['data'], self.asr_packet_count % self.asr_struct['pnts'], p, axis=1)
                 #self.asr_struct['data'][:, self.asr_packet_count % self.asr_struct['pnts']] = packet.get_data()[1]
@@ -347,6 +355,8 @@ class StreamProcessor:
             if self.asr_packet_count % self.asr_struct['pnts'] == 0 and self.asr_packet_count > 0:
                 # run through ASR, then clean the array(not sure but let's keep it for now)
                 print('############ ASR packet count: {} and data length: {}'.format(self.asr_packet_count, self.asr_struct['data'].shape))
+                if self.calib_packet_count > 500:
+                    cleaned = clean_asr(deepcopy(self.asr_struct), ref_maxbadchannels=self.asr_calib_data, cutoff=20)
                 cleaned = clean_asr(deepcopy(self.asr_struct), cutoff=20)
                 asr_packet = BleImpedancePacket(
                 timestamp=packet.timestamp, payload=None)
@@ -624,3 +634,17 @@ class StreamProcessor:
         }
         # reset packet count
         self.asr_packet_count = 0
+
+    def init_calibration(self):
+
+        settings_manager = SettingsManager(self.device_info["device_name"])
+        settings_manager.load_current_settings()
+        n_chan = settings_manager.settings_dict[settings_manager.channel_count_key]
+        sampling_rate = self.device_info['sampling_rate']
+        self.asr_calib_data = np.zeros((n_chan, 250), dtype='float64')
+        self.calib_packet_count = 0
+        self.is_calib_running = True
+
+    def stop_calibration(self):
+        self.is_calib_running = False
+        self.calib_packet_count = 0
