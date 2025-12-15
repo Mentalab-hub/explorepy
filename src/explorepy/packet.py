@@ -175,6 +175,21 @@ class PacketBIN(Packet):
         return f"{binascii.hexlify(bytearray(self.bin_data))}"
 
 
+class CleanEEG(Packet):
+    def __init__(self, timestamp, payload):
+        self.timestamps = timestamp
+        self.data = payload
+
+    def _convert(self, bin_data):
+        self.data = bin_data
+
+    def get_data(self):
+        return self.timestamps, self.data
+
+    def __str__(self):
+        return f"Timestamps: {self.timestamps}, samples: {self.data}"
+
+
 class EEG(Packet):
     """EEG packet class"""
 

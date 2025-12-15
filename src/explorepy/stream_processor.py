@@ -14,7 +14,6 @@ from typing import (
 )
 
 import numpy as np
-
 from explorepy.command import (
     DeviceConfiguration,
     ZMeasurementDisable,
@@ -25,6 +24,7 @@ from explorepy.packet import (
     EEG,
     CalibrationInfo,
     CalibrationInfo_USBC,
+    CleanEEG,
     CommandRCV,
     CommandStatus,
     DeviceInfo,
@@ -44,9 +44,10 @@ from explorepy.tools import (
     is_usb_mode
 )
 
+from explorepy.asr_processor import AsrProcessor
 
 TOPICS =\
-    Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn cmd_ack env cmd_status imp packet_bin')
+    Enum('Topics', 'raw_ExG filtered_ExG asr_ExG device_info marker raw_orn cmd_ack env cmd_status imp packet_bin')
 logger = logging.getLogger(__name__)
 lock = Lock()
 
@@ -56,6 +57,7 @@ class StreamProcessor:
 
     def __init__(self, debug=False):
         self.parser = None
+        self.asr_processor = None
         self.filters = []
         self.device_info = {}
         self.old_device_info = {}
@@ -315,6 +317,7 @@ class StreamProcessor:
             self._update_last_time_point(packet, received_time)
             self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             self.packet_count += 1
+
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(
                     packet=copy.deepcopy(packet))
@@ -331,6 +334,12 @@ class StreamProcessor:
                     self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
 
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
+            if not self._is_imp_mode and self.imp_calculator is None:
+                if self.asr_processor.cleaned_data_available:
+                    clean_packet = CleanEEG(timestamp=self.asr_processor.cleaned_data['timestamps'],
+                                            payload=self.asr_processor.cleaned_data['data'])
+                    self.dispatch(topic=TOPICS.asr_ExG, packet=clean_packet)
+                    self.asr_processor.clear_cleaned_data()
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
             print(self.old_device_info)
@@ -340,6 +349,7 @@ class StreamProcessor:
                     self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
+            self.asr_processor = AsrProcessor(self, TOPICS.filtered_ExG)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
         elif isinstance(packet, CommandStatus):
