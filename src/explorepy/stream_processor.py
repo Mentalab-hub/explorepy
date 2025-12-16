@@ -336,8 +336,8 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
             if not self._is_imp_mode and self.imp_calculator is None:
                 if self.asr_processor.cleaned_data_available:
-                    clean_packet = CleanEEG(timestamp=self.asr_processor.cleaned_data['timestamps'],
-                                            payload=self.asr_processor.cleaned_data['data'])
+                    clean_packet = CleanEEG(timestamp=self.asr_processor.cleaned_data_ts,
+                                            payload=self.asr_processor.cleaned_data)
                     self.dispatch(topic=TOPICS.asr_ExG, packet=clean_packet)
                     self.asr_processor.clear_cleaned_data()
         elif isinstance(packet, DeviceInfo):
