@@ -24,7 +24,7 @@ __version__ = '4.3.1'
 
 this = sys.modules[__name__]
 # TODO appropriate library
-bt_interface_list = ['sdk', 'ble', 'mock', 'pyserial', 'usb']
+bt_interface_list = ['sdk', 'ble', 'mock', 'pyserial', 'usb', 'csv']
 this._bt_interface = 'ble'
 
 if not sys.version_info >= (3, 6):
