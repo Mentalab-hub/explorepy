@@ -74,7 +74,7 @@ class Parser:
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
         self.device_name = device_name
-        #explorepy.set_bt_interface('csv')
+        explorepy.set_bt_interface('csv')
         if is_ble_mode():
             from explorepy.BLEClient import BLEClient
             self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
@@ -83,7 +83,7 @@ class Parser:
             self.stream_interface = MockBtClient(device_name=device_name, mac_address=mac_address)
         elif explorepy.get_bt_interface() == 'csv':
             from explorepy.csv_client import CsvClient
-            self.stream_interface = CsvClient()
+            self.stream_interface = CsvClient(8)
         elif is_usb_mode():
             from explorepy.serial_client import SerialStream
             self.stream_interface = SerialStream(device_name=device_name)
@@ -376,7 +376,7 @@ class Parser:
 
     def _generate_packet_from_csv(self):
         packet = self.stream_interface.read()
-        return packet, 30
+        return packet, packet.packet_size.value
 
 
 class FileHandler:
