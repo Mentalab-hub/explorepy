@@ -1,4 +1,3 @@
-import os
 import time
 from enum import Enum, auto
 import numpy as np
@@ -21,10 +20,11 @@ class PacketSize(Enum):
 
 class CsvClient:
     def __init__(self, channel_count):
-        print(os.getcwd())
+        file_path = "../../explorepy/tests/sample_data/"
+        file_name = "test_" + str(channel_count) + ".csv"
         self.server = server = CsvServer(
     channel_count=channel_count,
-    csv_path="../../../explore-desktop/exploredesktop/tests_ExG.csv",
+    csv_path=file_path + file_name,
     loop=True
 )
         self._state = ClientState.DISCONNECTED
@@ -114,7 +114,7 @@ class CsvServer:
         self.num_rows = self.csv_data.shape[0]
         self.device_info_ble_32ch = {
             'device_name': 'Explore_DABD',
-            'firmware_version': '9.1.0',
+            'firmware_version': '9.6.9',
             'adc_mask': [1] * 8,
             'sampling_rate': 250,
             'is_imp_mode': False,
@@ -126,7 +126,7 @@ class CsvServer:
 
         self.device_info_ble_8ch = {
             'device_name': 'Explore_AAAQ',
-            'firmware_version': '7.1.0',
+            'firmware_version': '7.6.9',
             'adc_mask': [1] * 8,
             'sampling_rate': 250,
             'is_imp_mode': False,

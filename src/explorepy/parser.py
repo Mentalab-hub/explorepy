@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 """Parser module"""
 import asyncio
 import binascii
@@ -74,6 +75,8 @@ class Parser:
     def start_streaming(self, device_name, mac_address):
         """Start streaming data from Explore device"""
         self.device_name = device_name
+        explorepy.set_bt_interface('csv')
+        print(os.getcwd())
         if is_ble_mode():
             from explorepy.BLEClient import BLEClient
             self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
