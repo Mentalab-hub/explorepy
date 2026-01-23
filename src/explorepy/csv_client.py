@@ -1,3 +1,4 @@
+import os
 import time
 from enum import Enum, auto
 import numpy as np
@@ -20,7 +21,12 @@ class PacketSize(Enum):
 
 class CsvClient:
     def __init__(self, channel_count):
-        self.server = CsvServer(channel_count)
+        print(os.getcwd())
+        self.server = server = CsvServer(
+    channel_count=channel_count,
+    csv_path="../../../explore-desktop/exploredesktop/tests_ExG.csv",
+    loop=True
+)
         self._state = ClientState.DISCONNECTED
 
     def set_state(self, state: ClientState):
@@ -68,21 +74,44 @@ class CsvClient:
             return orn_packet
 
         self.server.ts += self.server.time_period
-        while local_clock() < self.server.ts:
-            continue
+        sleep_time = self.server.ts - local_clock()
+        if sleep_time > 0:
+            time.sleep(sleep_time)
         eeg_packet = BleImpedancePacket(timestamp=self.server.ts, payload=None)
-        eeg_packet.data = self.server.eeg_data
+        try:
+            eeg_packet.data = self.server.read_sample()
+        except StopIteration:
+            self.set_state(ClientState.STOPPED)
+            return None
         eeg_packet.packet_size = self.server.packet_size
         return eeg_packet
 
     def write(self, bytes):
         pass
 
+import numpy as np
+from pylsl import local_clock
+
+
 class CsvServer:
-    def __init__(self, channel_count: int):
+    def __init__(self, channel_count: int, csv_path: str, loop: bool = True):
         if channel_count not in (8, 32):
             raise ValueError("Only 8 or 32 channels supported")
+
         self.channel_count = channel_count
+        self.loop = loop
+        self.csv_data = np.loadtxt(csv_path, delimiter=',', skiprows=1) # skip row 0
+
+        self.csv_data = self.csv_data[:, 1:]
+        if self.csv_data.shape[1] != channel_count:
+            print('######################', self.csv_data.shape)
+            raise ValueError(
+                f"CSV has {self.csv_data.shape[1]} columns, "
+                f"expected {channel_count}"
+            )
+
+        self.row_idx = 0
+        self.num_rows = self.csv_data.shape[0]
         self.device_info_ble_32ch = {
             'device_name': 'Explore_DABD',
             'firmware_version': '9.1.0',
@@ -94,6 +123,7 @@ class CsvServer:
             'max_online_sps': 250,
             'max_offline_sps': 2000
         }
+
         self.device_info_ble_8ch = {
             'device_name': 'Explore_AAAQ',
             'firmware_version': '7.1.0',
@@ -105,24 +135,38 @@ class CsvServer:
             'max_online_sps': 1000,
             'max_offline_sps': 8000
         }
-        self.eeg_32 = np.array([-17.83] + [-400000.05] * 31).reshape(32, 1)
-        self.eeg_8 = np.array([-17.83] + [-400000.05] * 7).reshape(8, 1)
-        if self.channel_count == 8:
-            self.device_info = self.device_info_ble_8ch
-            self.eeg_data = self.eeg_8
-            self.packet_size = PacketSize.EEG_8
-        else:
-            self.device_info = self.device_info_ble_32ch
-            self.eeg_data = self.eeg_32
-            self.packet_size = PacketSize.EEG_32
-        self.fs = 250
+
+        self.device_info = (
+            self.device_info_ble_8ch
+            if channel_count == 8
+            else self.device_info_ble_32ch
+        )
+
+        self.fs = self.device_info['sampling_rate']
         self.time_period = np.round(1 / self.fs, 3)
         self.ts = local_clock()
         self.tick = 0
-        self.orn_value = [5.002,-3.904,1001.01,420.0,-70.0,210.0,103.36,804.08,-532.0,-0.0023,-0.0028,0.0371,0.9993]
+
+        self.packet_size = (
+            PacketSize.EEG_8 if channel_count == 8 else PacketSize.EEG_32
+        )
+
+        self.orn_value = [
+            5.002, -3.904, 1001.01, 420.0, -70.0, 210.0,
+            103.36, 804.08, -532.0, -0.0023,
+            -0.0028, 0.0371, 0.9993
+        ]
 
     def read_sample(self):
-        return self.eeg_data
+        if self.row_idx >= self.num_rows:
+            if not self.loop:
+                raise StopIteration("End of CSV reached")
+            self.row_idx = 0
+
+        sample = self.csv_data[self.row_idx]
+        self.row_idx += 1
+
+        return sample.reshape(self.channel_count, 1)
 
     def read_device_info(self):
         return self.device_info
