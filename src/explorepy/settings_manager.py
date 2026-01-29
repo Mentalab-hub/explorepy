@@ -16,6 +16,10 @@ read_write_lock = Lock()
 
 
 class SettingsManager:
+    _fw_ch_count = {"7": 8, "8": 16, "9": 32}
+    _board_ch_count = {"PCB_304_801_XXX": 32, "PCB_305_801_XXX": 16, "PCB_303_801E_XX": 8,
+                       "PCB_304_801p2_X": 32, "PCB_304_891p2_X": 16}
+
     def __init__(self, name):
         self.settings_dict = None
 
@@ -28,6 +32,7 @@ class SettingsManager:
                 pass
         self.hardware_channel_mask_key = "hardware_mask"
         self.software_channel_mask_key = "software_mask"
+        self.firmware_version_key = "firmware_version"
         self.adc_mask_key = "adc_mask"
         self.channel_name_key = "channel_name"
         self.channel_count_key = "channel_count"
@@ -105,52 +110,30 @@ class SettingsManager:
         self.load_current_settings()
         for key, value in device_info_dict_update.items():
             self.settings_dict[key] = value
-        if "board_id" in device_info_dict_update:
-            if self.settings_dict["board_id"] == "PCB_304_801_XXX":
-                self.settings_dict[self.channel_count_key] = 32
-                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
-                if self.software_channel_mask_key not in self.settings_dict:
-                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
-                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
-                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
-        if "board_id" in device_info_dict_update:
-            if self.settings_dict["board_id"] == "PCB_305_801_XXX":
-                self.settings_dict[self.channel_count_key] = 16
-                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(16)]
-                if self.software_channel_mask_key not in self.settings_dict:
-                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
-                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
-                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
-        if "board_id" in device_info_dict_update:
-            # 8 channel BLE board
-            if self.settings_dict["board_id"] == "PCB_303_801E_XXX":
-                self.settings_dict[self.channel_count_key] = 8
-                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(8)]
-                if self.software_channel_mask_key not in self.settings_dict:
-                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
-                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
-                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
-        if "board_id" in device_info_dict_update:
-            # 32 channel BLE board
-            if self.settings_dict["board_id"] == "PCB_304_801p2_X":
-                self.settings_dict[self.channel_count_key] = 32
-                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(32)]
-                if self.software_channel_mask_key not in self.settings_dict:
-                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
-                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
-                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
-        if "board_id" in device_info_dict_update:
-            # 32 channel BLE board
-            if self.settings_dict["board_id"] == "PCB_304_891p2_X":
-                self.settings_dict[self.channel_count_key] = 16
-                self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(16)]
-                if self.software_channel_mask_key not in self.settings_dict:
-                    hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
-                    self.settings_dict[self.software_channel_mask_key] = hardware_adc
-                self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
+        ch_count = -1
+        if self.firmware_version_key in device_info_dict_update:
+            fw = device_info_dict_update[self.firmware_version_key]
+            major = fw.split(".")[0]
+            if major in self._fw_ch_count:
+                ch_count = self._fw_ch_count[major]
+        if ch_count == -1:
+            logger.warn("Could not retrieve channel count from firmware version, attempting to get channel count from "
+                        "board ID...")
+            # fallback to PCB ID
+            if self.board_id_key in device_info_dict_update:
+                for key in self._board_ch_count:
+                    if self.settings_dict["board_id"] == key:
+                        ch_count = self._board_ch_count[key]
+        if ch_count != -1:
+            self.settings_dict[self.channel_count_key] = ch_count
+            self.settings_dict[self.hardware_channel_mask_key] = [1 for _ in range(ch_count)]
+            if self.software_channel_mask_key not in self.settings_dict:
+                hardware_adc = self.settings_dict.get(self.hardware_channel_mask_key)
+                self.settings_dict[self.software_channel_mask_key] = hardware_adc
+            self.settings_dict[self.adc_mask_key] = self.settings_dict.get(self.software_channel_mask_key)
 
         if self.channel_count_key not in self.settings_dict:
-            self.settings_dict[self.channel_count_key] = 8 if sum(self.settings_dict["adc_mask"]) > 4 else 4
+            raise KeyError("Channel count could not be set from firmware or hardware version!")
         if self.channel_name_key not in self.settings_dict:
             self.settings_dict[self.channel_name_key] = [f'ch{i + 1}' for i in
                                                          range(self.settings_dict[self.channel_count_key])]
