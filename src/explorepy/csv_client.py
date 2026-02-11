@@ -20,8 +20,9 @@ class PacketSize(Enum):
 
 class CsvClient:
     def __init__(self, channel_count):
-        file_path = "../../explorepy/tests/sample_data/"
-        file_name = "test_" + str(channel_count) + ".csv"
+        file_path = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/"
+        file_name = "32channel_semidry_artefacts_ExG.csv"
+        #file_name = "Explore_DABH_Artefacts_60sCalibration_ExG.csv"
         self.server = server = CsvServer(
     channel_count=channel_count,
     csv_path=file_path + file_name,
@@ -79,7 +80,7 @@ class CsvClient:
             time.sleep(sleep_time)
         eeg_packet = BleImpedancePacket(timestamp=self.server.ts, payload=None)
         try:
-            eeg_packet.data = self.server.read_sample()
+            eeg_packet.data, eeg_packet.timestamp = self.server.read_sample()
         except StopIteration:
             self.set_state(ClientState.STOPPED)
             return None
@@ -102,7 +103,9 @@ class CsvServer:
         self.loop = loop
         self.csv_data = np.loadtxt(csv_path, delimiter=',', skiprows=1) # skip row 0
 
+        self.csv_ts = self.csv_data[:, 0]
         self.csv_data = self.csv_data[:, 1:]
+
         if self.csv_data.shape[1] != channel_count:
             print('######################', self.csv_data.shape)
             raise ValueError(
@@ -163,10 +166,11 @@ class CsvServer:
                 raise StopIteration("End of CSV reached")
             self.row_idx = 0
 
+        ts = self.csv_ts[self.row_idx]
         sample = self.csv_data[self.row_idx]
         self.row_idx += 1
 
-        return sample.reshape(self.channel_count, 1)
+        return sample.reshape(self.channel_count, 1), ts
 
     def read_device_info(self):
         return self.device_info

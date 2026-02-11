@@ -64,7 +64,7 @@ class AsrProcessor:
     _default_cutoff: float = 5.0
     _max_cutoff: float = 20.0
 
-    _min_clean_timer: float = 0.5  # in s
+    _min_clean_timer: float = 0.05  # in s
     _default_clean_timer: float = 1.0  # in s
     _max_clean_timer: float = 3.0  # in s
 
@@ -112,6 +112,9 @@ class AsrProcessor:
     def cutoff(self, new_cutoff):
         self._cutoff = new_cutoff
         self._state = get_asr_state(self.calibration_data_input, self.sr, self._cutoff)
+
+    def set_state_from_calibration_data(self, calib_data):
+        self._state = get_asr_state(calib_data, self.sr, self._cutoff)
 
     @property
     def refresh_window(self):
