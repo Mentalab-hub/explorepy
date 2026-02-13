@@ -10,27 +10,246 @@ import polars as pl
 
 import matplotlib.pyplot as plt
 
-n_ch = 32
-
-assumed_sr = 250
-
 calib_time = 30.
 asr_window = 0.05
 t = 180.
 
-max_plot_rows = 4
-max_plot_cols = 2
-max_plot_indices = 1000
-
-ts_buffer = []
-data_buffer = [[] for _ in range(n_ch)]
-ts_buffer_no_asr = []
-data_buffer_no_asr = [[] for _ in range(n_ch)]
-
 now = time.time()
 
+class DataRecorder:
+    def __init__(self, n_channels):
+        self.dev = None
+        self.n_channels = n_channels
+        self.ts_buffer = []
+        self.data_buffer = [[] for _ in range(self.n_channels)]
+        self.ts_buffer_no_asr = []
+        self.data_buffer_no_asr = [[] for _ in range(self.n_channels)]
 
-def compare_cleaned_with_uncleaned():
+    def clear_buffers(self):
+        self.ts_buffer = []
+        self.data_buffer = [[] for _ in range(self.n_channels)]
+        self.ts_buffer_no_asr = []
+        self.data_buffer_no_asr = [[] for _ in range(self.n_channels)]
+
+    def on_asr_received(self, packet):
+        data = packet.get_data()
+        ts = data[0]
+        self.ts_buffer.extend(ts)
+        for i in range(self.n_channels):
+            self.data_buffer[i].extend(data[1][i, :])
+
+    def on_filtered_received(self, packet):
+        data_filtered = packet.get_data()
+        ts_filtered = data_filtered[0]
+        self.ts_buffer_no_asr.extend(ts_filtered)
+        for i in range(self.n_channels):
+            self.data_buffer_no_asr[i].extend(data_filtered[1][i, :])
+
+    def set_up_explore_device(self, t_calib=30., dev_name="Explore_DABC", notch=50., bp=(1., 30.), record_raw_data=False):
+        """Connects to a device, sets up filters and performs ASR calibration"""
+        self.dev = explorepy.Explore()
+        self.dev.connect(dev_name)
+
+        self.dev.stream_processor.add_filter(cutoff_freq=notch, filter_type="notch")
+        self.dev.stream_processor.add_filter(cutoff_freq=bp, filter_type="bandpass")
+
+        time.sleep(5.0)
+
+        self.dev.calibrate_asr(t_calib)
+        if record_raw_data:
+            self.dev.stream_processor.subscribe(self.on_filtered_received, topic=TOPICS.filtered_ExG)
+        self.dev.stream_processor.subscribe(self.on_asr_received, topic=TOPICS.asr_ExG)
+
+        time.sleep(t_calib + 5.)
+
+        return self.dev
+
+    def write_calibration_data(self, t_calib=30., calib_file=None):
+        self.dev = self.set_up_explore_device(t_calib=t_calib)
+        if calib_file is None:
+            calib_file = f"asr_calibration-data_calib-{t_calib}.csv"
+
+        time.sleep(1.)
+
+        calib_data = self.dev.stream_processor.asr_processor.calibration_data_input
+        calib_df = pl.DataFrame(calib_data.swapaxes(1, 0))
+        calib_df.write_csv(calib_file)
+        self.dev.disconnect()
+        time.sleep(1.)
+
+        self.clear_buffers()
+
+        return calib_file
+
+    def clean_data_from_file(self, cutoff=5.0, t_calib=30., t_window=0.05, rec_length=180., calib_file=None, record_raw_data=False):
+        self.dev = self.set_up_explore_device(t_calib=t_calib, record_raw_data=record_raw_data)
+
+        if calib_file is not None:
+            calib_file_df = pl.read_csv(calib_file)
+            as_np = calib_file_df.to_numpy()
+            as_np = as_np.swapaxes(1, 0)
+
+            self.dev.stream_processor.asr_processor.calibration_data_input = as_np
+            self.dev.stream_processor.asr_processor.set_state_from_calibration_data(calib_data=as_np)
+
+        time.sleep(1.)
+
+        self.dev.stream_processor.asr_processor.cutoff = cutoff
+
+        self.dev.start_asr(window=t_window)
+
+        time.sleep(rec_length)
+
+        ts_buffer_np = np.array(self.ts_buffer)
+        data_buffer_np = np.array(self.data_buffer)
+
+        n = ["TimeStamp"]
+        n.extend([f"ch{i + 1}" for i in range(self.n_channels)])
+        ret = np.vstack((ts_buffer_np, data_buffer_np))
+        df = pl.DataFrame(ret.swapaxes(1, 0), schema=n)
+        f_name_cleaned = f"asr_cleaned-data_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
+        df.write_csv(f_name_cleaned)  # cleaned from filtered
+
+        f_name_uncleaned = None
+
+        if record_raw_data:
+            ts_buffer_no_asr_np = np.array(self.ts_buffer_no_asr)
+            data_buffer_no_asr_np = np.array(self.data_buffer_no_asr)
+
+            ret_two = np.vstack((ts_buffer_no_asr_np, data_buffer_no_asr_np))
+            df_no_asr = pl.DataFrame(ret_two.swapaxes(1, 0), schema=n)
+            f_name_uncleaned = f"filtered_exg_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
+            df_no_asr.write_csv(f_name_uncleaned)  # uncleaned but filtered
+
+        self.dev.disconnect()
+        time.sleep(1.)
+        self.dev = None
+
+        self.clear_buffers()
+
+        return f_name_cleaned, f_name_uncleaned
+
+
+class DataComparator:
+    def __init__(self):
+        self.dataframes = []
+        self.max_plot_rows = 4
+        self.max_plot_cols = 2
+        self.max_plot_indices = 1000
+
+    def get_first_and_last_ts(self):
+        all_first_ts = []
+        all_last_ts = []
+        for tup in self.dataframes:
+            all_first_ts.append(tup[0]["TimeStamp"][0])
+            all_last_ts.append(tup[0]["TimeStamp"][-1])
+        first_ts = max(all_first_ts)
+        last_ts = min(all_last_ts)
+        return first_ts, last_ts
+
+    def cull_dataframes(self):
+        culled_dataframes = []
+        first_ts, last_ts = self.get_first_and_last_ts()
+        for tup in self.dataframes:
+            df = tup[0]
+            df = df.remove(pl.col("TimeStamp") < first_ts)
+            df = df.remove(pl.col("TimeStamp") > last_ts)
+            culled_dataframes.append((df, tup[1], tup[2]))
+        self.dataframes = culled_dataframes
+
+    def add_dataframe_from_file(self, file_path, colour, label):
+        dataframe = pl.read_csv(file_path)
+        self.add_dataframe(dataframe, colour, label)
+
+    def add_dataframe(self, dataframe, colour, label):
+        self.dataframes.append((dataframe, colour, label))
+
+    def clear_dataframes(self):
+        self.dataframes = []
+
+    def plot_comp_from_dataframes(self, channels: list[int] = None):
+        """Plots comparison of any dataframes' first channel from a list of tuples
+
+        Args:
+            dataframes: list of tuples with the first element in the tuple being a polars DataFrame and the second element
+            in the tuple being a colour string to use for plotting with matplotlib, i.e. "b" for blue etc.
+            channels: list of ints that defines which channels to plot
+        """
+        if channels is None:
+            print("No channels supplied for plotting, exiting...")
+            return
+        n_channels = len(channels)
+
+        if n_channels > self.max_plot_cols * self.max_plot_rows:
+            print(f"Too many channels to reasonably plot (got: {n_channels}, "
+                  f"max: {self.max_plot_cols * self.max_plot_rows}), exiting...")
+
+        plot_cols = 1
+        for i in range(self.max_plot_cols):
+            if n_channels > (i + 1) * self.max_plot_rows:
+                plot_cols += 1
+        plot_rows = min(n_channels, self.max_plot_rows)
+        fig, axs = plt.subplots(plot_rows, plot_cols, layout="constrained")
+        it = 0
+        ax = None
+        for idx_to_plot in channels:
+            r = it % self.max_plot_rows
+            c = it // self.max_plot_rows
+            ax = axs[r, c]
+            for tup in self.dataframes:
+                assert type(tup[0]) is pl.DataFrame
+                assert type(tup[1]) is str
+                assert type(tup[2]) is str
+                ax.plot(tup[0]["TimeStamp"][:self.max_plot_indices],
+                        tup[0][tup[0].columns[idx_to_plot + 1]][:self.max_plot_indices],
+                        tup[1], label=tup[2])
+            ax.title.set_text(f"Channel {idx_to_plot}")
+            it += 1
+        if ax is not None:
+            legend_handles, legend_labels = ax.get_legend_handles_labels()
+            fig.legend(legend_handles, legend_labels, loc='upper center')
+        plt.show()
+
+
+def add_dead_channels_to_dataframe(dataframe, count):
+    n_channels = len(dataframe.columns) - 1
+    drop_indices = random.sample(range(1, n_channels), count)
+
+    for idx in drop_indices:
+        column_name = dataframe.columns[idx]
+        dataframe = dataframe.replace_column(idx, pl.Series(name=column_name,
+                                                            values=np.full(dataframe.shape[0], -400000.05)))
+
+    return dataframe
+
+
+def call_clean_from_eegprep(raw_data_file, calib_file, sr, cutoff, n_chan, first_ts, last_ts):
+    calib_file_df = pl.read_csv(calib_file)
+    calib_as_np = calib_file_df.to_numpy()
+    calib_as_np = calib_as_np.swapaxes(1, 0)
+
+    raw_data = pl.read_csv(raw_data_file)
+    culled_raw_data = raw_data.remove(pl.col("TimeStamp") < first_ts)
+    culled_raw_data = culled_raw_data.remove(pl.col("TimeStamp") > last_ts)
+    culled_raw_data = culled_raw_data.to_numpy()
+    culled_raw_data = culled_raw_data.swapaxes(1, 0)
+
+    culled_raw_ts = culled_raw_data[0, :]
+    culled_raw_data = culled_raw_data[1:, :]
+
+    as_dict = {"data": culled_raw_data, "srate": sr, "nbchan": n_chan}
+
+    cleaned_dict = clean_asr(as_dict, cutoff=cutoff, ref_maxbadchannels=calib_as_np)
+    cleaned_df = cleaned_dict["data"]
+    cleaned_df = cleaned_df.swapaxes(1, 0)
+    cleaned_df = pl.DataFrame(cleaned_df)
+    s = pl.Series("TimeStamp", culled_raw_ts)
+    cleaned_df.insert_column(0, s)
+
+    return cleaned_df
+
+
+def compare_cleaned_with_uncleaned(self):
     file_path_raw = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/32channel_semidry_artefacts_ExG_1ch_corrupted.csv"
     raw = pl.read_csv(file_path_raw)
 
@@ -46,204 +265,65 @@ def compare_cleaned_with_uncleaned():
     matched_filtered = matched_filtered.remove(pl.col("TimeStamp") > last_ts_cleaned)
 
     calib_file = f"asr_calibration-data_calib-{calib_time}.csv"
-    calib_file_df = pl.read_csv(calib_file)
 
-    as_np = calib_file_df.to_numpy()
-    as_np = as_np.swapaxes(1, 0)
-
-    cleaned_df = call_clean_from_eegprep(raw, comp_cleaned_df, as_np, sr=assumed_sr, cutoff=asr_window, n_chan=32)
+    cleaned_df = call_clean_from_eegprep(raw, calib_file=calib_file, sr=250, cutoff=asr_window, n_chan=32, first_ts=None, last_ts=None)
 
     dataframes = [(matched_filtered, "r", "Uncleaned (filtered)"),
                   (comp_cleaned_df, "b", f"Cleaned with window = {asr_window}s"),
                   (cleaned_df, "g", "Cleaned with clean_asr")]
 
-    plot_comp_from_dataframes(dataframes, [1, 2, 3, 4, 5, 6, 7, 8])
+    self.plot_comp_from_dataframes([1, 2, 3, 4, 5, 6, 7, 8])
 
 
-def add_dead_channels_to_dataframe(dataframe, count):
-    n_channels = len(dataframe.columns) - 1
-    drop_indices = random.sample(range(1, n_channels), count)
+def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window_list: list, rec_length_list: list):
+    data_writer = DataRecorder(number_channels)
+    data_comparator = DataComparator()
 
-    for idx in drop_indices:
-        column_name = dataframe.columns[idx]
-        dataframe = dataframe.replace_column(idx, pl.Series(name=column_name,
-                                                            values=np.full(dataframe.shape[0], -400000.05)))
+    uncleaned_file = None
+    cleaned_files = []
+    calib_file_path = data_writer.write_calibration_data(t_calib=t_calib_length)
 
-    return dataframe
+    uncleaned_plot_colour = "gray"
+    eegprep_plot_colour = "red"
+    asr_processor_plot_colours = ["green", "skyblue", "violet", "gold", "aquamarine", "mediumpurple"]
 
-
-def plot_comp_from_dataframes(dataframes: list[tuple[pl.DataFrame, str, str]], channels: list[int]=None):
-    """Plots comparison of any dataframes' first channel from a list of tuples
-
-    Args:
-        dataframes: list of tuples with the first element in the tuple being a polars DataFrame and the second element
-        in the tuple being a colour string to use for plotting with matplotlib, i.e. "b" for blue etc.
-        channels: list of ints that defines which channels to plot
-    """
-    if channels is None:
-        print("No channels supplied for plotting, exiting...")
-        return
-    n_channels = len(channels)
-
-    if n_channels > max_plot_cols * max_plot_rows:
-        print(f"Too many channels to reasonably plot (got: {n_channels}, "
-              f"max: {max_plot_cols * max_plot_rows}), exiting...")
-
-    plot_cols = 1
-    for i in range(max_plot_cols):
-        if n_channels > (i+1) * max_plot_rows:
-            plot_cols += 1
-    plot_rows = min(n_channels, max_plot_rows)
-    print(f"n_channels: {n_channels}, plot_cols: {plot_cols}, plot_rows: {plot_rows}")
-    fig, axs = plt.subplots(plot_rows, plot_cols, layout="constrained")
-    print(len(axs))
-    print(axs)
     it = 0
-    ax = None
-    for idx_to_plot in channels:
-        r = it%max_plot_rows
-        c = it//max_plot_rows
-        print(f"r: {r}, c: {c}, idx_to_plot: {idx_to_plot}")
-        ax = axs[r, c]
-        for tup in dataframes:
-            assert type(tup[0]) is pl.DataFrame
-            assert type(tup[1]) is str
-            assert type(tup[2]) is str
-            ax.plot(tup[0]["TimeStamp"][:max_plot_indices], tup[0][tup[0].columns[idx_to_plot+1]][:max_plot_indices],
-                    tup[1], label=tup[2])
-        ax.title.set_text(f"Channel {idx_to_plot}")
-        it += 1
-    if ax is not None:
-        legend_handles, legend_labels = ax.get_legend_handles_labels()
-        fig.legend(legend_handles, legend_labels, loc='upper center')
-    plt.show()
+    for t_window in t_window_list:
+        for rec_length in rec_length_list:
+            cleaned_path, uncleaned_path = data_writer.clean_data_from_file(cutoff=cutoff,
+                                                                            t_calib=t_calib_length,
+                                                                            t_window=t_window,
+                                                                            rec_length=rec_length,
+                                                                            calib_file=calib_file_path,
+                                                                            record_raw_data=uncleaned_file is None)
+            if uncleaned_path is not None and uncleaned_file is None:
+                uncleaned_file = (uncleaned_path, uncleaned_plot_colour, "Uncleaned (filtered)")
+            cleaned_files.append((cleaned_path,
+                                  asr_processor_plot_colours[it%len(asr_processor_plot_colours)],
+                                  f"Cleaned, cutoff={cutoff}, t_window={t_window}, calib={t_calib_length}, rec_length={rec_length}"))
+            it += 1
 
-
-def on_asr_received(packet):
-    data = packet.get_data()
-    ts = data[0]
-    ts_buffer.extend(ts)
-    for i in range(n_ch):
-        data_buffer[i].extend(data[1][i, :])
-
-
-def on_filtered_received(packet):
-    data_filtered = packet.get_data()
-    ts_filtered = data_filtered[0]
-    ts_buffer_no_asr.extend(ts_filtered)
-    for i in range(n_ch):
-        data_buffer_no_asr[i].extend(data_filtered[1][i, :])
-
-
-def call_clean_from_eegprep(raw_data, comp_cleaned, calib_data, sr, cutoff, n_chan):
-    first_ts_cleaned = comp_cleaned["TimeStamp"][0]
-    last_ts_cleaned = comp_cleaned["TimeStamp"][-1]
-
-    matched_raw = raw_data.remove(pl.col("TimeStamp") < first_ts_cleaned)
-    matched_raw = matched_raw.remove(pl.col("TimeStamp") > last_ts_cleaned)
-    as_np_raw = matched_raw.to_numpy()
-    as_np_raw = as_np_raw.swapaxes(1, 0)
-    as_np_raw_ts = as_np_raw[0, :]
-    as_np_raw = as_np_raw[1:, :]
-    as_dict = {"data": as_np_raw, "srate": sr, "nbchan": n_chan}
-    cleaned_dict = clean_asr(as_dict, cutoff=cutoff, ref_maxbadchannels=calib_data)
-    cleaned_df = cleaned_dict["data"]
-    cleaned_df = cleaned_df.swapaxes(1, 0)
-    cleaned_df = pl.DataFrame(cleaned_df)
-    s = pl.Series("TimeStamp", as_np_raw_ts)
-    cleaned_df.insert_column(0, s)
-
-    return cleaned_df
-
-
-def set_up_explore_device(t_calib=30., dev_name="Explore_DABC", notch=50., bp=(1., 30.)):
-    """Connects to a device, sets up filters and performs ASR calibration"""
-    dev = explorepy.Explore()
-    dev.connect(dev_name)
-
-    dev.stream_processor.add_filter(cutoff_freq=notch, filter_type="notch")
-    dev.stream_processor.add_filter(cutoff_freq=bp, filter_type="bandpass")
-
-    time.sleep(5.0)
-
-    dev.calibrate_asr(t_calib)
-    dev.stream_processor.subscribe(on_filtered_received, topic=TOPICS.filtered_ExG)
-    dev.stream_processor.subscribe(on_asr_received, topic=TOPICS.asr_ExG)
-
-    time.sleep(t_calib + 5.)
-
-    return dev
-
-
-def write_calibration_data(t_calib=30., calib_file=None):
-    dev = set_up_explore_device(t_calib=t_calib)
-    if calib_file is None:
-        calib_file = f"asr_calibration-data_calib-{t_calib}.csv"
-
-    time.sleep(1.)
-
-    calib_data = dev.stream_processor.asr_processor.calibration_data_input
-    calib_df = pl.DataFrame(calib_data.swapaxes(1, 0))
-    calib_df.write_csv(calib_file)
-    dev.disconnect()
-    time.sleep(1.)
-
-    return calib_file
-
-
-def clean_data_from_file(t_calib=30., t_window=0.05, rec_length=180., calib_file=None):
-    dev = set_up_explore_device(t_calib=t_calib)
-
-    if calib_file is not None:
-        calib_file_df = pl.read_csv(calib_file)
-        as_np = calib_file_df.to_numpy()
-        as_np = as_np.swapaxes(1, 0)
-
-        dev.stream_processor.asr_processor.calibration_data_input = as_np
-        dev.stream_processor.asr_processor.set_state_from_calibration_data(calib_data=as_np)
-
-    time.sleep(1.)
-
-    dev.start_asr(window=t_window)
-
-    time.sleep(rec_length)
-
-    ts_buffer_np = np.array(ts_buffer)
-    data_buffer_np = np.array(data_buffer)
-
-    ts_buffer_no_asr_np = np.array(ts_buffer_no_asr)
-    data_buffer_no_asr_np = np.array(data_buffer_no_asr)
-
-    n = ["TimeStamp"]
-    n.extend([f"ch{i + 1}" for i in range(n_ch)])
-    ret = np.vstack((ts_buffer_np, data_buffer_np))
-    df = pl.DataFrame(ret.swapaxes(1, 0), schema=n)
-    f_name_cleaned = f"asr_cleaned-data_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
-    df.write_csv(f_name_cleaned)  # cleaned from filtered
-
-    ret_two = np.vstack((ts_buffer_no_asr_np, data_buffer_no_asr_np))
-    df_no_asr = pl.DataFrame(ret_two.swapaxes(1, 0), schema=n)
-    f_name_uncleaned = f"filtered_exg_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
-    df_no_asr.write_csv(f_name_uncleaned)  # uncleaned but filtered
-
-    dev.disconnect()
-    time.sleep(1.)
-
-    return f_name_cleaned, f_name_uncleaned
-
+    for cleaned_file in cleaned_files:
+        data_comparator.add_dataframe_from_file(*cleaned_file)
+    data_comparator.add_dataframe_from_file(*uncleaned_file)
+    data_comparator.cull_dataframes()
+    first_ts, last_ts = data_comparator.get_first_and_last_ts()
+    eegprep_cleaned = call_clean_from_eegprep(raw_data_file=uncleaned_file[0], calib_file=calib_file_path, sr=250,
+                                              cutoff=5.0, n_chan=32, first_ts=first_ts, last_ts=last_ts)
+    eeg_prep_tup = (eegprep_cleaned, eegprep_plot_colour, f"Cleaned (eegprep), cutoff={cutoff}")
+    cleaned_files.append(eeg_prep_tup)
+    data_comparator.add_dataframe(*eeg_prep_tup)
+    data_comparator.plot_comp_from_dataframes(channels=[1,2,3,4,5,6,7,8,])
 
 if __name__ == '__main__':
+    n_ch = 32
+    cutoff = 5.0
+
     t_windows_to_test = [0.01, 0.05]
-    t_calib_to_test = [30.]
+    t_calib_to_test = 10.
     rec_length_to_test = [20.]
 
-    for t_calib in t_calib_to_test:
-        calib_file_path = write_calibration_data(t_calib=t_calib)
-
-        for t_window in t_windows_to_test:
-            for rec_length in rec_length_to_test:
-                cleaned_path, uncleaned_path = clean_data_from_file(t_calib=t_calib, t_window=t_window,
-                                                                    rec_length=rec_length, calib_file=calib_file_path)
+    perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test)
 
     # TODO gather files + metadata for comparison plots
     # TODO clear buffers between runs
