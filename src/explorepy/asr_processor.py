@@ -153,19 +153,16 @@ class AsrProcessor:
         self.calibration_data_input = np.append(self.calibration_data_input, packet.get_data()[1], axis=1)
 
     def on_unclean_data_received(self, packet):
-        # TODO investigate potentially swapped channels (??)
-        # TODO investigate odd spikes in cleaned data
         if self.last_clean_at <= 0.0:
             self.last_clean_at = time.time()
         if not self.calibration_data_available:
             logger.warning("Attempting to clean data with no calibration available - returning...")
         new_data = np.array(packet.get_data()[1])
         new_ts = np.array(packet.get_data()[0])
-        # arr[:, :new_data.shape[1]] = new_data
         self.to_clean[:, :new_data.shape[1]] = new_data
-        self.to_clean = np.roll(self.to_clean, -new_data.shape[1])
+        self.to_clean = np.roll(self.to_clean, -new_data.shape[1], axis=1)
         self.to_clean_ts[0, :new_ts.shape[0]] = new_ts
-        self.to_clean_ts = np.roll(self.to_clean_ts, -new_ts.shape[0])
+        self.to_clean_ts = np.roll(self.to_clean_ts, -new_ts.shape[0], axis=1)
 
         if time.time() - self.last_clean_at >= self._refresh_window:
             self.clean_data()
