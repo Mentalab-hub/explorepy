@@ -103,7 +103,7 @@ class StreamProcessor:
         logger.debug(f"Unsubscribe {callback} from {topic}")
         self.subscribers[topic].discard(callback)
 
-    def start(self, device_name=None, mac_address=None):
+    def start(self, device_name=None, mac_address=None, file_path=None):
         """Start streaming from Explore device
 
         Args:
@@ -116,7 +116,7 @@ class StreamProcessor:
         self.device_info["device_name"] = device_name
         self.parser = Parser(callback=self.process,
                              mode='device', debug=self.debug)
-        self.parser.start_streaming(device_name, mac_address)
+        self.parser.start_streaming(device_name, mac_address, file_path=file_path)
         self.is_connected = True
         self._device_configurator = DeviceConfiguration(
             bt_interface=self.parser.stream_interface)
