@@ -1,4 +1,5 @@
 # Note: This is a WIP
+import os
 import random
 
 import explorepy
@@ -45,13 +46,15 @@ class DataRecorder:
         for i in range(self.n_channels):
             self.data_buffer_no_asr[i].extend(data_filtered[1][i, :])
 
-    def set_up_explore_device(self, t_calib=30., dev_name="Explore_DABC", notch=50., bp=(1., 30.), record_raw_data=False):
+    def set_up_explore_device(self, t_calib=30., dev_name="Explore_DABC", notch=50., bp=(1., 30.), record_raw_data=False, file=None):
         """Connects to a device, sets up filters and performs ASR calibration"""
         self.dev = explorepy.Explore()
-        self.dev.connect(dev_name)
+        self.dev.connect(dev_name, file_path=file)
 
         self.dev.stream_processor.add_filter(cutoff_freq=notch, filter_type="notch")
         self.dev.stream_processor.add_filter(cutoff_freq=bp, filter_type="bandpass")
+        f_name = self.dev.stream_processor.parser.stream_interface.file_name
+        print(f"Working on {f_name}")
 
         time.sleep(5.0)
 
@@ -64,16 +67,20 @@ class DataRecorder:
 
         return self.dev
 
-    def write_calibration_data(self, t_calib=30., calib_file=None):
-        self.dev = self.set_up_explore_device(t_calib=t_calib)
+    def write_calibration_data(self, t_calib=30., calib_file=None, file=None, root_folder=None, overwrite=False):
+        self.dev = self.set_up_explore_device(t_calib=t_calib, file=file)
         if calib_file is None:
             calib_file = f"asr_calibration-data_calib-{t_calib}.csv"
+
+        if root_folder is not None:
+            calib_file = os.path.join(root_folder, calib_file)
 
         time.sleep(1.)
 
         calib_data = self.dev.stream_processor.asr_processor.calibration_data_input
         calib_df = pl.DataFrame(calib_data.swapaxes(1, 0))
-        calib_df.write_csv(calib_file)
+        if not os.path.exists(calib_file) or overwrite:
+            calib_df.write_csv(calib_file)
         self.dev.disconnect()
         time.sleep(1.)
 
@@ -81,8 +88,8 @@ class DataRecorder:
 
         return calib_file
 
-    def clean_data_from_file(self, cutoff=5.0, t_calib=30., t_window=0.05, rec_length=180., calib_file=None, record_raw_data=False):
-        self.dev = self.set_up_explore_device(t_calib=t_calib, record_raw_data=record_raw_data)
+    def clean_data_from_file(self, cutoff=5.0, t_calib=30., t_window=0.05, rec_length=180., calib_file=None, record_raw_data=False, file=None, root_folder=None, overwrite=False):
+        self.dev = self.set_up_explore_device(t_calib=t_calib, record_raw_data=record_raw_data, file=file)
 
         if calib_file is not None:
             calib_file_df = pl.read_csv(calib_file)
@@ -108,7 +115,10 @@ class DataRecorder:
         ret = np.vstack((ts_buffer_np, data_buffer_np))
         df = pl.DataFrame(ret.swapaxes(1, 0), schema=n)
         f_name_cleaned = f"asr_cleaned-data_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
-        df.write_csv(f_name_cleaned)  # cleaned from filtered
+        if root_folder is not None:
+            f_name_cleaned = os.path.join(root_folder, f_name_cleaned)
+        if not os.path.exists(f_name_cleaned) or overwrite:
+            df.write_csv(f_name_cleaned)  # cleaned from filtered
 
         f_name_uncleaned = None
 
@@ -119,7 +129,10 @@ class DataRecorder:
             ret_two = np.vstack((ts_buffer_no_asr_np, data_buffer_no_asr_np))
             df_no_asr = pl.DataFrame(ret_two.swapaxes(1, 0), schema=n)
             f_name_uncleaned = f"filtered_exg_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
-            df_no_asr.write_csv(f_name_uncleaned)  # uncleaned but filtered
+            if root_folder is not None:
+                f_name_uncleaned = os.path.join(root_folder, f_name_uncleaned)
+            if not os.path.exists(f_name_uncleaned) or overwrite:
+                df_no_asr.write_csv(f_name_uncleaned)  # uncleaned but filtered
 
         self.dev.disconnect()
         time.sleep(1.)
@@ -203,7 +216,7 @@ class DataComparator:
                 ax.plot(tup[0]["TimeStamp"][:self.max_plot_indices],
                         tup[0][tup[0].columns[idx_to_plot + 1]][:self.max_plot_indices],
                         tup[1], label=tup[2])
-            ax.title.set_text(f"Channel {idx_to_plot}")
+            ax.title.set_text(f"Channel {idx_to_plot + 1}")  # start label for channels at 1
             it += 1
         if ax is not None:
             legend_handles, legend_labels = ax.get_legend_handles_labels()
@@ -275,13 +288,19 @@ def compare_cleaned_with_uncleaned(self):
     self.plot_comp_from_dataframes([1, 2, 3, 4, 5, 6, 7, 8])
 
 
-def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window_list: list, rec_length_list: list):
+def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window_list: list, rec_length_list: list, input_file=None):
     data_writer = DataRecorder(number_channels)
     data_comparator = DataComparator()
 
+    root_folder = None
+    if input_file is not None:
+        root_folder = os.path.splitext(os.path.split(input_file)[1])[0]
+        if not os.path.exists(root_folder):
+            os.mkdir(root_folder)
+
     uncleaned_file = None
     cleaned_files = []
-    calib_file_path = data_writer.write_calibration_data(t_calib=t_calib_length)
+    calib_file_path = data_writer.write_calibration_data(t_calib=t_calib_length, file=input_file, root_folder=root_folder)
 
     uncleaned_plot_colour = "gray"
     eegprep_plot_colour = "red"
@@ -295,7 +314,9 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
                                                                             t_window=t_window,
                                                                             rec_length=rec_length,
                                                                             calib_file=calib_file_path,
-                                                                            record_raw_data=uncleaned_file is None)
+                                                                            record_raw_data=uncleaned_file is None,
+                                                                            file=input_file,
+                                                                            root_folder=root_folder)
             if uncleaned_path is not None and uncleaned_file is None:
                 uncleaned_file = (uncleaned_path, uncleaned_plot_colour, "Uncleaned (filtered)")
             cleaned_files.append((cleaned_path,
@@ -313,20 +334,24 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
     eeg_prep_tup = (eegprep_cleaned, eegprep_plot_colour, f"Cleaned (eegprep), cutoff={cutoff}")
     cleaned_files.append(eeg_prep_tup)
     data_comparator.add_dataframe(*eeg_prep_tup)
-    data_comparator.plot_comp_from_dataframes(channels=[1,2,3,4,5,6,7,8,])
+    data_comparator.plot_comp_from_dataframes(channels=[1,2,3,4,5,6,7,8,])  # Note that this starts from the second channel!
 
 if __name__ == '__main__':
     n_ch = 32
     cutoff = 5.0
 
-    t_windows_to_test = [0.01, 0.05]
+    t_windows_to_test = [0.01, 0.05, 0.5, 1.0, 5.0]
     t_calib_to_test = 10.
     rec_length_to_test = [20.]
 
-    perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test)
+    input_file = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/32channel_semidry_artefacts_ExG.csv"
 
-    # TODO gather files + metadata for comparison plots
-    # TODO clear buffers between runs
-    # TODO add channel dropping to matrix test
+    perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test, input_file=input_file)
 
-    # compare_cleaned_with_uncleaned()
+    as_pl_df = pl.read_csv(input_file)
+    as_pl_df_with_dead_channel = add_dead_channels_to_dataframe(as_pl_df, 1)
+    input_file_corrupted = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/32channel_semidry_artefacts_ExG_1ch_corrupted.csv"
+
+    as_pl_df_with_dead_channel.write_csv(input_file_corrupted)
+
+    perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test, input_file=input_file_corrupted)

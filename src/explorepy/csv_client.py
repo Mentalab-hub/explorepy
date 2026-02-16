@@ -1,4 +1,5 @@
 import time
+import os
 from enum import Enum, auto
 import numpy as np
 from explorepy.packet import BleImpedancePacket, DeviceInfoBLE, OrientationV1, OrientationV2
@@ -19,13 +20,19 @@ class PacketSize(Enum):
     DEVICE_INFO = 38
 
 class CsvClient:
-    def __init__(self, channel_count):
-        file_path = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/"
-        file_name = "32channel_semidry_artefacts_ExG.csv"
-        #file_name = "Explore_DABH_Artefacts_60sCalibration_ExG.csv"
-        self.server = server = CsvServer(
+    def __init__(self, channel_count, file_path: str=None):
+        if file_path is None:
+            self.file_name = "32channel_semidry_artefacts_ExG.csv"
+            file_path = os.path.join("/Users/sonjastefani/Documents/dev/explore-desktop/test-data/", self.file_name)
+        else:
+            self.file_name = os.path.split(file_path)[-1]
+
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        self.server = CsvServer(
     channel_count=channel_count,
-    csv_path=file_path + file_name,
+    csv_path=file_path,
     loop=True
 )
         self._state = ClientState.DISCONNECTED

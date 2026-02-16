@@ -83,7 +83,7 @@ class Explore:
             imp_mode = self.stream_processor._is_imp_mode
         return imp_mode
 
-    def connect(self, device_name=None, mac_address=None):
+    def connect(self, device_name=None, mac_address=None, file_path=None):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
@@ -100,7 +100,7 @@ class Explore:
         self.stream_processor = StreamProcessor(
             debug=True if self.debug else False)
         self.stream_processor.start(
-            device_name=device_name, mac_address=mac_address)
+            device_name=device_name, mac_address=mac_address, file_path=file_path)
         cnt = 0
         cnt_limit = 20 if self.debug else 15
         while "adc_mask" not in self.stream_processor.device_info:

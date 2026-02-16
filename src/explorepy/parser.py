@@ -72,7 +72,7 @@ class Parser:
         self.header_len = 0
         self.data_len = 0
 
-    def start_streaming(self, device_name, mac_address):
+    def start_streaming(self, device_name, mac_address, file_path=None):
         """Start streaming data from Explore device"""
         self.device_name = device_name
         explorepy.set_bt_interface('csv')
@@ -87,7 +87,7 @@ class Parser:
             from explorepy.csv_client import CsvClient
             device_id = str.split(device_name, '_')[1] # split by underscore and take second part
             ch_count = 32 if device_id[0] == 'D' else 8 #dynamic channel selection based on first character
-            self.stream_interface = CsvClient(ch_count)
+            self.stream_interface = CsvClient(ch_count, file_path=file_path)
         elif is_usb_mode():
             from explorepy.serial_client import SerialStream
             self.stream_interface = SerialStream(device_name=device_name)
