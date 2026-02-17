@@ -64,9 +64,9 @@ class AsrProcessor:
     _default_cutoff: float = 5.0
     _max_cutoff: float = 20.0
 
-    _min_clean_timer: float = 0.05  # in s
+    _min_clean_timer: float = 0.01  # in s
     _default_clean_timer: float = 1.0  # in s
-    _max_clean_timer: float = 3.0  # in s
+    _max_clean_timer: float = 30.0  # in s
 
     def __init__(self, stream_proc, in_topic):
         self.stream_processor = stream_proc

@@ -233,7 +233,7 @@ def add_dead_channels_to_dataframe(dataframe, count):
         dataframe = dataframe.replace_column(idx, pl.Series(name=column_name,
                                                             values=np.full(dataframe.shape[0], -400000.05)))
 
-    return dataframe
+    return dataframe, drop_indices
 
 
 def call_clean_from_eegprep(raw_data_file, calib_file, sr, cutoff, n_chan, first_ts, last_ts):
@@ -262,33 +262,7 @@ def call_clean_from_eegprep(raw_data_file, calib_file, sr, cutoff, n_chan, first
     return cleaned_df
 
 
-def compare_cleaned_with_uncleaned(self):
-    file_path_raw = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/32channel_semidry_artefacts_ExG_1ch_corrupted.csv"
-    raw = pl.read_csv(file_path_raw)
-
-    file_path_cleaned = f"./corrupted_asr_cleaned-data_calib-{calib_time}_window-{asr_window}_t-{t}.csv"
-    comp_cleaned_df = pl.read_csv(file_path_cleaned)
-
-    first_ts_cleaned = comp_cleaned_df["TimeStamp"][0]
-    last_ts_cleaned = comp_cleaned_df["TimeStamp"][-1]
-
-    file_path_filtered = f"corrupted_filtered_exg_calib-{calib_time}_window-{asr_window}_t-{t}.csv"
-    filtered = pl.read_csv(file_path_filtered)
-    matched_filtered = filtered.remove(pl.col("TimeStamp") < first_ts_cleaned)
-    matched_filtered = matched_filtered.remove(pl.col("TimeStamp") > last_ts_cleaned)
-
-    calib_file = f"asr_calibration-data_calib-{calib_time}.csv"
-
-    cleaned_df = call_clean_from_eegprep(raw, calib_file=calib_file, sr=250, cutoff=asr_window, n_chan=32, first_ts=None, last_ts=None)
-
-    dataframes = [(matched_filtered, "r", "Uncleaned (filtered)"),
-                  (comp_cleaned_df, "b", f"Cleaned with window = {asr_window}s"),
-                  (cleaned_df, "g", "Cleaned with clean_asr")]
-
-    self.plot_comp_from_dataframes([1, 2, 3, 4, 5, 6, 7, 8])
-
-
-def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window_list: list, rec_length_list: list, input_file=None):
+def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window_list: list, rec_length_list: list, input_file=None, plot_idx=None):
     data_writer = DataRecorder(number_channels)
     data_comparator = DataComparator()
 
@@ -300,7 +274,7 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
 
     uncleaned_file = None
     cleaned_files = []
-    calib_file_path = data_writer.write_calibration_data(t_calib=t_calib_length, file=input_file, root_folder=root_folder)
+    calib_file_path = data_writer.write_calibration_data(t_calib=t_calib_length, file=input_file, root_folder=root_folder, overwrite=True)
 
     uncleaned_plot_colour = "gray"
     eegprep_plot_colour = "red"
@@ -316,7 +290,8 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
                                                                             calib_file=calib_file_path,
                                                                             record_raw_data=uncleaned_file is None,
                                                                             file=input_file,
-                                                                            root_folder=root_folder)
+                                                                            root_folder=root_folder,
+                                                                            overwrite=True)
             if uncleaned_path is not None and uncleaned_file is None:
                 uncleaned_file = (uncleaned_path, uncleaned_plot_colour, "Uncleaned (filtered)")
             cleaned_files.append((cleaned_path,
@@ -334,24 +309,34 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
     eeg_prep_tup = (eegprep_cleaned, eegprep_plot_colour, f"Cleaned (eegprep), cutoff={cutoff}")
     cleaned_files.append(eeg_prep_tup)
     data_comparator.add_dataframe(*eeg_prep_tup)
-    data_comparator.plot_comp_from_dataframes(channels=[1,2,3,4,5,6,7,8,])  # Note that this starts from the second channel!
+    if plot_idx is None or type(plot_idx) is not list:
+        print("plot_idx is not give or the wrong time, using fall back index list...")
+        plot_idx = [0, 1, 2, 3, 4, 5, 6, 7,]
+    data_comparator.plot_comp_from_dataframes(channels=plot_idx)
 
 if __name__ == '__main__':
     n_ch = 32
     cutoff = 5.0
 
-    t_windows_to_test = [0.01, 0.05, 0.5, 1.0, 5.0]
-    t_calib_to_test = 10.
-    rec_length_to_test = [20.]
+    t_windows_to_test = [0.01, 0.05, 1.0, 5.0, 15., 30.]
+    t_calib_to_test = 30.
+    rec_length_to_test = [180.]
 
     input_file = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/32channel_semidry_artefacts_ExG.csv"
 
     perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test, input_file=input_file)
 
     as_pl_df = pl.read_csv(input_file)
-    as_pl_df_with_dead_channel = add_dead_channels_to_dataframe(as_pl_df, 1)
+    as_pl_df_with_dead_channel, dropped_channels = add_dead_channels_to_dataframe(as_pl_df, 2)
+    print(f"Dropped channels: {dropped_channels}")
+    to_plot = np.array([dropped_channels[0]-1, dropped_channels[0], dropped_channels[0]+1,
+                        dropped_channels[1]-1, dropped_channels[1], dropped_channels[1]+1])
+    to_plot = to_plot[to_plot >= 0]
+    to_plot = to_plot[to_plot < n_ch]
+    to_plot = np.unique(to_plot)
+    print(f"Indices to plot: {to_plot}")
     input_file_corrupted = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/32channel_semidry_artefacts_ExG_1ch_corrupted.csv"
 
     as_pl_df_with_dead_channel.write_csv(input_file_corrupted)
 
-    perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test, input_file=input_file_corrupted)
+    perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test, input_file=input_file_corrupted, plot_idx=list(to_plot))
