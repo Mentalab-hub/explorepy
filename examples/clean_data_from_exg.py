@@ -67,10 +67,26 @@ class DataRecorder:
 
         return self.dev
 
+    @staticmethod
+    def get_calibration_filename(t_calib):
+        return f"asr_calibration-data_calib-{t_calib}.csv"
+
+    @staticmethod
+    def get_clean_filename(t_calib, t_window, rec_length):
+        return f"asr_cleaned-data_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
+
+    @staticmethod
+    def get_filtered_filename(rec_length):
+        return f"filtered_exg_calib-{rec_length}.csv"
+
+    @staticmethod
+    def get_eegprep_filename(t_calib):
+        return f"eegprep_cleaned_exg_calib-{t_calib}.csv"
+
     def write_calibration_data(self, t_calib=30., calib_file=None, file=None, root_folder=None, overwrite=False):
         self.dev = self.set_up_explore_device(t_calib=t_calib, file=file)
         if calib_file is None:
-            calib_file = f"asr_calibration-data_calib-{t_calib}.csv"
+            calib_file = self.get_calibration_filename(t_calib)
 
         if root_folder is not None:
             calib_file = os.path.join(root_folder, calib_file)
@@ -80,6 +96,7 @@ class DataRecorder:
         calib_data = self.dev.stream_processor.asr_processor.calibration_data_input
         calib_df = pl.DataFrame(calib_data.swapaxes(1, 0))
         if not os.path.exists(calib_file) or overwrite:
+            print(f"Writing calibration data to {calib_file}")
             calib_df.write_csv(calib_file)
         self.dev.disconnect()
         time.sleep(1.)
@@ -114,10 +131,11 @@ class DataRecorder:
         n.extend([f"ch{i + 1}" for i in range(self.n_channels)])
         ret = np.vstack((ts_buffer_np, data_buffer_np))
         df = pl.DataFrame(ret.swapaxes(1, 0), schema=n)
-        f_name_cleaned = f"asr_cleaned-data_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
+        f_name_cleaned = self.get_clean_filename(t_calib, t_window, rec_length)
         if root_folder is not None:
             f_name_cleaned = os.path.join(root_folder, f_name_cleaned)
         if not os.path.exists(f_name_cleaned) or overwrite:
+            print(f"Writing cleaned data to {f_name_cleaned}")
             df.write_csv(f_name_cleaned)  # cleaned from filtered
 
         f_name_uncleaned = None
@@ -128,10 +146,11 @@ class DataRecorder:
 
             ret_two = np.vstack((ts_buffer_no_asr_np, data_buffer_no_asr_np))
             df_no_asr = pl.DataFrame(ret_two.swapaxes(1, 0), schema=n)
-            f_name_uncleaned = f"filtered_exg_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
+            f_name_uncleaned = self.get_filtered_filename(rec_length)
             if root_folder is not None:
                 f_name_uncleaned = os.path.join(root_folder, f_name_uncleaned)
             if not os.path.exists(f_name_uncleaned) or overwrite:
+                print(f"Writing uncleaned data to {f_name_uncleaned}")
                 df_no_asr.write_csv(f_name_uncleaned)  # uncleaned but filtered
 
         self.dev.disconnect()
@@ -226,7 +245,7 @@ class DataComparator:
 
 def add_dead_channels_to_dataframe(dataframe, count):
     n_channels = len(dataframe.columns) - 1
-    drop_indices = random.sample(range(1, n_channels), count)
+    drop_indices = random.sample(range(1, n_channels), count)  # from 1 as col[0] is "TimeStamp"
 
     for idx in drop_indices:
         column_name = dataframe.columns[idx]
@@ -262,7 +281,9 @@ def call_clean_from_eegprep(raw_data_file, calib_file, sr, cutoff, n_chan, first
     return cleaned_df
 
 
-def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window_list: list, rec_length_list: list, input_file=None, plot_idx=None):
+def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window_list: list, rec_length_list: list,
+                        input_file=None, plot_idx=None, overwrite_calib=False, overwrite_processor_cleaned=False,
+                        overwrite_eegprep_cleaned=False):
     data_writer = DataRecorder(number_channels)
     data_comparator = DataComparator()
 
@@ -274,7 +295,19 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
 
     uncleaned_file = None
     cleaned_files = []
-    calib_file_path = data_writer.write_calibration_data(t_calib=t_calib_length, file=input_file, root_folder=root_folder, overwrite=True)
+    expected_calib_path = os.path.join(root_folder if root_folder is not None else ".",
+                                        data_writer.get_calibration_filename(t_calib_length))
+    if overwrite_calib or not os.path.exists(expected_calib_path):
+        calib_file_path = data_writer.write_calibration_data(t_calib=t_calib_length,
+                                                             file=input_file,
+                                                             root_folder=root_folder,
+                                                             overwrite=True)
+    else:
+        print("\n--- Skipping write_calibration_data ---\n")
+        calib_file_path = expected_calib_path
+        print(f"Calibration file path: {calib_file_path}")
+
+    print(f"Running cleaning with calibration file: {calib_file_path}")
 
     uncleaned_plot_colour = "gray"
     eegprep_plot_colour = "red"
@@ -283,15 +316,28 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
     it = 0
     for t_window in t_window_list:
         for rec_length in rec_length_list:
-            cleaned_path, uncleaned_path = data_writer.clean_data_from_file(cutoff=cutoff,
-                                                                            t_calib=t_calib_length,
-                                                                            t_window=t_window,
-                                                                            rec_length=rec_length,
-                                                                            calib_file=calib_file_path,
-                                                                            record_raw_data=uncleaned_file is None,
-                                                                            file=input_file,
-                                                                            root_folder=root_folder,
-                                                                            overwrite=True)
+            expected_clean_path = os.path.join(root_folder if root_folder is not None else ".",
+                                               data_writer.get_clean_filename(t_calib_length, t_window, rec_length))
+            expected_unclean_path = os.path.join(root_folder if root_folder is not None else ".",
+                                                 data_writer.get_filtered_filename(rec_length))
+            if (overwrite_processor_cleaned
+                or not os.path.exists(expected_clean_path)
+                or not os.path.exists(expected_unclean_path)):
+                print(f"Uncleaned_file is None? {uncleaned_file is None}")
+                cleaned_path, uncleaned_path = data_writer.clean_data_from_file(cutoff=cutoff,
+                                                                                t_calib=t_calib_length,
+                                                                                t_window=t_window,
+                                                                                rec_length=rec_length,
+                                                                                calib_file=calib_file_path,
+                                                                                record_raw_data=uncleaned_file is None,
+                                                                                file=input_file,
+                                                                                root_folder=root_folder,
+                                                                                overwrite=True)
+            else:
+                print(f"\n--- Skipping clean_data_from_file for t_window {t_window} and rec_length {rec_length} ---\n")
+                cleaned_path = expected_clean_path if os.path.exists(expected_clean_path) else None
+                uncleaned_path = expected_unclean_path if os.path.exists(expected_unclean_path) else None
+                print(f"Cleaned path: {cleaned_path}\nUncleaned path: {uncleaned_path}")
             if uncleaned_path is not None and uncleaned_file is None:
                 uncleaned_file = (uncleaned_path, uncleaned_plot_colour, "Uncleaned (filtered)")
             cleaned_files.append((cleaned_path,
@@ -304,8 +350,15 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
     data_comparator.add_dataframe_from_file(*uncleaned_file)
     data_comparator.cull_dataframes()
     first_ts, last_ts = data_comparator.get_first_and_last_ts()
-    eegprep_cleaned = call_clean_from_eegprep(raw_data_file=uncleaned_file[0], calib_file=calib_file_path, sr=250,
-                                              cutoff=5.0, n_chan=32, first_ts=first_ts, last_ts=last_ts)
+    eegprep_cleaned_path = os.path.join(root_folder if root_folder is not None else ".",
+                                        data_writer.get_eegprep_filename(t_calib_length))
+    if overwrite_eegprep_cleaned or not os.path.exists(eegprep_cleaned_path):
+        eegprep_cleaned = call_clean_from_eegprep(raw_data_file=uncleaned_file[0], calib_file=calib_file_path, sr=250,
+                                                  cutoff=5.0, n_chan=32, first_ts=first_ts, last_ts=last_ts)
+        eegprep_cleaned.write_csv(eegprep_cleaned_path)
+    else:
+        print(f"\n--- Skipping call_clean_from_eegprep, loading instead from {eegprep_cleaned_path} ---\n")
+        eegprep_cleaned = pl.read_csv(eegprep_cleaned_path)
     eeg_prep_tup = (eegprep_cleaned, eegprep_plot_colour, f"Cleaned (eegprep), cutoff={cutoff}")
     cleaned_files.append(eeg_prep_tup)
     data_comparator.add_dataframe(*eeg_prep_tup)
@@ -318,24 +371,30 @@ if __name__ == '__main__':
     n_ch = 32
     cutoff = 5.0
 
-    t_windows_to_test = [0.01, 0.05, 1.0, 5.0, 15., 30.]
+    t_windows_to_test = [0.05, 1.0]
     t_calib_to_test = 30.
-    rec_length_to_test = [180.]
+    rec_length_to_test = [10.]
 
-    input_file = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/32channel_semidry_artefacts_ExG.csv"
+    # replace with valid path to test recording (csv only)
+    test_file_name = "32channel_semidry_artefacts_ExG"
+    test_file_root = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data"
+
+    input_file = os.path.join(test_file_root, f"{test_file_name}.csv")
 
     perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test, input_file=input_file)
 
     as_pl_df = pl.read_csv(input_file)
     as_pl_df_with_dead_channel, dropped_channels = add_dead_channels_to_dataframe(as_pl_df, 2)
     print(f"Dropped channels: {dropped_channels}")
+    dropped_channels = [e-1 for e in dropped_channels]
     to_plot = np.array([dropped_channels[0]-1, dropped_channels[0], dropped_channels[0]+1,
                         dropped_channels[1]-1, dropped_channels[1], dropped_channels[1]+1])
     to_plot = to_plot[to_plot >= 0]
     to_plot = to_plot[to_plot < n_ch]
     to_plot = np.unique(to_plot)
     print(f"Indices to plot: {to_plot}")
-    input_file_corrupted = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data/32channel_semidry_artefacts_ExG_1ch_corrupted.csv"
+
+    input_file_corrupted = os.path.join(test_file_root, f"{test_file_name}_ch-{"-".join(map(str, dropped_channels))}_corrupted.csv")
 
     as_pl_df_with_dead_channel.write_csv(input_file_corrupted)
 
