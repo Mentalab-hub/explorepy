@@ -6,13 +6,21 @@ from eegprep import clean_asr, clean_artifacts
 import numpy as np
 import logging
 
+from eegprep import clean_windows
 from eegprep.utils import round_mat
 from eegprep.utils.asr import asr_calibrate, asr_process
 
 logger = logging.getLogger(__name__)
 
 def get_asr_state(clean_data, sampling_rate, cutoff=0.5):
-    return asr_calibrate(clean_data, sampling_rate, cutoff=cutoff)
+    d = clean_calib_data(clean_data, sampling_rate)
+    return asr_calibrate(d, sampling_rate, cutoff=cutoff)
+
+
+def clean_calib_data(clean_data, sampling_rate):
+    cleaned_window = clean_windows({'data': clean_data, 'srate': sampling_rate, 'xmin': -400_000})
+    return cleaned_window[0]['data']
+
 
 def asr_pipeline(data_array, sampling_rate, n_chan, state, step_size=None, window_len=None, max_dims=0.66):
     """This code is mostly taken from the eegprep implementation of clean_asr and adapted to work with a previously
@@ -219,7 +227,6 @@ class AsrProcessor:
 
     def stop_calibration(self):
         logger.info(f"Stopping ASR calibration.")
-        # TODO potentially run clean_windows on calibration data as that may still contain artifacts...
         self.stream_processor.unsubscribe(self.on_calib_data_received, topic=self.in_topic)
         self.is_calibrating = False
         self.calib_started_at = -1.0
