@@ -1,6 +1,8 @@
 # Note: This is a WIP
+import glob
 import os
 import random
+from typing import Union
 
 import explorepy
 from explorepy.stream_processor import TOPICS
@@ -10,6 +12,18 @@ import numpy as np
 import polars as pl
 
 import matplotlib.pyplot as plt
+
+CALIB_LENGTH_STR = "calib"
+WINDOW_STR = "window"
+REC_TIME_STR = "t"
+
+EEGPREP_STR = "eegprep"
+CALIBRATION_DATA_STR = "calibdata"
+FILTERED_STR = "filtered"
+ASR_CLEANED_STR = "asrcleaned"
+
+BLOCK_SEPARATOR = "_"
+VALUE_SEPARATOR = "-"
 
 calib_time = 30.
 asr_window = 0.05
@@ -51,6 +65,8 @@ class DataRecorder:
         self.dev = explorepy.Explore()
         self.dev.connect(dev_name, file_path=file)
 
+        time.sleep(4.0)
+
         self.dev.stream_processor.add_filter(cutoff_freq=notch, filter_type="notch")
         self.dev.stream_processor.add_filter(cutoff_freq=bp, filter_type="bandpass")
         f_name = self.dev.stream_processor.parser.stream_interface.file_name
@@ -69,27 +85,40 @@ class DataRecorder:
 
     @staticmethod
     def get_calibration_filename(t_calib):
-        return f"asr_calibration-data_calib-{t_calib}.csv"
+        return (f"{CALIBRATION_DATA_STR}"
+                f"{BLOCK_SEPARATOR}"
+                f"{CALIB_LENGTH_STR}{VALUE_SEPARATOR}{t_calib}.csv")
 
     @staticmethod
     def get_clean_filename(t_calib, t_window, rec_length):
-        return f"asr_cleaned-data_calib-{t_calib}_window-{t_window}_t-{rec_length}.csv"
+        return (f"{ASR_CLEANED_STR}"
+                f"{BLOCK_SEPARATOR}"
+                f"{CALIB_LENGTH_STR}{VALUE_SEPARATOR}{t_calib}"
+                f"{BLOCK_SEPARATOR}"
+                f"{WINDOW_STR}{VALUE_SEPARATOR}{t_window}"
+                f"{BLOCK_SEPARATOR}"
+                f"{REC_TIME_STR}{VALUE_SEPARATOR}{rec_length}.csv")
 
     @staticmethod
     def get_filtered_filename(rec_length):
-        return f"filtered_exg_calib-{rec_length}.csv"
+        return (f"{FILTERED_STR}"
+                f"{BLOCK_SEPARATOR}"
+                f"{CALIB_LENGTH_STR}{VALUE_SEPARATOR}{rec_length}.csv")
 
     @staticmethod
     def get_eegprep_filename(t_calib):
-        return f"eegprep_cleaned_exg_calib-{t_calib}.csv"
+        return (f"{EEGPREP_STR}"
+                f"{BLOCK_SEPARATOR}"
+                f"{CALIB_LENGTH_STR}{VALUE_SEPARATOR}{t_calib}.csv")
 
     def write_calibration_data(self, t_calib=30., calib_file=None, file=None, root_folder=None, overwrite=False):
-        self.dev = self.set_up_explore_device(t_calib=t_calib, file=file)
         if calib_file is None:
             calib_file = self.get_calibration_filename(t_calib)
 
         if root_folder is not None:
             calib_file = os.path.join(root_folder, calib_file)
+
+        self.dev = self.set_up_explore_device(t_calib=t_calib, file=file)
 
         time.sleep(1.)
 
@@ -112,6 +141,8 @@ class DataRecorder:
             calib_file_df = pl.read_csv(calib_file)
             as_np = calib_file_df.to_numpy()
             as_np = as_np.swapaxes(1, 0)
+
+            print(f"Setting calib data from {calib_file}")
 
             self.dev.stream_processor.asr_processor.calibration_data_input = as_np
             self.dev.stream_processor.asr_processor.set_state_from_calibration_data(calib_data=as_np)
@@ -199,7 +230,7 @@ class DataComparator:
     def clear_dataframes(self):
         self.dataframes = []
 
-    def plot_comp_from_dataframes(self, channels: list[int] = None):
+    def plot_comp_from_dataframes(self, channels: list[int] = None, max_samples : Union[str, int]="default"):
         """Plots comparison of any dataframes' first channel from a list of tuples
 
         Args:
@@ -207,6 +238,13 @@ class DataComparator:
             in the tuple being a colour string to use for plotting with matplotlib, i.e. "b" for blue etc.
             channels: list of ints that defines which channels to plot
         """
+        n_samples_to_plot = self.max_plot_indices
+        if max_samples:
+            if type(max_samples) == int:
+                n_samples_to_plot = max(max_samples, 1)
+            elif type(max_samples) == str:
+                if max_samples in ["all", "full"]:
+                    n_samples_to_plot = None
         if channels is None:
             print("No channels supplied for plotting, exiting...")
             return
@@ -232,8 +270,8 @@ class DataComparator:
                 assert type(tup[0]) is pl.DataFrame
                 assert type(tup[1]) is str
                 assert type(tup[2]) is str
-                ax.plot(tup[0]["TimeStamp"][:self.max_plot_indices],
-                        tup[0][tup[0].columns[idx_to_plot + 1]][:self.max_plot_indices],
+                ax.plot(tup[0]["TimeStamp"][:n_samples_to_plot],
+                        tup[0][tup[0].columns[idx_to_plot + 1]][:n_samples_to_plot],
                         tup[1], label=tup[2])
             ax.title.set_text(f"Channel {idx_to_plot + 1}")  # start label for channels at 1
             it += 1
@@ -323,7 +361,7 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
             if (overwrite_processor_cleaned
                 or not os.path.exists(expected_clean_path)
                 or not os.path.exists(expected_unclean_path)):
-                print(f"Uncleaned_file is None? {uncleaned_file is None}")
+                print(f"\n--- Cleaning data with t_window={t_window}, rec_length: {rec_length}, cutoff: {cutoff}---\n")
                 cleaned_path, uncleaned_path = data_writer.clean_data_from_file(cutoff=cutoff,
                                                                                 t_calib=t_calib_length,
                                                                                 t_window=t_window,
@@ -367,16 +405,49 @@ def perform_matrix_test(number_channels, cutoff, t_calib_length: float, t_window
         plot_idx = [0, 1, 2, 3, 4, 5, 6, 7,]
     data_comparator.plot_comp_from_dataframes(channels=plot_idx)
 
+def plot_recordings_from_folder(folder, idx=(0, 1, 2, 3, 4, 5, 6, 7)):
+    data_comparator = DataComparator()
+    files = glob.glob(os.path.join(folder, "*.csv"))
+    files_for_comparator = []
+
+    asr_processor_plot_colours = ["green", "skyblue", "violet", "gold", "aquamarine", "mediumpurple"]
+
+    it = 0
+    for f_name in files:
+        if CALIBRATION_DATA_STR in f_name:
+            pass
+        else:
+            if EEGPREP_STR in f_name:
+                colour = "red"
+                desc = "Eegprep cleaned"
+            elif FILTERED_STR in f_name:
+                colour = "gray"
+                desc = "Filtered, uncleaned"
+            else:
+                blocks = os.path.splitext(os.path.basename(f_name))[0].split("_")
+                desc = ", ".join(blocks[1:])
+                desc = f"ASR cleaned - {desc}"
+                colour = asr_processor_plot_colours[it % len(asr_processor_plot_colours)]
+            files_for_comparator.append((f_name, colour, desc))
+            it += 1
+
+    for cleaned_file in files_for_comparator:
+        data_comparator.add_dataframe_from_file(*cleaned_file)
+    data_comparator.cull_dataframes()
+    data_comparator.plot_comp_from_dataframes(channels=idx, max_samples="all")
+
+
 if __name__ == '__main__':
     n_ch = 32
     cutoff = 5.0
 
-    t_windows_to_test = [0.05, 1.0]
+    t_windows_to_test = [0.05, 0.1, 1.0, 5.0, 10.0]
     t_calib_to_test = 30.
-    rec_length_to_test = [10.]
+    rec_length_to_test = [180.]  # calib_t + rec_t should be lower than length of test file
+
 
     # replace with valid path to test recording (csv only)
-    test_file_name = "32channel_semidry_artefacts_ExG"
+    test_file_name = "32channel_semidry_artefacts_ExG"  # t = 243.996
     test_file_root = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data"
 
     input_file = os.path.join(test_file_root, f"{test_file_name}.csv")
