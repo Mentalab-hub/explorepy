@@ -25,16 +25,22 @@ class DataRecorder:
         self.data_buffer = [[] for _ in range(self.n_channels)]
         self.ts_buffer_no_asr = []
         self.data_buffer_no_asr = [[] for _ in range(self.n_channels)]
+        self._asr_start_ts = None
+        self._filtered_start_ts = None
 
     def clear_buffers(self):
         self.ts_buffer = []
         self.data_buffer = [[] for _ in range(self.n_channels)]
         self.ts_buffer_no_asr = []
         self.data_buffer_no_asr = [[] for _ in range(self.n_channels)]
+        self._asr_start_ts = None
+        self._filtered_start_ts = None
 
     def on_asr_received(self, packet):
         data = packet.get_data()
         ts = data[0]
+        if self._asr_start_ts is None:
+            self._asr_start_ts = ts[0]
         self.ts_buffer.extend(ts)
         for i in range(self.n_channels):
             self.data_buffer[i].extend(data[1][i, :])
@@ -42,6 +48,8 @@ class DataRecorder:
     def on_filtered_received(self, packet):
         data_filtered = packet.get_data()
         ts_filtered = data_filtered[0]
+        if self._filtered_start_ts is None:
+            self._filtered_start_ts = ts_filtered[0]
         self.ts_buffer_no_asr.extend(ts_filtered)
         for i in range(self.n_channels):
             self.data_buffer_no_asr[i].extend(data_filtered[1][i, :])
@@ -124,10 +132,29 @@ class DataRecorder:
 
         time.sleep(rec_length)
 
+        # --- Align timestamps between ASR and filtered buffers ---
+        if self._asr_start_ts is not None and self._filtered_start_ts is not None:
+            common_start = max(self._asr_start_ts, self._filtered_start_ts)
+        else:
+            common_start = None
+
         ts_buffer_np = np.array(self.ts_buffer)
         data_buffer_np = np.array(self.data_buffer)
 
+        if common_start is not None:
+            mask = ts_buffer_np >= common_start
+            ts_buffer_np = ts_buffer_np[mask]
+            data_buffer_np = data_buffer_np[:, mask]
+
+        print(f"_asr_start_ts: {self._asr_start_ts}")
+        print(f"_filtered_start_ts: {self._filtered_start_ts}")
+        print(f"common_start: {common_start}")
+        print(f"ts_buffer min: {ts_buffer_np.min() if len(ts_buffer_np) > 0 else 'empty'}")
+        print(f"ts_buffer max: {ts_buffer_np.max() if len(ts_buffer_np) > 0 else 'empty'}")
+        print(f"rows after mask: {len(ts_buffer_np)}")
+
         n = ["TimeStamp"]
+
         n.extend([f"ch{i + 1}" for i in range(self.n_channels)])
         ret = np.vstack((ts_buffer_np, data_buffer_np))
         df = pl.DataFrame(ret.swapaxes(1, 0), schema=n)
@@ -136,13 +163,18 @@ class DataRecorder:
             f_name_cleaned = os.path.join(root_folder, f_name_cleaned)
         if not os.path.exists(f_name_cleaned) or overwrite:
             print(f"Writing cleaned data to {f_name_cleaned}")
-            df.write_csv(f_name_cleaned)  # cleaned from filtered
+            df.write_csv(f_name_cleaned)
 
         f_name_uncleaned = None
 
         if record_raw_data:
             ts_buffer_no_asr_np = np.array(self.ts_buffer_no_asr)
             data_buffer_no_asr_np = np.array(self.data_buffer_no_asr)
+
+            if common_start is not None:
+                mask_no_asr = ts_buffer_no_asr_np >= common_start
+                ts_buffer_no_asr_np = ts_buffer_no_asr_np[mask_no_asr]
+                data_buffer_no_asr_np = data_buffer_no_asr_np[:, mask_no_asr]
 
             ret_two = np.vstack((ts_buffer_no_asr_np, data_buffer_no_asr_np))
             df_no_asr = pl.DataFrame(ret_two.swapaxes(1, 0), schema=n)
@@ -151,7 +183,7 @@ class DataRecorder:
                 f_name_uncleaned = os.path.join(root_folder, f_name_uncleaned)
             if not os.path.exists(f_name_uncleaned) or overwrite:
                 print(f"Writing uncleaned data to {f_name_uncleaned}")
-                df_no_asr.write_csv(f_name_uncleaned)  # uncleaned but filtered
+                df_no_asr.write_csv(f_name_uncleaned)
 
         self.dev.disconnect()
         time.sleep(1.)
@@ -373,29 +405,29 @@ if __name__ == '__main__':
 
     t_windows_to_test = [0.05, 1.0]
     t_calib_to_test = 30.
-    rec_length_to_test = [10.]
+    rec_length_to_test = [30.]
 
     # replace with valid path to test recording (csv only)
-    test_file_name = "32channel_semidry_artefacts_ExG"
-    test_file_root = "/Users/sonjastefani/Documents/dev/explore-desktop/test-data"
+    test_file_name = "test_32"
+    test_file_root = "."
 
     input_file = os.path.join(test_file_root, f"{test_file_name}.csv")
 
     perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test, input_file=input_file)
 
-    as_pl_df = pl.read_csv(input_file)
-    as_pl_df_with_dead_channel, dropped_channels = add_dead_channels_to_dataframe(as_pl_df, 2)
-    print(f"Dropped channels: {dropped_channels}")
-    dropped_channels = [e-1 for e in dropped_channels]
-    to_plot = np.array([dropped_channels[0]-1, dropped_channels[0], dropped_channels[0]+1,
-                        dropped_channels[1]-1, dropped_channels[1], dropped_channels[1]+1])
-    to_plot = to_plot[to_plot >= 0]
-    to_plot = to_plot[to_plot < n_ch]
-    to_plot = np.unique(to_plot)
-    print(f"Indices to plot: {to_plot}")
-
-    input_file_corrupted = os.path.join(test_file_root, f"{test_file_name}_ch-{"-".join(map(str, dropped_channels))}_corrupted.csv")
-
-    as_pl_df_with_dead_channel.write_csv(input_file_corrupted)
-
-    perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test, input_file=input_file_corrupted, plot_idx=list(to_plot))
+    # as_pl_df = pl.read_csv(input_file)
+    # as_pl_df_with_dead_channel, dropped_channels = add_dead_channels_to_dataframe(as_pl_df, 2)
+    # print(f"Dropped channels: {dropped_channels}")
+    # dropped_channels = [e-1 for e in dropped_channels]
+    # to_plot = np.array([dropped_channels[0]-1, dropped_channels[0], dropped_channels[0]+1,
+    #                     dropped_channels[1]-1, dropped_channels[1], dropped_channels[1]+1])
+    # to_plot = to_plot[to_plot >= 0]
+    # to_plot = to_plot[to_plot < n_ch]
+    # to_plot = np.unique(to_plot)
+    # print(f"Indices to plot: {to_plot}")
+    #
+    # input_file_corrupted = os.path.join(test_file_root, f"{test_file_name}_ch-{"-".join(map(str, dropped_channels))}_corrupted.csv")
+    #
+    # as_pl_df_with_dead_channel.write_csv(input_file_corrupted)
+    #
+    # perform_matrix_test(n_ch, cutoff, t_calib_to_test, t_windows_to_test, rec_length_to_test, input_file=input_file_corrupted, plot_idx=list(to_plot))
