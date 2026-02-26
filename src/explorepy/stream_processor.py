@@ -578,7 +578,7 @@ class StreamProcessor:
         if self.bt_drop_start_time is not None:
             variable_lock = Lock()
             variable_lock.acquire()
-            if np.round(get_local_time() - self.bt_drop_start_time, 2) > 10:
+            if np.round(get_local_time() - self.bt_drop_start_time, 2) > 10 and self.is_connected:
                 self.last_bt_drop_duration = None
                 self.bt_drop_start_time = None
             variable_lock.release()
