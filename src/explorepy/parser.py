@@ -217,6 +217,10 @@ class Parser:
             except EOFError:
                 logger.info('End of file')
                 self.stop_streaming()
+            except AttributeError:
+                if self.stream_interface is None:
+                    # device already disconnected
+                    pass
             except Exception as error:
                 logger.critical('Unexpected error: ', error)
                 self.stop_streaming()

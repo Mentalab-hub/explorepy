@@ -17,9 +17,9 @@
     :target: https://pypi.org/project/explorepy
 
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v4.3.1.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Mentalab-hub/explorepy/v4.4.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/Mentalab-hub/explorepy/compare/v4.3.1...master
+    :target: https://github.com/Mentalab-hub/explorepy/compare/v4.4.0...master
 
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/explorepy.svg
