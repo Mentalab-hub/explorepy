@@ -328,6 +328,9 @@ class StreamProcessor:
                 self.apply_filters(packet=packet)
             except ValueError as error:
                 logger.info('Got error on filter call: {}'.format(error))
+            
+            if self.packet_count < 1000:
+                return
             # fill missing packets
             if len(missing_timestamps) > 0:
                 for t in missing_timestamps:
