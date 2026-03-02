@@ -313,15 +313,15 @@ class StreamProcessor:
             self.last_exg_packet_timestamp = get_local_time()
             missing_timestamps = self.fill_missing_packet(packet)
             self._update_last_time_point(packet, received_time)
-
             self.packet_count += 1
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(
                     packet=copy.deepcopy(packet))
                 if packet_imp is not None:
                     self.dispatch(topic=TOPICS.imp, packet=packet_imp)
-
-                self.dispatch(topic=TOPICS.raw_ExG, packet=self._notch_filter.apply(packet=packet, in_place=False))
+                if self._notch_filter:
+                    self._notch_filter.apply(packet)
+                    self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             else:
                 self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             try:
@@ -590,7 +590,7 @@ class StreamProcessor:
         return timestamps[:-1]
 
     def _add_notch_filter(self):
-        self._notch_filter =  ExGFilter(
+        self._notch_filter = ExGFilter(
             cutoff_freq=(61, 64),
             filter_type='notch_imp',
             s_rate=250,
