@@ -78,6 +78,7 @@ class StreamProcessor:
         self.reset_timer()
         self.packet_count = 0
         self.progress = 0
+        self._notch_filter = None
 
     def subscribe(self, callback, topic):
         """Subscribe a function to a topic
@@ -312,13 +313,17 @@ class StreamProcessor:
             self.last_exg_packet_timestamp = get_local_time()
             missing_timestamps = self.fill_missing_packet(packet)
             self._update_last_time_point(packet, received_time)
-            self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
+
             self.packet_count += 1
             if self._is_imp_mode and self.imp_calculator:
                 packet_imp = self.imp_calculator.measure_imp(
                     packet=copy.deepcopy(packet))
                 if packet_imp is not None:
                     self.dispatch(topic=TOPICS.imp, packet=packet_imp)
+
+                self.dispatch(topic=TOPICS.raw_ExG, packet=self._notch_filter.apply(packet=packet, in_place=False))
+            else:
+                self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             try:
                 self.apply_filters(packet=packet)
             except ValueError as error:
@@ -583,3 +588,11 @@ class StreamProcessor:
                     timestamps = np.linspace(self._last_packet_timestamp + sps,
                                              packet.timestamp, num=missing_samples, endpoint=True)
         return timestamps[:-1]
+
+    def _add_notch_filter(self):
+        self._notch_filter =  ExGFilter(
+            cutoff_freq=(61, 64),
+            filter_type='notch_imp',
+            s_rate=250,
+            n_chan=SettingsManager(self.device_info['device_name']).get_channel_count()
+        )
