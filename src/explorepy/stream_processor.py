@@ -314,7 +314,7 @@ class StreamProcessor:
             missing_timestamps = self.fill_missing_packet(packet)
             self._update_last_time_point(packet, received_time)
             self.packet_count += 1
-            if self._is_imp_mode and self.imp_calculator:
+            if self.is_imp_running():
                 packet_imp = self.imp_calculator.measure_imp(
                     packet=copy.deepcopy(packet))
                 if packet_imp is not None:
@@ -459,9 +459,10 @@ class StreamProcessor:
         cmd = ZMeasurementEnable()
         if self.configure_device(cmd):
             self.imp_calib_info['calibration'] = calibration
+            self._add_notch_filter()
             self.imp_calculator = ImpedanceMeasurement(device_info=self.device_info,
                                                        calib_param=self.imp_calib_info,
-                                                       notch_freq=notch_freq)
+                                                       notch_freq=self.get_power_line_freq())
             self._is_imp_mode = True
         else:
             raise ConnectionError('Device configuration process failed!')
@@ -475,6 +476,7 @@ class StreamProcessor:
             return True
         print("WARNING: Couldn't disable impedance measurement mode. "
               "Please restart your device manually.")
+        self._notch_filter = None
         return False
 
     def set_marker(self, marker_string, time_lsl=None, name='mkr', soft_marker=True):
@@ -596,3 +598,14 @@ class StreamProcessor:
             s_rate=250,
             n_chan=SettingsManager(self.device_info['device_name']).get_channel_count()
         )
+
+    def is_imp_running(self):
+        return self._is_imp_mode and self.imp_calculator
+
+    def get_power_line_freq(self):
+        match = next(
+            (item for item in self.filters if item.filter_type == 'notch'),
+            None
+        )
+
+        return match.cutoff_freq if match else None
