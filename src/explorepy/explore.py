@@ -262,7 +262,6 @@ class Explore:
                 impedance_values = packet.get_impedances()
 
                 real_values = np.array(impedance_values) / 2
-                print("Impedance:", real_values.tolist())
 
                 if file_type == 'csv':
                     row_data = [float(packet.timestamp), *real_values]
@@ -273,7 +272,6 @@ class Explore:
 
             self.stream_processor.subscribe(callback=handle_exg_impedance_packet, topic=TOPICS.raw_ExG)
             self.stream_processor.subscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
-            self.stream_processor.imp_initialize(notch_freq=notch_freq)
             logger.info("Recording with impedance mode...")
         else:
             self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
@@ -303,8 +301,6 @@ class Explore:
 
             if is_impedance_mode:
                 try:
-                    self.stream_processor.disable_imp()
-
                     if 'handle_exg_impedance_callback' in self.recorders:
                         self.stream_processor.unsubscribe(
                             callback=self.recorders['handle_exg_impedance_callback'], topic=TOPICS.raw_ExG)
