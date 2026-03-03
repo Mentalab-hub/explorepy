@@ -462,7 +462,7 @@ class StreamProcessor:
             self._add_notch_filter()
             self.imp_calculator = ImpedanceMeasurement(device_info=self.device_info,
                                                        calib_param=self.imp_calib_info,
-                                                       notch_freq=self.get_power_line_freq())
+                                                       notch_freq=self.get_power_line_freq() or notch_freq)
             self._is_imp_mode = True
         else:
             raise ConnectionError('Device configuration process failed!')
@@ -593,7 +593,7 @@ class StreamProcessor:
 
     def _add_notch_filter(self):
         self._notch_filter = ExGFilter(
-            cutoff_freq=(61, 64),
+            cutoff_freq=62.5,
             filter_type='notch_imp',
             s_rate=250,
             n_chan=SettingsManager(self.device_info['device_name']).get_channel_count()
