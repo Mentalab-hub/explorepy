@@ -182,13 +182,15 @@ class Explore:
         if file_type not in ['edf', 'csv']:
             raise ValueError(
                 '{} is not a supported file extension!'.format(file_type))
+
         if imp_mode:
+            if not self.stream_processor.is_imp_running():
+                raise ValueError('Impedance measurement not running!')
             if file_type == 'edf':
                 raise ValueError(
                     '{} is not a supported file extension for recording impedance!'.format(file_type))
-            if notch_freq is None:
-                raise ValueError(
-                    'Missing notch frequency argument, please provide the notch frequency to get live impedance values')
+
+            notch_freq = self.stream_processor.get_power_line_freq() or 50
 
         duration = self._check_duration(duration)
 
