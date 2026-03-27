@@ -1,8 +1,9 @@
 import math
 import time
 from copy import deepcopy
+from enum import Enum, auto
 
-from eegprep import clean_asr, clean_artifacts
+from eegprep import clean_flatlines
 import numpy as np
 import logging
 
@@ -10,16 +11,26 @@ from eegprep import clean_windows
 from eegprep.utils import round_mat
 from eegprep.utils.asr import asr_calibrate, asr_process
 
+from explorepy.filters import ExGFilter
+from explorepy.packet import CleanEEG, BleImpedancePacket
+
 logger = logging.getLogger(__name__)
 
-def get_asr_state(clean_data, sampling_rate, cutoff=0.5):
-    d = clean_calib_data(clean_data, sampling_rate)
-    return asr_calibrate(d, sampling_rate, cutoff=cutoff)
-
+class State(Enum):
+    STABLE = auto()
+    CALIBRATION_ERROR = auto()
 
 def clean_calib_data(clean_data, sampling_rate):
-    cleaned_window = clean_windows({'data': clean_data, 'srate': sampling_rate, 'xmin': -400_000})
-    return cleaned_window[0]['data']
+    EEG = {'data': clean_data, 'srate': sampling_rate, 'xmin': 0}
+    cleaned_windows = clean_windows(EEG)
+    logger.info(f"cleaned window shape: {cleaned_windows[0]['data'].shape} and original data shape: {clean_data.shape}")
+
+    cleaned = clean_flatlines(cleaned_windows[0])
+    print(cleaned.keys())
+    if cleaned['data'].shape[0] != clean_data.shape[0]:
+        logger.info(f"clean_data.shape: f{clean_data.shape} and cleaned['data'].shape: {cleaned['data'].shape}")
+        return None, State.CALIBRATION_ERROR
+    return cleaned['data'], State.STABLE
 
 
 def asr_pipeline(data_array, sampling_rate, n_chan, state, step_size=None, window_len=None, max_dims=0.66):
@@ -111,6 +122,11 @@ class AsrProcessor:
         self.to_clean_buffer_length = 5.  # in s
         self.instantiate_buffers()
         self.is_initialized = True
+        self.lifecycle_state = State.STABLE
+        self.filter = ExGFilter(cutoff_freq=(1, 45),
+                                      filter_type='bandpass',
+                                      s_rate=self.sr,
+                                      n_chan=self.ch_count)
 
     @property
     def cutoff(self):
@@ -120,9 +136,6 @@ class AsrProcessor:
     def cutoff(self, new_cutoff):
         self._cutoff = new_cutoff
         self._state = get_asr_state(self.calibration_data_input, self.sr, self._cutoff)
-
-    def set_state_from_calibration_data(self, calib_data):
-        self._state = get_asr_state(calib_data, self.sr, self._cutoff)
 
     @property
     def refresh_window(self):
@@ -158,15 +171,31 @@ class AsrProcessor:
             self.calibration_data_available = True
             self.stop_calibration()
             return
-        self.calibration_data_input = np.append(self.calibration_data_input, packet.get_data()[1], axis=1)
+        self.calibration_data_input = np.append(self.calibration_data_input, self.filter.apply(packet, in_place=False).get_data()[1], axis=1)
+
+    def fill_missing(self, packet):
+        if self.last_cleaned_timestamp == 0:
+            return packet
+        step = np.round(1 / self.sr, 3)
+        ts, data = packet.get_data()
+        if ts - self.last_cleaned_timestamp < 2 * step:
+            return packet
+        n = int((packet.get_data()[0] - self.last_cleaned_timestamp) * self.sr)
+        timestamps = [self.last_cleaned_timestamp + i * step for i in range(1, n)]
+        packet = BleImpedancePacket(timestamp=timestamps, payload=None)
+        packet.data = np.repeat(data, n -1, axis=1)
+        return packet
 
     def on_unclean_data_received(self, packet):
+        #padded_packet= self.fill_missing(packet)
+        padded_packet = packet
+        self.filter.apply(padded_packet)
         if self.last_clean_at <= 0.0:
             self.last_clean_at = time.time()
         if not self.calibration_data_available:
             logger.warning("Attempting to clean data with no calibration available - returning...")
-        new_data = np.array(packet.get_data()[1])
-        new_ts = np.array(packet.get_data()[0])
+        new_data = np.array(padded_packet.get_data()[1])
+        new_ts = np.array(padded_packet.get_data()[0])
         self.to_clean[:, :new_data.shape[1]] = new_data
         self.to_clean = np.roll(self.to_clean, -new_data.shape[1], axis=1)
         self.to_clean_ts[0, :new_ts.shape[0]] = new_ts
@@ -213,6 +242,7 @@ class AsrProcessor:
         logger.info("Stopping cleaning with ASR.")
         self.is_cleaning = False
         self.stream_processor.unsubscribe(self.on_unclean_data_received, topic=self.in_topic)
+        self.filter = None
 
     def start_calibration(self, calib_length: float=-1.0):
         self.is_calibrating = True
@@ -231,7 +261,12 @@ class AsrProcessor:
         self.is_calibrating = False
         self.calib_started_at = -1.0
         self.calibration_length = self._default_calibration_length
-        self._state = get_asr_state(self.calibration_data_input, self.sr, self.cutoff)
+        self.set_state_from_calibration_data(self.calibration_data_input)
+
+    def set_state_from_calibration_data(self, calib_data):
+        cleaned, state = clean_calib_data(calib_data, self.sr)
+        self.lifecycle_state = state
+        self._state = asr_calibrate(cleaned, self.sr, cutoff=self._cutoff)
 
     def set_cutoff(self, new_cutoff: float):
         if self._min_cutoff <= new_cutoff <= self._max_cutoff:
