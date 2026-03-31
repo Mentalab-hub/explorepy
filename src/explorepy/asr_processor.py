@@ -1,6 +1,5 @@
 import math
 import time
-from copy import deepcopy
 from enum import Enum, auto
 
 from eegprep import clean_flatlines
@@ -26,7 +25,6 @@ def clean_calib_data(clean_data, sampling_rate):
     logger.info(f"cleaned window shape: {cleaned_windows[0]['data'].shape} and original data shape: {clean_data.shape}")
 
     cleaned = clean_flatlines(cleaned_windows[0])
-    print(cleaned.keys())
     if cleaned['data'].shape[0] != clean_data.shape[0]:
         logger.info(f"clean_data.shape: f{clean_data.shape} and cleaned['data'].shape: {cleaned['data'].shape}")
         return None, State.CALIBRATION_ERROR
@@ -135,7 +133,7 @@ class AsrProcessor:
     @cutoff.setter
     def cutoff(self, new_cutoff):
         self._cutoff = new_cutoff
-        self._state = get_asr_state(self.calibration_data_input, self.sr, self._cutoff)
+        self.set_state_from_calibration_data(self.calibration_data_input, self.sr, self._cutoff)
 
     @property
     def refresh_window(self):
@@ -173,29 +171,13 @@ class AsrProcessor:
             return
         self.calibration_data_input = np.append(self.calibration_data_input, self.filter.apply(packet, in_place=False).get_data()[1], axis=1)
 
-    def fill_missing(self, packet):
-        if self.last_cleaned_timestamp == 0:
-            return packet
-        step = np.round(1 / self.sr, 3)
-        ts, data = packet.get_data()
-        if ts - self.last_cleaned_timestamp < 2 * step:
-            return packet
-        n = int((packet.get_data()[0] - self.last_cleaned_timestamp) * self.sr)
-        timestamps = [self.last_cleaned_timestamp + i * step for i in range(1, n)]
-        packet = BleImpedancePacket(timestamp=timestamps, payload=None)
-        packet.data = np.repeat(data, n -1, axis=1)
-        return packet
-
     def on_unclean_data_received(self, packet):
-        #padded_packet= self.fill_missing(packet)
-        padded_packet = packet
-        self.filter.apply(padded_packet)
         if self.last_clean_at <= 0.0:
             self.last_clean_at = time.time()
         if not self.calibration_data_available:
             logger.warning("Attempting to clean data with no calibration available - returning...")
-        new_data = np.array(padded_packet.get_data()[1])
-        new_ts = np.array(padded_packet.get_data()[0])
+        new_data = np.array(packet.get_data()[1])
+        new_ts = np.array(packet.get_data()[0])
         self.to_clean[:, :new_data.shape[1]] = new_data
         self.to_clean = np.roll(self.to_clean, -new_data.shape[1], axis=1)
         self.to_clean_ts[0, :new_ts.shape[0]] = new_ts
@@ -266,12 +248,15 @@ class AsrProcessor:
     def set_state_from_calibration_data(self, calib_data):
         cleaned, state = clean_calib_data(calib_data, self.sr)
         self.lifecycle_state = state
+        if cleaned is None:
+            self.calibration_data_available = False
+            return
         self._state = asr_calibrate(cleaned, self.sr, cutoff=self._cutoff)
 
     def set_cutoff(self, new_cutoff: float):
         if self._min_cutoff <= new_cutoff <= self._max_cutoff:
             self._cutoff = new_cutoff
-            self._state = get_asr_state(self.calibration_data_input, self.sr, self.cutoff)
+            self.set_state_from_calibration_data(self.calibration_data_input, self.sr, self.cutoff)
         else:
             logger.error(f"Passed cutoff for ASR of {new_cutoff} is not within accepted range of "
                          f"[{self._min_cutoff},{self._max_cutoff}]")
