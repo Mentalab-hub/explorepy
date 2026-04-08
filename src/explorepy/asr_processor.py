@@ -11,13 +11,14 @@ from eegprep.utils import round_mat
 from eegprep.utils.asr import asr_calibrate, asr_process
 
 from explorepy.filters import ExGFilter
-from explorepy.packet import CleanEEG, BleImpedancePacket
 
 logger = logging.getLogger(__name__)
+
 
 class State(Enum):
     STABLE = auto()
     CALIBRATION_ERROR = auto()
+
 
 def clean_calib_data(clean_data, sampling_rate):
     EEG = {'data': clean_data, 'srate': sampling_rate, 'xmin': 0}
@@ -72,6 +73,7 @@ def asr_pipeline(data_array, sampling_rate, n_chan, state, step_size=None, windo
 
     return outdata
 
+
 class AsrProcessor:
     _min_calibration_length: float = 10.  # in s
     _default_calibration_length: float = 30.  # in s
@@ -121,10 +123,12 @@ class AsrProcessor:
         self.instantiate_buffers()
         self.is_initialized = True
         self.lifecycle_state = State.STABLE
-        self.filter = ExGFilter(cutoff_freq=(1, 45),
-                                      filter_type='bandpass',
-                                      s_rate=self.sr,
-                                      n_chan=self.ch_count)
+        self.filter = ExGFilter(
+            cutoff_freq=(1, 45),
+            filter_type='bandpass',
+            s_rate=self.sr,
+            n_chan=self.ch_count,
+        )
 
     @property
     def cutoff(self):
@@ -137,7 +141,7 @@ class AsrProcessor:
             self.set_state_from_calibration_data(self.calibration_data_input)
         else:
             raise ValueError(f"Passed cutoff for ASR of {new_cutoff} is not within accepted range of "
-                         f"[{self._min_cutoff},{self._max_cutoff}]")
+                             f"[{self._min_cutoff},{self._max_cutoff}]")
 
     @property
     def refresh_window(self):
@@ -165,15 +169,22 @@ class AsrProcessor:
         self.instantiate_buffers()
 
     def on_calib_data_received(self, packet):
-        if (self.calib_started_at <= 0.0 or
-            not self._min_calibration_length <= self.calibration_length <= self._max_calibration_length):
+        if (
+            self.calib_started_at <= 0.0
+            or not self._min_calibration_length <= self.calibration_length <= self._max_calibration_length
+        ):
             raise ValueError(
-                "Error writing calibration packet, timer has not been set correctly or calibration length is invalid!")
+                "Error writing calibration packet, timer has not been set correctly or calibration length is invalid!"
+            )
         if (time.time() - self.calib_started_at) > self.calibration_length:
             self.calibration_data_available = True
             self.stop_calibration()
             return
-        self.calibration_data_input = np.append(self.calibration_data_input, self.filter.apply(packet, in_place=False).get_data()[1], axis=1)
+        self.calibration_data_input = np.append(
+            self.calibration_data_input,
+            self.filter.apply(packet, in_place=False).get_data()[1],
+            axis=1,
+        )
 
     def on_unclean_data_received(self, packet):
         if self.last_clean_at <= 0.0:
@@ -230,7 +241,7 @@ class AsrProcessor:
         self.stream_processor.unsubscribe(self.on_unclean_data_received, topic=self.in_topic)
         self.filter = None
 
-    def start_calibration(self, calib_length: float=-1.0):
+    def start_calibration(self, calib_length: float = -1.0):
         self.is_calibrating = True
         if self._min_calibration_length <= calib_length <= self._max_calibration_length:
             self.calibration_length = calib_length
@@ -242,7 +253,7 @@ class AsrProcessor:
         self.stream_processor.subscribe(self.on_calib_data_received, topic=self.in_topic)
 
     def stop_calibration(self):
-        logger.info(f"Stopping ASR calibration.")
+        logger.info("Stopping ASR calibration.")
         self.stream_processor.unsubscribe(self.on_calib_data_received, topic=self.in_topic)
         self.is_calibrating = False
         self.calib_started_at = -1.0
