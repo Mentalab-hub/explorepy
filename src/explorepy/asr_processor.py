@@ -132,8 +132,12 @@ class AsrProcessor:
 
     @cutoff.setter
     def cutoff(self, new_cutoff):
-        self._cutoff = new_cutoff
-        self.set_state_from_calibration_data(self.calibration_data_input, self.sr, self._cutoff)
+        if self._min_cutoff <= new_cutoff <= self._max_cutoff:
+            self._cutoff = new_cutoff
+            self.set_state_from_calibration_data(self.calibration_data_input)
+        else:
+            raise ValueError(f"Passed cutoff for ASR of {new_cutoff} is not within accepted range of "
+                         f"[{self._min_cutoff},{self._max_cutoff}]")
 
     @property
     def refresh_window(self):
@@ -252,11 +256,3 @@ class AsrProcessor:
             self.calibration_data_available = False
             return
         self._state = asr_calibrate(cleaned, self.sr, cutoff=self._cutoff)
-
-    def set_cutoff(self, new_cutoff: float):
-        if self._min_cutoff <= new_cutoff <= self._max_cutoff:
-            self._cutoff = new_cutoff
-            self.set_state_from_calibration_data(self.calibration_data_input, self.sr, self.cutoff)
-        else:
-            logger.error(f"Passed cutoff for ASR of {new_cutoff} is not within accepted range of "
-                         f"[{self._min_cutoff},{self._max_cutoff}]")
