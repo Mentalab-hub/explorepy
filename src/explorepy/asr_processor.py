@@ -17,20 +17,24 @@ logger = logging.getLogger(__name__)
 
 class State(Enum):
     STABLE = auto()
+    CLEANING = auto()
     CALIBRATION_ERROR = auto()
 
 
 def clean_calib_data(clean_data, sampling_rate):
     EEG = {'data': clean_data, 'srate': sampling_rate, 'xmin': 0}
-    cleaned_windows = clean_windows(EEG)
-    logger.info(f"cleaned window shape: {cleaned_windows[0]['data'].shape} and original data shape: {clean_data.shape}")
+    try:
+        cleaned_windows = clean_windows(EEG) # throws index error
+        logger.info(f"cleaned window shape: {cleaned_windows[0]['data'].shape} and original data shape: {clean_data.shape}")
 
-    cleaned = clean_flatlines(cleaned_windows[0])
-    if cleaned['data'].shape[0] != clean_data.shape[0]:
-        logger.info(f"clean_data.shape: f{clean_data.shape} and cleaned['data'].shape: {cleaned['data'].shape}")
+        cleaned = clean_flatlines(cleaned_windows[0])
+        if cleaned['data'].shape[0] != clean_data.shape[0]:
+            logger.info(f"clean_data.shape: f{clean_data.shape} and cleaned['data'].shape: {cleaned['data'].shape}")
+            raise IndexError
+        return cleaned['data'], State.STABLE
+    except IndexError:
+        logger.info(f"Calibration error")
         return None, State.CALIBRATION_ERROR
-    return cleaned['data'], State.STABLE
-
 
 def asr_pipeline(data_array, sampling_rate, n_chan, state, step_size=None, window_len=None, max_dims=0.66):
     """This code is mostly taken from the eegprep implementation of clean_asr and adapted to work with a previously
@@ -261,6 +265,7 @@ class AsrProcessor:
         self.set_state_from_calibration_data(self.calibration_data_input)
 
     def set_state_from_calibration_data(self, calib_data):
+        self.lifecycle_state = State.CLEANING
         cleaned, state = clean_calib_data(calib_data, self.sr)
         self.lifecycle_state = state
         if cleaned is None:
