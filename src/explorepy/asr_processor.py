@@ -1,18 +1,40 @@
 import math
 import time
-from copy import deepcopy
+from enum import Enum, auto
 
-from eegprep import clean_asr, clean_artifacts
+from eegprep import clean_flatlines
 import numpy as np
 import logging
 
+from eegprep import clean_windows
 from eegprep.utils import round_mat
 from eegprep.utils.asr import asr_calibrate, asr_process
 
+from explorepy.filters import ExGFilter
+
 logger = logging.getLogger(__name__)
 
-def get_asr_state(clean_data, sampling_rate, cutoff=0.5):
-    return asr_calibrate(clean_data, sampling_rate, cutoff=cutoff)
+
+class State(Enum):
+    STABLE = auto()
+    CLEANING = auto()
+    CALIBRATION_ERROR = auto()
+
+
+def clean_calib_data(clean_data, sampling_rate):
+    EEG = {'data': clean_data, 'srate': sampling_rate, 'xmin': 0}
+    try:
+        cleaned_windows = clean_windows(EEG) # throws index error
+        logger.info(f"cleaned window shape: {cleaned_windows[0]['data'].shape} and original data shape: {clean_data.shape}")
+
+        cleaned = clean_flatlines(cleaned_windows[0])
+        if cleaned['data'].shape[0] != clean_data.shape[0]:
+            logger.info(f"clean_data.shape: f{clean_data.shape} and cleaned['data'].shape: {cleaned['data'].shape}")
+            raise IndexError
+        return cleaned['data'], State.STABLE
+    except IndexError:
+        logger.info(f"Calibration error")
+        return None, State.CALIBRATION_ERROR
 
 def asr_pipeline(data_array, sampling_rate, n_chan, state, step_size=None, window_len=None, max_dims=0.66):
     """This code is mostly taken from the eegprep implementation of clean_asr and adapted to work with a previously
@@ -54,6 +76,7 @@ def asr_pipeline(data_array, sampling_rate, n_chan, state, step_size=None, windo
     outdata = outdata[:, :S]
 
     return outdata
+
 
 class AsrProcessor:
     _min_calibration_length: float = 10.  # in s
@@ -103,6 +126,13 @@ class AsrProcessor:
         self.to_clean_buffer_length = 5.  # in s
         self.instantiate_buffers()
         self.is_initialized = True
+        self.lifecycle_state = State.STABLE
+        self.filter = ExGFilter(
+            cutoff_freq=(1, 45),
+            filter_type='bandpass',
+            s_rate=self.sr,
+            n_chan=self.ch_count,
+        )
 
     @property
     def cutoff(self):
@@ -110,11 +140,12 @@ class AsrProcessor:
 
     @cutoff.setter
     def cutoff(self, new_cutoff):
-        self._cutoff = new_cutoff
-        self._state = get_asr_state(self.calibration_data_input, self.sr, self._cutoff)
-
-    def set_state_from_calibration_data(self, calib_data):
-        self._state = get_asr_state(calib_data, self.sr, self._cutoff)
+        if self._min_cutoff <= new_cutoff <= self._max_cutoff:
+            self._cutoff = new_cutoff
+            self.set_state_from_calibration_data(self.calibration_data_input)
+        else:
+            raise ValueError(f"Passed cutoff for ASR of {new_cutoff} is not within accepted range of "
+                             f"[{self._min_cutoff},{self._max_cutoff}]")
 
     @property
     def refresh_window(self):
@@ -142,15 +173,22 @@ class AsrProcessor:
         self.instantiate_buffers()
 
     def on_calib_data_received(self, packet):
-        if (self.calib_started_at <= 0.0 or
-            not self._min_calibration_length <= self.calibration_length <= self._max_calibration_length):
+        if (
+            self.calib_started_at <= 0.0
+            or not self._min_calibration_length <= self.calibration_length <= self._max_calibration_length
+        ):
             raise ValueError(
-                "Error writing calibration packet, timer has not been set correctly or calibration length is invalid!")
+                "Error writing calibration packet, timer has not been set correctly or calibration length is invalid!"
+            )
         if (time.time() - self.calib_started_at) > self.calibration_length:
             self.calibration_data_available = True
             self.stop_calibration()
             return
-        self.calibration_data_input = np.append(self.calibration_data_input, packet.get_data()[1], axis=1)
+        self.calibration_data_input = np.append(
+            self.calibration_data_input,
+            self.filter.apply(packet, in_place=False).get_data()[1],
+            axis=1,
+        )
 
     def on_unclean_data_received(self, packet):
         if self.last_clean_at <= 0.0:
@@ -205,8 +243,9 @@ class AsrProcessor:
         logger.info("Stopping cleaning with ASR.")
         self.is_cleaning = False
         self.stream_processor.unsubscribe(self.on_unclean_data_received, topic=self.in_topic)
+        self.filter = None
 
-    def start_calibration(self, calib_length: float=-1.0):
+    def start_calibration(self, calib_length: float = -1.0):
         self.is_calibrating = True
         if self._min_calibration_length <= calib_length <= self._max_calibration_length:
             self.calibration_length = calib_length
@@ -218,18 +257,18 @@ class AsrProcessor:
         self.stream_processor.subscribe(self.on_calib_data_received, topic=self.in_topic)
 
     def stop_calibration(self):
-        logger.info(f"Stopping ASR calibration.")
-        # TODO potentially run clean_windows on calibration data as that may still contain artifacts...
+        logger.info("Stopping ASR calibration.")
         self.stream_processor.unsubscribe(self.on_calib_data_received, topic=self.in_topic)
         self.is_calibrating = False
         self.calib_started_at = -1.0
         self.calibration_length = self._default_calibration_length
-        self._state = get_asr_state(self.calibration_data_input, self.sr, self.cutoff)
+        self.set_state_from_calibration_data(self.calibration_data_input)
 
-    def set_cutoff(self, new_cutoff: float):
-        if self._min_cutoff <= new_cutoff <= self._max_cutoff:
-            self._cutoff = new_cutoff
-            self._state = get_asr_state(self.calibration_data_input, self.sr, self.cutoff)
-        else:
-            logger.error(f"Passed cutoff for ASR of {new_cutoff} is not within accepted range of "
-                         f"[{self._min_cutoff},{self._max_cutoff}]")
+    def set_state_from_calibration_data(self, calib_data):
+        self.lifecycle_state = State.CLEANING
+        cleaned, state = clean_calib_data(calib_data, self.sr)
+        self.lifecycle_state = state
+        if cleaned is None:
+            self.calibration_data_available = False
+            return
+        self._state = asr_calibrate(cleaned, self.sr, cutoff=self._cutoff)

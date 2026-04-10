@@ -350,7 +350,7 @@ class StreamProcessor:
                     self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
-            self.asr_processor = AsrProcessor(self, TOPICS.filtered_ExG)
+            self.asr_processor = AsrProcessor(self, TOPICS.raw_ExG)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
         elif isinstance(packet, CommandStatus):
