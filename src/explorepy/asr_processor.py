@@ -127,12 +127,7 @@ class AsrProcessor:
         self.instantiate_buffers()
         self.is_initialized = True
         self.lifecycle_state = State.STABLE
-        self.filter = ExGFilter(
-            cutoff_freq=(1, 45),
-            filter_type='bandpass',
-            s_rate=self.sr,
-            n_chan=self.ch_count,
-        )
+        self.filter = None
 
     @property
     def cutoff(self):
@@ -237,6 +232,12 @@ class AsrProcessor:
                          f"[{self._min_clean_timer},{self._max_clean_timer}]")
         logger.info(f"Starting cleaning with ASR (refresh every {self._refresh_window}s)...")
         self.is_cleaning = True
+        self.filter = ExGFilter(
+            cutoff_freq=(1, 45),
+            filter_type='bandpass',
+            s_rate=self.sr,
+            n_chan=self.ch_count,
+        )
         self.stream_processor.subscribe(self.on_unclean_data_received, topic=self.in_topic)
 
     def stop_cleaning(self):
