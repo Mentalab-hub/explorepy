@@ -60,3 +60,39 @@ test = [
 
 [project.scripts]
 explorepy = "explorepy.cli:cli"
+
+# bumpoversion config
+[tool.bumpversion]
+current_version = "4.4.0"
+commit = false
+tag = false
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "README.rst"
+search = "v{current_version}."
+replace = "v{new_version}."
+
+[[tool.bumpversion.files]]
+filename = "docs/conf.py"
+search = "version = release = '{current_version}'"
+replace = "version = release = '{new_version}'"
+
+[[tool.bumpversion.files]]
+filename = "src/explorepy/__init__.py"
+search = "__version__ = '{current_version}'"
+replace = "__version__ = '{new_version}'"
+
+[[tool.bumpversion.files]]
+filename = "installer/windows/installer.cfg"
+search = "explorepy=={current_version}"
+replace = "explorepy=={new_version}"
+
+[[tool.bumpversion.files]]
+filename = "installer/windows/installer.cfg"
+search = "version={current_version}"
+replace = "version={new_version}"
