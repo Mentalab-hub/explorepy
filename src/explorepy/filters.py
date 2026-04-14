@@ -110,6 +110,9 @@ class ExGFilter:
             zi = np.zeros(shape=(n_channels, 2))
         return a, b, zi
 
+    def get_cutoff_freq(self):
+        return self.cutoff_freq
+
     def apply(self, input_data, in_place=True):
         """Apply filter
 
