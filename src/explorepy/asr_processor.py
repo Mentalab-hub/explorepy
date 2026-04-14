@@ -232,19 +232,12 @@ class AsrProcessor:
                          f"[{self._min_clean_timer},{self._max_clean_timer}]")
         logger.info(f"Starting cleaning with ASR (refresh every {self._refresh_window}s)...")
         self.is_cleaning = True
-        self.filter = ExGFilter(
-            cutoff_freq=(1, 45),
-            filter_type='bandpass',
-            s_rate=self.sr,
-            n_chan=self.ch_count,
-        )
         self.stream_processor.subscribe(self.on_unclean_data_received, topic=self.in_topic)
 
     def stop_cleaning(self):
         logger.info("Stopping cleaning with ASR.")
         self.is_cleaning = False
         self.stream_processor.unsubscribe(self.on_unclean_data_received, topic=self.in_topic)
-        self.filter = None
 
     def start_calibration(self, calib_length: float = -1.0):
         self.is_calibrating = True
@@ -255,6 +248,12 @@ class AsrProcessor:
                          f"[{self._min_calibration_length},{self._max_calibration_length}]")
         logger.info(f"Starting ASR calibration for {self.calibration_length}s...")
         self.calib_started_at = time.time()
+        self.filter = ExGFilter(
+            cutoff_freq=(1, 45),
+            filter_type='bandpass',
+            s_rate=self.sr,
+            n_chan=self.ch_count,
+        )
         self.stream_processor.subscribe(self.on_calib_data_received, topic=self.in_topic)
 
     def stop_calibration(self):
