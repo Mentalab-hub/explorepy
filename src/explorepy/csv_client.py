@@ -1,9 +1,18 @@
+import os
 import time
-from enum import Enum, auto
+from enum import (
+    Enum,
+    auto
+)
+
 import numpy as np
-from explorepy.packet import BleImpedancePacket, DeviceInfoBLE, OrientationV1, OrientationV2
 from pylsl import local_clock
-from typing_extensions import override
+
+from explorepy.packet import (
+    BleImpedancePacket,
+    DeviceInfoBLE,
+    OrientationV2
+)
 
 
 class ClientState(Enum):
@@ -12,21 +21,30 @@ class ClientState(Enum):
     STREAMING = auto()
     STOPPED = auto()
 
+
 class PacketSize(Enum):
     EEG_8 = 40
     EEG_32 = 112
     ORN = 50
     DEVICE_INFO = 38
 
+
 class CsvClient:
-    def __init__(self, channel_count):
-        file_path = "../../explorepy/tests/sample_data/"
-        file_name = "test_" + str(channel_count) + ".csv"
-        self.server = server = CsvServer(
-    channel_count=channel_count,
-    csv_path=file_path + file_name,
-    loop=True
-)
+    def __init__(self, channel_count, file_path: str = None):
+        if file_path is None:
+            self.file_name = "32channel_semidry_artefacts_ExG.csv"
+            file_path = os.path.join("/Users/sonjastefani/Documents/dev/explore-desktop/test-data/", self.file_name)
+        else:
+            self.file_name = os.path.split(file_path)[-1]
+
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        self.server = CsvServer(
+            channel_count=channel_count,
+            csv_path=file_path,
+            loop=True
+        )
         self._state = ClientState.DISCONNECTED
 
     def set_state(self, state: ClientState):
@@ -65,7 +83,6 @@ class CsvClient:
                 device_info_packet.set_info(self.server.device_info)
                 return device_info_packet
 
-
         self.server.tick += 1
         if self.server.tick % 5 == 0:
             orn_packet = OrientationMock(timestamp=self.server.ts, payload=None)
@@ -79,7 +96,7 @@ class CsvClient:
             time.sleep(sleep_time)
         eeg_packet = BleImpedancePacket(timestamp=self.server.ts, payload=None)
         try:
-            eeg_packet.data = self.server.read_sample()
+            eeg_packet.data, eeg_packet.timestamp = self.server.read_sample()
         except StopIteration:
             self.set_state(ClientState.STOPPED)
             return None
@@ -89,9 +106,6 @@ class CsvClient:
     def write(self, bytes):
         pass
 
-import numpy as np
-from pylsl import local_clock
-
 
 class CsvServer:
     def __init__(self, channel_count: int, csv_path: str, loop: bool = True):
@@ -100,9 +114,11 @@ class CsvServer:
 
         self.channel_count = channel_count
         self.loop = loop
-        self.csv_data = np.loadtxt(csv_path, delimiter=',', skiprows=1) # skip row 0
+        self.csv_data = np.loadtxt(csv_path, delimiter=',', skiprows=1)  # skip row 0
 
+        self.csv_ts = self.csv_data[:, 0]
         self.csv_data = self.csv_data[:, 1:]
+
         if self.csv_data.shape[1] != channel_count:
             print('######################', self.csv_data.shape)
             raise ValueError(
@@ -163,13 +179,15 @@ class CsvServer:
                 raise StopIteration("End of CSV reached")
             self.row_idx = 0
 
+        ts = self.csv_ts[self.row_idx]
         sample = self.csv_data[self.row_idx]
         self.row_idx += 1
 
-        return sample.reshape(self.channel_count, 1)
+        return sample.reshape(self.channel_count, 1), ts
 
     def read_device_info(self):
         return self.device_info
+
 
 class DeviceInfoMock(DeviceInfoBLE):
     def __init__(self, timestamp, payload, time_offset=0):

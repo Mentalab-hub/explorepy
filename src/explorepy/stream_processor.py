@@ -15,6 +15,7 @@ from typing import (
 
 import numpy as np
 
+from explorepy.asr_processor import AsrProcessor
 from explorepy.command import (
     DeviceConfiguration,
     ZMeasurementDisable,
@@ -24,6 +25,7 @@ from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
     CalibrationInfoBase,
+    CleanEEG,
     CommandRCV,
     CommandStatus,
     DeviceInfo,
@@ -45,7 +47,7 @@ from explorepy.tools import (
 
 
 TOPICS =\
-    Enum('Topics', 'raw_ExG filtered_ExG device_info marker raw_orn cmd_ack env cmd_status imp packet_bin')
+    Enum('Topics', 'raw_ExG filtered_ExG asr_ExG device_info marker raw_orn cmd_ack env cmd_status imp packet_bin')
 logger = logging.getLogger(__name__)
 lock = Lock()
 
@@ -55,6 +57,7 @@ class StreamProcessor:
 
     def __init__(self, debug=False):
         self.parser = None
+        self.asr_processor = None
         self.filters = []
         self.device_info = {}
         self.old_device_info = {}
@@ -100,7 +103,7 @@ class StreamProcessor:
         logger.debug(f"Unsubscribe {callback} from {topic}")
         self.subscribers[topic].discard(callback)
 
-    def start(self, device_name=None, mac_address=None):
+    def start(self, device_name=None, mac_address=None, file_path=None):
         """Start streaming from Explore device
 
         Args:
@@ -113,7 +116,7 @@ class StreamProcessor:
         self.device_info["device_name"] = device_name
         self.parser = Parser(callback=self.process,
                              mode='device', debug=self.debug)
-        self.parser.start_streaming(device_name, mac_address)
+        self.parser.start_streaming(device_name, mac_address, file_path=file_path)
         self.is_connected = True
         self._device_configurator = DeviceConfiguration(
             bt_interface=self.parser.stream_interface)
@@ -335,6 +338,12 @@ class StreamProcessor:
                     self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
 
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
+            if not self._is_imp_mode and self.imp_calculator is None:
+                if self.asr_processor.cleaned_data_available:
+                    clean_packet = CleanEEG(timestamp=self.asr_processor.cleaned_data_ts,
+                                            payload=self.asr_processor.cleaned_data)
+                    self.dispatch(topic=TOPICS.asr_ExG, packet=clean_packet)
+                    self.asr_processor.clear_cleaned_data()
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
             print(self.old_device_info)
@@ -344,6 +353,7 @@ class StreamProcessor:
                     self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
+            self.asr_processor = AsrProcessor(self, TOPICS.raw_ExG)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
         elif isinstance(packet, CommandStatus):
