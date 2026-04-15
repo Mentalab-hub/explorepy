@@ -14,6 +14,8 @@ from typing import (
 )
 
 import numpy as np
+
+from explorepy.asr_processor import AsrProcessor
 from explorepy.command import (
     DeviceConfiguration,
     ZMeasurementDisable,
@@ -22,10 +24,8 @@ from explorepy.command import (
 from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
-    CalibrationInfo,
-    CalibrationInfo_USBC,
-    CleanEEG,
     CalibrationInfoBase,
+    CleanEEG,
     CommandRCV,
     CommandStatus,
     DeviceInfo,
@@ -45,7 +45,6 @@ from explorepy.tools import (
     is_usb_mode
 )
 
-from explorepy.asr_processor import AsrProcessor
 
 TOPICS =\
     Enum('Topics', 'raw_ExG filtered_ExG asr_ExG device_info marker raw_orn cmd_ack env cmd_status imp packet_bin')

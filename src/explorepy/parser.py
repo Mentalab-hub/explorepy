@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 """Parser module"""
 import asyncio
 import binascii
@@ -83,8 +82,8 @@ class Parser:
             self.stream_interface = MockBtClient(device_name=device_name, mac_address=mac_address)
         elif explorepy.get_bt_interface() == 'csv':
             from explorepy.csv_client import CsvClient
-            device_id = str.split(device_name, '_')[1] # split by underscore and take second part
-            ch_count = 32 if device_id[0] == 'D' else 8 #dynamic channel selection based on first character
+            device_id = str.split(device_name, '_')[1]  # split by underscore and take second part
+            ch_count = 32 if device_id[0] == 'D' else 8  # dynamic channel selection based on first character
             self.stream_interface = CsvClient(ch_count, file_path=file_path)
         elif is_usb_mode():
             from explorepy.serial_client import SerialStream
