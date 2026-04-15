@@ -182,13 +182,15 @@ class Explore:
         if file_type not in ['edf', 'csv']:
             raise ValueError(
                 '{} is not a supported file extension!'.format(file_type))
+
         if imp_mode:
+            if not self.stream_processor.is_imp_running():
+                raise ValueError('Impedance measurement not running!')
             if file_type == 'edf':
                 raise ValueError(
                     '{} is not a supported file extension for recording impedance!'.format(file_type))
-            if notch_freq is None:
-                raise ValueError(
-                    'Missing notch frequency argument, please provide the notch frequency to get live impedance values')
+
+            notch_freq = self.stream_processor.get_power_line_freq() or 50
 
         duration = self._check_duration(duration)
 
@@ -260,7 +262,6 @@ class Explore:
                 impedance_values = packet.get_impedances()
 
                 real_values = np.array(impedance_values) / 2
-                print("Impedance:", real_values.tolist())
 
                 if file_type == 'csv':
                     row_data = [float(packet.timestamp), *real_values]
@@ -271,7 +272,6 @@ class Explore:
 
             self.stream_processor.subscribe(callback=handle_exg_impedance_packet, topic=TOPICS.raw_ExG)
             self.stream_processor.subscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
-            self.stream_processor.imp_initialize(notch_freq=notch_freq)
             logger.info("Recording with impedance mode...")
         else:
             self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
@@ -301,8 +301,6 @@ class Explore:
 
             if is_impedance_mode:
                 try:
-                    self.stream_processor.disable_imp()
-
                     if 'handle_exg_impedance_callback' in self.recorders:
                         self.stream_processor.unsubscribe(
                             callback=self.recorders['handle_exg_impedance_callback'], topic=TOPICS.raw_ExG)

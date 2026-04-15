@@ -75,8 +75,6 @@ class Parser:
     def start_streaming(self, device_name, mac_address, file_path=None):
         """Start streaming data from Explore device"""
         self.device_name = device_name
-        explorepy.set_bt_interface('csv')
-        print(os.getcwd())
         if is_ble_mode():
             from explorepy.BLEClient import BLEClient
             self.stream_interface = BLEClient(device_name=device_name, mac_address=mac_address)
@@ -217,6 +215,10 @@ class Parser:
             except EOFError:
                 logger.info('End of file')
                 self.stop_streaming()
+            except AttributeError:
+                if self.stream_interface is None:
+                    # device already disconnected
+                    pass
             except Exception as error:
                 logger.critical('Unexpected error: ', error)
                 self.stop_streaming()
