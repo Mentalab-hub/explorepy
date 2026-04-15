@@ -83,7 +83,7 @@ class Explore:
             imp_mode = self.stream_processor._is_imp_mode
         return imp_mode
 
-    def connect(self, device_name=None, mac_address=None):
+    def connect(self, device_name=None, mac_address=None, file_path=None):
         r"""
         Connects to the nearby device. If there are more than one device, the user is asked to choose one of them.
 
@@ -100,7 +100,7 @@ class Explore:
         self.stream_processor = StreamProcessor(
             debug=True if self.debug else False)
         self.stream_processor.start(
-            device_name=device_name, mac_address=mac_address)
+            device_name=device_name, mac_address=mac_address, file_path=file_path)
         cnt = 0
         cnt_limit = 20 if self.debug else 15
         while "adc_mask" not in self.stream_processor.device_info:
@@ -732,3 +732,57 @@ class Explore:
 
     def get_channel_mask(self):
         return SettingsManager(self.device_name).get_adc_mask()
+
+    def is_asr_processor_available(self):
+        return self.stream_processor.asr_processor is not None and self.stream_processor.asr_processor.is_initialized
+
+    def calibrate_asr(self, length=-1.0):
+        if self.is_asr_processor_available():
+            self.stream_processor.asr_processor.start_calibration(length)
+
+    def is_asr_calibration_data_available(self):
+        if self.is_asr_processor_available():
+            return self.stream_processor.asr_processor.calibration_data_available
+        else:
+            return False
+
+    def is_asr_calibrating(self):
+        if self.is_asr_processor_available():
+            return self.stream_processor.asr_processor.is_calibrating
+        else:
+            return False
+
+    def is_asr_running(self):
+        if self.is_asr_processor_available():
+            return self.stream_processor.asr_processor.is_cleaning
+        else:
+            return False
+
+    def start_asr(self, window=None):
+        print("Starting asr")
+        if self.is_asr_processor_available():
+            print("ASR processor is available")
+            if self.stream_processor.asr_processor.calibration_data_available:
+                print("calibration data is available")
+                self.stream_processor.asr_processor.start_cleaning(window)
+
+    def stop_asr(self):
+        if self.is_asr_processor_available():
+            if self.stream_processor.asr_processor.calibration_data_available:
+                self.stream_processor.asr_processor.stop_cleaning()
+
+    def set_asr_cutoff(self, new_cutoff: float):
+        if self.is_asr_processor_available():
+            self.stream_processor.asr_processor.cutoff = new_cutoff
+
+    def get_asr_cutoff(self):
+        if self.is_asr_processor_available():
+            return self.stream_processor.asr_processor.cutoff
+
+    def set_asr_refresh_window(self, new_window):
+        if self.is_asr_processor_available():
+            self.stream_processor.asr_processor.refresh_window = new_window
+
+    def get_asr_refresh_window(self):
+        if self.is_asr_processor_available():
+            return self.stream_processor.asr_processor.refresh_window
