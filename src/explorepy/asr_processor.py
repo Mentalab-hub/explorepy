@@ -200,6 +200,7 @@ class AsrProcessor:
             self.last_clean_at = time.time()
         if not self.calibration_data_available:
             logger.warning("Attempting to clean data with no calibration available - returning...")
+            return
         new_data = np.array(packet.get_data()[1])
         new_ts = np.array(packet.get_data()[0])
         self.to_clean[:, :new_data.shape[1]] = new_data
@@ -277,12 +278,13 @@ class AsrProcessor:
     def set_state_from_calibration_data(self, calib_data):
         self.lifecycle_state = State.CLEANING
         cleaned, state = clean_calib_data(calib_data, self.sr)
-        self.lifecycle_state = state
         if cleaned is None:
             self.calibration_data_available = False
+            self.lifecycle_state = state
             return
         try:
             self._state = asr_calibrate(cleaned, self.sr, cutoff=self._cutoff)
+            self.lifecycle_state = state
         except np.linalg.LinAlgError as e:
             self.calibration_data_available = False
             self.lifecycle_state = State.CALIBRATION_ERROR
