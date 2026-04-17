@@ -281,4 +281,9 @@ class AsrProcessor:
         if cleaned is None:
             self.calibration_data_available = False
             return
-        self._state = asr_calibrate(cleaned, self.sr, cutoff=self._cutoff)
+        try:
+            self._state = asr_calibrate(cleaned, self.sr, cutoff=self._cutoff)
+        except np.linalg.LinAlgError as e:
+            self.calibration_data_available = False
+            self.lifecycle_state = State.CALIBRATION_ERROR
+            logger.error(f"Could not calibrate ASR: {e}")
