@@ -618,4 +618,4 @@ class StreamProcessor:
             None
         )
 
-        return match.cutoff_freq if match else None
+        return match.get_cutoff_freq() if match else None
