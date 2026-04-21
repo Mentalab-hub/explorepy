@@ -62,6 +62,16 @@ class BleDisconnectionFailedError(Exception):
     pass
 
 
+class ImpedanceModeActiveError(Exception):
+    """
+    Exception for ASR, raised when impedance is running
+    """
+
+    def __init__(self, message="ASR can not run because impedance mode is active.\n"
+                               "Please disable impedance and try again\n"):
+        super().__init__(message)
+
+
 class ExplorePyDeprecationError(Exception):
     def __init__(self, message="Explorepy support for legacy devices is deprecated.\n"
                                "Please install explorepy 3.2.1 from Github or use the following command from Anaconda "
