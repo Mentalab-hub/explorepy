@@ -186,7 +186,6 @@ class AsrProcessor:
                 "Error writing calibration packet, timer has not been set correctly or calibration length is invalid!"
             )
         if (time.time() - self.calib_started_at) > self.calibration_length:
-            self.calibration_data_available = True
             self.stop_calibration()
             return
         self.calibration_data_input = np.append(
@@ -284,6 +283,7 @@ class AsrProcessor:
             return
         try:
             self._state = asr_calibrate(cleaned, self.sr, cutoff=self._cutoff)
+            self.calibration_data_available = True
             self.lifecycle_state = state
         except np.linalg.LinAlgError as e:
             self.calibration_data_available = False
