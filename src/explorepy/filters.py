@@ -4,6 +4,7 @@ import copy
 import logging
 
 import numpy as np
+from scipy import signal
 from scipy.signal import (
     butter,
     iirfilter,
@@ -15,6 +16,13 @@ from explorepy.packet import Packet
 
 
 logger = logging.getLogger(__name__)
+
+
+@staticmethod
+def bp_filter(exg, lf, hf, fs, btype='bandpass'):
+    N = 5
+    b, a = signal.butter(N, [lf, hf], btype=btype, fs=fs)
+    return signal.filtfilt(b, a, exg, axis=1)
 
 
 class ExGFilter:
