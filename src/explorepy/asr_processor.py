@@ -17,8 +17,7 @@ from eegprep.utils.asr import (
     asr_process
 )
 
-from explorepy.filters import ExGFilter
-
+from explorepy.filters import bp_filter
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +136,6 @@ class AsrProcessor:
         self.instantiate_buffers()
         self.is_initialized = True
         self.lifecycle_state = State.STABLE
-        self.filter = None
 
     @property
     def cutoff(self):
@@ -186,12 +184,11 @@ class AsrProcessor:
                 "Error writing calibration packet, timer has not been set correctly or calibration length is invalid!"
             )
         if (time.time() - self.calib_started_at) > self.calibration_length:
-            self.calibration_data_available = True
             self.stop_calibration()
             return
         self.calibration_data_input = np.append(
             self.calibration_data_input,
-            self.filter.apply(packet, in_place=False).get_data()[1],
+            packet.get_data()[1],
             axis=1,
         )
 
@@ -222,8 +219,10 @@ class AsrProcessor:
             return
         if self.to_clean_ts[0][0] <= 1.0:
             return
+        filt_sig = bp_filter(self.to_clean.copy(), 45, 55, btype='bandstop', fs=self.sr)
+        filtered_data = bp_filter(filt_sig, .1, 40, fs=self.sr)
         try:
-            ret = asr_pipeline(self.to_clean, self.sr, self.ch_count, self._state)
+            ret = asr_pipeline(filtered_data, self.sr, self.ch_count, self._state)
             self.cleaned_data_available = True
             idx = np.searchsorted(self.to_clean_ts[0], self.last_cleaned_timestamp)
             self.cleaned_data = ret[:, idx:]
@@ -259,12 +258,6 @@ class AsrProcessor:
                          f"[{self._min_calibration_length},{self._max_calibration_length}]")
         logger.info(f"Starting ASR calibration for {self.calibration_length}s...")
         self.calib_started_at = time.time()
-        self.filter = ExGFilter(
-            cutoff_freq=(1, 45),
-            filter_type='bandpass',
-            s_rate=self.sr,
-            n_chan=self.ch_count,
-        )
         self.stream_processor.subscribe(self.on_calib_data_received, topic=self.in_topic)
 
     def stop_calibration(self):
@@ -277,13 +270,16 @@ class AsrProcessor:
 
     def set_state_from_calibration_data(self, calib_data):
         self.lifecycle_state = State.CLEANING
-        cleaned, state = clean_calib_data(calib_data, self.sr)
+        filt_sig = bp_filter(calib_data, 45, 55, btype='bandstop', fs=self.sr)
+        filtered_data = bp_filter(filt_sig, .1, 40, self.sr)
+        cleaned, state = clean_calib_data(filtered_data, self.sr)
         if cleaned is None:
             self.calibration_data_available = False
             self.lifecycle_state = state
             return
         try:
             self._state = asr_calibrate(cleaned, self.sr, cutoff=self._cutoff)
+            self.calibration_data_available = True
             self.lifecycle_state = state
         except np.linalg.LinAlgError as e:
             self.calibration_data_available = False
