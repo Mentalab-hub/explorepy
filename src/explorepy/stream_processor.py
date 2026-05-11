@@ -621,7 +621,7 @@ class StreamProcessor:
 
         return match.cutoff_freq if match else None
 
-    def is_asr_processor_available(self):
+    def ensure_asr_processor_available(self):
         if self.is_imp_running():
             raise ImpedanceModeActiveError()
         return self.asr_processor is not None and self.asr_processor.is_initialized
