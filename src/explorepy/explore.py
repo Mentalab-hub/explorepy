@@ -734,7 +734,7 @@ class Explore:
         return SettingsManager(self.device_name).get_adc_mask()
 
     def is_asr_processor_available(self):
-        return self.stream_processor.is_asr_processor_available()
+        return self.stream_processor.ensure_asr_processor_available()
 
     def calibrate_asr(self, length=-1.0):
         if self.is_asr_processor_available():
