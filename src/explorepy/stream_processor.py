@@ -618,8 +618,7 @@ class StreamProcessor:
             (item for item in self.filters if item.filter_type == 'notch'),
             None
         )
-
-        return match.cutoff_freq if match else None
+        return match.get_cutoff_freq() if match else None
 
     def ensure_asr_processor_available(self):
         if self.is_imp_running():
