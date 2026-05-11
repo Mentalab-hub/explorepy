@@ -160,7 +160,7 @@ class Explore:
 
     def record_data(
         self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False, exg_ch_names=None,
-        imp_mode=False, notch_freq=None
+        imp_mode=False, notch_freq=None, topic=TOPICS.raw_ExG
     ):
         r"""Records the data in real-time
 
@@ -173,6 +173,7 @@ class Explore:
             exg_ch_names (list): list of channel names. If None, default names are used.
             imp_mode (bool): Enable impedance mode with live monitoring(only for CSV files)
             notch_freq (float): Notch frequency for impedance mode initialization
+            topic (enum) : type of ExG data to be recorded. Allowed values:  TOPICS.raw_ExG/filtered_ExG/asr_ExG
         """
         self._check_connection()
 
@@ -249,6 +250,9 @@ class Explore:
                            "if you are setting markers during the recording.")
 
         if imp_mode:
+            if topic == TOPICS.asr_ExG:
+                raise ValueError('ASR data recording not allowed in impedance mode.')
+
             def handle_exg_impedance_packet(packet):
                 timestamps, signals = packet.get_data(self.stream_processor.device_info['sampling_rate'])
                 for i, timestamp in enumerate(timestamps):
@@ -274,7 +278,8 @@ class Explore:
             self.stream_processor.subscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
             logger.info("Recording with impedance mode...")
         else:
-            self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+            self.stream_processor.rec_topic = topic
+            self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=topic)
             logger.info("Recording...")
 
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
@@ -366,7 +371,7 @@ class Explore:
                     logger.error(f"Error during impedance recording cleanup: {e}")
             else:
                 self.stream_processor.unsubscribe(
-                    callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
+                    callback=self.recorders['exg'].write_data, topic=self.stream_processor.rec_topic)
                 self.stream_processor.unsubscribe(
                     callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
                 self.stream_processor.unsubscribe(
@@ -553,12 +558,13 @@ class Explore:
             explorepy.set_bt_interface(bt_interface)
             logger.info('Conversion process terminated.')
 
-    def push2lsl(self, duration=None, block=False):
+    def push2lsl(self, duration=None, block=False, lsl_topic=TOPICS.raw_ExG):
         """Push samples to three lsl streams (ExG, Marker and ORN streams)
 
         Args:
             duration (float): duration of data acquiring (if None it streams for three hours).
             block (bool): blocking mode
+            lsl_topic (enum): topic to push to LSL. Allowed values:  TOPICS.raw_ExG/filtered_ExG/asr_ExG
         """
         self._check_connection()
         duration = self._check_duration(duration)
@@ -566,8 +572,9 @@ class Explore:
         self.lsl['timer'] = Timer(duration, self.stop_lsl)
         self.lsl['server'] = LslServer(self.stream_processor.device_info)
         self.lsl['server'].initialize_outlets()
+        self.stream_processor.lsl_topic = lsl_topic
         self.stream_processor.subscribe(
-            topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
+            topic=lsl_topic, callback=self.lsl['server'].push_exg)
         self.stream_processor.subscribe(
             topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
         self.stream_processor.subscribe(
@@ -589,7 +596,7 @@ class Explore:
         """Stop pushing data to LSL streams"""
         if self.lsl:
             self.stream_processor.unsubscribe(
-                topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
+                topic=self.stream_processor.lsl_topic, callback=self.lsl['server'].push_exg)
             self.stream_processor.unsubscribe(
                 topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
             self.stream_processor.unsubscribe(

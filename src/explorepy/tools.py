@@ -369,7 +369,7 @@ class FileRecorder:
 
     def _process_packet_data(self, packet):
         """Helper function to extract and format data from a packet."""
-        time_vector, sig = packet.get_data(self._fs)
+        time_vector, sig = packet.get_data()
         if isinstance(packet, Orientation) and len(time_vector) == 1:
             data = np.array(time_vector + sig)[:, np.newaxis]
         else:
