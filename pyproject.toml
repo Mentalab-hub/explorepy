@@ -42,7 +42,8 @@ dependencies = [
     'pyyaml',
     'bleak==0.22.3',
     'pylsl',
-    'numba']
+    'numba',
+    'eegprep']
 
 [tool.setuptools]
 package-dir = {"" = "src"}
