@@ -15,6 +15,7 @@ from typing import (
 
 import numpy as np
 
+from explorepy._exceptions import ImpedanceModeActiveError
 from explorepy.asr_processor import AsrProcessor
 from explorepy.command import (
     DeviceConfiguration,
@@ -617,5 +618,9 @@ class StreamProcessor:
             (item for item in self.filters if item.filter_type == 'notch'),
             None
         )
-
         return match.get_cutoff_freq() if match else None
+
+    def ensure_asr_processor_available(self):
+        if self.is_imp_running():
+            raise ImpedanceModeActiveError()
+        return self.asr_processor is not None and self.asr_processor.is_initialized
