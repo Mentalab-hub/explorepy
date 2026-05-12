@@ -16,6 +16,7 @@ class CommandID(Enum):
     """Command ID enum class"""
     API2BCMD = b'\xA0'
     API4BCMD = b'\xB0'
+    API40BCMD = b'\xC0'
 
 
 class OpcodeID(Enum):
@@ -27,6 +28,7 @@ class OpcodeID(Enum):
     CMD_ZM_ENABLE = b'\xA7'
     CMD_SOFT_RESET = b'\xA8'
     CMD_TEST_SIG = b'\xAA'
+    CMD_SET_EMMC_TIME = b'\xAB'
 
 
 class DeviceConfiguration:
@@ -182,6 +184,19 @@ class Command4B(Command):
         """prints the appropriate info about the command. """
 
 
+class Command40B(Command):
+    """An abstract base class for Explore 40 Byte command data length packets"""
+
+    def __init__(self):
+        super().__init__()
+        self.pid = CommandID.API40BCMD
+        self.payload_length = int2bytearray(40, 2)
+
+    @abc.abstractmethod
+    def __str__(self):
+        """prints the appropriate info about the command. """
+
+
 class SetSPS(Command2B):
     """Set the sampling rate of ExG device"""
 
@@ -211,6 +226,38 @@ class SetSPS(Command2B):
 
     def __str__(self):
         return "Set sampling rate command"
+
+
+class SetBinaryTime(Command40B):
+    """Set the sampling rate of ExG device"""
+
+    def __init__(self, time):
+        """
+        Args:
+            sps_rate (int): sampling rate per seconds. It should be one of these values: 250, 500 or 1000
+        """
+        super().__init__()
+        self.opcode = OpcodeID.CMD_SET_EMMC_TIME
+        from datetime import datetime
+        now = datetime.now()
+        date_time = bytes(
+            [
+                now.year - 2000,
+                now.month,
+                now.day,
+                now.weekday(),
+                now.hour,
+                now.minute,
+                now.second,
+                1,
+                2,
+                3,
+            ]
+        )
+        self.param = date_time + bytes(30)
+
+    def __str__(self):
+        return "set time cmd"
 
 
 class MemoryFormat(Command2B):
@@ -282,7 +329,8 @@ class SetChTest(Command2B):
 
 COMMAND_CLASS_DICT = {
     CommandID.API2BCMD: Command2B,
-    CommandID.API4BCMD: Command4B
+    CommandID.API4BCMD: Command4B,
+    CommandID.API40BCMD: Command40B
 }
 
 

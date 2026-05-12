@@ -26,6 +26,7 @@ from scipy import signal as scipy_signal
 import explorepy
 from explorepy.command import (
     MemoryFormat,
+    SetBinaryTime,
     SetChTest,
     SetSPS,
     SoftReset
@@ -650,6 +651,19 @@ class Explore:
         cmd = SetSPS(sampling_rate)
         if self.stream_processor.configure_device(cmd):
             SettingsManager(self.device_name).set_sampling_rate(sampling_rate)
+            return True
+
+    def set_binary_time(self):
+        """Set binary file to current time
+
+        Returns:
+            bool: True for success, False otherwise
+        """
+        self._check_connection()
+
+        cmd = SetBinaryTime(self)
+        if self.stream_processor.configure_device(cmd):
+            logger.info('Device set to current time.')
             return True
 
     def reset_soft(self):
