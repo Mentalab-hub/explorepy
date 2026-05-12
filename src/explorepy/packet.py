@@ -184,7 +184,7 @@ class CleanEEG(Packet):
     def _convert(self, bin_data):
         self.data = bin_data
 
-    def get_data(self):
+    def get_data(self, exg_fs=None):
         return self.timestamps, self.data
 
     def __str__(self):
