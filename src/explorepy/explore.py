@@ -39,6 +39,7 @@ from explorepy.stream_processor import (
 )
 from explorepy.tools import (
     EXG_CHANNELS,
+    FW_VERSIONS_SUPPORTING_BIN_TIME_COMMAND,
     LslServer,
     check_bin_compatibility,
     create_exg_recorder,
@@ -106,11 +107,13 @@ class Explore:
         cnt_limit = 20 if self.debug else 15
         while "adc_mask" not in self.stream_processor.device_info:
             logger.info("Waiting for device info packet...")
-            time.sleep(1)
+            time.sleep(.5)
             if cnt >= cnt_limit:
                 raise ConnectionAbortedError(
                     "Could not get info packet from the device")
             cnt += 1
+        if self.stream_processor.device_info['firmware_version'] in FW_VERSIONS_SUPPORTING_BIN_TIME_COMMAND:
+            self.set_binary_time()
         if self.stream_processor.device_info['is_imp_mode'] is True:
             self.stream_processor.disable_imp()
         logger.info(
@@ -659,8 +662,6 @@ class Explore:
         Returns:
             bool: True for success, False otherwise
         """
-        self._check_connection()
-
         cmd = SetBinaryTime(self)
         if self.stream_processor.configure_device(cmd):
             logger.info('Device set to current time.')
