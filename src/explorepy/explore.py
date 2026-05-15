@@ -112,7 +112,7 @@ class Explore:
                 raise ConnectionAbortedError(
                     "Could not get info packet from the device")
             cnt += 1
-        if self.stream_processor.device_info['firmware_version'] in FW_VERSIONS_SUPPORTING_BIN_TIME_COMMAND:
+        if 'time_cmd' in self.stream_processor.device_info:
             self.set_binary_time()
         if self.stream_processor.device_info['is_imp_mode'] is True:
             self.stream_processor.disable_imp()
