@@ -4,7 +4,7 @@ build-backend   = 'setuptools.build_meta'
 
 [project]
 name    = 'explorepy'
-version = "4.4.0"
+version = "4.5.0"
 license = { text = "MIT" }
 readme = { file = "README.rst", content-type = "text/markdown" }
 authors = [
@@ -64,7 +64,7 @@ explorepy = "explorepy.cli:cli"
 
 # bumpoversion config
 [tool.bumpversion]
-current_version = "4.4.0"
+current_version = "4.5.0"
 commit = false
 tag = false
 
