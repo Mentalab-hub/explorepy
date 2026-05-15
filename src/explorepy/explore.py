@@ -352,7 +352,7 @@ class Explore:
                                 self.timestamps = timestamps
                                 self.signals = signals
 
-                            def get_data(self, fs):
+                            def get_data(self):
                                 return self.timestamps, self.signals
 
                         timestamps = exg_array[:, 0]
