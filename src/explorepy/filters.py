@@ -39,6 +39,7 @@ class ExGFilter:
         self.s_rate = float(s_rate)
         self.filter_type = filter_type
         self.filter_param = None
+        self.cutoff_freq = cutoff_freq
         order = 2 if self.s_rate >= 1000 else order
         a, b, zi = self.get_filter_coeffs(cutoff_freq, filter_type, s_rate, n_chan, order)
         self.filter_param = {'a': a, 'b': b, 'zi': zi}
