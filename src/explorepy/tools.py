@@ -54,15 +54,6 @@ ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'quat_w', 
 ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps',
              'mdps', 'mgauss', 'mgauss', 'mgauss', '1', '1', '1', '1']
 
-FW_VERSIONS_SUPPORTING_BIN_TIME_COMMAND = [
-    '7.1.2',
-    '8.1.2',
-    '9.1.2',
-    '7.6.2',
-    '8.6.2',
-    '9.6.2',
-]
-
 
 def get_local_time():
     """Local time in seconds with sub-ms accuracy (based on pylsl local_clock)

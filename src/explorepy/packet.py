@@ -697,14 +697,13 @@ class DeviceInfoBLE(DeviceInfoV2):
 
 
 class DeviceInfoHyp(DeviceInfoBLE):
-    pass
     def get_info(self):
         as_dict = super().get_info()
         as_dict['is_hypersync'] = True
         return as_dict
 
+
 class DeviceInfoBinTimeCmd(DeviceInfoHyp):
-    pass
     def get_info(self):
         as_dict = super().get_info()
         as_dict['time_cmd'] = True

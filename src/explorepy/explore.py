@@ -39,7 +39,6 @@ from explorepy.stream_processor import (
 )
 from explorepy.tools import (
     EXG_CHANNELS,
-    FW_VERSIONS_SUPPORTING_BIN_TIME_COMMAND,
     LslServer,
     check_bin_compatibility,
     create_exg_recorder,
