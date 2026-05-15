@@ -26,6 +26,7 @@ from explorepy._exceptions import (
 )
 from explorepy.packet import (
     PACKET_CLASS_DICT,
+    PACKET_ID,
     DeviceInfo,
     Packet,
     PacketBIN
@@ -373,7 +374,11 @@ class Parser:
                     break
             if pid_bin is None:
                 raise ValueError
-            self.header_len = 12 if pid_bin[0] == 99 else 8
+            self.header_len = (
+                12
+                if pid_bin[0] in (PACKET_ID.INFO_HYP, PACKET_ID.INFO_TIME_CMD)
+                else 8
+            )
             self.data_len = self.header_len - 4
             return pid_bin + self.stream_interface.read(self.header_len - 1)
         else:

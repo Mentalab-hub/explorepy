@@ -26,6 +26,7 @@ from scipy import signal as scipy_signal
 import explorepy
 from explorepy.command import (
     MemoryFormat,
+    SetBinaryTime,
     SetChTest,
     SetSPS,
     SoftReset
@@ -105,11 +106,13 @@ class Explore:
         cnt_limit = 20 if self.debug else 15
         while "adc_mask" not in self.stream_processor.device_info:
             logger.info("Waiting for device info packet...")
-            time.sleep(1)
+            time.sleep(.5)
             if cnt >= cnt_limit:
                 raise ConnectionAbortedError(
                     "Could not get info packet from the device")
             cnt += 1
+        if 'time_cmd' in self.stream_processor.device_info:
+            self.set_binary_time()
         if self.stream_processor.device_info['is_imp_mode'] is True:
             self.stream_processor.disable_imp()
         logger.info(
@@ -650,6 +653,17 @@ class Explore:
         cmd = SetSPS(sampling_rate)
         if self.stream_processor.configure_device(cmd):
             SettingsManager(self.device_name).set_sampling_rate(sampling_rate)
+            return True
+
+    def set_binary_time(self):
+        """Set binary file to current time
+
+        Returns:
+            bool: True for success, False otherwise
+        """
+        cmd = SetBinaryTime()
+        if self.stream_processor.configure_device(cmd):
+            logger.info('Device set to current time.')
             return True
 
     def reset_soft(self):
