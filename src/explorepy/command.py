@@ -16,7 +16,7 @@ class CommandID(Enum):
     """Command ID enum class"""
     API2BCMD = b'\xA0'
     API4BCMD = b'\xB0'
-    API40BCMD = b'\xC0'
+    API64BCMD = b'\xC0'
 
 
 class OpcodeID(Enum):
@@ -184,12 +184,12 @@ class Command4B(Command):
         """prints the appropriate info about the command. """
 
 
-class Command40B(Command):
+class Command64B(Command):
     """An abstract base class for Explore 40 Byte command data length packets"""
 
     def __init__(self):
         super().__init__()
-        self.pid = CommandID.API40BCMD
+        self.pid = CommandID.API64BCMD
         self.payload_length = int2bytearray(40, 2)
 
     @abc.abstractmethod
@@ -228,14 +228,8 @@ class SetSPS(Command2B):
         return "Set sampling rate command"
 
 
-class SetBinaryTime(Command40B):
-    """Set the sampling rate of ExG device"""
-
-    def __init__(self, time):
-        """
-        Args:
-            sps_rate (int): sampling rate per seconds. It should be one of these values: 250, 500 or 1000
-        """
+class SetBinaryTime(Command64B):
+    def __init__(self):
         super().__init__()
         self.opcode = OpcodeID.CMD_SET_EMMC_TIME
         from datetime import datetime
@@ -254,7 +248,7 @@ class SetBinaryTime(Command40B):
                 3,
             ]
         )
-        self.param = date_time + bytes(41)
+        self.param = date_time + bytes(51)
 
     def __str__(self):
         return "set time cmd"
@@ -330,7 +324,7 @@ class SetChTest(Command2B):
 COMMAND_CLASS_DICT = {
     CommandID.API2BCMD: Command2B,
     CommandID.API4BCMD: Command4B,
-    CommandID.API40BCMD: Command40B
+    CommandID.API64BCMD: Command64B
 }
 
 

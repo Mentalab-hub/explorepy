@@ -661,7 +661,7 @@ class Explore:
         Returns:
             bool: True for success, False otherwise
         """
-        cmd = SetBinaryTime(self)
+        cmd = SetBinaryTime()
         if self.stream_processor.configure_device(cmd):
             logger.info('Device set to current time.')
             return True
