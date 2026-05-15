@@ -130,6 +130,7 @@ class AsrProcessor:
         self.last_cleaned_timestamp = 0.0
         self._refresh_window: float = self._default_clean_timer  # how long to wait between running asr, in s
 
+        self.filter_low_cutoff = 0.1 if self.sr < 1000 else 2
         self._cutoff = self._default_cutoff
         self._state = None
 
@@ -221,7 +222,7 @@ class AsrProcessor:
         if self.to_clean_ts[0][0] <= 1.0:
             return
         filt_sig = bp_filter(self.to_clean.copy(), 45, 55, btype='bandstop', fs=self.sr)
-        filtered_data = bp_filter(filt_sig, .1, 40, fs=self.sr)
+        filtered_data = bp_filter(filt_sig, self.filter_low_cutoff, 40, fs=self.sr)
         try:
             ret = asr_pipeline(filtered_data, self.sr, self.ch_count, self._state)
             self.cleaned_data_available = True
@@ -272,7 +273,7 @@ class AsrProcessor:
     def set_state_from_calibration_data(self, calib_data):
         self.lifecycle_state = State.CLEANING
         filt_sig = bp_filter(calib_data, 45, 55, btype='bandstop', fs=self.sr)
-        filtered_data = bp_filter(filt_sig, .1, 40, self.sr)
+        filtered_data = bp_filter(filt_sig, self.filter_low_cutoff, 40, self.sr)
         cleaned, state = clean_calib_data(filtered_data, self.sr)
         if cleaned is None:
             self.calibration_data_available = False
