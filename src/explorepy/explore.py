@@ -24,6 +24,7 @@ import numpy as np
 from scipy import signal as scipy_signal
 
 import explorepy
+from explorepy._exceptions import ImpedanceModeActiveError
 from explorepy.command import (
     MemoryFormat,
     SetBinaryTime,
@@ -49,7 +50,6 @@ from explorepy.tools import (
     local_clock,
     setup_usb_marker_port
 )
-from explorepy._exceptions import ImpedanceModeActiveError
 
 
 logger = logging.getLogger(__name__)
