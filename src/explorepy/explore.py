@@ -24,6 +24,7 @@ import numpy as np
 from scipy import signal as scipy_signal
 
 import explorepy
+from explorepy._exceptions import ImpedanceModeActiveError
 from explorepy.command import (
     MemoryFormat,
     SetBinaryTime,
@@ -752,7 +753,10 @@ class Explore:
         return SettingsManager(self.device_name).get_adc_mask()
 
     def is_asr_processor_available(self):
-        return self.stream_processor.ensure_asr_processor_available()
+        try:
+            return self.stream_processor.ensure_asr_processor_available()
+        except ImpedanceModeActiveError:
+            return False
 
     def calibrate_asr(self, length=-1.0):
         if self.is_asr_processor_available():
@@ -777,11 +781,8 @@ class Explore:
             return False
 
     def start_asr(self, window=None):
-        print("Starting asr")
         if self.is_asr_processor_available():
-            print("ASR processor is available")
             if self.stream_processor.asr_processor.calibration_data_available:
-                print("calibration data is available")
                 self.stream_processor.asr_processor.start_cleaning(window)
 
     def stop_asr(self):
