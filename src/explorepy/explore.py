@@ -662,10 +662,14 @@ class Explore:
         Returns:
             bool: True for success, False otherwise
         """
-        cmd = SetBinaryTime()
-        if self.stream_processor.configure_device(cmd):
-            logger.info('Device set to current time.')
-            return True
+        try:
+            cmd = SetBinaryTime()
+            if self.stream_processor.configure_device(cmd):
+                logger.info('Device set to current time.')
+                return True
+        except ValueError as e:
+            logger.error('Error on setting the binary file time: {}'.format(e))
+            return False
 
     def reset_soft(self):
         """Reset the device to the default settings
