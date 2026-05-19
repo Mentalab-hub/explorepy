@@ -234,6 +234,8 @@ class SetBinaryTime(Command64B):
         self.opcode = OpcodeID.CMD_SET_EMMC_TIME
         from datetime import datetime
         now = datetime.now()
+        if not (2020 < now.year < 2099):
+            raise ValueError(f"Unsupported year: {now.year}")
         date_time = bytes(
             [
                 now.year - 2000,
