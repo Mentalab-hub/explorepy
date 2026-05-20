@@ -250,7 +250,7 @@ class SetBinaryTime(Command64B):
                 3,
             ]
         )
-        self.param = date_time + bytes(51)
+        self.param = date_time + bytes(41)
 
     def __str__(self):
         return "set time cmd"
