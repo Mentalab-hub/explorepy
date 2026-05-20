@@ -483,6 +483,7 @@ class StreamProcessor:
         cmd = ZMeasurementDisable()
         if self.configure_device(cmd):
             self._is_imp_mode = False
+            self.imp_calculator = None
             print("Impedance measurement mode has been disabled.")
             return True
         print("WARNING: Couldn't disable impedance measurement mode. "
