@@ -272,7 +272,7 @@ class FileRecorder:
             ch_info_list.append({
                 'label': ch[0],
                 'dimension': ch[1],
-                'sample_rate': self._fs,
+                'sample_frequency': self._fs,
                 'physical_max': ch[2],
                 'physical_min': ch[3],
                 'digital_max': 8388607,
