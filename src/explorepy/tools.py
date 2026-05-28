@@ -362,10 +362,11 @@ class FileRecorder:
         self._data = np.concatenate((self._data, data), axis=1)
         self._timestamps += list(data[0, :])
         with lock:
-            if self._data.shape[1] > self._fs // 4:
-                self._file_obj.writeSamples(list(self._data[:, :self._fs]))
+            num_samples_to_write = (self._data.shape[1] // self._fs) * self._fs
+            if num_samples_to_write > 0:
+                self._file_obj.writeSamples(list(self._data[:, :num_samples_to_write]))
                 self._write_edf_anno()
-                self._data = self._data[:, self._fs:]
+                self._data = self._data[:, num_samples_to_write:]
 
     def _process_packet_data(self, packet):
         """Helper function to extract and format data from a packet."""
