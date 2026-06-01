@@ -24,7 +24,6 @@ import numpy as np
 from scipy import signal as scipy_signal
 
 import explorepy
-from explorepy._exceptions import ImpedanceModeActiveError
 from explorepy.command import (
     MemoryFormat,
     SetBinaryTime,
@@ -751,57 +750,3 @@ class Explore:
 
     def get_channel_mask(self):
         return SettingsManager(self.device_name).get_adc_mask()
-
-    def is_asr_processor_available(self):
-        try:
-            return self.stream_processor.ensure_asr_processor_available()
-        except ImpedanceModeActiveError:
-            return False
-
-    def calibrate_asr(self, length=-1.0):
-        if self.is_asr_processor_available():
-            self.stream_processor.asr_processor.start_calibration(length)
-
-    def is_asr_calibration_data_available(self):
-        if self.is_asr_processor_available():
-            return self.stream_processor.asr_processor.calibration_data_available
-        else:
-            return False
-
-    def is_asr_calibrating(self):
-        if self.is_asr_processor_available():
-            return self.stream_processor.asr_processor.is_calibrating
-        else:
-            return False
-
-    def is_asr_running(self):
-        if self.is_asr_processor_available():
-            return self.stream_processor.asr_processor.is_cleaning
-        else:
-            return False
-
-    def start_asr(self, window=None):
-        if self.is_asr_processor_available():
-            if self.stream_processor.asr_processor.calibration_data_available:
-                self.stream_processor.asr_processor.start_cleaning(window)
-
-    def stop_asr(self):
-        if self.is_asr_processor_available():
-            if self.stream_processor.asr_processor.calibration_data_available:
-                self.stream_processor.asr_processor.stop_cleaning()
-
-    def set_asr_cutoff(self, new_cutoff: float):
-        if self.is_asr_processor_available():
-            self.stream_processor.asr_processor.cutoff = new_cutoff
-
-    def get_asr_cutoff(self):
-        if self.is_asr_processor_available():
-            return self.stream_processor.asr_processor.cutoff
-
-    def set_asr_refresh_window(self, new_window):
-        if self.is_asr_processor_available():
-            self.stream_processor.asr_processor.refresh_window = new_window
-
-    def get_asr_refresh_window(self):
-        if self.is_asr_processor_available():
-            return self.stream_processor.asr_processor.refresh_window

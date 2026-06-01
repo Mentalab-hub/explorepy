@@ -15,8 +15,6 @@ from typing import (
 
 import numpy as np
 
-from explorepy._exceptions import ImpedanceModeActiveError
-from explorepy.asr_processor import AsrProcessor
 from explorepy.command import (
     DeviceConfiguration,
     ZMeasurementDisable,
@@ -26,7 +24,6 @@ from explorepy.filters import ExGFilter
 from explorepy.packet import (
     EEG,
     CalibrationInfoBase,
-    CleanEEG,
     CommandRCV,
     CommandStatus,
     DeviceInfo,
@@ -58,7 +55,6 @@ class StreamProcessor:
 
     def __init__(self, debug=False):
         self.parser = None
-        self.asr_processor = None
         self.filters = []
         self.device_info = {}
         self.old_device_info = {}
@@ -339,12 +335,6 @@ class StreamProcessor:
                     self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
 
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
-            if not self._is_imp_mode and self.imp_calculator is None:
-                if self.asr_processor.cleaned_data_available:
-                    clean_packet = CleanEEG(timestamp=self.asr_processor.cleaned_data_ts,
-                                            payload=self.asr_processor.cleaned_data)
-                    self.dispatch(topic=TOPICS.asr_ExG, packet=clean_packet)
-                    self.asr_processor.clear_cleaned_data()
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
             print(self.old_device_info)
@@ -354,7 +344,6 @@ class StreamProcessor:
                     self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
             self.dispatch(topic=TOPICS.device_info, packet=packet)
-            self.asr_processor = AsrProcessor(self, TOPICS.raw_ExG)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
         elif isinstance(packet, CommandStatus):
@@ -620,8 +609,3 @@ class StreamProcessor:
             None
         )
         return match.get_cutoff_freq() if match else None
-
-    def ensure_asr_processor_available(self):
-        if self.is_imp_running():
-            raise ImpedanceModeActiveError()
-        return self.asr_processor is not None and self.asr_processor.is_initialized
