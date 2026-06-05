@@ -6,7 +6,7 @@ build-backend   = 'setuptools.build_meta'
 name    = 'explorepy'
 version = "4.5.0"
 license = { text = "MIT" }
-readme = { file = "README.rst", content-type = "text/markdown" }
+readme = { file = "README.rst", content-type = "text/x-rst"}
 authors = [
   { name = "MentaLab Hub", email = "support@mentab.org" },
 ]

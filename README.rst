@@ -1,7 +1,6 @@
 .. image:: https://raw.githubusercontent.com/Mentalab-hub/explorepy/master/docs/logo.jpg
-   :scale: 100 %
-   :align: left
-
+   :alt: Explorepy
+   :target: https://github.com/Mentalab-hub/explorepy
 
 .. start-badges
 
@@ -39,10 +38,10 @@
 
 
 =========================
-``explorepy`` overview
+ExplorePy overview
 =========================
 
-``explorepy`` is an open-source Python API designed to collect and process ExG data using Mentalab's Explore device. Amongst other things, ``explorepy`` provides the following features:
+ExplorePy is an open-source Python API designed to collect and process ExG data using Mentalab's Explore device. Amongst other things, ExplorePy provides the following features:
 
 * Real-time streaming of ExG, orientation and environmental data.
 * Data recording in CSV and BDF+ formats.
@@ -61,7 +60,7 @@ Requirements
 
 Detailed installation instructions can be found on the `installation page <https://explorepy.readthedocs.io/en/latest/installation.html>`_.
 
-To install ``explorepy`` from PyPI run:
+To install ExplorePy from PyPI run:
 ::
 
     pip install explorepy
@@ -78,12 +77,14 @@ Get started
 
 CLI command
 -----------
-To check ``explorepy`` is running use:
+To check ExplorePy is running use:
 ::
+
     explorepy acquire -n Explore_XXXX
 
 For help, use:
 ::
+
     explorepy -h
 
 
