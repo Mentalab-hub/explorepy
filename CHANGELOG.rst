@@ -1,6 +1,11 @@
 
 Changelog
 =========
+4.5.0 (9.6.2025)
+------------------
+* Live impedance
+* Allow pushing preprocessed data to lab streaming layer
+* Support new FW version
 
 4.3.1 (17.9.2025)
 ------------------
