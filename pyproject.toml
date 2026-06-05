@@ -6,7 +6,7 @@ build-backend   = 'setuptools.build_meta'
 name    = 'explorepy'
 version = "4.5.0"
 license = { text = "MIT" }
-readme = { file = "README.rst", content-type = "text/markdown" }
+readme = { file = "README.rst", content-type = "text/x-rst"}
 authors = [
   { name = "MentaLab Hub", email = "support@mentab.org" },
 ]
@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
     'numpy==2.1.3',
     'scipy==1.17.1',
-    'pyEDFlib==0.1.38',
+    'pyEDFlib==0.1.42',
     'click==7.1.2',
     'appdirs==1.4.4',
     'sentry_sdk==2.8.0',
@@ -42,8 +42,7 @@ dependencies = [
     'pyyaml',
     'bleak==0.22.3',
     'pylsl==1.18.2',
-    'numba',
-    'eegprep==0.2.23']
+    'numba']
 
 [tool.setuptools]
 package-dir = {"" = "src"}
