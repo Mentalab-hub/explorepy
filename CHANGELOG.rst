@@ -1,7 +1,7 @@
 
 Changelog
 =========
-4.5.0 (9.6.2025)
+4.5.0 (5.6.2025)
 ------------------
 * Live impedance
 * Allow pushing preprocessed data to lab streaming layer
