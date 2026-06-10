@@ -459,7 +459,7 @@ class LslServer:
                               source_id=self.device_name + "_ExG")
         info_exg.desc().append_child_value("manufacturer", "Mentalab")
         channels = info_exg.desc().append_child("channels")
-        for i, mask in enumerate(self.adc_mask):
+        for i, mask in enumerate(reversed(self.adc_mask)):
             if mask == 1:
                 channels.append_child("channel") \
                     .append_child_value("name", self.channel_names[i]) \
