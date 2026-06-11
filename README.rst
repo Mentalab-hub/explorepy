@@ -121,10 +121,12 @@ You can also create a new issue in the GitHub repository.
 
 Authors
 =======
-- `Mohamad Atayi`_
 - `Salman Rahman`_
-- `Andrea Escartin`_
 - `Sonja Stefani`_
+- `Nayan Sharma`_
+- `Deniz Toprak`_
+- `Mohamad Atayi`_
+- `Andrea Escartin`_
 - `Alex Platt`_
 - `Andreas Gutsche`_
 - `Masoome Fazelian`_
@@ -133,10 +135,12 @@ Authors
 - `Sebastian Herberger`_
 
 
-.. _Mohamad Atayi: https://github.com/bmeatayi
 .. _Salman Rahman: https://github.com/salman2135
-.. _Andrea Escartin: https://github.com/andrea-escartin
 .. _Sonja Stefani: https://github.com/SonjaSt
+.. _Nayan Sharma: https://github.com/rednayan
+.. _Deniz Toprak: https://github.com/detoprak13
+.. _Mohamad Atayi: https://github.com/bmeatayi
+.. _Andrea Escartin: https://github.com/andrea-escartin
 .. _Alex Platt: https://github.com/Nujanauss
 .. _Andreas Gutsche: https://github.com/andyman410
 .. _Masoome Fazelian: https://github.com/fazelian
