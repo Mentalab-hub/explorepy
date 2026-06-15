@@ -39,11 +39,3 @@ tqdm==4.68.2
 tzdata==2026.2
 urllib3==2.7.0
 wheel==0.46.3
-winrt-runtime==2.3.0
-winrt-Windows.Devices.Bluetooth==2.3.0
-winrt-Windows.Devices.Bluetooth.Advertisement==2.3.0
-winrt-Windows.Devices.Bluetooth.GenericAttributeProfile==2.3.0
-winrt-Windows.Devices.Enumeration==2.3.0
-winrt-Windows.Foundation==2.3.0
-winrt-Windows.Foundation.Collections==2.3.0
-winrt-Windows.Storage.Streams==2.3.0
