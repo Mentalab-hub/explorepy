@@ -9,3 +9,4 @@ Authors
 * Mohamad Atayi
 * Masoome Fazelian
 * Alex Platt
+* Shreeya Ramesh - `shreeyaashwini@icloud.com <mailto:shreeyaashwini@icloud.com>`_ - `GitHub <https://github.com/shreeyahi>`_
