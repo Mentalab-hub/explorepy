@@ -1,6 +1,10 @@
 
 Changelog
 =========
+Unreleased
+----------
+* Clarify supported Python versions and align the macOS conda setup with Python 3.12.
+
 4.5.1 (11.6.2025)
 ------------------
 * Hotfix LSL metadata

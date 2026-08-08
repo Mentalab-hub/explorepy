@@ -4,7 +4,7 @@ Installation
 
 Minimal Requirements
 --------------------
-* Python 3.12 and upwards. We recommend using Python 3.12.
+* Python 3.10 to Python 3.12. We recommend using Python 3.12.
 * Microsoft Build Tools for Visual Studio 2019 (only Windows)
 * 6GB RAM (minimum 1GB *free* RAM during the session)
 * Intel i5 or higher (2x2.5GHz) CPU
@@ -120,7 +120,7 @@ Mac
 3. It is best to install Anaconda. Download  and run the `Anaconda installer for Mac <https://www.anaconda.com/download/success>`_. For older versions of MacOS, compatible version of Anaconda can be found in `this table <https://docs.continuum.io/anaconda/install/#old-os>`_ and downloaded `here <https://repo.anaconda.com/archive/index.html>`_.
 4. We recommend using a conda environment.
 
-   a. In the Anaconda command prompt: ``conda create -n myenv python=3.10``
+   a. In the Anaconda command prompt: ``conda create -n myenv python=3.12``
    b. Activate the conda environment: ``conda activate myenv``
 
 5. Upgrade your pip: ``python -m pip install --upgrade pip``
