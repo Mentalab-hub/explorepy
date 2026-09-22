@@ -13,11 +13,9 @@
 # To load a Mentalab binary (*.BIN) taken from the amplifiers flash memory,
 # convert it to csv or bdf using Explore Dekstop (File > Convert BIN) first
 # and then continue with the below function.
-
 import pandas as pd
 import pyxdf
 import mne
-
 
 def mne_load_mentalab(file_name):
     # CSV
@@ -28,28 +26,35 @@ def mne_load_mentalab(file_name):
         sampling_freq = pd.read_csv(file_name_root + '_Meta.csv', delimiter=',')['sr'][0]
 
         data_frame = pd.read_csv(file_name, delimiter=',')
-        exg_start_ts = data_frame['TimeStamp'].tolist()[0]
-        data_frame = data_frame.drop('TimeStamp', axis = 1)
 
+        # Save the first timestamp to align markers before dropping the column
+        t0 = data_frame['TimeStamp'].iloc[0]
+
+        data_frame = data_frame.drop('TimeStamp', axis = 1)
         n_channels = len(data_frame.columns)
         ch_types = ["eeg"] * n_channels
         ch_names = list(data_frame.columns)
+
         info = mne.create_info(ch_names=ch_names,
                             sfreq=sampling_freq,
                             ch_types=ch_types)
-
         # convert from muVolt to Volt because MNE expects data in Volt units
         data_frame = data_frame.div(1e6)
         data_frame = data_frame.transpose()
         raw_data = mne.io.RawArray(data_frame, info)
 
-        data_frame_marker = pd.read_csv(file_name_root + '_Marker.csv', delimiter=',')
-        marker_ts = data_frame_marker['TimeStamp'].tolist()
-        onsets = [x - exg_start_ts for x in marker_ts]
-        durations = [0 for _ in range(len(onsets))]
-        descriptions = data_frame_marker['Code']
-        annotations = mne.Annotations(onset=onsets, duration=durations, description=descriptions)
-        raw_data.set_annotations(annotations)
+        marker_file = file_name_root + '_Marker.csv'
+        if os.path.exists(marker_file):
+            markers = pd.read_csv(marker_file, delimiter=',')
+
+            # MNE expects relative onset times in seconds starting from 0
+            onsets = (markers['TimeStamp'] - t0).values
+            descriptions = markers['Code'].astype(str).tolist()
+
+            # Default duration is 0 for point-in-time event markers
+            annotations = mne.Annotations(onset=onsets, duration=0, description=descriptions)
+            raw_data.set_annotations(annotations)
+            print(f"Loaded {len(descriptions)} markers from {marker_file}.")
 
         return raw_data
 
@@ -60,6 +65,7 @@ def mne_load_mentalab(file_name):
         raw_data = mne.io.read_raw_bdf(file_name)
 
         return raw_data
+    
     # XDF
     elif file_name.split('.')[1] == 'xdf':
         streams, header = pyxdf.load_xdf(file_name)
@@ -68,7 +74,6 @@ def mne_load_mentalab(file_name):
         # CHANGE INDEX TO SWITCH STREAM
         stream_num = 1
         print(f"Creating mne raw object from xdf. Selected stream: {stream_num}.")
-
         ch_names = []
         for x in streams[stream_num]['info']['desc'][0]['channels'][0]['channel']:
             ch_names.append(x['name'][0])
@@ -78,15 +83,12 @@ def mne_load_mentalab(file_name):
         sampling_freq = float(streams[stream_num]["info"]["nominal_srate"][0])
         # convert from muVolt to Volt because MNE expects data in Volt units
         data *= 1e-6  # uV -> V
-
         info = mne.create_info(ch_names, sampling_freq, ["eeg"] * n_channels)
         raw_data = mne.io.RawArray(data, info)
 
         return raw_data
 
-# Uasge example calls
+# Usage example calls
 raw_data = mne_load_mentalab("data/8channel_ExG.csv")
-#raw_data = mne_load_mentalab("data/16channel_ExG.bdf")
-raw_data.plot()
-input()
-#raw_data = mne_load_mentalab("data/32channel_ExG.xdf")
+raw_data = mne_load_mentalab("data/16channel_ExG.bdf")
+raw_data = mne_load_mentalab("data/32channel_ExG.xdf")
