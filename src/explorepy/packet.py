@@ -829,7 +829,7 @@ class VersionInfoPacket(Packet):
         self._check_fletcher(payload[-4:])
         self.timestamp = timestamp
 
-        print(self.info)
+        logger.debug(f"VersionInfoPacket: {self.info}")
 
     def _convert(self, bin_data):
         self.info = bin_data.decode('utf-8', errors='ignore')

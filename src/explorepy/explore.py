@@ -335,7 +335,7 @@ class Explore:
                                 b, a = scipy_signal.iirnotch(freq, quality_factor, fs)
                                 return scipy_signal.filtfilt(b, a, signal_data)
                             except (ValueError, RuntimeError, TypeError) as e:
-                                print(f"Filter error: {e}")
+                                logger.error(f"Filter error: {e}")
                                 return signal_data
 
                         exg_array = np.array(self.recorders['exg_data_buffer'])
