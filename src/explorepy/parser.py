@@ -250,7 +250,7 @@ class Parser:
 
         # max payload among all devices is 503, we need to make sure there is no corrupted data in payload length field
         if payload > 550:
-            print('payload is {}'.format(payload))
+            logger.debug('payload is {}'.format(payload))
             logger.debug('Got exception in payload determination, raising fletcher error')
             raise FletcherError
 
@@ -346,10 +346,10 @@ class Parser:
                                  zip(processed_packets, chunk_packets)]
                         yield batch, len(marker_positions)
                     except FletcherError:
-                        print('Fletcher checksum error in batch, skipping affected packets')
+                        logger.warning('Fletcher checksum error in batch, skipping affected packets')
                         continue
         except (IOError, ValueError) as e:
-            print(f'Error reading file: {e}')
+            logger.error(f'Error reading file: {e}')
             raise
 
     @staticmethod
