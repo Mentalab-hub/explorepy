@@ -81,9 +81,9 @@ class BLEClient(BTClient):
             try:
                 await self.notify_task
             except asyncio.CancelledError:
-                print("Notify task is cancelled now")
+                logger.warning("Notify task is cancelled now")
             except Exception as error:
-                print('Got exception here: {}'.format(error))
+                logger.error('Got exception here: {}'.format(error))
 
             self.rx_char = self.client.services.get_service(self.eeg_service_uuid).get_characteristic(
                 self.eeg_rx_char_uuid)
@@ -92,7 +92,7 @@ class BLEClient(BTClient):
                 try:
                     loop.run_in_executor(None, await self.read_event.wait())
                 except Exception:
-                    print('Got exception while waiting for read event in BLE thread')
+                    logger.error('Got exception while waiting for read event in BLE thread')
                 if self.data is None:
                     await self.client.disconnect()
                     self.is_connected = False
@@ -110,7 +110,7 @@ class BLEClient(BTClient):
         self.is_connected = True
         self.notification_thread = threading.Thread(target=self.start_read_loop, daemon=True)
         self.notification_thread.start()
-        print('waiting for BLE device to show up..')
+        logger.info('waiting for BLE device to show up..')
         ret = self.result_queue.get()
         if not ret:
             logger.error("Got exception in read loop")
@@ -134,7 +134,7 @@ class BLEClient(BTClient):
         except asyncio.exceptions.CancelledError as error:
             logger.debug('asyncio.exceptions.CancelledError from BLE stream thread {}'.format(error))
         except BleDisconnectionError as error:
-            print('Got error as {}'.format(error))
+            logger.error('Got error as {}'.format(error))
             raise error
         finally:
             self.result_queue.put(False)
@@ -157,7 +157,7 @@ class BLEClient(BTClient):
             self.result_queue.put(False)
             logger.debug('No matching device found')
         except BleDisconnectionError as error:
-            print('Got an BleDisconnectionError {}'.format(error))
+            logger.error('Got an BleDisconnectionError {}'.format(error))
             raise error
         except Exception as error:
             logger.debug('Got an BLE exception with error {}'.format(error))
@@ -167,8 +167,7 @@ class BLEClient(BTClient):
         if self.mac_address:
             self.ble_device = await BleakScanner.find_device_by_address(self.mac_address)
         else:
-            logger.info('Commencing device discovery')
-            print(self.device_name)
+            logger.info(f"Commencing device discovery: {self.device_name}")
             self.ble_device = await BleakScanner.find_device_by_name(self.device_name, timeout=2)
 
             if self.ble_device:
