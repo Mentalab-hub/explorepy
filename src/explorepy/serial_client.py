@@ -167,7 +167,7 @@ def get_correct_com_port(device_name):
             data = serial_port.read(24)
             if len(data) == 0:
                 # incompatible explore device, continue connection
-                print('got data as zero')
+                logger.error('got data as zero while trying to read device name')
                 serial_port.close()
                 return p.device
             name = data.decode('utf-8', errors='ignore')

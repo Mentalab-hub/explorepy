@@ -337,12 +337,12 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
-            print(self.old_device_info)
             self.device_info.update(packet.get_info())
             if self.is_bt_streaming:
                 settings_manager = SettingsManager(
                     self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
+            logger.debug(f"Updated device info to {self.device_info}")
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
@@ -473,10 +473,9 @@ class StreamProcessor:
         if self.configure_device(cmd):
             self._is_imp_mode = False
             self.imp_calculator = None
-            print("Impedance measurement mode has been disabled.")
+            logger.info("Impedance measurement mode has been disabled.")
             return True
-        print("WARNING: Couldn't disable impedance measurement mode. "
-              "Please restart your device manually.")
+        logger.warning("Couldn't disable impedance measurement mode. Please restart your device manually.")
         self._notch_filter = None
         return False
 
@@ -507,7 +506,7 @@ class StreamProcessor:
                 f"Sampling rate has been changed to {new_device_info['sampling_rate']} in the file.")
             return False
         if new_device_info['adc_mask'] != self.old_device_info['adc_mask']:
-            print(
+            logger.info(
                 f"ADC mask has been changed to {new_device_info['adc_mask']} in the file.")
             return False
         return True
@@ -586,7 +585,7 @@ class StreamProcessor:
                 time_diff = np.round(packet.timestamp
                                      - self._last_packet_timestamp, 3)
                 if time_diff > sps:
-                    print('timediff & sps: {} & {}'.format(time_diff, sps))
+                    logger.debug('timediff & sps: {} & {}'.format(time_diff, sps))
                     missing_samples = int(time_diff / sps)
                     timestamps = np.linspace(self._last_packet_timestamp + sps,
                                              packet.timestamp, num=missing_samples, endpoint=True)

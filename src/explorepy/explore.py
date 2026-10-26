@@ -117,7 +117,10 @@ class Explore:
             self.stream_processor.disable_imp()
         logger.info(
             'Device info packet has been received. Connection has been established. Streaming...')
-        logger.info("Device info: " + str(self.stream_processor.device_info))
+        logger.debug(f"Device info: {self.stream_processor.device_info}")
+        logger.info(f"Device Name: {self.stream_processor.device_info['device_name']}, "
+                    f"Firmware Version: {self.stream_processor.device_info['firmware_version']}")
+
         self.is_connected = True
         if self.debug:
             self.stream_processor.subscribe(
@@ -335,7 +338,7 @@ class Explore:
                                 b, a = scipy_signal.iirnotch(freq, quality_factor, fs)
                                 return scipy_signal.filtfilt(b, a, signal_data)
                             except (ValueError, RuntimeError, TypeError) as e:
-                                print(f"Filter error: {e}")
+                                logger.error(f"Filter error: {e}")
                                 return signal_data
 
                         exg_array = np.array(self.recorders['exg_data_buffer'])
