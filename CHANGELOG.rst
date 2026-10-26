@@ -1,11 +1,11 @@
 
 Changelog
 =========
-4.5.1 (11.6.2025)
+4.5.1 (11.6.2026)
 ------------------
 * Hotfix LSL metadata
 
-4.5.0 (5.6.2025)
+4.5.0 (5.6.2026)
 ------------------
 * Live impedance
 * Allow pushing preprocessed data to lab streaming layer
