@@ -118,7 +118,8 @@ class Explore:
         logger.info(
             'Device info packet has been received. Connection has been established. Streaming...')
         logger.debug(f"Device info: {self.stream_processor.device_info}")
-        logger.info(f"Device Name: {self.stream_processor.device_info['device_name']}, Firmware Version: {self.stream_processor.device_info['firmware_version']}")
+        logger.info(f"Device Name: {self.stream_processor.device_info['device_name']}, "
+                    f"Firmware Version: {self.stream_processor.device_info['firmware_version']}")
 
         self.is_connected = True
         if self.debug:
