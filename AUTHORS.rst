@@ -9,3 +9,4 @@ Authors
 * Mohamad Atayi
 * Masoome Fazelian
 * Alex Platt
+* Jakob Speer - `jakob@mentalab.com <mailto:jakob@mentalab.com>`_

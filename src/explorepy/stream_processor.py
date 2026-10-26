@@ -337,12 +337,12 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
-            logger.debug(f"Device info: {self.old_device_info}")
             self.device_info.update(packet.get_info())
             if self.is_bt_streaming:
                 settings_manager = SettingsManager(
                     self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
+            logger.debug(f"Updated device info to {self.device_info}")
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
             self.dispatch(topic=TOPICS.cmd_ack, packet=packet)
