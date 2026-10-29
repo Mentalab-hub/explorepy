@@ -53,6 +53,28 @@ EXG_MIN_LIM = -400000
 ORN_CHANNELS = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'mx', 'my', 'mz', 'quat_w', 'quat_x', 'quat_y', 'quat_z']
 ORN_UNITS = ['mg', 'mg', 'mg', 'mdps', 'mdps',
              'mdps', 'mgauss', 'mgauss', 'mgauss', '1', '1', '1', '1']
+BDF_DIGITAL_MIN = -8388608
+BDF_DIGITAL_MAX = 8388607
+TIMESTAMP_SPAN = 48 * 3600
+TIMESTAMP_FINE_RANGE = 1.0
+
+
+def split_timestamps(ts, physical_min, physical_max):
+    """Split ts into the value to write to a 24-bit TimeStamp channel and the residual for TimeStampFine.
+    """
+    gain = (physical_max - physical_min) / (BDF_DIGITAL_MAX - BDF_DIGITAL_MIN)
+    digital = np.round((ts - physical_min) / gain) + BDF_DIGITAL_MIN
+    decoded = physical_min + (digital - BDF_DIGITAL_MIN) * gain
+    written = decoded + np.where(digital >= 0, 0.25, -0.25) * gain
+    return written, ts - decoded
+
+
+def round_samples(data):
+    """Round signals to 4 decimals and timestamps (row 0) to the device's 10 us resolution."""
+    data = np.array(data, dtype=np.float64)
+    data[0] = np.round(data[0], 5)
+    data[1:] = np.round(data[1:], 4)
+    return data
 
 
 def get_local_time():
@@ -223,6 +245,16 @@ class FileRecorder:
                 print('{}, \n{}, \n{}, \n{}'.format(ch_unit, ch_label, ch_min, ch_max))
                 raise ValueError(
                     'ch_label, ch_unit, ch_min and ch_max must have the same length!')
+            # TimeStampFine holds what the 24-bit TimeStamp channel cannot resolve
+            self._has_timestamp = ch_label[0] == 'TimeStamp'
+            if self._has_timestamp:
+                self._ch_label = [ch_label[0], 'TimeStampFine'] + list(ch_label[1:])
+                self._ch_unit = [ch_unit[0], 's'] + list(ch_unit[1:])
+                self._ch_min = [ch_min[0], -TIMESTAMP_FINE_RANGE] + list(ch_min[1:])
+                self._ch_max = [ch_max[0], TIMESTAMP_FINE_RANGE] + list(ch_max[1:])
+                self._n_chan += 1
+            self._timestamp_range = None
+            self._timestamp_clipped = False
             self._file_name = filename + '.bdf'
             self._create_edf(do_overwrite=do_overwrite)
             self._init_edf_channels()
@@ -353,20 +385,40 @@ class FileRecorder:
             if self._rec_time_offset is None:
                 self._rec_time_offset = time_vector[0]
             data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
-        data = np.round(data, 4)
+        data = round_samples(data)
         if isinstance(packet, EEG):
             indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
             data = data[indices]
+        timestamps = list(data[0, :])
+        data = self._add_fine_timestamps(data)
         if data.shape[0] != self._n_chan:
             raise ValueError('Input first dimension must be {}'.format(self._n_chan))
         self._data = np.concatenate((self._data, data), axis=1)
-        self._timestamps += list(data[0, :])
+        self._timestamps += timestamps
         with lock:
             num_samples_to_write = (self._data.shape[1] // self._fs) * self._fs
             if num_samples_to_write > 0:
                 self._file_obj.writeSamples(list(self._data[:, :num_samples_to_write]))
                 self._write_edf_anno()
                 self._data = self._data[:, num_samples_to_write:]
+
+    def _add_fine_timestamps(self, data):
+        """Replace the TimeStamp row with its 24-bit part and the TimeStampFine residual."""
+        if not self._has_timestamp:
+            return data
+        ts = data[0]
+        if self._timestamp_range is None:
+            # the range must be fixed before the first write; whole seconds fit the 8-char EDF header field
+            low = float(np.floor(ts[0]))
+            self._timestamp_range = (low, low + TIMESTAMP_SPAN)
+            self._file_obj.setPhysicalMinimum(0, low)
+            self._file_obj.setPhysicalMaximum(0, low + TIMESTAMP_SPAN)
+        low, high = self._timestamp_range
+        if ts[-1] > high and not self._timestamp_clipped:
+            self._timestamp_clipped = True
+            logger.warning('Recording exceeds {} h, BDF timestamps are clipped'.format(TIMESTAMP_SPAN // 3600))
+        written, fine = split_timestamps(np.clip(ts, low, high), low, high)
+        return np.vstack((written, fine, data[1:]))
 
     def _process_packet_data(self, packet):
         """Helper function to extract and format data from a packet."""
@@ -377,7 +429,7 @@ class FileRecorder:
             if self._rec_time_offset is None:
                 self._rec_time_offset = time_vector[0]
             data = np.concatenate((np.array(time_vector)[:, np.newaxis].T, np.array(sig)), axis=0)
-        data = np.round(data, 4)
+        data = round_samples(data)
         if isinstance(packet, EEG):
             indices = [0] + [i + 1 for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
             data = data[indices]
@@ -393,10 +445,8 @@ class FileRecorder:
                             tolist() + p.quat.tolist() for p in packet]).T
         elif isinstance(packet[0], EEG):
             all_data = np.concatenate([p.data for p in packet], axis=1)
-            n_total_samples = all_data.shape[1]
-            start_time = packet[0].timestamp
-            time_vector = np.linspace(start_time, start_time + (n_total_samples - 1) / self._fs,
-                                      n_total_samples)
+            # each packet carries its own device timestamp; spacing samples evenly across the batch hides packet loss
+            time_vector = np.concatenate([p.timestamp + np.arange(p.data.shape[1]) / self._fs for p in packet])
             data = np.concatenate((time_vector[np.newaxis, :], all_data), axis=0)
         else:
             time_vector, sig = packet.get_data(self._fs)
@@ -676,7 +726,7 @@ def generate_eeglab_dataset(file_name, output_name):
             logger.error(f"Got error {e} for file : {file_name}")
     elif file_ext == ".bdf":
         raw_data = io.read_raw_bdf(file_name)
-        raw_data = raw_data.drop_channels(raw_data.ch_names[0])
+        raw_data = raw_data.drop_channels([ch for ch in ('TimeStamp', 'TimeStampFine') if ch in raw_data.ch_names])
     else:
         raise ValueError(f"Encountered invalid file extension while trying to generate EEGLab dataset: {file_ext}")
 
