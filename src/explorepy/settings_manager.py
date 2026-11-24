@@ -16,9 +16,9 @@ read_write_lock = Lock()
 
 
 class SettingsManager:
-    _fw_ch_count = {"7": 8, "8": 16, "9": 32}
+    _fw_ch_count = {"7": 8, "8": 16, "9": 32, "4": 64}
     _board_ch_count = {"PCB_304_801_XXX": 32, "PCB_305_801_XXX": 16, "PCB_303_801E_XX": 8,
-                       "PCB_304_801p2_X": 32, "PCB_304_891p2_X": 16}
+                       "PCB_304_801p2_X": 32, "PCB_304_891p2_X": 16, "PCB_305_801p2_X": 64}
 
     def __init__(self, name):
         self.settings_dict = None

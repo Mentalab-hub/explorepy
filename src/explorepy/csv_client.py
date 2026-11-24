@@ -1,5 +1,6 @@
 import os
 import time
+from collections import deque
 from enum import (
     Enum,
     auto
@@ -10,9 +11,21 @@ from pylsl import local_clock
 
 from explorepy.packet import (
     BleImpedancePacket,
+    CalibrationInfo,
+    CommandRCV,
+    CommandStatus,
     DeviceInfoBLE,
     OrientationV2
 )
+
+
+# Byte position of the opcode in a translated command (pid, cnt, payload_len, host_ts, opcode, ...)
+CMD_OPCODE_INDEX = 8
+
+# Simulated impedance calibration (typical device values, already scaled like CalibrationInfo: raw slope * 10,
+# raw offset * 0.01)
+IMP_CALIB_SLOPE = 263000.0
+IMP_CALIB_OFFSET = 118.0
 
 
 class ClientState(Enum):
@@ -25,17 +38,24 @@ class ClientState(Enum):
 class PacketSize(Enum):
     EEG_8 = 40
     EEG_32 = 112
+    EEG_64 = 208
     ORN = 50
     DEVICE_INFO = 38
+    CMD = 14
+    CALIB_INFO = 20
 
 
 class CsvClient:
-    def __init__(self, channel_count, file_path: str = None):
+    def __init__(self, channel_count, file_path: str, device_name: str = None):
+        """
+        Args:
+            channel_count (int): Number of ExG channels in the CSV file (8, 32 or 64)
+            file_path (str): Path of the ExG CSV file to stream
+            device_name (str): Name reported in the device info packet
+        """
         if file_path is None:
-            self.file_name = "32channel_semidry_artefacts_ExG.csv"
-            file_path = os.path.join("/Users/sonjastefani/Documents/dev/explore-desktop/test-data/", self.file_name)
-        else:
-            self.file_name = os.path.split(file_path)[-1]
+            raise ValueError("The csv interface needs an ExG CSV file: pass it with Explore.connect(file_path=...)")
+        self.file_name = os.path.split(file_path)[-1]
 
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
@@ -45,7 +65,11 @@ class CsvClient:
             csv_path=file_path,
             loop=True
         )
+        if device_name is not None:
+            self.server.device_info = dict(self.server.device_info, device_name=device_name)
         self._state = ClientState.DISCONNECTED
+        # packets a real device would send in response to events (calibration info, command ack/status)
+        self._pending_packets = deque()
 
     def set_state(self, state: ClientState):
         if not isinstance(state, ClientState):
@@ -81,7 +105,12 @@ class CsvClient:
                 device_info_packet = DeviceInfoMock(timestamp=self.server.ts, payload=None)
                 device_info_packet.packet_size = PacketSize.DEVICE_INFO
                 device_info_packet.set_info(self.server.device_info)
+                # a real device sends its impedance calibration info after connecting
+                self._pending_packets.append(CalibrationInfoMock(self.server.ts, IMP_CALIB_SLOPE, IMP_CALIB_OFFSET))
                 return device_info_packet
+
+        if self._pending_packets:
+            return self._pending_packets.popleft()
 
         self.server.tick += 1
         if self.server.tick % 5 == 0:
@@ -106,10 +135,16 @@ class CsvClient:
     def write(self, bytes):
         pass
 
+    def send(self, data):
+        """Emulates the device's response to a command: an ack followed by a successful status packet"""
+        opcode = data[CMD_OPCODE_INDEX]
+        self._pending_packets.append(CommandRCVMock(self.server.ts, opcode))
+        self._pending_packets.append(CommandStatusMock(self.server.ts, opcode))
+
 
 class CsvServer:
     def __init__(self, channel_count: int, csv_path: str, loop: bool = True):
-        if channel_count not in (8, 32):
+        if channel_count not in (8, 32, 64):
             raise ValueError("Only 8 or 32 channels supported")
 
         self.channel_count = channel_count
@@ -128,10 +163,21 @@ class CsvServer:
 
         self.row_idx = 0
         self.num_rows = self.csv_data.shape[0]
+        self.device_info_ble_64ch = {
+            'device_name': 'Explore_XXXX',
+            'firmware_version': '6.6.9',
+            'adc_mask': [1] * 64,
+            'sampling_rate': 250,
+            'is_imp_mode': False,
+            'board_id': 'PCB_305_801p2_X',
+            'memory_info': 1,
+            'max_online_sps': 250,
+            'max_offline_sps': 8000
+        }
         self.device_info_ble_32ch = {
             'device_name': 'Explore_DABD',
             'firmware_version': '9.6.9',
-            'adc_mask': [1] * 8,
+            'adc_mask': [1] * 32,
             'sampling_rate': 250,
             'is_imp_mode': False,
             'board_id': 'PCB_304_801p2_X',
@@ -152,20 +198,20 @@ class CsvServer:
             'max_offline_sps': 8000
         }
 
-        self.device_info = (
-            self.device_info_ble_8ch
-            if channel_count == 8
-            else self.device_info_ble_32ch
-        )
+        if channel_count == 8:
+            self.device_info = self.device_info_ble_8ch
+            self.packet_size = PacketSize.EEG_8
+        elif channel_count == 32:
+            self.device_info = self.device_info_ble_32ch
+            self.packet_size = PacketSize.EEG_32
+        elif channel_count == 64:
+            self.device_info = self.device_info_ble_64ch
+            self.packet_size = PacketSize.EEG_64
 
         self.fs = self.device_info['sampling_rate']
         self.time_period = np.round(1 / self.fs, 3)
         self.ts = local_clock()
         self.tick = 0
-
-        self.packet_size = (
-            PacketSize.EEG_8 if channel_count == 8 else PacketSize.EEG_32
-        )
 
         self.orn_value = [
             5.002, -3.904, 1001.01, 420.0, -70.0, 210.0,
@@ -217,3 +263,32 @@ class OrientationMock(OrientationV2):
 
     def set_data(self, data):
         self.data = data
+
+
+class CommandRCVMock(CommandRCV):
+    """Command acknowledge packet"""
+
+    def __init__(self, timestamp, opcode):
+        self.timestamp = timestamp
+        self.opcode = opcode
+        self.packet_size = PacketSize.CMD
+
+
+class CommandStatusMock(CommandStatus):
+    """Command status packet (always successful)"""
+
+    def __init__(self, timestamp, opcode):
+        self.timestamp = timestamp
+        self.opcode = opcode
+        self.status = 1
+        self.packet_size = PacketSize.CMD
+
+
+class CalibrationInfoMock(CalibrationInfo):
+    """Impedance calibration info packet"""
+
+    def __init__(self, timestamp, slope, offset):
+        self.timestamp = timestamp
+        self.slope = [slope] * self.channels
+        self.offset = [offset] * self.channels
+        self.packet_size = PacketSize.CALIB_INFO

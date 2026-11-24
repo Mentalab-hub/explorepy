@@ -45,7 +45,7 @@ lock = Lock()
 
 TIMESTAMP_SCALE_BLE = 100000
 
-MAX_CHANNELS = 32
+MAX_CHANNELS = 64
 EXG_CHANNELS = [f"ch{i}" for i in range(1, MAX_CHANNELS + 1)]
 EXG_UNITS = ['uV' for ch in EXG_CHANNELS]
 EXG_MAX_LIM = 400000
@@ -172,7 +172,8 @@ def create_marker_recorder(filename, do_overwrite, batch_mode=False):
                         file_type='csv', do_overwrite=do_overwrite, batch_mode=batch_mode)
 
 
-def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, timestamp='', batch_mode=False):
+def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, timestamp='', batch_mode=False,
+                         imp_freq=None):
     """ Create meta file recorder
 
     Args:
@@ -182,18 +183,24 @@ def create_meta_recorder(filename, fs, adc_mask, device_name, do_overwrite, time
         device_name (str): device name
         do_overwrite (str): overwrite if the file already exists
         timestamp (TimeOffset): Clock diff between device timestamp and machine timestamp when the first packet is received in ExplorePy # noqa: E501
+        imp_freq (float): Frequency of the impedance signal (Hz). If given, an 'ImpFreq' column is added so the
+            signal can be removed with a notch filter in post-processing
 
     Returns:
         FileRecorder: file recorder object
     """
     header = ['TimeOffset', 'Device', 'sr', 'adcMask', 'ExGUnits']
+    if imp_freq is not None:
+        header.append('ImpFreq')
     exg_unit = 'mV'
     if EXG_UNITS:
         # we only need the first channel's units as this will correspond with the rest
         exg_unit = EXG_UNITS[0]
-    return FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=exg_unit,
-                        adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite,
-                        timestamp=timestamp, batch_mode=batch_mode)
+    recorder = FileRecorder(filename=filename, file_type='csv', ch_label=header, fs=fs, ch_unit=exg_unit,
+                            adc_mask=adc_mask, device_name=device_name, do_overwrite=do_overwrite,
+                            timestamp=timestamp, batch_mode=batch_mode)
+    recorder.imp_freq = imp_freq
+    return recorder
 
 
 class FileRecorder:
@@ -369,6 +376,8 @@ class FileRecorder:
             'ch' + str(i + 1) for i, flag in enumerate(reversed(self.adc_mask)) if flag == 1]
         if not self._batch_mode:
             row = [self.timestamp, self._device_name, self._fs, str(' '.join(channels)), self._ch_unit]
+            if getattr(self, 'imp_freq', None) is not None:
+                row.append(self.imp_freq)
             self._csv_obj.writerow(row)
             self._file_obj.flush()
         else:
@@ -422,7 +431,7 @@ class FileRecorder:
 
     def _process_packet_data(self, packet):
         """Helper function to extract and format data from a packet."""
-        time_vector, sig = packet.get_data(self._fs)
+        time_vector, sig = packet.get_data()
         if isinstance(packet, Orientation) and len(time_vector) == 1:
             data = np.array(time_vector + sig)[:, np.newaxis]
         else:

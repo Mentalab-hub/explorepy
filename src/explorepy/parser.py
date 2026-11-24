@@ -84,8 +84,13 @@ class Parser:
         elif explorepy.get_bt_interface() == 'csv':
             from explorepy.csv_client import CsvClient
             device_id = str.split(device_name, '_')[1]  # split by underscore and take second part
-            ch_count = 32 if device_id[0] == 'D' else 8  # dynamic channel selection based on first character
-            self.stream_interface = CsvClient(ch_count, file_path=file_path)
+            if device_id[0] == 'D':
+                ch_count = 32
+            elif device_id[0] == 'A':
+                ch_count = 8
+            else:
+                ch_count = 64
+            self.stream_interface = CsvClient(ch_count, file_path=file_path, device_name=device_name)
         elif is_usb_mode():
             from explorepy.serial_client import SerialStream
             self.stream_interface = SerialStream(device_name=device_name)
