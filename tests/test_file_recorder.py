@@ -6,9 +6,13 @@ import pandas as pd
 import pyedflib
 import pytest
 
-from explorepy.packet import EEG
+from explorepy.packet import (
+    CleanEEG,
+    EEG
+)
 from explorepy.tools import (
     TIMESTAMP_SPAN,
+    FileRecorder,
     create_exg_recorder,
     generate_eeglab_dataset
 )
@@ -83,3 +87,77 @@ def test_eeglab_export_drops_timestamp_channels(tmp_path):
     generate_eeglab_dataset(bdf, out)
     raw = mne.io.read_raw_eeglab(out, verbose=False)
     assert raw.ch_names == [f"ch{i}" for i in range(1, N_CHANNELS + 1)]
+
+
+class FakeMarker:
+    def __init__(self, timestamp, label):
+        self._timestamp = timestamp
+        self._label = label
+
+    def get_data(self):
+        return [self._timestamp], [self._label]
+
+
+def _make_bdf_recorder(tmp_path, fs=100):
+    path = str(tmp_path / "recording")
+    recorder = FileRecorder(
+        path, ["TimeStamp", "ch1"], fs, ["s", "uV"],
+        ch_min=[0, -100], ch_max=[60, 100],
+    )
+    return path + ".bdf", recorder
+
+
+def _read_annotations(bdf_path):
+    with pyedflib.EdfReader(bdf_path) as reader:
+        onsets, _, labels = reader.readAnnotations()
+    return onsets.tolist(), labels.tolist()
+
+
+def test_bdf_marker_at_last_sample_persists(tmp_path):
+    bdf_path, recorder = _make_bdf_recorder(tmp_path, fs=100)
+    recorder.write_data(CleanEEG(10 + np.arange(100) / 100, np.zeros((1, 100))))
+    recorder.set_marker(FakeMarker(10.99, "last"))
+    recorder.stop()
+    onsets, labels = _read_annotations(bdf_path)
+    np.testing.assert_allclose(onsets, [0.99])
+    assert labels == ["last"]
+
+
+def test_bdf_marker_after_complete_block_flushed_on_stop(tmp_path):
+    bdf_path, recorder = _make_bdf_recorder(tmp_path, fs=100)
+    recorder.write_data(CleanEEG(10 + np.arange(100) / 100, np.zeros((1, 100))))
+    recorder.set_marker(FakeMarker(10.25, "mid"))
+    recorder.stop()
+    onsets, labels = _read_annotations(bdf_path)
+    np.testing.assert_allclose(onsets, [0.25])
+    assert labels == ["mid"]
+
+
+def test_bdf_marker_at_last_sample_with_partial_final_block(tmp_path):
+    bdf_path, recorder = _make_bdf_recorder(tmp_path, fs=100)
+    recorder.write_data(CleanEEG(10 + np.arange(150) / 100, np.zeros((1, 150))))
+    recorder.set_marker(FakeMarker(11.49, "last_partial"))
+    recorder.stop()
+    onsets, labels = _read_annotations(bdf_path)
+    np.testing.assert_allclose(onsets, [1.49])
+    assert labels == ["last_partial"]
+
+
+def test_bdf_streaming_marker_written_once_when_later_samples_arrive(tmp_path):
+    bdf_path, recorder = _make_bdf_recorder(tmp_path, fs=100)
+    recorder.write_data(CleanEEG(10 + np.arange(100) / 100, np.zeros((1, 100))))
+    recorder.set_marker(FakeMarker(10.99, "boundary"))
+    recorder.write_data(CleanEEG(11 + np.arange(100) / 100, np.zeros((1, 100))))
+    assert recorder._annotations_buffer == []
+    recorder.stop()
+    onsets, labels = _read_annotations(bdf_path)
+    np.testing.assert_allclose(onsets, [0.99])
+    assert labels == ["boundary"]
+
+
+def test_bdf_stop_with_marker_and_no_samples_does_not_crash(tmp_path):
+    _, recorder = _make_bdf_recorder(tmp_path, fs=100)
+    recorder.set_marker(FakeMarker(10.0, "orphan"))
+    recorder.stop()
+    assert recorder._file_obj is None
+    assert recorder._annotations_buffer == [(10.0, "orphan")]
