@@ -315,10 +315,19 @@ class FileRecorder:
         for i, ch_info in enumerate(ch_info_list):
             self._file_obj.setSignalHeader(i, ch_info)
 
-    def _write_edf_anno(self):
+    def _write_edf_anno(self, flush=False):
         """Write annotations in EDF file"""
+        if not self._timestamps:
+            return
+        timestamps = np.array(self._timestamps)
         for ts, code in list(self._annotations_buffer):
-            idx = np.argmax(np.array(self._timestamps) > ts) - 1
+            later = timestamps > ts
+            if np.any(later):
+                idx = int(np.argmax(later)) - 1
+            elif flush and timestamps[-1] == ts:
+                idx = len(timestamps) - 1
+            else:
+                idx = -1
             if idx != -1:
                 timestamp = idx / self.fs
                 self._file_obj.writeAnnotation(timestamp, 0.001, code)
@@ -328,10 +337,10 @@ class FileRecorder:
         """Stop recording"""
         assert self._file_obj is not None, "Usage Error: File object has not been created yet."
         if self.file_type == 'edf':
-            if self._data.shape[1] > 0:
-                with lock:
+            with lock:
+                if self._data.shape[1] > 0:
                     self._file_obj.writeSamples(list(self._data))
-                    self._write_edf_anno()
+                self._write_edf_anno(flush=True)
             self._file_obj.close()
             self._file_obj = None
         elif self.file_type == 'csv':
