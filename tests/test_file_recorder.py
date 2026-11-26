@@ -7,8 +7,8 @@ import pyedflib
 import pytest
 
 from explorepy.packet import (
-    CleanEEG,
-    EEG
+    EEG,
+    CleanEEG
 )
 from explorepy.tools import (
     TIMESTAMP_SPAN,
