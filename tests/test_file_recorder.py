@@ -1,4 +1,5 @@
 import os
+import struct
 
 import mne
 import numpy as np
@@ -8,12 +9,14 @@ import pytest
 
 from explorepy.packet import (
     EEG,
-    CleanEEG
+    CleanEEG,
+    OrientationV2
 )
 from explorepy.tools import (
     TIMESTAMP_SPAN,
     FileRecorder,
     create_exg_recorder,
+    create_orn_recorder,
     generate_eeglab_dataset
 )
 
@@ -161,3 +164,26 @@ def test_bdf_stop_with_marker_and_no_samples_does_not_crash(tmp_path):
     recorder.stop()
     assert recorder._file_obj is None
     assert recorder._annotations_buffer == [(10.0, "orphan")]
+
+
+def test_orn_bdf_preserves_negative_quaternions(tmp_path):
+    orn_path = str(tmp_path / "rec_ORN")
+    recorder = create_orn_recorder(orn_path, "edf", do_overwrite=True, n_chan=13)
+    quats = [
+        (0.5, -0.5, -0.5, 0.5),
+        (-0.5, 0.5, -0.5, -0.5),
+    ]
+    for i in range(20):
+        q = quats[i % 2]
+        payload = struct.pack("<9h4f", 0, 0, 0, 0, 0, 0, 0, 0, 0, *q) + b"\xaf\xbe\xad\xde"
+        recorder.write_data(OrientationV2(10.0 + i / 20.0, payload))
+    recorder.stop()
+
+    with pyedflib.EdfReader(orn_path + ".bdf") as reader:
+        labels = reader.getSignalLabels()
+        for col, name in enumerate(("quat_w", "quat_x", "quat_y", "quat_z")):
+            idx = labels.index(name)
+            assert reader.getPhysicalMinimum(idx) == -1.0
+            assert reader.getPhysicalMaximum(idx) == 1.0
+            expected = np.array([quats[i % 2][col] for i in range(20)])
+            np.testing.assert_allclose(reader.readSignal(idx), expected, atol=1e-4)
