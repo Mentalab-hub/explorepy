@@ -151,7 +151,7 @@ def create_orn_recorder(filename, file_type, do_overwrite, n_chan, batch_mode=Fa
     orn_max = [21600., 2000, 2000, 2000, 250000,
                250000, 250000, 50000, 50000, 50000, 1, 1, 1, 1][:n_chan + 1]
     orn_min = [0, -2000, -2000, -2000, -250000,
-               -250000, -250000, -50000, -50000, -50000, 0, 0, 0, 0][:n_chan + 1]
+               -250000, -250000, -50000, -50000, -50000, -1, -1, -1, -1][:n_chan + 1]
     return FileRecorder(filename=filename, ch_label=orn_ch, fs=20, ch_unit=orn_unit, file_type=file_type,
                         do_overwrite=do_overwrite, ch_max=orn_max, ch_min=orn_min, batch_mode=batch_mode)
 
