@@ -5,7 +5,6 @@ import binascii
 import logging
 from enum import IntEnum
 
-import numba as nb
 import numpy as np
 
 from explorepy._exceptions import FletcherError
@@ -36,13 +35,14 @@ class PACKET_ID(IntEnum):
     EEG98_BLE = 151
     EEG32_BLE = 152
     EEG16_BLE = 153
+    EEG64_BLE = 154
     EEG99 = 62
     EEG94R = 208
     EEG98R = 210
     CMDRCV = 192
     CMDSTAT = 193
     PUSHMARKER = 194
-    CALIBINFO = 195
+    CALIBINFO = 195  # Old packet ID, now for 64 ch amp
     CALIBINFO_USBC = 197
     CALIBINFO_PRO = 196
     TRIGGER_OUT = 177  # Trigger-out of Explore device
@@ -123,10 +123,8 @@ class Packet(abc.ABC):
         return parsed_packets
 
     @staticmethod
-    @nb.njit(fastmath=True, cache=True)
     def int24to32(bin_data, byteorder_data='little'):
-        """Converts binary data to int32 using Numba.
-        fastmath and cache enabled for repeated calls.
+        """Converts binary data structured as signed int24 values to int32 (vectorized numpy).
 
         Args:
             bin_data (bytes or bytearray): Binary data structured as int24 values.
@@ -135,27 +133,16 @@ class Packet(abc.ABC):
         Returns:
             np.ndarray: Converted int32 values.
         """
-        length = len(bin_data)
-        assert length % 3 == 0, "Packet length error!"
+        assert len(bin_data) % 3 == 0, "Packet length error!"
 
-        num_values = length // 3
-        output = np.empty(num_values, dtype=np.int32)
-        bin_array = np.frombuffer(bin_data, dtype=np.uint8)
-
+        b = np.frombuffer(bin_data, dtype=np.uint8).reshape(-1, 3).astype(np.int32)
         if byteorder_data == 'little':
-            shift = np.array([1, 256, 65536], dtype=np.int32)
+            output = b[:, 0] | (b[:, 1] << 8) | (b[:, 2] << 16)
         else:  # 'big'
-            shift = np.array([65536, 256, 1], dtype=np.int32)
+            output = (b[:, 0] << 16) | (b[:, 1] << 8) | b[:, 2]
 
-        for i in range(num_values):
-            idx = i * 3
-            val = (bin_array[idx] * shift[0] + bin_array[idx + 1] * shift[1] + bin_array[idx + 2] * shift[2])
-
-            if val >= 0x800000:
-                val -= 0x1000000
-
-            output[i] = val
-
+        # Sign-extend from 24 to 32 bits
+        output[output >= 0x800000] -= 0x1000000
         return output
 
 
@@ -305,9 +292,22 @@ class EEG98_USBC(EEG):
 class EEG_BLE(EEG):
     def __init__(self, timestamp, payload, time_offset=0):
         self.byteorder_data = 'big'
-        self.channel_order = [7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 23, 22, 21, 20, 19, 18, 17, 16,
-                              31, 30, 29, 28, 27, 26, 25, 24]
-        super().__init__(timestamp, payload, time_offset, v_ref=2.4, n_packet=1)
+        self.channel_order = [
+            7, 6, 5, 4, 3, 2, 1, 0,
+            15, 14, 13, 12, 11, 10, 9, 8,
+            23, 22, 21, 20, 19, 18, 17, 16,
+            31, 30, 29, 28, 27, 26, 25, 24,
+            39, 38, 37, 36, 35, 34, 33, 32,
+            47, 46, 45, 44, 43, 42, 41, 40,
+            55, 54, 53, 52, 51, 50, 49, 48,
+            63, 62, 61, 60, 59, 58, 57, 56,
+        ]
+
+        super().__init__(
+            timestamp, payload, time_offset,
+            v_ref=2.4, n_packet=1
+        )
+
         data_length = len(self.data)
         self.data = self.data[self.channel_order[:data_length]]
 
@@ -321,6 +321,13 @@ class EEG98_BLE(EEG_BLE):
 
 class EEG32_BLE(EEG_BLE):
     """EEG packet for 32 channel BLE device"""
+
+    def __init__(self, timestamp, payload, time_offset=0):
+        super().__init__(timestamp, payload, time_offset)
+
+
+class EEG64_BLE(EEG_BLE):
+    """EEG packet for 64 channel BLE device"""
 
     def __init__(self, timestamp, payload, time_offset=0):
         super().__init__(timestamp, payload, time_offset)
@@ -735,7 +742,7 @@ class CommandStatus(Packet):
 class CalibrationInfoBase(Packet):
     """Base class for calibration packets"""
 
-    channels = 4
+    channels = 8
     offset_multiplier = 0.001
 
     def __init__(self, timestamp, payload, time_offset=0):
@@ -779,7 +786,7 @@ class CalibrationInfoBase(Packet):
 
 
 class CalibrationInfo(CalibrationInfoBase):
-    offset_multiplier = 0.001
+    offset_multiplier = 0.01
 
 
 class CalibrationInfo_USBC(CalibrationInfoBase):
@@ -857,6 +864,7 @@ PACKET_CLASS_DICT = {
     PACKET_ID.EEG98_USBC: EEG98_USBC,
     PACKET_ID.EEG98_BLE: EEG98_BLE,
     PACKET_ID.EEG32_BLE: EEG32_BLE,
+    PACKET_ID.EEG64_BLE: EEG64_BLE,
     PACKET_ID.EEG16_BLE: EEG16_BLE,
     PACKET_ID.EEG32: EEG32,
     PACKET_ID.CMDRCV: CommandRCV,

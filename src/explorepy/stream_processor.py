@@ -48,6 +48,8 @@ TOPICS =\
     Enum('Topics', 'raw_ExG filtered_ExG asr_ExG device_info marker raw_orn cmd_ack env cmd_status imp packet_bin')
 logger = logging.getLogger(__name__)
 lock = Lock()
+IMP_SIGNAL_FREQ = 62.5  # frequency of the signal injected by the device in impedance mode (Hz)
+IMP_SAMPLING_RATE = 250  # impedance measurement only works at this sampling rate (Hz)
 
 
 class StreamProcessor:
@@ -314,14 +316,16 @@ class StreamProcessor:
             missing_timestamps = self.fill_missing_packet(packet)
             self._update_last_time_point(packet, received_time)
             self.packet_count += 1
-            if self.is_imp_running():
+            if self.is_imp_running() and self._notch_filter:
                 packet_imp = self.imp_calculator.measure_imp(
                     packet=copy.deepcopy(packet))
                 if packet_imp is not None:
                     self.dispatch(topic=TOPICS.imp, packet=packet_imp)
-                if self._notch_filter:
+                # Dispatch raw data first (recording/LSL stay unfiltered), then remove
+                # the 62.5 Hz impedance signal in place for filtered_ExG (visualization)
+                self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
+                if self.imp_calib_info["calibration"] is False:
                     self._notch_filter.apply(packet)
-                    self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             else:
                 self.dispatch(topic=TOPICS.raw_ExG, packet=packet)
             try:
@@ -337,11 +341,13 @@ class StreamProcessor:
             self.dispatch(topic=TOPICS.filtered_ExG, packet=packet)
         elif isinstance(packet, DeviceInfo):
             self.old_device_info = self.device_info.copy()
-            self.device_info.update(packet.get_info())
+            # update the settings file before device_info: Explore.connect() returns as soon as device_info
+            # has the adc_mask and callers may then need the channel count from the settings
             if self.is_bt_streaming:
                 settings_manager = SettingsManager(
                     self.device_info["device_name"])
                 settings_manager.update_device_settings(packet.get_info())
+            self.device_info.update(packet.get_info())
             logger.debug(f"Updated device info to {self.device_info}")
             self.dispatch(topic=TOPICS.device_info, packet=packet)
         elif isinstance(packet, CommandRCV):
@@ -455,15 +461,19 @@ class StreamProcessor:
 
     def imp_initialize(self, notch_freq, calibration=False):
         """Activate impedance mode in the device"""
+        if self.device_info['sampling_rate'] != IMP_SAMPLING_RATE:
+            raise ValueError(f"Impedance measurement requires a sampling rate of {IMP_SAMPLING_RATE} Hz, current "
+                             f"sampling rate is {self.device_info['sampling_rate']} Hz. Please change it first.")
         logger.info("Starting impedance measurement mode...")
         cmd = ZMeasurementEnable()
         if self.configure_device(cmd):
             self.imp_calib_info['calibration'] = calibration
-            self._add_notch_filter()
             self.imp_calculator = ImpedanceMeasurement(device_info=self.device_info,
                                                        calib_param=self.imp_calib_info,
                                                        notch_freq=self.get_power_line_freq() or notch_freq)
             self._is_imp_mode = True
+            if not calibration:
+                self._add_notch_filter()
         else:
             raise ConnectionError('Device configuration process failed!')
 
@@ -473,10 +483,10 @@ class StreamProcessor:
         if self.configure_device(cmd):
             self._is_imp_mode = False
             self.imp_calculator = None
+            self._notch_filter = None
             logger.info("Impedance measurement mode has been disabled.")
             return True
         logger.warning("Couldn't disable impedance measurement mode. Please restart your device manually.")
-        self._notch_filter = None
         return False
 
     def set_marker(self, marker_string, time_lsl=None, name='mkr', soft_marker=True):
@@ -570,9 +580,12 @@ class StreamProcessor:
         if self.bt_drop_start_time is not None:
             variable_lock = Lock()
             variable_lock.acquire()
-            if np.round(get_local_time() - self.bt_drop_start_time, 2) > 10:
-                self.last_bt_drop_duration = None
-                self.bt_drop_start_time = None
+            try:
+                if np.round(get_local_time() - self.bt_drop_start_time, 2) > 10:
+                    self.last_bt_drop_duration = None
+                    self.bt_drop_start_time = None
+            except TypeError:
+                logger.debug('Error on BT reset duration, likely device exit initiated.')
             variable_lock.release()
 
     def fill_missing_packet(self, packet):
@@ -593,9 +606,9 @@ class StreamProcessor:
 
     def _add_notch_filter(self):
         self._notch_filter = ExGFilter(
-            cutoff_freq=62.5,
+            cutoff_freq=IMP_SIGNAL_FREQ,
             filter_type='notch_imp',
-            s_rate=250,
+            s_rate=IMP_SAMPLING_RATE,
             n_chan=SettingsManager(self.device_info['device_name']).get_channel_count()
         )
 

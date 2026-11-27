@@ -10,7 +10,6 @@ Examples:
     >>> import explorepy
     >>> explore = explorepy.Explore()
     >>> explore.connect(device_name='Explore_1432')  # Put your device Bluetooth name
-    >>> explore.visualize(bp_freq=(1, 40), notch_freq=50)
 """
 
 import csv
@@ -21,7 +20,6 @@ import time
 from threading import Timer
 
 import numpy as np
-from scipy import signal as scipy_signal
 
 import explorepy
 from explorepy.command import (
@@ -34,6 +32,7 @@ from explorepy.command import (
 from explorepy.debug import Debug
 from explorepy.settings_manager import SettingsManager
 from explorepy.stream_processor import (
+    IMP_SIGNAL_FREQ,
     TOPICS,
     StreamProcessor
 )
@@ -75,6 +74,7 @@ class Explore:
         self.initial_count = None
         self.last_rec_stat = 0
         self.last_rec_start_time = 0
+        self.is_lsl_streaming = False
 
     @property
     def is_measuring_imp(self):
@@ -103,7 +103,7 @@ class Explore:
         self.stream_processor.start(
             device_name=device_name, mac_address=mac_address, file_path=file_path)
         cnt = 0
-        cnt_limit = 20 if self.debug else 15
+        cnt_limit = 32  # 16 seconds
         while "adc_mask" not in self.stream_processor.device_info:
             logger.info("Waiting for device info packet...")
             time.sleep(.5)
@@ -166,7 +166,7 @@ class Explore:
 
     def record_data(
         self, file_name, do_overwrite=False, duration=None, file_type='csv', block=False, exg_ch_names=None,
-        imp_mode=False, notch_freq=None
+        imp_mode=False, topic=TOPICS.raw_ExG
     ):
         r"""Records the data in real-time
 
@@ -178,7 +178,7 @@ class Explore:
             block (bool): Record in blocking mode if 'block' is True
             exg_ch_names (list): list of channel names. If None, default names are used.
             imp_mode (bool): Enable impedance mode with live monitoring(only for CSV files)
-            notch_freq (float): Notch frequency for impedance mode initialization
+            topic (enum) : type of ExG data to be recorded. Allowed values:  TOPICS.raw_ExG/filtered_ExG
         """
         self._check_connection()
 
@@ -196,8 +196,6 @@ class Explore:
                 raise ValueError(
                     '{} is not a supported file extension for recording impedance!'.format(file_type))
 
-            notch_freq = self.stream_processor.get_power_line_freq() or 50
-
         duration = self._check_duration(duration)
 
         exg_out_file = file_name + "_ExG"
@@ -207,9 +205,6 @@ class Explore:
 
         self.recorders = {}
         if imp_mode:
-            self.recorders['impedance_mode'] = True
-            self.recorders['exg_data_buffer'] = []
-            self.recorders['notch_freq'] = notch_freq
             impedance_out_file = file_name + "_Impedance"
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
@@ -233,7 +228,8 @@ class Explore:
                                                           adc_mask=SettingsManager(
                                                               self.device_name).get_adc_mask(),
                                                           device_name=self.device_name,
-                                                          do_overwrite=do_overwrite)  # noqa: E501
+                                                          do_overwrite=do_overwrite,
+                                                          imp_freq=IMP_SIGNAL_FREQ if imp_mode else None)
             self.recorders['meta'].write_meta()
             self.recorders['meta'].stop()
 
@@ -255,15 +251,6 @@ class Explore:
                            "if you are setting markers during the recording.")
 
         if imp_mode:
-            def handle_exg_impedance_packet(packet):
-                timestamps, signals = packet.get_data(self.stream_processor.device_info['sampling_rate'])
-                for i, timestamp in enumerate(timestamps):
-                    row_data = [timestamp]
-                    for ch_idx in range(len(signals)):
-                        value = signals[ch_idx][i] if i < len(signals[ch_idx]) else 0.0
-                        row_data.append(value)
-                    self.recorders['exg_data_buffer'].append(row_data)
-
             def handle_impedance_packet(packet):
                 impedance_values = packet.get_impedances()
 
@@ -273,15 +260,14 @@ class Explore:
                     row_data = [float(packet.timestamp), *real_values]
                     self.recorders['imp_csv_writer'].writerow(row_data)
 
-            self.recorders['handle_exg_impedance_callback'] = handle_exg_impedance_packet
             self.recorders['handle_impedance_callback'] = handle_impedance_packet
-
-            self.stream_processor.subscribe(callback=handle_exg_impedance_packet, topic=TOPICS.raw_ExG)
             self.stream_processor.subscribe(callback=handle_impedance_packet, topic=TOPICS.imp)
+            topic = TOPICS.raw_ExG  # ExG is always recorded raw in impedance mode
             logger.info("Recording with impedance mode...")
         else:
-            self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
             logger.info("Recording...")
+        self.stream_processor.rec_topic = topic
+        self.stream_processor.subscribe(callback=self.recorders['exg'].write_data, topic=topic)
 
         self.stream_processor.subscribe(callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
         self.stream_processor.subscribe(callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
@@ -303,87 +289,24 @@ class Explore:
     def stop_recording(self):
         """Stop recording"""
         if self.recorders:
-            is_impedance_mode = self.recorders.get('impedance_mode', False)
-
-            if is_impedance_mode:
-                try:
-                    if 'handle_exg_impedance_callback' in self.recorders:
-                        self.stream_processor.unsubscribe(
-                            callback=self.recorders['handle_exg_impedance_callback'], topic=TOPICS.raw_ExG)
-                    if 'handle_impedance_callback' in self.recorders:
-                        self.stream_processor.unsubscribe(
-                            callback=self.recorders['handle_impedance_callback'], topic=TOPICS.imp)
-
-                    self.stream_processor.unsubscribe(
-                        callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-                    self.stream_processor.unsubscribe(
-                        callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
-
-                    self.recorders['orn'].stop()
-                    if self.recorders['exg'].file_type == 'csv':
-                        self.recorders['marker'].stop()
-
-                    if 'imp_csv_file' in self.recorders:
-                        self.recorders['imp_csv_file'].close()
-
-                    if 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
-                        self.recorders['timer'].cancel()
-
-                    logger.info("Processing ExG data with 62.5Hz notch filter...")
-                    if self.recorders['exg_data_buffer']:
-
-                        def apply_notch_filter(signal_data, fs, freq=62.5, quality_factor=30.0):
-                            """Apply a notch filter at the specified frequency."""
-                            try:
-                                b, a = scipy_signal.iirnotch(freq, quality_factor, fs)
-                                return scipy_signal.filtfilt(b, a, signal_data)
-                            except (ValueError, RuntimeError, TypeError) as e:
-                                logger.error(f"Filter error: {e}")
-                                return signal_data
-
-                        exg_array = np.array(self.recorders['exg_data_buffer'])
-
-                        for ch_idx in range(1, exg_array.shape[1]):
-                            if len(exg_array[:, ch_idx]) > 10:
-                                exg_array[:, ch_idx] = apply_notch_filter(
-                                    exg_array[:, ch_idx],
-                                    self.stream_processor.device_info['sampling_rate']
-                                )
-
-                        class FilteredPacket:
-                            def __init__(self, timestamps, signals):
-                                self.timestamps = timestamps
-                                self.signals = signals
-
-                            def get_data(self):
-                                return self.timestamps, self.signals
-
-                        timestamps = exg_array[:, 0]
-                        signals = [exg_array[:, i] for i in range(1, exg_array.shape[1])]
-
-                        filtered_packet = FilteredPacket(timestamps, signals)
-                        self.recorders['exg'].write_data(filtered_packet)
-
-                    self.recorders['exg'].stop()
-
-                    logger.info('Impedance mode recording stopped.')
-
-                except Exception as e:
-                    logger.error(f"Error during impedance recording cleanup: {e}")
-            else:
+            if 'handle_impedance_callback' in self.recorders:
                 self.stream_processor.unsubscribe(
-                    callback=self.recorders['exg'].write_data, topic=TOPICS.raw_ExG)
-                self.stream_processor.unsubscribe(
-                    callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
-                self.stream_processor.unsubscribe(
-                    callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
-                self.recorders['exg'].stop()
-                self.recorders['orn'].stop()
-                if self.recorders['exg'].file_type == 'csv':
-                    self.recorders['marker'].stop()
-                if 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
-                    self.recorders['timer'].cancel()
-                logger.info('Recording stopped.')
+                    callback=self.recorders['handle_impedance_callback'], topic=TOPICS.imp)
+            if 'imp_csv_file' in self.recorders:
+                self.recorders['imp_csv_file'].close()
+            self.stream_processor.unsubscribe(
+                callback=self.recorders['exg'].write_data, topic=self.stream_processor.rec_topic)
+            self.stream_processor.unsubscribe(
+                callback=self.recorders['orn'].write_data, topic=TOPICS.raw_orn)
+            self.stream_processor.unsubscribe(
+                callback=self.recorders['marker'].set_marker, topic=TOPICS.marker)
+            self.recorders['exg'].stop()
+            self.recorders['orn'].stop()
+            if self.recorders['exg'].file_type == 'csv':
+                self.recorders['marker'].stop()
+            if 'timer' in self.recorders.keys() and self.recorders['timer'].is_alive():
+                self.recorders['timer'].cancel()
+            logger.info('Recording stopped.')
 
             try:
                 self.last_rec_stat = (
@@ -446,10 +369,14 @@ class Explore:
                 self.mask = [1 for _ in range(0, 32)]
             if 'PCB_305_801_XXX' in self.stream_processor.device_info['board_id']:
                 self.mask = [1 for _ in range(0, 16)]
+            if 'PCB_303_801E_XX' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for _ in range(0, 8)]
             if 'PCB_304_801p2_X' in self.stream_processor.device_info['board_id']:
                 self.mask = [1 for _ in range(0, 32)]
             if 'PCB_304_891p2_X' in self.stream_processor.device_info['board_id']:
                 self.mask = [1 for _ in range(0, 16)]
+            if 'PCB_305_801p2_X' in self.stream_processor.device_info['board_id']:
+                self.mask = [1 for _ in range(0, 64)]
 
         self.recorders['exg'] = create_exg_recorder(filename=exg_out_file,
                                                     file_type=self.recorders['file_type'],
@@ -559,12 +486,13 @@ class Explore:
             explorepy.set_bt_interface(bt_interface)
             logger.info('Conversion process terminated.')
 
-    def push2lsl(self, duration=None, block=False):
+    def push2lsl(self, duration=None, block=False, lsl_topic=TOPICS.raw_ExG):
         """Push samples to three lsl streams (ExG, Marker and ORN streams)
 
         Args:
             duration (float): duration of data acquiring (if None it streams for three hours).
             block (bool): blocking mode
+            lsl_topic (enum): topic to push to LSL. Allowed values:  TOPICS.raw_ExG/filtered_ExG
         """
         self._check_connection()
         duration = self._check_duration(duration)
@@ -572,14 +500,15 @@ class Explore:
         self.lsl['timer'] = Timer(duration, self.stop_lsl)
         self.lsl['server'] = LslServer(self.stream_processor.device_info)
         self.lsl['server'].initialize_outlets()
+        self.stream_processor.lsl_topic = lsl_topic
         self.stream_processor.subscribe(
-            topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
+            topic=lsl_topic, callback=self.lsl['server'].push_exg)
         self.stream_processor.subscribe(
             topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
         self.stream_processor.subscribe(
             topic=TOPICS.marker, callback=self.lsl['server'].push_marker)
         self.lsl['timer'].start()
-
+        self.is_lsl_streaming = True
         if block:
             try:
                 while 'timer' in self.lsl.keys() and self.lsl['timer'].is_alive():
@@ -595,13 +524,14 @@ class Explore:
         """Stop pushing data to LSL streams"""
         if self.lsl:
             self.stream_processor.unsubscribe(
-                topic=TOPICS.raw_ExG, callback=self.lsl['server'].push_exg)
+                topic=self.stream_processor.lsl_topic, callback=self.lsl['server'].push_exg)
             self.stream_processor.unsubscribe(
                 topic=TOPICS.raw_orn, callback=self.lsl['server'].push_orn)
             self.stream_processor.unsubscribe(
                 topic=TOPICS.marker, callback=self.lsl['server'].push_marker)
             if self.lsl['timer'].is_alive():
                 self.lsl['timer'].cancel()
+            self.is_lsl_streaming = False
             self.lsl = {}
 
             logger.info("Push2lsl has been stopped.")
